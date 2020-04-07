@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+    "indy-data-types",
+    "indy-test",
+    "indy-utils"
+]
