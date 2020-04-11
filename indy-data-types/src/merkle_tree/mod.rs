@@ -5,7 +5,8 @@ mod tree;
 pub use self::merkletree::MerkleTree;
 use self::tree::{Tree, TreeLeafData};
 use crate::utils::hash::{DefaultHash as Hash, TreeHash};
-use crate::utils::validation::ValidationError;
+use crate::ValidationError;
+use indy_utils::unwrap_opt_or_return;
 
 impl MerkleTree {
     fn count_bits(v: usize) -> usize {

@@ -1,7 +1,8 @@
 use super::schema::SchemaId;
 use crate::utils::qualifier::{self, Qualifiable};
-use crate::utils::validation::{Validatable, ValidationError};
+use crate::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
+use indy_utils::qualifiable_type;
 
 use super::DELIMITER;
 
@@ -176,7 +177,7 @@ impl Qualifiable for CredentialDefinitionId {
 
 impl Validatable for CredentialDefinitionId {
     fn validate(&self) -> Result<(), ValidationError> {
-        self.parts().ok_or(invalid!(
+        self.parts().ok_or(format!(
             "Credential Definition Id validation failed: {:?}, doesn't match pattern",
             self.0
         ))?;

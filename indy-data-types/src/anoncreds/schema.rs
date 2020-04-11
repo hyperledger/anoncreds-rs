@@ -1,6 +1,6 @@
 use crate::identifiers::schema::SchemaId;
 use crate::utils::qualifier::Qualifiable;
-use crate::utils::validation::{Validatable, ValidationError};
+use crate::{Validatable, ValidationError};
 
 use std::collections::HashSet;
 
@@ -76,18 +76,18 @@ impl Validatable for SchemaV1 {
         self.id.validate()?;
         if let Some((_, _, name, version)) = self.id.parts() {
             if name != self.name {
-                return Err(invalid!(
+                return Err(format!(
                     "Inconsistent Schema Id and Schema Name: {:?} and {}",
-                    self.id,
-                    self.name,
-                ));
+                    self.id, self.name,
+                )
+                .into());
             }
             if version != self.version {
-                return Err(invalid!(
+                return Err(format!(
                     "Inconsistent Schema Id and Schema Version: {:?} and {}",
-                    self.id,
-                    self.version,
-                ));
+                    self.id, self.version,
+                )
+                .into());
             }
         }
         Ok(())
@@ -97,15 +97,16 @@ impl Validatable for SchemaV1 {
 impl Validatable for AttributeNames {
     fn validate(&self) -> Result<(), ValidationError> {
         if self.0.is_empty() {
-            return Err(invalid!("Empty list of Schema attributes has been passed"));
+            return Err("Empty list of Schema attributes has been passed".into());
         }
 
         if self.0.len() > MAX_ATTRIBUTES_COUNT {
-            return Err(invalid!(
+            return Err(format!(
                 "The number of Schema attributes {} cannot be greater than {}",
                 self.0.len(),
                 MAX_ATTRIBUTES_COUNT
-            ));
+            )
+            .into());
         }
         Ok(())
     }

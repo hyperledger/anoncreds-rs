@@ -1,5 +1,5 @@
 use crate::utils::hash::{DefaultHash as Hash, TreeHash, EMPTY_HASH_BYTES};
-use crate::utils::validation::ValidationError;
+use crate::ValidationError;
 
 use super::proof::{Lemma, Proof};
 use super::tree::{LeavesIntoIterator, LeavesIterator, Tree, TreeLeafData};

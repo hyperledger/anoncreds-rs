@@ -2,7 +2,7 @@ use crate::ursa::cl::{
     RevocationRegistry as CryptoRevocationRegistry,
     RevocationRegistryDelta as CryptoRevocationRegistryDelta,
 };
-use crate::utils::validation::Validatable;
+use crate::Validatable;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]

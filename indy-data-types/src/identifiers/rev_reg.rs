@@ -3,8 +3,9 @@ use regex::Regex;
 use super::cred_def::CredentialDefinitionId;
 use super::DELIMITER;
 use crate::utils::qualifier::{self, Qualifiable};
-use crate::utils::validation::{Validatable, ValidationError};
+use crate::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
+use indy_utils::qualifiable_type;
 
 lazy_static! {
     static ref QUALIFIED_REV_REG_ID: Regex = Regex::new("(^revreg:(?P<method>[a-z0-9]+):)?(?P<did>.+):4:(?P<cred_def_id>.+):(?P<rev_reg_type>.+):(?P<tag>.+)$").unwrap();
@@ -87,7 +88,7 @@ impl Qualifiable for RevocationRegistryId {
 
 impl Validatable for RevocationRegistryId {
     fn validate(&self) -> Result<(), ValidationError> {
-        self.parts().ok_or(invalid!(
+        self.parts().ok_or(format!(
             "Revocation Registry Id validation failed: {:?}, doesn't match pattern",
             self.0
         ))?;

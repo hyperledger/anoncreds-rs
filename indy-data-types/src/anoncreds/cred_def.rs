@@ -2,8 +2,7 @@ use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::schema::SchemaId;
 use crate::ursa::cl::{CredentialPrimaryPublicKey, CredentialRevocationPublicKey};
 use crate::utils::qualifier::Qualifiable;
-use crate::utils::validation::{Validatable, ValidationError};
-use crate::{ConversionError, TryClone};
+use crate::{ConversionError, TryClone, Validatable, ValidationError};
 
 pub const CL_SIGNATURE_TYPE: &str = "CL";
 
