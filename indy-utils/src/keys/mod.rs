@@ -5,8 +5,10 @@ use zeroize::Zeroize;
 
 use super::base58;
 use super::error::ConversionError;
-use super::types::{KeyEncoding, KeyType};
 use super::validation::{Validatable, ValidationError};
+
+mod types;
+pub use types::*;
 
 pub fn build_full_verkey(dest: &str, key: &str) -> Result<VerKey, ConversionError> {
     VerKey::from_str_qualified(key, Some(dest), None, None)

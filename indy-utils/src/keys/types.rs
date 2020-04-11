@@ -1,5 +1,3 @@
-use super::error::ConversionError;
-
 pub const KEY_ENC_BASE58: &'static str = "base58";
 
 pub const KEY_TYPE_ED25519: &'static str = "ed25519";
@@ -91,8 +89,4 @@ impl std::ops::Deref for KeyEncoding {
     fn deref(&self) -> &str {
         self.as_str()
     }
-}
-
-pub trait TryClone: Sized {
-    fn try_clone(&self) -> Result<Self, ConversionError>;
 }

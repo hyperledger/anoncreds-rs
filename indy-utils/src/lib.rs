@@ -13,8 +13,12 @@ extern crate serde_json;
 #[macro_use]
 pub mod macros;
 
-pub mod error;
-pub mod types;
+mod error;
+pub use error::{ConversionError, ValidationError};
+
+pub trait TryClone: Sized {
+    fn try_clone(&self) -> Result<Self, ConversionError>;
+}
 
 /// Trait for qualifiable identifier types, having an optional prefix and method
 #[macro_use]
@@ -22,7 +26,8 @@ pub mod qualifier;
 
 /// Trait and error definition for validatable data types
 #[macro_use]
-pub mod validation;
+mod validation;
+pub use validation::Validatable;
 
 pub mod base58;
 pub mod did;

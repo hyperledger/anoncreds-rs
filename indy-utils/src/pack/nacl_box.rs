@@ -3,8 +3,7 @@ use ursa::blake2::{digest::Input, digest::VariableOutput, VarBlake2b};
 use ursa::encryption::random_vec;
 
 use crate::error::{ConversionError, UnexpectedError, ValidationError};
-use crate::keys::SignKey;
-use crate::types::KeyType;
+use crate::keys::{KeyType, SignKey};
 
 const CBOX_NONCE_SIZE: usize = 24;
 
