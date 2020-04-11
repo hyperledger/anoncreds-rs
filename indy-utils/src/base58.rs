@@ -1,11 +1,11 @@
 use bs58;
 
-use super::validation::ValidationError;
+use super::error::ConversionError;
 
-pub fn decode<T: AsRef<[u8]>>(val: T) -> Result<Vec<u8>, ValidationError> {
-    bs58::decode(val)
+pub fn decode<T: AsRef<[u8]>>(val: T) -> Result<Vec<u8>, ConversionError> {
+    Ok(bs58::decode(val)
         .into_vec()
-        .map_err(|_| ValidationError(Some("Error decoding base58 string".to_owned())))
+        .map_err(|err| ("Error decoding base58 data", err))?)
 }
 
 pub fn encode<T: AsRef<[u8]>>(val: T) -> String {
