@@ -1,6 +1,6 @@
 pub use ursa::hash::sha2::{Digest, Sha256};
 
-use super::validation::ValidationError;
+use super::ValidationError;
 
 pub type DefaultHash = Sha256;
 pub const HASHBYTES: usize = 32;

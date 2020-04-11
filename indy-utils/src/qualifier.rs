@@ -1,6 +1,6 @@
 use regex::Regex;
 
-use super::validation::{Validatable, ValidationError};
+use super::{Validatable, ValidationError};
 
 lazy_static! {
     pub(crate) static ref REGEX: Regex = Regex::new("^([a-z0-9]+):([a-z0-9]+):(.*)$").unwrap();

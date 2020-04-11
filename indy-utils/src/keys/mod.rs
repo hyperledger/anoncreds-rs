@@ -5,7 +5,7 @@ use zeroize::Zeroize;
 
 use super::base58;
 use super::error::ConversionError;
-use super::validation::{Validatable, ValidationError};
+use super::{Validatable, ValidationError};
 
 mod types;
 pub use types::*;

@@ -1,10 +1,10 @@
-pub use crate::error::ValidationError;
+use crate::error::ValidationError;
 
 #[macro_export]
 macro_rules! invalid {
-    () => { $crate::validation::ValidationError::from(None) };
+    () => { $crate::ValidationError::from(None) };
     ($($arg:tt)+) => {
-        $crate::validation::ValidationError::from(format!($($arg)+))
+        $crate::ValidationError::from(format!($($arg)+))
     };
 }
 

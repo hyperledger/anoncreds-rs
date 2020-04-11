@@ -2,7 +2,7 @@ use regex::Regex;
 
 use crate::base58;
 use crate::qualifier::Qualifiable;
-use crate::validation::{Validatable, ValidationError};
+use crate::{Validatable, ValidationError};
 
 /// A wrapper providing validation for DID methods
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
