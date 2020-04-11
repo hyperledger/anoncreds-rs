@@ -291,6 +291,7 @@ impl Validatable for PresentationRequest {
 }
 
 impl PresentationRequest {
+    #[allow(unused)]
     pub fn to_unqualified(self) -> PresentationRequest {
         let convert = |request: &mut PresentationRequestPayload| {
             for (_, requested_attribute) in request.requested_attributes.iter_mut() {
