@@ -1,11 +1,10 @@
-use ursa::cl::{
+use crate::ursa::cl::{
     RevocationRegistry as CryptoRevocationRegistry,
     RevocationRegistryDelta as CryptoRevocationRegistryDelta,
 };
-
 use crate::utils::validation::Validatable;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "ver"))]
 pub enum RevocationRegistry {
@@ -13,7 +12,13 @@ pub enum RevocationRegistry {
     RevocationRegistryV1(RevocationRegistryV1),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct RevocationRegistryV1 {
+    pub value: CryptoRevocationRegistry,
+}
+
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "ver"))]
 pub enum RevocationRegistryDelta {
@@ -22,12 +27,6 @@ pub enum RevocationRegistryDelta {
 }
 
 impl Validatable for RevocationRegistryDelta {}
-
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct RevocationRegistryV1 {
-    pub value: CryptoRevocationRegistry,
-}
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]

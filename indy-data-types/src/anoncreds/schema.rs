@@ -6,7 +6,7 @@ use std::collections::HashSet;
 
 pub const MAX_ATTRIBUTES_COUNT: usize = 125;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "ver"))]
 pub enum Schema {

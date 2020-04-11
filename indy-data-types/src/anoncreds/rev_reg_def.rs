@@ -1,13 +1,12 @@
-use ursa::cl::RevocationKeyPublic;
-
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
+use crate::ursa::cl::RevocationKeyPublic;
 use crate::utils::qualifier::Qualifiable;
 use crate::utils::validation::{Validatable, ValidationError};
 
 pub const CL_ACCUM: &str = "CL_ACCUM";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct RevocationRegistryConfig {
     pub issuance_type: Option<IssuanceType>,
@@ -29,7 +28,7 @@ impl IssuanceType {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum RegistryType {
     CL_ACCUM,
@@ -43,7 +42,7 @@ impl RegistryType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDefinitionValue {
@@ -54,14 +53,14 @@ pub struct RevocationRegistryDefinitionValue {
     pub tails_location: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDefinitionValuePublicKeys {
     pub accum_key: RevocationKeyPublic,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(tag = "ver"))]
 pub enum RevocationRegistryDefinition {
@@ -72,14 +71,14 @@ pub enum RevocationRegistryDefinition {
 impl RevocationRegistryDefinition {
     pub fn to_unqualified(self) -> RevocationRegistryDefinition {
         match self {
-            RevocationRegistryDefinition::RevocationRegistryDefinitionV1(rev_ref_def) => {
+            RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => {
                 RevocationRegistryDefinition::RevocationRegistryDefinitionV1(
                     RevocationRegistryDefinitionV1 {
-                        id: rev_ref_def.id.to_unqualified(),
-                        revoc_def_type: rev_ref_def.revoc_def_type,
-                        tag: rev_ref_def.tag,
-                        cred_def_id: rev_ref_def.cred_def_id.to_unqualified(),
-                        value: rev_ref_def.value,
+                        id: v1.id.to_unqualified(),
+                        revoc_def_type: v1.revoc_def_type,
+                        tag: v1.tag,
+                        cred_def_id: v1.cred_def_id.to_unqualified(),
+                        value: v1.value,
                     },
                 )
             }
@@ -90,15 +89,15 @@ impl RevocationRegistryDefinition {
 impl Validatable for RevocationRegistryDefinition {
     fn validate(&self) -> Result<(), ValidationError> {
         match self {
-            RevocationRegistryDefinition::RevocationRegistryDefinitionV1(revoc_reg_def) => {
-                revoc_reg_def.id.validate()?;
+            RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => {
+                v1.id.validate()?;
             }
         }
         Ok(())
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDefinitionV1 {

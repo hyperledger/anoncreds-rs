@@ -2,9 +2,9 @@ use regex::Regex;
 
 use super::cred_def::CredentialDefinitionId;
 use super::DELIMITER;
-use crate::common::did::DidValue;
 use crate::utils::qualifier::{self, Qualifiable};
 use crate::utils::validation::{Validatable, ValidationError};
+use indy_utils::did::DidValue;
 
 lazy_static! {
     static ref QUALIFIED_REV_REG_ID: Regex = Regex::new("(^revreg:(?P<method>[a-z0-9]+):)?(?P<did>.+):4:(?P<cred_def_id>.+):(?P<rev_reg_type>.+):(?P<tag>.+)$").unwrap();

@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate indy_utils;
+pub use indy_utils::ursa;
 
 #[macro_use]
 extern crate lazy_static;
@@ -20,7 +21,6 @@ mod utils {
 }
 
 mod anoncreds;
-mod common;
 mod identifiers;
 mod merkle_tree;
 
@@ -29,9 +29,11 @@ pub use anoncreds::rev_reg::*;
 pub use anoncreds::rev_reg_def::*;
 pub use anoncreds::schema::*;
 
-pub use common::did::*;
-pub use common::verkey::*;
-
 pub use identifiers::cred_def::*;
 pub use identifiers::rev_reg::*;
 pub use identifiers::schema::*;
+
+pub use indy_utils::did::*;
+pub use indy_utils::error::ConversionError;
+pub use indy_utils::keys::*;
+pub use indy_utils::types::TryClone;

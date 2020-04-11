@@ -1,7 +1,7 @@
 use super::schema::SchemaId;
-use crate::common::did::DidValue;
 use crate::utils::qualifier::{self, Qualifiable};
 use crate::utils::validation::{Validatable, ValidationError};
+use indy_utils::did::DidValue;
 
 use super::DELIMITER;
 
