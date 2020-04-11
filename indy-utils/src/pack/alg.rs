@@ -253,14 +253,18 @@ async fn _find_unpack_recipient(
     protected: Protected,
     lookup: impl KeyLookup,
 ) -> Result<Option<(Recipient, VerKey, SignKey)>, ConversionError> {
-    for recipient in protected.recipients {
+    let mut recip_vks = Vec::<VerKey>::with_capacity(protected.recipients.len());
+    for recipient in &protected.recipients {
         let vk = VerKey::from_str(&recipient.header.kid)?;
-        let sk = lookup.find(&vk).await;
-        if let Some(sk) = sk {
-            return Ok(Some((recipient, vk, sk)));
-        }
+        recip_vks.push(vk);
     }
-    Ok(None)
+    if let Some((idx, sk)) = lookup.find(&recip_vks).await {
+        let recip = protected.recipients.into_iter().nth(idx).unwrap();
+        let vk = recip_vks.into_iter().nth(idx).unwrap();
+        Ok(Some((recip, vk, sk)))
+    } else {
+        Ok(None)
+    }
 }
 
 #[cfg(test)]
@@ -290,12 +294,13 @@ mod tests {
         let input_msg = b"hello there";
         let packed = pack_message(&input_msg, vec![pk2.clone()], Some(sk1.clone())).unwrap();
 
-        let lookup = |find_pk: &VerKey| {
-            if find_pk == &pk2 {
-                Some(sk2.clone())
-            } else {
-                None
+        let lookup = |find_pks: &Vec<VerKey>| {
+            for (idx, pk) in find_pks.into_iter().enumerate() {
+                if pk == &pk2 {
+                    return Some((idx, sk2.clone()));
+                }
             }
+            None
         };
 
         let lookup_fn = key_lookup_fn(lookup);

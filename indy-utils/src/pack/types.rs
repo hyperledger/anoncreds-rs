@@ -38,11 +38,11 @@ pub struct Protected {
 pub trait KeyLookup: Sync {
     fn find<'f>(
         &'f self,
-        key: &'f VerKey,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Option<SignKey>> + Send + 'f>>;
+        key: &'f Vec<VerKey>,
+    ) -> std::pin::Pin<Box<dyn Future<Output = Option<(usize, SignKey)>> + Send + 'f>>;
 }
 
-type KeyLookupCb<'a> = Box<dyn Fn(&VerKey) -> Option<SignKey> + Send + Sync + 'a>;
+type KeyLookupCb<'a> = Box<dyn Fn(&Vec<VerKey>) -> Option<(usize, SignKey)> + Send + Sync + 'a>;
 
 pub struct KeyLookupFn<'a> {
     cb: KeyLookupCb<'a>,
@@ -50,7 +50,7 @@ pub struct KeyLookupFn<'a> {
 
 pub fn key_lookup_fn<'a, F>(cb: F) -> KeyLookupFn<'a>
 where
-    F: Fn(&VerKey) -> Option<SignKey> + Send + Sync + 'a,
+    F: Fn(&Vec<VerKey>) -> Option<(usize, SignKey)> + Send + Sync + 'a,
 {
     KeyLookupFn {
         cb: Box::new(cb) as KeyLookupCb,
@@ -58,17 +58,17 @@ where
 }
 
 async fn lazy_lookup<'a>(
-    cb: &Box<dyn Fn(&VerKey) -> Option<SignKey> + Send + Sync + 'a>,
-    key: &VerKey,
-) -> Option<SignKey> {
-    cb(key)
+    cb: &Box<dyn Fn(&Vec<VerKey>) -> Option<(usize, SignKey)> + Send + Sync + 'a>,
+    keys: &Vec<VerKey>,
+) -> Option<(usize, SignKey)> {
+    cb(keys)
 }
 
 impl<'a> KeyLookup for KeyLookupFn<'a> {
     fn find<'f>(
         &'f self,
-        key: &'f VerKey,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Option<SignKey>> + Send + 'f>> {
-        Box::pin(lazy_lookup(&self.cb, key))
+        keys: &'f Vec<VerKey>,
+    ) -> std::pin::Pin<Box<dyn Future<Output = Option<(usize, SignKey)>> + Send + 'f>> {
+        Box::pin(lazy_lookup(&self.cb, keys))
     }
 }
