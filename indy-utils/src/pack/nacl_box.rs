@@ -102,35 +102,35 @@ pub fn crypto_box_seal_open(
     Ok(decode)
 }
 
-#[test]
-fn test_box() {
-    let sk =
-        hex::decode("07d0b594683bdb6af5f4eacb1a392687d580a58db196a752dca316dedb7d251d").unwrap();
-    let pk =
-        hex::decode("07d0b594683bdb6af5f4eacb1a392687d580a58db196a752dca316dedb7d251c").unwrap();
-    let message = b"hello there";
-    // let nonce = b"012345678912012345678912".to_vec();
-    let (boxed, nonce) = crypto_box(&pk, &sk, message, None).unwrap();
-    println!("boxed: {}", hex::encode(&boxed));
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let open = crypto_box_open(&sk, &pk, &boxed, &nonce).unwrap();
-    assert_eq!(open, message);
-}
+    #[test]
+    fn test_box() {
+        let sk = hex::decode("07d0b594683bdb6af5f4eacb1a392687d580a58db196a752dca316dedb7d251d")
+            .unwrap();
+        let pk = hex::decode("07d0b594683bdb6af5f4eacb1a392687d580a58db196a752dca316dedb7d251c")
+            .unwrap();
+        let message = b"hello there";
+        // let nonce = b"012345678912012345678912".to_vec();
+        let (boxed, nonce) = crypto_box(&pk, &sk, message, None).unwrap();
 
-#[test]
-fn test_box_seal() {
-    // let sk = SignKey::generate(Some(KeyType::ED25519)).unwrap();
-    let sk = SignKey::from_seed(b"000000000000000000000000Trustee1").unwrap();
-    let pk_x = sk.public_key().unwrap().key_exchange().unwrap();
-    let sk_x = sk.key_exchange().unwrap();
+        let open = crypto_box_open(&sk, &pk, &boxed, &nonce).unwrap();
+        assert_eq!(open, message);
+    }
 
-    println!("pk_x: {:?}", &pk_x);
-    println!("sk_x: {:?}", &sk_x);
+    #[test]
+    fn test_box_seal() {
+        // let sk = SignKey::generate(Some(KeyType::ED25519)).unwrap();
+        let sk = SignKey::from_seed(b"000000000000000000000000000Test0").unwrap();
+        let pk_x = sk.public_key().unwrap().key_exchange().unwrap();
+        let sk_x = sk.key_exchange().unwrap();
 
-    let message = b"hello there";
-    let sealed = crypto_box_seal(&pk_x.0, message).unwrap();
-    println!("sealed: {}", hex::encode(&sealed));
+        let message = b"hello there";
+        let sealed = crypto_box_seal(&pk_x.0, message).unwrap();
 
-    let open = crypto_box_seal_open(&pk_x.0, &sk_x.0, &sealed).unwrap();
-    assert_eq!(open, message);
+        let open = crypto_box_seal_open(&pk_x.0, &sk_x.0, &sealed).unwrap();
+        assert_eq!(open, message);
+    }
 }
