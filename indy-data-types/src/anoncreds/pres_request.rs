@@ -12,7 +12,7 @@ use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
 use crate::ursa::cl::Nonce;
 use crate::utils::qualifier::{self, Qualifiable};
-use crate::{Validatable, ValidationError};
+use crate::{ConversionError, TryClone, Validatable, ValidationError};
 use indy_utils::did::DidValue;
 use indy_utils::invalid;
 use indy_utils::wql::Query;
@@ -27,6 +27,19 @@ pub struct PresentationRequestPayload {
     #[serde(default)]
     pub requested_predicates: HashMap<String, PredicateInfo>,
     pub non_revoked: Option<NonRevocedInterval>,
+}
+
+impl TryClone for PresentationRequestPayload {
+    fn try_clone(&self) -> Result<Self, ConversionError> {
+        Ok(Self {
+            nonce: self.nonce.try_clone()?,
+            name: self.name.clone(),
+            version: self.version.clone(),
+            requested_attributes: self.requested_attributes.clone(),
+            requested_predicates: self.requested_predicates.clone(),
+            non_revoked: self.non_revoked.clone(),
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -54,6 +67,19 @@ impl PresentationRequest {
             PresentationRequest::PresentationRequestV1(_) => PresentationRequestVersion::V1,
             PresentationRequest::PresentationRequestV2(_) => PresentationRequestVersion::V2,
         }
+    }
+}
+
+impl TryClone for PresentationRequest {
+    fn try_clone(&self) -> Result<Self, ConversionError> {
+        Ok(match self {
+            PresentationRequest::PresentationRequestV1(req) => {
+                PresentationRequest::PresentationRequestV1(req.try_clone()?)
+            }
+            PresentationRequest::PresentationRequestV2(req) => {
+                PresentationRequest::PresentationRequestV2(req.try_clone()?)
+            }
+        })
     }
 }
 

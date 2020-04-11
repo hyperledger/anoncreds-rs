@@ -6,12 +6,12 @@ pub struct MasterSecret {
     pub value: CryptoMasterSecret,
 }
 
-// impl TryClone for MasterSecret {
-//     fn try_clone(&self) -> Result<Self, ConversionError> {
-//         Ok(Self {
-//             value: self.value.try_clone()?,
-//         })
-//     }
-// }
+impl TryClone for MasterSecret {
+    fn try_clone(&self) -> Result<Self, ConversionError> {
+        Ok(Self {
+            value: self.value.try_clone()?,
+        })
+    }
+}
 
 impl Validatable for MasterSecret {}

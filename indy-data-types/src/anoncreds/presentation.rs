@@ -13,7 +13,7 @@ pub struct Presentation {
     pub identifiers: Vec<Identifier>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RequestedProof {
     pub revealed_attrs: HashMap<String, RevealedAttributeInfo>,
     #[serde(skip_serializing_if = "HashMap::is_empty")]
@@ -39,25 +39,25 @@ impl Default for RequestedProof {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SubProofReferent {
     pub sub_proof_index: u32,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RevealedAttributeInfo {
     pub sub_proof_index: u32,
     pub raw: String,
     pub encoded: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RevealedAttributeGroupInfo {
     pub sub_proof_index: u32,
     pub values: HashMap<String /* attribute name */, AttributeValue>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AttributeValue {
     pub raw: String,
     pub encoded: String,
