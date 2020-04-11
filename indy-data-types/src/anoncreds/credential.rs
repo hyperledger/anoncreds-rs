@@ -8,7 +8,8 @@ use crate::ursa::cl::{
 };
 use crate::{ConversionError, TryClone, Validatable, ValidationError};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Credential {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
@@ -63,7 +64,8 @@ impl Validatable for Credential {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialInfo {
     pub referent: String,
     pub attrs: ShortCredentialValues,
@@ -75,10 +77,12 @@ pub struct CredentialInfo {
 
 pub type ShortCredentialValues = HashMap<String, String>;
 
-#[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialValues(pub HashMap<String, AttributeValues>);
 
-#[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct AttributeValues {
     pub raw: String,
     pub encoded: String,

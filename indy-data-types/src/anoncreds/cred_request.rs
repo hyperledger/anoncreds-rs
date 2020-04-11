@@ -7,7 +7,8 @@ use crate::utils::qualifier::Qualifiable;
 use crate::{ConversionError, TryClone, Validatable, ValidationError};
 use indy_utils::did::DidValue;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialRequest {
     pub prover_did: DidValue,
     pub cred_def_id: CredentialDefinitionId,
@@ -49,7 +50,8 @@ impl Validatable for CredentialRequest {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialRequestMetadata {
     pub master_secret_blinding_data: CredentialSecretsBlindingFactors,
     pub nonce: Nonce,

@@ -5,7 +5,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate serde_derive;
 
-#[cfg(any(test, feature = "serde"))]
+#[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde_json;
 

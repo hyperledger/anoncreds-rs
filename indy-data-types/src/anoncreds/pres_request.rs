@@ -17,14 +17,15 @@ use indy_utils::did::DidValue;
 use indy_utils::invalid;
 use indy_utils::wql::Query;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PresentationRequestPayload {
     pub nonce: Nonce,
     pub name: String,
     pub version: String,
-    #[serde(default)]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub requested_attributes: HashMap<String, AttributeInfo>,
-    #[serde(default)]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub requested_predicates: HashMap<String, PredicateInfo>,
     pub non_revoked: Option<NonRevocedInterval>,
 }
@@ -170,23 +171,26 @@ impl Serialize for PresentationRequest {
 
 pub type PresentationRequestExtraQuery = HashMap<String, Query>;
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct NonRevocedInterval {
     pub from: Option<u64>,
     pub to: Option<u64>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct AttributeInfo {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub names: Option<Vec<String>>,
     pub restrictions: Option<Query>,
     pub non_revoked: Option<NonRevocedInterval>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PredicateInfo {
     pub name: String,
     pub p_type: PredicateTypes,
@@ -195,15 +199,16 @@ pub struct PredicateInfo {
     pub non_revoked: Option<NonRevocedInterval>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum PredicateTypes {
-    #[serde(rename = ">=")]
+    #[cfg_attr(feature = "serde", serde(rename = ">="))]
     GE,
-    #[serde(rename = "<=")]
+    #[cfg_attr(feature = "serde", serde(rename = "<="))]
     LE,
-    #[serde(rename = ">")]
+    #[cfg_attr(feature = "serde", serde(rename = ">"))]
     GT,
-    #[serde(rename = "<")]
+    #[cfg_attr(feature = "serde", serde(rename = "<"))]
     LT,
 }
 
@@ -218,14 +223,16 @@ impl fmt::Display for PredicateTypes {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct RequestedAttributeInfo {
     pub attr_referent: String,
     pub attr_info: AttributeInfo,
     pub revealed: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct RequestedPredicateInfo {
     pub predicate_referent: String,
     pub predicate_info: PredicateInfo,
@@ -416,6 +423,7 @@ fn _check_restriction(
 mod tests {
     use super::*;
 
+    #[cfg(feature = "serde")]
     mod invalid_nonce {
         use super::*;
 

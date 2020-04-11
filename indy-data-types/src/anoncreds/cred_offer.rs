@@ -4,13 +4,14 @@ use crate::ursa::cl::{CredentialKeyCorrectnessProof, Nonce};
 use crate::utils::qualifier::Qualifiable;
 use crate::{ConversionError, TryClone, Validatable, ValidationError};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialOffer {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
     pub key_correctness_proof: CredentialKeyCorrectnessProof,
     pub nonce: Nonce,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub method_name: Option<String>,
 }
 

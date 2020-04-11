@@ -1,7 +1,8 @@
 use crate::ursa::cl::MasterSecret as CryptoMasterSecret;
 use crate::{ConversionError, TryClone, Validatable};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct MasterSecret {
     pub value: CryptoMasterSecret,
 }
