@@ -14,6 +14,7 @@ crate-type = ["rlib"]
 
 [features]
 default = ["serde-serialize"]
+rich_schema = []
 serde-serialize = ["indy-utils/serde-serialize", "serde", "serde_derive", "serde_json"]
 
 [dependencies]

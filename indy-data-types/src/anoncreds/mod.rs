@@ -20,8 +20,9 @@ pub mod rev_reg;
 /// Revocation registry definition operations
 pub mod rev_reg_def;
 
+#[cfg(feature = "rich_schema")]
 /// Rich schema
-// pub mod rich_schema;
+pub mod rich_schema;
 
 /// V1 credential schema
 pub mod schema;

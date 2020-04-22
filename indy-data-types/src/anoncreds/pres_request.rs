@@ -169,6 +169,7 @@ impl Serialize for PresentationRequest {
     }
 }
 
+#[allow(unused)]
 pub type PresentationRequestExtraQuery = HashMap<String, Query>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
