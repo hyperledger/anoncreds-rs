@@ -41,6 +41,9 @@ pub mod hash;
 #[cfg(feature = "pack")]
 pub mod pack;
 
+#[cfg(feature = "txn_signature")]
+pub mod txn_signature;
+
 #[cfg(feature = "wql")]
 pub mod wql;
 

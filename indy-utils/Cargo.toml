@@ -13,13 +13,14 @@ path = "src/lib.rs"
 crate-type = ["rlib"]
 
 [features]
-default = ["hash", "pack", "wql"]
+default = ["hash", "pack", "txn_signature", "wql"]
 base64 = ["rust_base64"]
 cl = ["ursa/cl_native"]
 ed25519 = ["ursa/ed25519", "ursa/x25519"]
 hash = ["ursa/sha2"]
 pack = ["base64", "crypto_box", "ed25519", "serde-serialize", "ursa/blake2", "ursa/chacha20poly1305"]
 serde-serialize = ["serde", "serde_derive", "serde_json", "ursa/serde"]
+txn_signature = ["hash"]
 wql = ["serde-serialize"]
 
 [dependencies]
