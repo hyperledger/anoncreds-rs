@@ -23,7 +23,7 @@ regex = "1.3.1"
 serde = { version = "1.0.106", optional = true }
 serde_derive = { version = "1.0.106", optional = true }
 serde_json = { version = "1.0.50", optional = true }
-indy-utils = { path = "../indy-utils", default-features = false, features = ["cl"] }
+indy-utils = { version = "0.1.0", path = "../indy-utils", default-features = false, features = ["cl"] }
 
 [dev-dependencies]
 hex = "0.4.0"
