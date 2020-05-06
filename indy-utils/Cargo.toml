@@ -39,7 +39,8 @@ zeroize = "1.1.0"
 
 [dependencies.ursa]
 default-features = false
-path = "../../ursa/libursa"
+git = "https://github.com/hyperledger/ursa.git"
+rev = "5444d41707c05399e191c2290d2767658d14fbc4"
 
 [dev-dependencies]
 futures = "0.3.4"

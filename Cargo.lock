@@ -977,6 +977,7 @@ dependencies = [
 [[package]]
 name = "ursa"
 version = "0.3.4"
+source = "git+https://github.com/hyperledger/ursa.git?rev=5444d41707c05399e191c2290d2767658d14fbc4#5444d41707c05399e191c2290d2767658d14fbc4"
 dependencies = [
  "aead",
  "amcl",

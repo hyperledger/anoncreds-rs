@@ -45,7 +45,7 @@ impl SignKey {
     #[cfg(feature = "ed25519")]
     pub fn from_seed(seed: &[u8]) -> Result<Self, ConversionError> {
         let (_pk, sk) =
-            Ed25519Sha512::keypair_from_secret(seed).map_err(|_| "Error creating signing key")?;
+            Ed25519Sha512::expand_keypair(seed).map_err(|_| "Error creating signing key")?;
         Ok(Self::new(sk, Some(KeyType::ED25519)))
     }
 
