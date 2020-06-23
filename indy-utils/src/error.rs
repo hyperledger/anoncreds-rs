@@ -118,7 +118,7 @@ impl From<std::string::FromUtf8Error> for ConversionError {
     }
 }
 
-#[cfg(feature = "cl")]
+#[cfg(any(feature = "cl", feature = "cl_native"))]
 impl From<ursa::errors::UrsaCryptoError> for ConversionError {
     fn from(err: ursa::errors::UrsaCryptoError) -> Self {
         Self::from(err.to_string())

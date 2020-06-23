@@ -5,7 +5,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate serde_derive;
 
-#[cfg(feature = "serde")]
+#[cfg(all(feature = "serde", any(test, feature = "cl", feature = "cl_native")))]
 #[macro_use]
 extern crate serde_json;
 
@@ -24,8 +24,11 @@ mod anoncreds;
 mod identifiers;
 mod merkle_tree;
 
+#[cfg(any(feature = "cl", feature = "cl_native"))]
 pub use anoncreds::cred_def::*;
+#[cfg(any(feature = "cl", feature = "cl_native"))]
 pub use anoncreds::rev_reg::*;
+#[cfg(any(feature = "cl", feature = "cl_native"))]
 pub use anoncreds::rev_reg_def::*;
 pub use anoncreds::schema::*;
 
