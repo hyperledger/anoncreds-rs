@@ -1,18 +1,32 @@
 use regex::Regex;
 
 use crate::base58;
+use crate::keys::{KeyType, SignKey, VerKey};
 use crate::qualifier::Qualifiable;
-use crate::{Validatable, ValidationError};
-
-/// A wrapper providing validation for DID methods
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct DidMethod(pub String);
+use crate::{ConversionError, Validatable, ValidationError};
 
 lazy_static! {
     /// The default identifier DID used when submitting ledger read requests
     pub static ref DEFAULT_LIBINDY_DID: DidValue = DidValue::new("LibindyDid111111111111", None);
 }
+
+#[cfg(feature = "ed25519")]
+pub fn generate_did(
+    seed: Option<&[u8]>,
+) -> Result<(ShortDidValue, SignKey, VerKey), ConversionError> {
+    let sk = match seed {
+        Some(seed) => SignKey::from_seed(seed)?,
+        None => SignKey::generate(Some(KeyType::ED25519))?,
+    };
+    let pk = sk.public_key()?;
+    let did = base58::encode(&pk.as_ref()[..16]);
+    Ok((ShortDidValue::from(did), sk, pk))
+}
+
+/// A wrapper providing validation for DID methods
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct DidMethod(pub String);
 
 impl Validatable for DidMethod {
     fn validate(&self) -> Result<(), ValidationError> {
@@ -107,5 +121,23 @@ impl Validatable for ShortDidValue {
             ));
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::keys::EncodedVerKey;
+
+    #[test]
+    fn generate_abbreviate() {
+        let (did, _sk, vk) = generate_did(None).unwrap();
+        let vk_b58 = vk.as_base58().unwrap();
+        let vk_short = vk_b58.abbreviated_for_did(&did).unwrap();
+        assert_eq!(vk_short.chars().next(), Some('~'));
+        let vk_long = EncodedVerKey::from_did_and_verkey(&did, &vk_short).unwrap();
+        assert_eq!(vk_long, vk_b58);
+        let cmp_vk = vk_long.decode().unwrap();
+        assert_eq!(vk, cmp_vk);
     }
 }

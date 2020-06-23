@@ -227,13 +227,58 @@ pub struct EncodedVerKey {
 }
 
 impl EncodedVerKey {
-    pub fn new(key: &str, alg: Option<KeyType>, enc: Option<KeyEncoding>) -> Self {
+    pub fn new<K: AsRef<str>>(key: K, alg: Option<KeyType>, enc: Option<KeyEncoding>) -> Self {
         let alg = alg.unwrap_or_default();
         let enc = enc.unwrap_or_default();
         Self {
-            key: key.to_owned(),
+            key: key.as_ref().to_owned(),
             alg,
             enc,
+        }
+    }
+
+    pub fn from_did_and_verkey(did: &str, key: &str) -> Result<Self, ConversionError> {
+        if key.chars().next() == Some('~') {
+            let mut vk_bytes = base58::decode(&key[1..])?;
+            if vk_bytes.len() != 16 {
+                return Err(ConversionError::from_msg(
+                    "Expected 16-byte abbreviated verkey",
+                ));
+            }
+            let mut did_bytes = base58::decode(did)?;
+            if did_bytes.len() != 16 {
+                return Err(ConversionError::from_msg("DID must be 16 bytes in length"));
+            }
+            did_bytes.append(&mut vk_bytes);
+            Ok(Self::new(
+                &base58::encode(did_bytes),
+                Some(KeyType::ED25519),
+                Some(KeyEncoding::BASE58),
+            ))
+        } else {
+            Ok(Self::new(
+                key,
+                Some(KeyType::ED25519),
+                Some(KeyEncoding::BASE58),
+            ))
+        }
+    }
+
+    pub fn abbreviated_for_did(&self, did: &str) -> Result<String, ConversionError> {
+        let did_bytes = base58::decode(did)?;
+        if did_bytes.len() != 16 {
+            return Err(ConversionError::from_msg("DID must be 16 bytes in length"));
+        }
+        let vk = self.key_bytes()?;
+        if vk.len() != 32 {
+            return Err(ConversionError::from_msg("Expected 32-byte verkey"));
+        }
+        if &vk[..16] == did_bytes.as_slice() {
+            let mut result = "~".to_string();
+            result.push_str(&base58::encode(&vk[16..]));
+            Ok(result)
+        } else {
+            Ok(base58::encode(vk))
         }
     }
 
