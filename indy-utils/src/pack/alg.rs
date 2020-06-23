@@ -269,7 +269,7 @@ async fn _find_unpack_recipient(
 
 #[cfg(test)]
 mod tests {
-    use futures::executor::block_on;
+    use futures_executor::block_on;
 
     use super::*;
 

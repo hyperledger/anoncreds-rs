@@ -50,6 +50,18 @@ impl std::ops::Deref for KeyType {
     }
 }
 
+impl From<&str> for KeyType {
+    fn from(value: &str) -> Self {
+        Self::from_str(value)
+    }
+}
+
+impl From<String> for KeyType {
+    fn from(value: String) -> Self {
+        Self::from_str(&value)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum KeyEncoding {
     BASE58,
@@ -88,5 +100,17 @@ impl std::ops::Deref for KeyEncoding {
     type Target = str;
     fn deref(&self) -> &str {
         self.as_str()
+    }
+}
+
+impl From<&str> for KeyEncoding {
+    fn from(value: &str) -> Self {
+        Self::from_str(value)
+    }
+}
+
+impl From<String> for KeyEncoding {
+    fn from(value: String) -> Self {
+        Self::from_str(&value)
     }
 }

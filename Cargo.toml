@@ -2,6 +2,6 @@
 
 members = [
     "indy-data-types",
-    "indy-test",
+    "indy-test-utils",
     "indy-utils"
 ]

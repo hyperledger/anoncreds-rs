@@ -10,6 +10,11 @@ use super::{Validatable, ValidationError};
 mod types;
 pub use types::*;
 
+#[cfg(feature = "ed25519")]
+lazy_static! {
+    pub static ref ED25519_SIGNER: Ed25519Sha512 = Ed25519Sha512::new();
+}
+
 pub fn build_full_verkey(dest: &str, key: &str) -> Result<VerKey, ConversionError> {
     VerKey::from_str_qualified(key, Some(dest), None, None)
 }
@@ -33,7 +38,7 @@ impl SignKey {
         let alg = alg.unwrap_or_default();
         match alg {
             KeyType::ED25519 => {
-                let (_pk, sk) = Ed25519Sha512::new()
+                let (_pk, sk) = ED25519_SIGNER
                     .keypair(None)
                     .map_err(|_| "Error creating signing key")?;
                 Ok(Self::new(sk, Some(KeyType::ED25519)))
@@ -44,14 +49,18 @@ impl SignKey {
 
     #[cfg(feature = "ed25519")]
     pub fn from_seed(seed: &[u8]) -> Result<Self, ConversionError> {
-        let (_pk, sk) =
-            Ed25519Sha512::expand_keypair(seed).map_err(|_| "Error creating signing key")?;
+        let (_pk, sk) = Ed25519Sha512::expand_keypair(seed)
+            .map_err(|err| format!("Error creating signing key: {}", err))?;
         Ok(Self::new(sk, Some(KeyType::ED25519)))
     }
 
     pub fn public_key(&self) -> Result<VerKey, ConversionError> {
         let mut pk = base58::encode(&self.key[32..]);
-        let result = VerKey::new(pk.as_str(), Some(KeyType::ED25519.as_str()), None);
+        let result = VerKey::new(
+            pk.as_str(),
+            Some(self.alg.clone()),
+            Some(KeyEncoding::BASE58),
+        );
         pk.zeroize();
         Ok(result)
     }
@@ -62,9 +71,27 @@ impl SignKey {
 
     #[cfg(feature = "ed25519")]
     pub fn key_exchange(&self) -> Result<ursa::keys::PrivateKey, ConversionError> {
-        let sk = ursa::keys::PrivateKey(self.key.clone());
-        Ok(Ed25519Sha512::sign_key_to_key_exchange(&sk)
-            .map_err(|err| format!("Error converting to x25519 key: {}", err.to_string()))?)
+        match self.alg {
+            KeyType::ED25519 => {
+                let sk = ursa::keys::PrivateKey(self.key_bytes()?);
+                Ok(Ed25519Sha512::sign_key_to_key_exchange(&sk)
+                    .map_err(|err| format!("Error converting to x25519 key: {}", err))?)
+            }
+            _ => Err("Unsupported key format for key exchange".into()),
+        }
+    }
+
+    #[cfg(feature = "ed25519")]
+    pub fn sign<M: AsRef<[u8]>>(&self, message: M) -> Result<Vec<u8>, ConversionError> {
+        match self.alg {
+            KeyType::ED25519 => {
+                let sk = ursa::keys::PrivateKey(self.key_bytes()?);
+                Ok(ED25519_SIGNER
+                    .sign(message.as_ref(), &sk)
+                    .map_err(|err| format!("Error signing payload: {}", err))?)
+            }
+            _ => Err("Unsupported key format for signing".into()),
+        }
     }
 }
 
@@ -77,7 +104,7 @@ impl AsRef<[u8]> for SignKey {
 impl Zeroize for SignKey {
     fn zeroize(&mut self) {
         self.key.zeroize();
-        self.alg = KeyType::default()
+        self.alg = KeyType::from("")
     }
 }
 
@@ -95,9 +122,9 @@ pub struct VerKey {
 }
 
 impl VerKey {
-    pub fn new(key: &str, alg: Option<&str>, enc: Option<&str>) -> VerKey {
-        let alg = alg.map(KeyType::from_str).unwrap_or_default();
-        let enc = enc.map(KeyEncoding::from_str).unwrap_or_default();
+    pub fn new(key: &str, alg: Option<KeyType>, enc: Option<KeyEncoding>) -> VerKey {
+        let alg = alg.unwrap_or_default();
+        let enc = enc.unwrap_or_default();
         VerKey {
             key: key.to_owned(),
             alg,
@@ -117,14 +144,14 @@ impl VerKey {
     pub fn from_str_qualified(
         key: &str,
         dest: Option<&str>,
-        alg: Option<&str>,
-        enc: Option<&str>,
+        alg: Option<KeyType>,
+        enc: Option<KeyEncoding>,
     ) -> Result<VerKey, ConversionError> {
         let (key, alg) = if key.contains(':') {
             let splits: Vec<&str> = key.splitn(2, ':').collect();
             let alg = match splits[1] {
                 "" => alg,
-                _ => Some(splits[1]),
+                _ => Some(splits[1].into()),
             };
             (splits[0], alg)
         } else {
@@ -157,8 +184,8 @@ impl VerKey {
                 let key = base58::encode(self.key_bytes()?);
                 Ok(Self::new(
                     key.as_str(),
-                    Some(self.alg.as_str()),
-                    Some(KeyEncoding::BASE58.as_str()),
+                    Some(self.alg.clone()),
+                    Some(KeyEncoding::BASE58),
                 ))
             }
         }
@@ -183,6 +210,23 @@ impl VerKey {
                 Ok(Ed25519Sha512::ver_key_to_key_exchange(&vk).map_err(|err| {
                     format!("Error converting to x25519 key: {}", err.to_string())
                 })?)
+            }
+            _ => Err("Unsupported verkey type".into()),
+        }
+    }
+
+    #[cfg(feature = "ed25519")]
+    pub fn verify_signature<M: AsRef<[u8]>, S: AsRef<[u8]>>(
+        &self,
+        message: M,
+        signature: S,
+    ) -> Result<bool, ConversionError> {
+        match self.alg {
+            KeyType::ED25519 => {
+                let vk = ursa::keys::PublicKey(self.key_bytes()?);
+                Ok(ED25519_SIGNER
+                    .verify(message.as_ref(), signature.as_ref(), &vk)
+                    .map_err(|err| format!("Error validating message signature: {}", err))?)
             }
             _ => Err("Unsupported verkey type".into()),
         }
@@ -214,8 +258,8 @@ impl Validatable for VerKey {
 impl Zeroize for VerKey {
     fn zeroize(&mut self) {
         self.key.zeroize();
-        self.alg = KeyType::default();
-        self.enc = KeyEncoding::default()
+        self.alg = KeyType::from("");
+        self.enc = KeyEncoding::from("")
     }
 }
 
@@ -233,11 +277,7 @@ mod tests {
     fn from_str_empty() {
         assert_eq!(
             VerKey::from_str("").unwrap(),
-            VerKey::new(
-                "",
-                Some(KeyType::default().as_str()),
-                Some(KeyEncoding::default().as_str())
-            )
+            VerKey::new("", Some(KeyType::default()), Some(KeyEncoding::default()))
         )
     }
 
@@ -245,11 +285,7 @@ mod tests {
     fn from_str_single_colon() {
         assert_eq!(
             VerKey::from_str(":").unwrap(),
-            VerKey::new(
-                "",
-                Some(KeyType::default().as_str()),
-                Some(KeyEncoding::default().as_str())
-            )
+            VerKey::new("", Some(KeyType::default()), Some(KeyEncoding::default()))
         )
     }
 
@@ -259,8 +295,8 @@ mod tests {
             VerKey::from_str("foo:").unwrap(),
             VerKey::new(
                 "foo",
-                Some(KeyType::default().as_str()),
-                Some(KeyEncoding::default().as_str())
+                Some(KeyType::default()),
+                Some(KeyEncoding::default())
             )
         )
     }
@@ -269,7 +305,7 @@ mod tests {
     fn from_key_starts_with_colon() {
         assert_eq!(
             VerKey::from_str(":bar").unwrap(),
-            VerKey::new("", Some("bar"), Some(KeyEncoding::default().as_str()))
+            VerKey::new("", Some("bar".into()), Some(KeyEncoding::default()))
         )
     }
 
@@ -277,19 +313,25 @@ mod tests {
     fn from_key_works() {
         assert_eq!(
             VerKey::from_str("foo:bar:baz").unwrap(),
-            VerKey::new(
-                "foo",
-                Some("bar:baz"),
-                Some(KeyEncoding::default().as_str())
-            )
+            VerKey::new("foo", Some("bar:baz".into()), Some(KeyEncoding::default()))
         )
     }
 
     #[test]
-    fn round_trip() {
+    fn round_trip_verkey() {
         assert_eq!(
             VerKey::from_str("foo:bar:baz").unwrap().long_form(),
             "foo:bar:baz"
         )
+    }
+
+    #[cfg(feature = "ed25519")]
+    #[test]
+    fn sign_and_verify() {
+        let message = b"hello there";
+        let sk = SignKey::generate(None).unwrap();
+        let sig = sk.sign(&message).unwrap();
+        let vk = sk.public_key().unwrap();
+        assert!(vk.verify_signature(&message, &sig).unwrap());
     }
 }

@@ -1,5 +1,5 @@
 [package]
-name = "indy-test"
+name = "indy-test-utils"
 version = "0.1.0"
 authors = ["Hyperledger Indy Contributors <hyperledger-indy@lists.hyperledger.org>"]
 edition = "2018"
@@ -16,4 +16,4 @@ crate-type = ["rlib"]
 default = []
 
 [dependencies]
-tempfile = "3.1.0"
+tempfile = "3.1"
