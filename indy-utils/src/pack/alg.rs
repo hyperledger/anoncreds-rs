@@ -8,7 +8,7 @@ use super::nacl_box::*;
 use super::types::*;
 use crate::base64;
 use crate::error::ConversionError;
-use crate::keys::{EncodedVerKey, KeyEncoding, SignKey};
+use crate::keys::{EncodedVerKey, SignKey};
 
 pub const PROTECTED_HEADER_ENC: &'static str = "xchacha20poly1305_ietf";
 pub const PROTECTED_HEADER_TYP: &'static str = "JWM/1.0";
@@ -94,7 +94,7 @@ fn _prepare_protected_authcrypt(
     let mut encrypted_recipients_struct: Vec<Recipient> = vec![];
 
     let sender_key_x = sender_key.key_exchange()?;
-    let sender_pk = sender_key.public_key()?.encode(KeyEncoding::BASE58)?;
+    let sender_pk = sender_key.public_key()?.as_base58()?;
 
     for their_vk in receiver_list {
         let their_vk_x = their_vk.key_exchange()?;

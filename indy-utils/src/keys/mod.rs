@@ -127,17 +127,17 @@ impl VerKey {
     }
 
     pub fn as_base58(&self) -> Result<EncodedVerKey, ConversionError> {
-        self.encode(KeyEncoding::BASE58)
+        self.encode(&KeyEncoding::BASE58)
     }
 
-    pub fn encode(&self, enc: KeyEncoding) -> Result<EncodedVerKey, ConversionError> {
+    pub fn encode(&self, enc: &KeyEncoding) -> Result<EncodedVerKey, ConversionError> {
         match enc {
-            enc @ KeyEncoding::BASE58 => {
+            KeyEncoding::BASE58 => {
                 let key = base58::encode(&self.key);
                 Ok(EncodedVerKey::new(
                     key.as_str(),
                     Some(self.alg.clone()),
-                    Some(enc),
+                    Some(enc.clone()),
                 ))
             }
             _ => Err("Unsupported key encoding".into()),
@@ -237,6 +237,13 @@ impl EncodedVerKey {
         }
     }
 
+    pub fn decode(&self) -> Result<VerKey, ConversionError> {
+        let mut vk = self.key_bytes()?;
+        let result = VerKey::new(&vk, Some(self.alg.clone()));
+        vk.zeroize();
+        Ok(result)
+    }
+
     pub fn from_slice<K: AsRef<[u8]>>(key: K) -> Result<Self, ConversionError> {
         let key = std::str::from_utf8(key.as_ref())?;
         Self::from_str_qualified(key, None, None, None)
@@ -308,16 +315,15 @@ impl EncodedVerKey {
     }
 
     #[cfg(feature = "ed25519")]
-    pub fn key_exchange(&self) -> Result<ursa::keys::PublicKey, ConversionError> {
-        match self.alg {
-            KeyType::ED25519 => {
-                let vk = ursa::keys::PublicKey(self.key_bytes()?);
-                Ok(Ed25519Sha512::ver_key_to_key_exchange(&vk).map_err(|err| {
-                    format!("Error converting to x25519 key: {}", err.to_string())
-                })?)
-            }
-            _ => Err("Unsupported verkey type".into()),
-        }
+    pub fn key_exchange(&self) -> Result<VerKey, ConversionError> {
+        let vk = self.decode()?;
+        vk.key_exchange()
+    }
+
+    #[cfg(feature = "ed25519")]
+    pub fn key_exchange_encoded(&self) -> Result<Self, ConversionError> {
+        let x_vk = self.key_exchange()?;
+        x_vk.encode(&self.enc)
     }
 
     #[cfg(feature = "ed25519")]
@@ -326,15 +332,8 @@ impl EncodedVerKey {
         message: M,
         signature: S,
     ) -> Result<bool, ConversionError> {
-        match self.alg {
-            KeyType::ED25519 => {
-                let vk = ursa::keys::PublicKey(self.key_bytes()?);
-                Ok(ED25519_SIGNER
-                    .verify(message.as_ref(), signature.as_ref(), &vk)
-                    .map_err(|err| format!("Error validating message signature: {}", err))?)
-            }
-            _ => Err("Unsupported verkey type".into()),
-        }
+        let vk = self.decode()?;
+        vk.verify_signature(message, signature)
     }
 }
 
