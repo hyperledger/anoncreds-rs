@@ -76,11 +76,11 @@ pub fn crypto_box_seal(recip_pk: &[u8], message: &[u8]) -> Result<Vec<u8>, Conve
     let sk = SignKey::generate(Some(KeyType::ED25519))?;
     let ephem_sk = sk.key_exchange()?;
     let ephem_sk_x: cbox::SecretKey = crypto_box_key(&ephem_sk)?;
-    assert_eq!(ephem_sk_x.to_bytes(), ephem_sk.0.as_slice());
+    assert_eq!(ephem_sk_x.to_bytes(), ephem_sk.as_ref());
     let ephem_pk_x = ephem_sk_x.public_key();
 
     let nonce = crypto_box_nonce(ephem_pk_x.as_bytes(), &recip_pk)?.to_vec();
-    let (mut boxed, _) = crypto_box(recip_pk, ephem_sk.0.as_slice(), message, Some(nonce))?;
+    let (mut boxed, _) = crypto_box(recip_pk, ephem_sk.as_ref(), message, Some(nonce))?;
 
     let mut result = Vec::<u8>::with_capacity(cbox::KEY_SIZE); // FIXME
     result.extend_from_slice(ephem_pk_x.as_bytes());
@@ -127,9 +127,9 @@ mod tests {
         let sk_x = sk.key_exchange().unwrap();
 
         let message = b"hello there";
-        let sealed = crypto_box_seal(&pk_x.0, message).unwrap();
+        let sealed = crypto_box_seal(&pk_x.as_ref(), message).unwrap();
 
-        let open = crypto_box_seal_open(&pk_x.0, &sk_x.0, &sealed).unwrap();
+        let open = crypto_box_seal_open(&pk_x.as_ref(), &sk_x.as_ref(), &sealed).unwrap();
         assert_eq!(open, message);
     }
 }

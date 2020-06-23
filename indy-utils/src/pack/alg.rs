@@ -8,7 +8,7 @@ use super::nacl_box::*;
 use super::types::*;
 use crate::base64;
 use crate::error::ConversionError;
-use crate::keys::{SignKey, VerKey};
+use crate::keys::{EncodedVerKey, KeyEncoding, SignKey};
 
 pub const PROTECTED_HEADER_ENC: &'static str = "xchacha20poly1305_ietf";
 pub const PROTECTED_HEADER_TYP: &'static str = "JWM/1.0";
@@ -19,7 +19,7 @@ const TAG_SIZE: usize = 16;
 
 pub fn pack_message<M: AsRef<[u8]>>(
     message: M,
-    receiver_list: Vec<VerKey>,
+    receiver_list: Vec<EncodedVerKey>,
     sender_key: Option<SignKey>,
 ) -> Result<Vec<u8>, ConversionError> {
     // break early and error out if no receivers keys are provided
@@ -63,7 +63,7 @@ pub fn pack_message<M: AsRef<[u8]>>(
 
 fn _prepare_protected_anoncrypt(
     cek: &PrivateKey,
-    receiver_list: Vec<VerKey>,
+    receiver_list: Vec<EncodedVerKey>,
 ) -> Result<String, ConversionError> {
     let mut encrypted_recipients_struct: Vec<Recipient> = Vec::with_capacity(receiver_list.len());
 
@@ -88,13 +88,13 @@ fn _prepare_protected_anoncrypt(
 
 fn _prepare_protected_authcrypt(
     cek: &PrivateKey,
-    receiver_list: Vec<VerKey>,
+    receiver_list: Vec<EncodedVerKey>,
     sender_key: &SignKey,
 ) -> Result<String, ConversionError> {
     let mut encrypted_recipients_struct: Vec<Recipient> = vec![];
 
     let sender_key_x = sender_key.key_exchange()?;
-    let sender_pk = sender_key.public_key()?.as_base58()?;
+    let sender_pk = sender_key.public_key()?.encode(KeyEncoding::BASE58)?;
 
     for their_vk in receiver_list {
         let their_vk_x = their_vk.key_exchange()?;
@@ -162,7 +162,7 @@ fn _format_pack_message(
 pub async fn unpack_message<M: AsRef<[u8]>>(
     message: M,
     lookup: impl KeyLookup,
-) -> Result<(Vec<u8>, VerKey, Option<VerKey>), ConversionError> {
+) -> Result<(Vec<u8>, EncodedVerKey, Option<EncodedVerKey>), ConversionError> {
     let jwe = serde_json::from_slice(message.as_ref())?;
     unpack_jwe(&jwe, lookup).await
 }
@@ -170,7 +170,7 @@ pub async fn unpack_message<M: AsRef<[u8]>>(
 pub async fn unpack_jwe(
     jwe_struct: &JWE,
     lookup: impl KeyLookup,
-) -> Result<(Vec<u8>, VerKey, Option<VerKey>), ConversionError> {
+) -> Result<(Vec<u8>, EncodedVerKey, Option<EncodedVerKey>), ConversionError> {
     // decode protected data
     let protected_decoded = base64::decode_urlsafe(&jwe_struct.protected)?;
     let protected: Protected = serde_json::from_slice(&protected_decoded)?;
@@ -211,7 +211,7 @@ pub async fn unpack_jwe(
 fn _unpack_cek_authcrypt(
     recipient: &Recipient,
     recip_sk: &SignKey,
-) -> Result<(VerKey, Vec<u8>), ConversionError> {
+) -> Result<(EncodedVerKey, Vec<u8>), ConversionError> {
     let encrypted_key_vec = base64::decode_urlsafe(&recipient.encrypted_key)?;
     let iv = base64::decode_urlsafe(&recipient.header.iv.as_ref().unwrap())?;
     let enc_sender_vk = base64::decode_urlsafe(&recipient.header.sender.as_ref().unwrap())?;
@@ -223,7 +223,7 @@ fn _unpack_cek_authcrypt(
         recip_sk.key_exchange()?.as_ref(),
         &enc_sender_vk,
     )?;
-    let sender_vk = VerKey::from_slice(&sender_vk_vec)?;
+    let sender_vk = EncodedVerKey::from_slice(&sender_vk_vec)?;
 
     // decrypt cek
     let cek = crypto_box_open(
@@ -243,7 +243,7 @@ fn _unpack_cek_anoncrypt(
     let encrypted_key = base64::decode_urlsafe(&recipient.encrypted_key)?;
 
     // decrypt cek
-    let recip_pk = ursa::keys::PublicKey(recip_sk.public_key()?.key_bytes()?);
+    let recip_pk = ursa::keys::PublicKey(recip_sk.public_key()?.key_bytes());
     let cek = crypto_box_seal_open(recip_pk.as_ref(), recip_sk.as_ref(), &encrypted_key)?;
 
     Ok(cek)
@@ -252,10 +252,10 @@ fn _unpack_cek_anoncrypt(
 async fn _find_unpack_recipient(
     protected: Protected,
     lookup: impl KeyLookup,
-) -> Result<Option<(Recipient, VerKey, SignKey)>, ConversionError> {
-    let mut recip_vks = Vec::<VerKey>::with_capacity(protected.recipients.len());
+) -> Result<Option<(Recipient, EncodedVerKey, SignKey)>, ConversionError> {
+    let mut recip_vks = Vec::<EncodedVerKey>::with_capacity(protected.recipients.len());
     for recipient in &protected.recipients {
-        let vk = VerKey::from_str(&recipient.header.kid)?;
+        let vk = EncodedVerKey::from_str(&recipient.header.kid)?;
         recip_vks.push(vk);
     }
     if let Some((idx, sk)) = lookup.find(&recip_vks).await {
@@ -279,6 +279,8 @@ mod tests {
         let pk = SignKey::from_seed(b"000000000000000000000000000Test2")
             .unwrap()
             .public_key()
+            .unwrap()
+            .as_base58()
             .unwrap();
 
         let packed = pack_message(b"hello there", vec![pk], Some(sk));
@@ -289,12 +291,12 @@ mod tests {
     fn test_round_trip() {
         let sk1 = SignKey::from_seed(b"000000000000000000000000000Test3").unwrap();
         let sk2 = SignKey::from_seed(b"000000000000000000000000000Test4").unwrap();
-        let pk2 = sk2.public_key().unwrap();
+        let pk2 = sk2.public_key().unwrap().as_base58().unwrap();
 
         let input_msg = b"hello there";
         let packed = pack_message(&input_msg, vec![pk2.clone()], Some(sk1.clone())).unwrap();
 
-        let lookup = |find_pks: &Vec<VerKey>| {
+        let lookup = |find_pks: &Vec<EncodedVerKey>| {
             for (idx, pk) in find_pks.into_iter().enumerate() {
                 if pk == &pk2 {
                     return Some((idx, sk2.clone()));

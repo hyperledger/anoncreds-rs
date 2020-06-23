@@ -1,10 +1,12 @@
 pub const KEY_ENC_BASE58: &'static str = "base58";
 
 pub const KEY_TYPE_ED25519: &'static str = "ed25519";
+pub const KEY_TYPE_X25519: &'static str = "x25519";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum KeyType {
     ED25519,
+    X25519,
     Other(String),
 }
 
@@ -12,6 +14,7 @@ impl KeyType {
     pub fn from_str(keytype: &str) -> KeyType {
         match keytype.to_ascii_lowercase().as_str() {
             KEY_TYPE_ED25519 => KeyType::ED25519,
+            KEY_TYPE_X25519 => KeyType::X25519,
             _ => KeyType::Other(keytype.to_owned()),
         }
     }
@@ -26,6 +29,7 @@ impl KeyType {
     pub fn as_str(&self) -> &str {
         match self {
             Self::ED25519 => KEY_TYPE_ED25519,
+            Self::X25519 => KEY_TYPE_X25519,
             Self::Other(t) => t.as_str(),
         }
     }
