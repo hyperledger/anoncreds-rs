@@ -20,6 +20,8 @@ pub use indy_utils::keys::*;
 pub use indy_utils::ursa;
 pub use indy_utils::{ConversionError, TryClone, Validatable, ValidationError};
 
+pub mod compat;
+
 mod anoncreds;
 mod identifiers;
 mod merkle_tree;
