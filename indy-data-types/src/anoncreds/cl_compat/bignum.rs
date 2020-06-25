@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 use std::fmt;
 
+#[cfg(feature = "serde")]
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 
 use crate::{ConversionError, ValidationError};
@@ -31,6 +32,15 @@ impl BigNumber {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(any(feature = "cl", feature = "cl_native"))]
+impl super::ToUrsa for BigNumber {
+    type UrsaType = crate::ursa::cl::Nonce;
+
+    fn to_ursa(&self) -> Result<Self::UrsaType, ConversionError> {
+        Self::UrsaType::from_dec(&self.value).map_err(Into::into)
     }
 }
 
@@ -143,6 +153,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "serde")]
     #[test]
     fn bignum_serialize() {
         let val = BigNumber::try_from("10000").unwrap();

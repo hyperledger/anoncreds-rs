@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
+use super::cl_compat::proof::Proof;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
-use crate::ursa::cl::Proof;
 use crate::Validatable;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Presentation {
     pub proof: Proof,
@@ -14,7 +14,7 @@ pub struct Presentation {
     pub identifiers: Vec<Identifier>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct RequestedProof {
     pub revealed_attrs: HashMap<String, RevealedAttributeInfo>,
@@ -41,13 +41,13 @@ impl Default for RequestedProof {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct SubProofReferent {
     pub sub_proof_index: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct RevealedAttributeInfo {
     pub sub_proof_index: u32,
@@ -55,14 +55,14 @@ pub struct RevealedAttributeInfo {
     pub encoded: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct RevealedAttributeGroupInfo {
     pub sub_proof_index: u32,
     pub values: HashMap<String /* attribute name */, AttributeValue>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct AttributeValue {
     pub raw: String,

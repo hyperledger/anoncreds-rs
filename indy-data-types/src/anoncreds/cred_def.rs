@@ -1,12 +1,12 @@
+use super::cl_compat::credential::{CredentialPrimaryPublicKey, CredentialRevocationPublicKey};
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::schema::SchemaId;
-use crate::ursa::cl::{CredentialPrimaryPublicKey, CredentialRevocationPublicKey};
 use crate::utils::qualifier::Qualifiable;
-use crate::{ConversionError, TryClone, Validatable, ValidationError};
+use crate::{Validatable, ValidationError};
 
 pub const CL_SIGNATURE_TYPE: &str = "CL";
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum SignatureType {
     CL,
@@ -20,7 +20,7 @@ impl SignatureType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CredentialDefinitionData {
     pub primary: CredentialPrimaryPublicKey,
@@ -28,18 +28,7 @@ pub struct CredentialDefinitionData {
     pub revocation: Option<CredentialRevocationPublicKey>,
 }
 
-impl TryClone for CredentialDefinitionData {
-    fn try_clone(&self) -> Result<CredentialDefinitionData, ConversionError> {
-        let primary = self.primary.try_clone()?;
-        let revocation = self.revocation.clone();
-        Ok(CredentialDefinitionData {
-            primary,
-            revocation,
-        })
-    }
-}
-
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "ver"))]
 pub enum CredentialDefinition {
@@ -63,16 +52,6 @@ impl CredentialDefinition {
     }
 }
 
-impl TryClone for CredentialDefinition {
-    fn try_clone(&self) -> Result<CredentialDefinition, ConversionError> {
-        match self {
-            CredentialDefinition::CredentialDefinitionV1(v1) => Ok(
-                CredentialDefinition::CredentialDefinitionV1(v1.try_clone()?),
-            ),
-        }
-    }
-}
-
 impl Validatable for CredentialDefinition {
     fn validate(&self) -> Result<(), ValidationError> {
         match self {
@@ -81,7 +60,7 @@ impl Validatable for CredentialDefinition {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct CredentialDefinitionV1 {
@@ -91,18 +70,6 @@ pub struct CredentialDefinitionV1 {
     pub signature_type: SignatureType,
     pub tag: String,
     pub value: CredentialDefinitionData,
-}
-
-impl TryClone for CredentialDefinitionV1 {
-    fn try_clone(&self) -> Result<CredentialDefinitionV1, ConversionError> {
-        Ok(Self {
-            id: self.id.clone(),
-            schema_id: self.schema_id.clone(),
-            signature_type: self.signature_type.clone(),
-            tag: self.tag.clone(),
-            value: self.value.try_clone()?,
-        })
-    }
 }
 
 impl Validatable for CredentialDefinitionV1 {

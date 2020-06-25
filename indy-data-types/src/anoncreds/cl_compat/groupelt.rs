@@ -2,6 +2,7 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::ops::Deref;
 
+#[cfg(feature = "serde")]
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 
 use crate::{ConversionError, ValidationError};
@@ -34,6 +35,15 @@ impl GroupOrderElement {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(any(feature = "cl", feature = "cl_native"))]
+impl super::ToUrsa for GroupOrderElement {
+    type UrsaType = crate::ursa::pair::GroupOrderElement;
+
+    fn to_ursa(&self) -> Result<Self::UrsaType, ConversionError> {
+        Self::UrsaType::from_string(&self.value).map_err(Into::into)
     }
 }
 

@@ -9,6 +9,8 @@ pub struct Proof {
     aggregated_proof: AggregatedProof,
 }
 
+derive_serde_convert!(Proof, crate::ursa::cl::Proof);
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SubProof {
@@ -16,7 +18,7 @@ pub struct SubProof {
     non_revoc_proof: Option<NonRevocProof>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AggregatedProof {
     c_hash: BigNumber,

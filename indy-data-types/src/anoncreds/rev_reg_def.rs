@@ -1,12 +1,12 @@
+use super::cl_compat::revocation::RevocationKeyPublic;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
-use crate::ursa::cl::RevocationKeyPublic;
 use crate::utils::qualifier::Qualifiable;
 use crate::{Validatable, ValidationError};
 
 pub const CL_ACCUM: &str = "CL_ACCUM";
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct RevocationRegistryConfig {
     pub issuance_type: Option<IssuanceType>,
@@ -14,7 +14,7 @@ pub struct RevocationRegistryConfig {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum IssuanceType {
     ISSUANCE_BY_DEFAULT,
@@ -28,7 +28,7 @@ impl IssuanceType {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum RegistryType {
     CL_ACCUM,
@@ -42,7 +42,7 @@ impl RegistryType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDefinitionValue {
@@ -53,14 +53,14 @@ pub struct RevocationRegistryDefinitionValue {
     pub tails_location: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDefinitionValuePublicKeys {
     pub accum_key: RevocationKeyPublic,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(tag = "ver"))]
 pub enum RevocationRegistryDefinition {
@@ -97,7 +97,7 @@ impl Validatable for RevocationRegistryDefinition {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDefinitionV1 {

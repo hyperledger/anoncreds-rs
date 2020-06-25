@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::{BigNumber, GroupOrderElement, PointG1, PointG2};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct BlindedCredentialSecrets {
     u: BigNumber,
@@ -11,6 +11,11 @@ pub struct BlindedCredentialSecrets {
     hidden_attributes: BTreeSet<String>,
     committed_attributes: BTreeMap<String, BigNumber>,
 }
+
+derive_serde_convert!(
+    BlindedCredentialSecrets,
+    crate::ursa::cl::BlindedCredentialSecrets
+);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
@@ -21,7 +26,12 @@ pub struct BlindedCredentialSecretsCorrectnessProof {
     r_caps: BTreeMap<String, BigNumber>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+derive_serde_convert!(
+    BlindedCredentialSecretsCorrectnessProof,
+    crate::ursa::cl::BlindedCredentialSecretsCorrectnessProof
+);
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialKeyCorrectnessProof {
     c: BigNumber,
@@ -29,7 +39,12 @@ pub struct CredentialKeyCorrectnessProof {
     xr_cap: Vec<(String, BigNumber)>,
 }
 
-#[derive(Clone, Debug)]
+derive_serde_convert!(
+    CredentialKeyCorrectnessProof,
+    crate::ursa::cl::CredentialKeyCorrectnessProof
+);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialPrimaryPublicKey {
     n: BigNumber,
@@ -39,7 +54,12 @@ pub struct CredentialPrimaryPublicKey {
     z: BigNumber,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+derive_serde_convert!(
+    CredentialPrimaryPublicKey,
+    crate::ursa::cl::CredentialPrimaryPublicKey
+);
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialRevocationPublicKey {
     g: PointG1,
@@ -55,21 +75,33 @@ pub struct CredentialRevocationPublicKey {
     y: PointG2,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+derive_serde_convert!(
+    CredentialRevocationPublicKey,
+    crate::ursa::cl::CredentialRevocationPublicKey
+);
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CredentialSecretsBlindingFactors {
     v_prime: BigNumber,
     vr_prime: Option<GroupOrderElement>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+derive_serde_convert!(
+    CredentialSecretsBlindingFactors,
+    crate::ursa::cl::CredentialSecretsBlindingFactors
+);
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CredentialSignature {
     p_credential: PrimaryCredentialSignature,
-    r_credential: Option<NonRevocationCredentialSignature>, /* will be used to proof is credential revoked preparation */
+    r_credential: Option<NonRevocationCredentialSignature>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+derive_serde_convert!(CredentialSignature, crate::ursa::cl::CredentialSignature);
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct NonRevocationCredentialSignature {
     sigma: PointG1,
@@ -81,7 +113,7 @@ pub struct NonRevocationCredentialSignature {
     m2: GroupOrderElement,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PrimaryCredentialSignature {
     m_2: BigNumber,
@@ -92,18 +124,33 @@ pub struct PrimaryCredentialSignature {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct MasterSecret {
+    ms: BigNumber,
+}
+
+derive_serde_convert!(MasterSecret, crate::ursa::cl::MasterSecret);
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SignatureCorrectnessProof {
     se: BigNumber,
     c: BigNumber,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+derive_serde_convert!(
+    SignatureCorrectnessProof,
+    crate::ursa::cl::SignatureCorrectnessProof
+);
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Witness {
     omega: PointG2,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+derive_serde_convert!(Witness, crate::ursa::cl::Witness);
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct WitnessSignature {
     sigma_i: PointG2,

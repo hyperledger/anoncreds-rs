@@ -1,10 +1,10 @@
-use crate::ursa::cl::{
+use super::cl_compat::revocation::{
     RevocationRegistry as CryptoRevocationRegistry,
     RevocationRegistryDelta as CryptoRevocationRegistryDelta,
 };
 use crate::Validatable;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "ver"))]
 pub enum RevocationRegistry {
@@ -12,13 +12,13 @@ pub enum RevocationRegistry {
     RevocationRegistryV1(RevocationRegistryV1),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct RevocationRegistryV1 {
     pub value: CryptoRevocationRegistry,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "ver"))]
 pub enum RevocationRegistryDelta {
@@ -28,7 +28,7 @@ pub enum RevocationRegistryDelta {
 
 impl Validatable for RevocationRegistryDelta {}
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDeltaV1 {

@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 
+use super::cl_compat::{
+    credential::{CredentialSignature, SignatureCorrectnessProof, Witness},
+    revocation::RevocationRegistry,
+};
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
-use crate::ursa::cl::{
-    CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, Witness,
-};
-use crate::{ConversionError, TryClone, Validatable, ValidationError};
+use crate::{Validatable, ValidationError};
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Credential {
     pub schema_id: SchemaId,
@@ -31,21 +32,6 @@ impl Credential {
     ];
 }
 
-impl TryClone for Credential {
-    fn try_clone(&self) -> Result<Self, ConversionError> {
-        Ok(Self {
-            schema_id: self.schema_id.clone(),
-            cred_def_id: self.cred_def_id.clone(),
-            rev_reg_id: self.rev_reg_id.clone(),
-            values: self.values.clone(),
-            signature: self.signature.try_clone()?,
-            signature_correctness_proof: self.signature_correctness_proof.try_clone()?,
-            rev_reg: self.rev_reg.clone(),
-            witness: self.witness.clone(),
-        })
-    }
-}
-
 impl Validatable for Credential {
     fn validate(&self) -> Result<(), ValidationError> {
         self.schema_id.validate()?;
@@ -64,7 +50,7 @@ impl Validatable for Credential {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialInfo {
     pub referent: String,
@@ -77,11 +63,11 @@ pub struct CredentialInfo {
 
 pub type ShortCredentialValues = HashMap<String, String>;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialValues(pub HashMap<String, AttributeValues>);
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct AttributeValues {
     pub raw: String,

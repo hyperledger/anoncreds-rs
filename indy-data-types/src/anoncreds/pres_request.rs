@@ -6,18 +6,18 @@ use serde::{de, ser, Deserialize, Deserializer, Serialize, Serializer};
 #[cfg(feature = "serde")]
 use serde_json::Value;
 
+use super::cl_compat::Nonce;
 use super::credential::Credential;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
-use crate::ursa::cl::Nonce;
 use crate::utils::qualifier::{self, Qualifiable};
-use crate::{ConversionError, TryClone, Validatable, ValidationError};
+use crate::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 use indy_utils::invalid;
 use indy_utils::wql::Query;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PresentationRequestPayload {
     pub nonce: Nonce,
@@ -30,26 +30,13 @@ pub struct PresentationRequestPayload {
     pub non_revoked: Option<NonRevocedInterval>,
 }
 
-impl TryClone for PresentationRequestPayload {
-    fn try_clone(&self) -> Result<Self, ConversionError> {
-        Ok(Self {
-            nonce: self.nonce.try_clone()?,
-            name: self.name.clone(),
-            version: self.version.clone(),
-            requested_attributes: self.requested_attributes.clone(),
-            requested_predicates: self.requested_predicates.clone(),
-            non_revoked: self.non_revoked.clone(),
-        })
-    }
-}
-
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PresentationRequest {
     PresentationRequestV1(PresentationRequestPayload),
     PresentationRequestV2(PresentationRequestPayload),
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PresentationRequestVersion {
     V1,
     V2,
@@ -68,19 +55,6 @@ impl PresentationRequest {
             PresentationRequest::PresentationRequestV1(_) => PresentationRequestVersion::V1,
             PresentationRequest::PresentationRequestV2(_) => PresentationRequestVersion::V2,
         }
-    }
-}
-
-impl TryClone for PresentationRequest {
-    fn try_clone(&self) -> Result<Self, ConversionError> {
-        Ok(match self {
-            PresentationRequest::PresentationRequestV1(req) => {
-                PresentationRequest::PresentationRequestV1(req.try_clone()?)
-            }
-            PresentationRequest::PresentationRequestV2(req) => {
-                PresentationRequest::PresentationRequestV2(req.try_clone()?)
-            }
-        })
     }
 }
 
@@ -122,14 +96,10 @@ impl<'de> Deserialize<'de> for PresentationRequest {
             }
         };
         let nonce_parsed = match &req {
-            PresentationRequest::PresentationRequestV1(payload) => {
-                payload.nonce.to_dec().map_err(de::Error::custom)?
-            }
-            PresentationRequest::PresentationRequestV2(payload) => {
-                payload.nonce.to_dec().map_err(de::Error::custom)?
-            }
+            PresentationRequest::PresentationRequestV1(payload) => &payload.nonce,
+            PresentationRequest::PresentationRequestV2(payload) => &payload.nonce,
         };
-        if nonce_cleaned != nonce_parsed {
+        if nonce_cleaned.as_str() != &**nonce_parsed {
             Err(de::Error::custom(format!(
                 "Invalid nonce provided: {}",
                 nonce_cleaned
@@ -152,7 +122,7 @@ impl Serialize for PresentationRequest {
                 value
                     .as_object_mut()
                     .unwrap()
-                    .insert("ver".into(), json!("1.0"));
+                    .insert("ver".into(), Value::from("1.0"));
                 value
             }
             PresentationRequest::PresentationRequestV2(v2) => {
@@ -160,7 +130,7 @@ impl Serialize for PresentationRequest {
                 value
                     .as_object_mut()
                     .unwrap()
-                    .insert("ver".into(), json!("2.0"));
+                    .insert("ver".into(), Value::from("2.0"));
                 value
             }
         };
@@ -172,7 +142,7 @@ impl Serialize for PresentationRequest {
 #[allow(unused)]
 pub type PresentationRequestExtraQuery = HashMap<String, Query>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct NonRevocedInterval {
     pub from: Option<u64>,
@@ -224,7 +194,7 @@ impl fmt::Display for PredicateTypes {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct RequestedAttributeInfo {
     pub attr_referent: String,
@@ -232,7 +202,7 @@ pub struct RequestedAttributeInfo {
     pub revealed: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct RequestedPredicateInfo {
     pub predicate_referent: String,
@@ -446,7 +416,7 @@ mod tests {
                 PresentationRequest::PresentationRequestV2(p) => p,
             };
 
-            assert_eq!(payload.nonce.to_dec().unwrap(), "123456");
+            assert_eq!(&*payload.nonce, "123456");
         }
 
         #[test]
@@ -510,7 +480,7 @@ mod tests {
             );
 
             let request = PresentationRequest::PresentationRequestV2(PresentationRequestPayload {
-                nonce: Nonce::new().unwrap(),
+                nonce: Nonce::from_dec("112233445566").unwrap(), //Nonce::new().unwrap(),
                 name: "presentation_request_to_unqualified".to_string(),
                 version: "1.0".to_string(),
                 requested_attributes,

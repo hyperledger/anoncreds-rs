@@ -1,8 +1,10 @@
+use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::Deref;
 
+#[cfg(feature = "serde")]
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 
 use super::GroupOrderElement;
@@ -36,7 +38,7 @@ impl<T: PointSize> Point<T> {
 
     pub fn validate<S: AsRef<str>>(value: S) -> Result<(), ValidationError> {
         let mut parts = value.as_ref().split_ascii_whitespace();
-        for _ in 0..T::point_count() {
+        for _ in 0..T::element_count() {
             match (parts.next(), parts.next()) {
                 (Some(xs), Some(x)) => {
                     validate_i32(xs)?;
@@ -85,7 +87,19 @@ impl<T: PointSize> Clone for Point<T> {
 
 impl<T: PointSize> PartialEq<Point<T>> for Point<T> {
     fn eq(&self, other: &Point<T>) -> bool {
-        self.to_lowercase() == other.to_lowercase()
+        self.to_ascii_lowercase() == other.to_ascii_lowercase()
+    }
+}
+
+impl<T: PointSize> PartialOrd for Point<T> {
+    fn partial_cmp(&self, other: &Point<T>) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<T: PointSize> Ord for Point<T> {
+    fn cmp(&self, other: &Point<T>) -> Ordering {
+        self.to_ascii_lowercase().cmp(&other.to_ascii_lowercase())
     }
 }
 
@@ -141,30 +155,57 @@ impl<'a, T: PointSize> Deserialize<'a> for Point<T> {
 }
 
 pub trait PointSize {
-    fn point_count() -> usize;
+    fn element_count() -> usize;
 }
 
 pub struct G1;
 
 impl PointSize for G1 {
-    fn point_count() -> usize {
+    fn element_count() -> usize {
         3
+    }
+}
+
+#[cfg(any(feature = "cl", feature = "cl_native"))]
+impl super::ToUrsa for Point<G1> {
+    type UrsaType = crate::ursa::pair::PointG1;
+
+    fn to_ursa(&self) -> Result<Self::UrsaType, ConversionError> {
+        Self::UrsaType::from_string(&self.value).map_err(Into::into)
     }
 }
 
 pub struct G2;
 
 impl PointSize for G2 {
-    fn point_count() -> usize {
+    fn element_count() -> usize {
         6
+    }
+}
+
+#[cfg(any(feature = "cl", feature = "cl_native"))]
+impl super::ToUrsa for Point<G2> {
+    type UrsaType = crate::ursa::pair::PointG2;
+
+    fn to_ursa(&self) -> Result<Self::UrsaType, ConversionError> {
+        Self::UrsaType::from_string(&self.value).map_err(Into::into)
     }
 }
 
 pub struct Paired;
 
 impl PointSize for Paired {
-    fn point_count() -> usize {
+    fn element_count() -> usize {
         12
+    }
+}
+
+#[cfg(any(feature = "cl", feature = "cl_native"))]
+impl super::ToUrsa for Point<Paired> {
+    type UrsaType = crate::ursa::pair::Pair;
+
+    fn to_ursa(&self) -> Result<Self::UrsaType, ConversionError> {
+        Self::UrsaType::from_string(&self.value).map_err(Into::into)
     }
 }
 
@@ -238,6 +279,7 @@ mod tests {
         assert_eq!(pt_des, point);
     }
 
+    #[cfg(any(feature = "cl", feature = "cl_native"))]
     #[test]
     fn pair_convert() {
         use crate::ursa::pair::{Pair as UPair, PointG1 as UPointG1, PointG2 as UPointG2};

@@ -13,7 +13,7 @@ path = "src/lib.rs"
 crate-type = ["rlib"]
 
 [features]
-default = ["cl", "serde-serialize"]
+default = ["serde-serialize"]
 cl = ["indy-utils/cl"]
 cl_native = ["indy-utils/cl_native"]
 rich_schema = []

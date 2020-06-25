@@ -20,19 +20,9 @@ pub use indy_utils::keys::*;
 pub use indy_utils::ursa;
 pub use indy_utils::{ConversionError, TryClone, Validatable, ValidationError};
 
-pub mod compat;
-
-mod anoncreds;
+pub mod anoncreds;
 mod identifiers;
 mod merkle_tree;
-
-#[cfg(any(feature = "cl", feature = "cl_native"))]
-pub use anoncreds::cred_def::*;
-#[cfg(any(feature = "cl", feature = "cl_native"))]
-pub use anoncreds::rev_reg::*;
-#[cfg(any(feature = "cl", feature = "cl_native"))]
-pub use anoncreds::rev_reg_def::*;
-pub use anoncreds::schema::*;
 
 pub use identifiers::cred_def::*;
 pub use identifiers::rev_reg::*;

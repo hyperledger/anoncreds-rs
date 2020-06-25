@@ -2,13 +2,15 @@ use std::collections::HashSet;
 
 use super::{Pair, PointG2};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct RevocationRegistry {
     accum: PointG2,
 }
 
-#[derive(Debug, Clone)]
+derive_serde_convert!(RevocationRegistry, crate::ursa::cl::RevocationRegistry);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDelta {
@@ -23,8 +25,15 @@ pub struct RevocationRegistryDelta {
     revoked: HashSet<u32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+derive_serde_convert!(
+    RevocationRegistryDelta,
+    crate::ursa::cl::RevocationRegistryDelta
+);
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct RevocationKeyPublic {
     z: Pair,
 }
+
+derive_serde_convert!(RevocationKeyPublic, crate::ursa::cl::RevocationKeyPublic);

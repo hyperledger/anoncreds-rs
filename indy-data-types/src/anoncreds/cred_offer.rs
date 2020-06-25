@@ -1,10 +1,10 @@
+use super::cl_compat::{credential::CredentialKeyCorrectnessProof, Nonce};
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::schema::SchemaId;
-use crate::ursa::cl::{CredentialKeyCorrectnessProof, Nonce};
 use crate::utils::qualifier::Qualifiable;
-use crate::{ConversionError, TryClone, Validatable, ValidationError};
+use crate::{Validatable, ValidationError};
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialOffer {
     pub schema_id: SchemaId,
@@ -26,18 +26,6 @@ impl CredentialOffer {
             nonce: self.nonce,
             method_name,
         }
-    }
-}
-
-impl TryClone for CredentialOffer {
-    fn try_clone(&self) -> Result<Self, ConversionError> {
-        Ok(Self {
-            schema_id: self.schema_id.clone(),
-            cred_def_id: self.cred_def_id.clone(),
-            key_correctness_proof: self.key_correctness_proof.try_clone()?,
-            nonce: self.nonce.try_clone()?,
-            method_name: self.method_name.clone(),
-        })
     }
 }
 
