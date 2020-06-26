@@ -44,7 +44,7 @@ impl Nonce {
     #[cfg(any(feature = "cl", feature = "cl_native"))]
     pub fn embed(value: &crate::ursa::cl::Nonce) -> Result<Self, ConversionError> {
         Ok(Self {
-            value: value.to_string(),
+            value: value.to_hex()?,
         })
     }
 
@@ -176,7 +176,7 @@ mod tests {
         assert_eq!(val, des);
     }
 
-    #[cfg(any(feature = "cl", feature = "cl_native"))]
+    #[cfg(all(feature = "serde", any(feature = "cl", feature = "cl_native")))]
     #[test]
     fn nonce_convert() {
         use crate::ursa::cl::Nonce as UNonce;

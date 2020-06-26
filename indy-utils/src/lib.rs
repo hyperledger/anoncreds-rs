@@ -3,11 +3,11 @@ extern crate lazy_static;
 
 #[cfg(feature = "serde")]
 #[macro_use]
-extern crate serde;
+pub extern crate serde;
 
 #[cfg(feature = "serde")]
 #[macro_use]
-extern crate serde_json;
+pub extern crate serde_json;
 
 /// Common macros
 #[macro_use]
