@@ -1,6 +1,6 @@
 [package]
 name = "indy-utils"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Hyperledger Indy Contributors <hyperledger-indy@lists.hyperledger.org>"]
 edition = "2018"
 
@@ -22,7 +22,7 @@ hash = ["ursa", "ursa/sha2"]
 pack = ["base64", "crypto_box", "ed25519", "serde_support", "ursa", "ursa/blake2", "ursa/chacha20poly1305"]
 serde_support = ["serde", "serde_json", "ursa/serde"]
 txn_signature = ["hash"]
-wql = ["serde_support"]
+wql = []
 
 [dependencies]
 base64_rs = { package = "base64", version = "0.12", optional = true }
@@ -39,6 +39,7 @@ zeroize = "1.1"
 
 [dependencies.ursa]
 default-features = false
+version = "0.3.4"
 git = "https://github.com/hyperledger/ursa.git"
 rev = "5444d41707c05399e191c2290d2767658d14fbc4"
 optional = true

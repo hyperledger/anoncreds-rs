@@ -16,18 +16,22 @@ pub use embed_json::{embed_json, EmbedExtract};
 
 mod utils {
     pub use indy_utils::base58;
+    #[cfg(feature = "hash")]
     pub use indy_utils::hash;
     pub use indy_utils::qualifier;
 }
 
 pub use indy_utils::did::*;
 pub use indy_utils::keys::*;
-pub use indy_utils::ursa;
 pub use indy_utils::{ConversionError, TryClone, Validatable, ValidationError};
+
+#[cfg(any(feature = "cl", feature = "cl_native", feature = "hash"))]
+pub use indy_utils::ursa;
 
 pub mod anoncreds;
 mod identifiers;
-mod merkle_tree;
+#[cfg(feature = "merkle_tree")]
+pub mod merkle_tree;
 
 pub use identifiers::cred_def::*;
 pub use identifiers::rev_reg::*;

@@ -1,6 +1,6 @@
-use std::string;
-
+#[cfg(feature = "serde")]
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+#[cfg(feature = "serde")]
 use serde_json::{self, Value};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -18,6 +18,7 @@ pub enum Query {
     In(String, Vec<String>),
 }
 
+#[cfg(feature = "serde")]
 impl Serialize for Query {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -27,6 +28,7 @@ impl Serialize for Query {
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for Query {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -117,6 +119,7 @@ impl Query {
         }
     }
 
+    #[cfg(feature = "serde")]
     fn to_value(&self) -> serde_json::Value {
         match *self {
             Query::Eq(ref tag_name, ref tag_value) => json!({ tag_name: tag_value }),
@@ -156,12 +159,14 @@ impl Default for Query {
     }
 }
 
-impl string::ToString for Query {
+#[cfg(feature = "serde")]
+impl ToString for Query {
     fn to_string(&self) -> String {
         self.to_value().to_string()
     }
 }
 
+#[cfg(feature = "serde")]
 fn parse_query(map: serde_json::Map<String, serde_json::Value>) -> Result<Query, &'static str> {
     let mut operators: Vec<Query> = Vec::new();
 
@@ -180,6 +185,7 @@ fn parse_query(map: serde_json::Map<String, serde_json::Value>) -> Result<Query,
     Ok(query)
 }
 
+#[cfg(feature = "serde")]
 fn parse_operator(key: String, value: serde_json::Value) -> Result<Option<Query>, &'static str> {
     match (key.as_str(), value) {
         ("$and", serde_json::Value::Array(values)) if values.is_empty() => Ok(None),
@@ -212,6 +218,7 @@ fn parse_operator(key: String, value: serde_json::Value) -> Result<Option<Query>
     }
 }
 
+#[cfg(feature = "serde")]
 fn parse_list_operators(operators: Vec<serde_json::Value>) -> Result<Vec<Query>, &'static str> {
     let mut out_operators: Vec<Query> = Vec::with_capacity(operators.len());
 
@@ -227,6 +234,7 @@ fn parse_list_operators(operators: Vec<serde_json::Value>) -> Result<Vec<Query>,
     Ok(out_operators)
 }
 
+#[cfg(feature = "serde")]
 fn parse_single_operator(
     operator_name: String,
     key: String,
@@ -263,7 +271,7 @@ fn parse_single_operator(
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "serde"))]
 mod tests {
     use super::*;
     use rand::distributions::Alphanumeric;
@@ -273,7 +281,6 @@ mod tests {
         thread_rng().sample_iter(&Alphanumeric).take(len).collect()
     }
 
-    /// parse
     #[test]
     fn test_simple_operator_empty_json_parse() {
         let json = "{}";
