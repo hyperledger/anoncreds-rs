@@ -64,4 +64,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -manifest-path indy-data-types/Cargo.toml --features cl_native
+          args: --manifest-path indy-data-types/Cargo.toml --features cl_native
