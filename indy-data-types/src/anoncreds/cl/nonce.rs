@@ -44,7 +44,7 @@ impl Nonce {
     #[cfg(any(feature = "cl", feature = "cl_native"))]
     pub fn embed(value: &crate::ursa::cl::Nonce) -> Result<Self, ConversionError> {
         Ok(Self {
-            value: value.to_hex()?,
+            value: value.to_dec()?,
         })
     }
 
@@ -187,5 +187,9 @@ mod tests {
         let ser2 = serde_json::to_string(&des).unwrap();
         let nonce_des = serde_json::from_str::<UNonce>(&ser2).unwrap();
         assert_eq!(nonce, nonce_des);
+
+        let nonce = Nonce::new().unwrap();
+        let unonce = nonce.extract().unwrap();
+        assert_eq!(nonce.to_string(), unonce.to_dec().unwrap());
     }
 }

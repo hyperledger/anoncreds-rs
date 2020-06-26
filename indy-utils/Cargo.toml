@@ -13,7 +13,7 @@ path = "src/lib.rs"
 crate-type = ["rlib"]
 
 [features]
-default = ["hash", "pack", "txn_signature", "wql"]
+default = ["ed25519", "hash", "pack", "txn_signature", "wql"]
 base64 = ["base64_rs"]
 cl = ["ursa", "ursa/cl"]
 cl_native = ["ursa", "ursa/cl_native"]

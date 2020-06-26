@@ -58,10 +58,10 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --features cl
+          args: --manifest-path indy-data-types/Cargo.toml --features cl
 
       - name: Test CL-native
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --features cl_native
+          args: -manifest-path indy-data-types/Cargo.toml --features cl_native

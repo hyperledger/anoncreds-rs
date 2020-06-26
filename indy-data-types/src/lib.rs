@@ -3,7 +3,7 @@ extern crate lazy_static;
 
 #[cfg(feature = "serde")]
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
 #[cfg(all(feature = "serde", test))]
 #[macro_use]
