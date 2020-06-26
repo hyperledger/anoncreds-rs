@@ -9,11 +9,18 @@ use crate::{ConversionError, ValidationError};
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
-pub struct BigNumber {
+pub struct Nonce {
     value: String,
 }
 
-impl BigNumber {
+impl Nonce {
+    #[cfg(any(feature = "cl", feature = "cl_native"))]
+    pub fn new() -> Result<Self, ConversionError> {
+        let val = crate::ursa::cl::new_nonce()
+            .map_err(|err| ConversionError::from_msg(format!("Error creating nonce: {}", err)))?;
+        Self::embed(&val)
+    }
+
     pub fn from_dec<S: AsRef<str>>(value: S) -> Result<Self, ConversionError> {
         Self::validate(&value)?;
         Ok(Self {
@@ -23,28 +30,31 @@ impl BigNumber {
 
     pub fn validate<S: AsRef<str>>(value: S) -> Result<(), ValidationError> {
         let strval = value.as_ref();
-        if strval.is_empty() || strval == "-" {
+        if strval.is_empty() {
             return Err(ValidationError::from_msg("Invalid bignum: empty value"));
         }
-        for (idx, c) in strval.chars().enumerate() {
-            if (c < '0' || c > '9') && (idx > 0 || c != '-') {
+        for c in strval.chars() {
+            if c < '0' || c > '9' {
                 return Err(ValidationError::from_msg("Invalid bignum value"));
             }
         }
         Ok(())
     }
-}
 
-#[cfg(any(feature = "cl", feature = "cl_native"))]
-impl super::ToUrsa for BigNumber {
-    type UrsaType = crate::ursa::cl::Nonce;
+    #[cfg(any(feature = "cl", feature = "cl_native"))]
+    pub fn embed(value: &crate::ursa::cl::Nonce) -> Result<Self, ConversionError> {
+        Ok(Self {
+            value: value.to_string(),
+        })
+    }
 
-    fn to_ursa(&self) -> Result<Self::UrsaType, ConversionError> {
-        Self::UrsaType::from_dec(&self.value).map_err(Into::into)
+    #[cfg(any(feature = "cl", feature = "cl_native"))]
+    pub fn extract(&self) -> Result<crate::ursa::cl::Nonce, ConversionError> {
+        crate::ursa::cl::Nonce::from_dec(&self.value).map_err(Into::into)
     }
 }
 
-impl From<i64> for BigNumber {
+impl From<i64> for Nonce {
     fn from(value: i64) -> Self {
         Self {
             value: value.to_string(),
@@ -52,7 +62,7 @@ impl From<i64> for BigNumber {
     }
 }
 
-impl From<u64> for BigNumber {
+impl From<u64> for Nonce {
     fn from(value: u64) -> Self {
         Self {
             value: value.to_string(),
@@ -60,7 +70,7 @@ impl From<u64> for BigNumber {
     }
 }
 
-impl TryFrom<&str> for BigNumber {
+impl TryFrom<&str> for Nonce {
     type Error = ConversionError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -68,7 +78,7 @@ impl TryFrom<&str> for BigNumber {
     }
 }
 
-impl TryFrom<String> for BigNumber {
+impl TryFrom<String> for Nonce {
     type Error = ConversionError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -76,13 +86,13 @@ impl TryFrom<String> for BigNumber {
     }
 }
 
-impl fmt::Display for BigNumber {
+impl fmt::Display for Nonce {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.value.fmt(f)
     }
 }
 
-impl std::ops::Deref for BigNumber {
+impl std::ops::Deref for Nonce {
     type Target = str;
 
     fn deref(&self) -> &Self::Target {
@@ -91,7 +101,7 @@ impl std::ops::Deref for BigNumber {
 }
 
 #[cfg(feature = "serde")]
-impl<'a> Deserialize<'a> for BigNumber {
+impl<'a> Deserialize<'a> for Nonce {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'a>,
@@ -99,31 +109,31 @@ impl<'a> Deserialize<'a> for BigNumber {
         struct BigNumberVisitor;
 
         impl<'a> Visitor<'a> for BigNumberVisitor {
-            type Value = BigNumber;
+            type Value = Nonce;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("expected BigNumber")
             }
 
-            fn visit_i64<E>(self, value: i64) -> Result<BigNumber, E>
+            fn visit_i64<E>(self, value: i64) -> Result<Nonce, E>
             where
                 E: serde::de::Error,
             {
-                Ok(BigNumber::from(value))
+                Ok(Nonce::from(value))
             }
 
-            fn visit_u64<E>(self, value: u64) -> Result<BigNumber, E>
+            fn visit_u64<E>(self, value: u64) -> Result<Nonce, E>
             where
                 E: serde::de::Error,
             {
-                Ok(BigNumber::from(value))
+                Ok(Nonce::from(value))
             }
 
-            fn visit_str<E>(self, value: &str) -> Result<BigNumber, E>
+            fn visit_str<E>(self, value: &str) -> Result<Nonce, E>
             where
                 E: serde::de::Error,
             {
-                Ok(BigNumber::from_dec(value).map_err(E::custom)?)
+                Ok(Nonce::from_dec(value).map_err(E::custom)?)
             }
         }
 
@@ -136,43 +146,46 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bignum_validate() {
-        let valid = [
-            "-1000000000000000000000000000000000",
-            "-1",
-            "0",
-            "1000000000000000000000000000000000",
-        ];
+    fn nonce_validate() {
+        let valid = ["0", "1000000000000000000000000000000000"];
         for v in valid.iter() {
-            assert!(BigNumber::try_from(*v).is_ok())
+            assert!(Nonce::try_from(*v).is_ok())
         }
 
-        let invalid = ["notanumber", "", "-", "+1", "1a"];
+        let invalid = [
+            "-1000000000000000000000000000000000",
+            "-1",
+            "notanumber",
+            "",
+            "-",
+            "+1",
+            "1a",
+        ];
         for v in invalid.iter() {
-            assert!(BigNumber::try_from(*v).is_err())
+            assert!(Nonce::try_from(*v).is_err())
         }
     }
 
     #[cfg(feature = "serde")]
     #[test]
-    fn bignum_serialize() {
-        let val = BigNumber::try_from("10000").unwrap();
+    fn nonce_serialize() {
+        let val = Nonce::try_from("10000").unwrap();
         let ser = serde_json::to_string(&val).unwrap();
         assert_eq!(ser, "\"10000\"");
-        let des = serde_json::from_str::<BigNumber>(&ser).unwrap();
+        let des = serde_json::from_str::<Nonce>(&ser).unwrap();
         assert_eq!(val, des);
     }
 
     #[cfg(any(feature = "cl", feature = "cl_native"))]
     #[test]
-    fn bignum_convert() {
-        use crate::ursa::cl::Nonce;
+    fn nonce_convert() {
+        use crate::ursa::cl::Nonce as UNonce;
 
-        let nonce = Nonce::new().unwrap();
+        let nonce = UNonce::new().unwrap();
         let ser = serde_json::to_string(&nonce).unwrap();
-        let des = serde_json::from_str::<BigNumber>(&ser).unwrap();
+        let des = serde_json::from_str::<Nonce>(&ser).unwrap();
         let ser2 = serde_json::to_string(&des).unwrap();
-        let nonce_des = serde_json::from_str::<Nonce>(&ser2).unwrap();
+        let nonce_des = serde_json::from_str::<UNonce>(&ser2).unwrap();
         assert_eq!(nonce, nonce_des);
     }
 }

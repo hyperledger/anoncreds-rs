@@ -1,9 +1,7 @@
 use std::string;
 
-use serde::ser::{Serialize, Serializer};
-use serde::{de, Deserialize, Deserializer};
-use serde_json;
-use serde_json::Value;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::{self, Value};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub enum Query {

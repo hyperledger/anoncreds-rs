@@ -1,13 +1,10 @@
-use super::cl_compat::{
-    credential::{
-        BlindedCredentialSecrets, BlindedCredentialSecretsCorrectnessProof,
-        CredentialSecretsBlindingFactors,
-    },
-    Nonce,
+use super::cl::{
+    BlindedCredentialSecrets, BlindedCredentialSecretsCorrectnessProof,
+    CredentialSecretsBlindingFactors, Nonce,
 };
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::utils::qualifier::Qualifiable;
-use crate::{Validatable, ValidationError};
+use crate::{EmbedJson, Validatable, ValidationError};
 use indy_utils::did::DidValue;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -15,8 +12,8 @@ use indy_utils::did::DidValue;
 pub struct CredentialRequest {
     pub prover_did: DidValue,
     pub cred_def_id: CredentialDefinitionId,
-    pub blinded_ms: BlindedCredentialSecrets,
-    pub blinded_ms_correctness_proof: BlindedCredentialSecretsCorrectnessProof,
+    pub blinded_ms: EmbedJson<BlindedCredentialSecrets>,
+    pub blinded_ms_correctness_proof: EmbedJson<BlindedCredentialSecretsCorrectnessProof>,
     pub nonce: Nonce,
 }
 
@@ -44,7 +41,7 @@ impl Validatable for CredentialRequest {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialRequestMetadata {
-    pub master_secret_blinding_data: CredentialSecretsBlindingFactors,
+    pub master_secret_blinding_data: EmbedJson<CredentialSecretsBlindingFactors>,
     pub nonce: Nonce,
     pub master_secret_name: String,
 }

@@ -450,7 +450,6 @@ dependencies = [
  "rand 0.7.3",
  "regex",
  "serde",
- "serde_derive",
  "serde_json",
  "tempfile",
  "thiserror",

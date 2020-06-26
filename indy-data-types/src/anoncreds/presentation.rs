@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 
-use super::cl_compat::proof::Proof;
+use super::cl::Proof;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
-use crate::Validatable;
+use crate::{EmbedJson, Validatable};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Presentation {
-    pub proof: Proof,
+    pub proof: EmbedJson<Proof>,
     pub requested_proof: RequestedProof,
     pub identifiers: Vec<Identifier>,
 }

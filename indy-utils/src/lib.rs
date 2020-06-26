@@ -3,7 +3,7 @@ extern crate lazy_static;
 
 #[cfg(feature = "serde")]
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
 #[cfg(feature = "serde")]
 #[macro_use]
@@ -48,4 +48,11 @@ pub mod txn_signature;
 pub mod wql;
 
 /// Re-export ursa to avoid version conflicts
+#[cfg(any(
+    feature = "cl",
+    feature = "cl_native",
+    feature = "ed25519",
+    feature = "hash",
+    feature = "pack"
+))]
 pub use ursa;

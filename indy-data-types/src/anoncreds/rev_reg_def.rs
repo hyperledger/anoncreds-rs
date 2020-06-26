@@ -1,8 +1,8 @@
-use super::cl_compat::revocation::RevocationKeyPublic;
+use super::cl::RevocationKeyPublic;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::utils::qualifier::Qualifiable;
-use crate::{Validatable, ValidationError};
+use crate::{EmbedJson, Validatable, ValidationError};
 
 pub const CL_ACCUM: &str = "CL_ACCUM";
 
@@ -57,7 +57,7 @@ pub struct RevocationRegistryDefinitionValue {
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDefinitionValuePublicKeys {
-    pub accum_key: RevocationKeyPublic,
+    pub accum_key: EmbedJson<RevocationKeyPublic>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

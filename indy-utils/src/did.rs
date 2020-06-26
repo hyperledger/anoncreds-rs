@@ -1,9 +1,10 @@
 use regex::Regex;
 
 use crate::base58;
+#[cfg(feature = "ed25519")]
 use crate::keys::{KeyType, SignKey, VerKey};
 use crate::qualifier::Qualifiable;
-use crate::{ConversionError, Validatable, ValidationError};
+use crate::{Validatable, ValidationError};
 
 lazy_static! {
     /// The default identifier DID used when submitting ledger read requests
@@ -13,7 +14,7 @@ lazy_static! {
 #[cfg(feature = "ed25519")]
 pub fn generate_did(
     seed: Option<&[u8]>,
-) -> Result<(ShortDidValue, SignKey, VerKey), ConversionError> {
+) -> Result<(ShortDidValue, SignKey, VerKey), crate::ConversionError> {
     let sk = match seed {
         Some(seed) => SignKey::from_seed(seed)?,
         None => SignKey::generate(Some(KeyType::ED25519))?,

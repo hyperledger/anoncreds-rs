@@ -1,8 +1,8 @@
-use super::cl_compat::revocation::{
+use super::cl::{
     RevocationRegistry as CryptoRevocationRegistry,
     RevocationRegistryDelta as CryptoRevocationRegistryDelta,
 };
-use crate::Validatable;
+use crate::{EmbedJson, Validatable};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -15,7 +15,7 @@ pub enum RevocationRegistry {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct RevocationRegistryV1 {
-    pub value: CryptoRevocationRegistry,
+    pub value: EmbedJson<CryptoRevocationRegistry>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -32,5 +32,5 @@ impl Validatable for RevocationRegistryDelta {}
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDeltaV1 {
-    pub value: CryptoRevocationRegistryDelta,
+    pub value: EmbedJson<CryptoRevocationRegistryDelta>,
 }

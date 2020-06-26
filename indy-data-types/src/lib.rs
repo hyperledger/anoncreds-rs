@@ -5,9 +5,14 @@ extern crate lazy_static;
 #[macro_use]
 extern crate serde_derive;
 
-#[cfg(all(feature = "serde", any(test, feature = "cl", feature = "cl_native")))]
+#[cfg(all(feature = "serde", test))]
 #[macro_use]
 extern crate serde_json;
+
+mod embed_json;
+pub use embed_json::EmbedJson;
+#[cfg(feature = "serde")]
+pub use embed_json::{embed_json, EmbedExtract};
 
 mod utils {
     pub use indy_utils::base58;

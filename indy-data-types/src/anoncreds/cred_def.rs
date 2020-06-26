@@ -1,8 +1,8 @@
-use super::cl_compat::credential::{CredentialPrimaryPublicKey, CredentialRevocationPublicKey};
+use super::cl::{CredentialPrimaryPublicKey, CredentialRevocationPublicKey};
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::schema::SchemaId;
 use crate::utils::qualifier::Qualifiable;
-use crate::{Validatable, ValidationError};
+use crate::{EmbedJson, Validatable, ValidationError};
 
 pub const CL_SIGNATURE_TYPE: &str = "CL";
 
@@ -23,9 +23,9 @@ impl SignatureType {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CredentialDefinitionData {
-    pub primary: CredentialPrimaryPublicKey,
+    pub primary: EmbedJson<CredentialPrimaryPublicKey>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub revocation: Option<CredentialRevocationPublicKey>,
+    pub revocation: Option<EmbedJson<CredentialRevocationPublicKey>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

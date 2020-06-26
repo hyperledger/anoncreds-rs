@@ -1,13 +1,10 @@
 use std::collections::HashMap;
 
-use super::cl_compat::{
-    credential::{CredentialSignature, SignatureCorrectnessProof, Witness},
-    revocation::RevocationRegistry,
-};
+use super::cl::{CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, Witness};
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
-use crate::{Validatable, ValidationError};
+use crate::{EmbedJson, Validatable, ValidationError};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
@@ -16,10 +13,10 @@ pub struct Credential {
     pub cred_def_id: CredentialDefinitionId,
     pub rev_reg_id: Option<RevocationRegistryId>,
     pub values: CredentialValues,
-    pub signature: CredentialSignature,
-    pub signature_correctness_proof: SignatureCorrectnessProof,
-    pub rev_reg: Option<RevocationRegistry>,
-    pub witness: Option<Witness>,
+    pub signature: EmbedJson<CredentialSignature>,
+    pub signature_correctness_proof: EmbedJson<SignatureCorrectnessProof>,
+    pub rev_reg: Option<EmbedJson<RevocationRegistry>>,
+    pub witness: Option<EmbedJson<Witness>>,
 }
 
 impl Credential {

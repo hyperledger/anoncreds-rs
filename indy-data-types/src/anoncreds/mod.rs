@@ -1,4 +1,4 @@
-pub mod cl_compat;
+pub mod cl;
 
 mod cred_def;
 pub use cred_def::{CredentialDefinition, CredentialDefinitionV1};

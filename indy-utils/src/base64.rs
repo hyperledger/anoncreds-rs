@@ -1,4 +1,4 @@
-use rust_base64 as base64;
+use base64_rs as base64;
 
 pub use base64::encode;
 
