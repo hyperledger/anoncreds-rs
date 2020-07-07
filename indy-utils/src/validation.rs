@@ -1,5 +1,6 @@
 use crate::error::ValidationError;
 
+/// Macro to return a new `ValidationError` with an optional message
 #[macro_export]
 macro_rules! invalid {
     () => { $crate::ValidationError::from(None) };

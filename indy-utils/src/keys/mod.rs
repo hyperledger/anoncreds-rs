@@ -1,4 +1,7 @@
 #[cfg(feature = "ed25519")]
+use once_cell::sync::Lazy;
+
+#[cfg(feature = "ed25519")]
 use ursa::signatures::{ed25519::Ed25519Sha512, SignatureScheme};
 
 use zeroize::Zeroize;
@@ -11,9 +14,7 @@ mod types;
 pub use types::*;
 
 #[cfg(feature = "ed25519")]
-lazy_static! {
-    pub static ref ED25519_SIGNER: Ed25519Sha512 = Ed25519Sha512::new();
-}
+pub static ED25519_SIGNER: Lazy<Ed25519Sha512> = Lazy::new(|| Ed25519Sha512::new());
 
 pub fn build_full_verkey(dest: &str, key: &str) -> Result<EncodedVerKey, ConversionError> {
     EncodedVerKey::from_str_qualified(key, Some(dest), None, None)

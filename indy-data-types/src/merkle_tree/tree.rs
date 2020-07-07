@@ -1,6 +1,6 @@
 use std::cmp;
 
-use crate::utils::hash::{DefaultHash as Hash, TreeHash};
+use crate::utils::hash::{TreeHash, SHA256::DigestType as Hash};
 use crate::ValidationError;
 
 pub type TreeLeafData = Vec<u8>;

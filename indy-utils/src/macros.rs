@@ -1,4 +1,3 @@
-#[macro_export]
 macro_rules! unwrap_opt_or_return {
     ($opt:expr, $err:expr) => {
         match $opt {
@@ -8,12 +7,12 @@ macro_rules! unwrap_opt_or_return {
     };
 }
 
+/// Derive a new handle type having an atomically increasing sequence number
 #[macro_export]
 macro_rules! new_handle_type (($newtype:ident, $counter:ident) => (
+    use once_cell::sync::Lazy;
 
-    lazy_static! {
-        static ref $counter: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-    }
+    static $counter: Lazy<std::sync::atomic::AtomicUsize> = Lazy::new(|| std::sync::atomic::AtomicUsize::new(0));
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
     pub struct $newtype(pub usize);

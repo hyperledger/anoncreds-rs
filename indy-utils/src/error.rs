@@ -96,7 +96,7 @@ define_error!(
 define_error!(
     UnexpectedError,
     "Unexpected error",
-    "Error type for things that shouldn't normally occur"
+    "Error type for eventualities that shouldn't normally occur"
 );
 
 define_error!(

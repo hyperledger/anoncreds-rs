@@ -1,7 +1,7 @@
 use super::cl::{CredentialPrimaryPublicKey, CredentialRevocationPublicKey};
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::schema::SchemaId;
-use crate::utils::qualifier::Qualifiable;
+use crate::utils::Qualifiable;
 use crate::{EmbedJson, Validatable, ValidationError};
 
 pub const CL_SIGNATURE_TYPE: &str = "CL";

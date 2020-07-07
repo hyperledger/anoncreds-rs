@@ -398,7 +398,7 @@ version = "0.3.0"
 dependencies = [
  "hex",
  "indy-utils",
- "lazy_static",
+ "once_cell",
  "regex",
  "serde",
  "serde_json",
@@ -422,7 +422,7 @@ dependencies = [
  "futures-executor",
  "hex",
  "hmac",
- "lazy_static",
+ "once_cell",
  "rand",
  "regex",
  "serde",

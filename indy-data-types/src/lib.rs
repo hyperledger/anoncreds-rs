@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate lazy_static;
-
 #[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde;
@@ -8,6 +5,9 @@ extern crate serde;
 #[cfg(all(feature = "serde", test))]
 #[macro_use]
 extern crate serde_json;
+
+#[macro_use]
+mod macros;
 
 mod embed_json;
 pub use embed_json::EmbedJson;
@@ -18,7 +18,7 @@ mod utils {
     pub use indy_utils::base58;
     #[cfg(feature = "hash")]
     pub use indy_utils::hash;
-    pub use indy_utils::qualifier;
+    pub use indy_utils::{qualifiable, Qualifiable};
 }
 
 pub use indy_utils::did::*;

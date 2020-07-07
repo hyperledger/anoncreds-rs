@@ -3,7 +3,7 @@ use super::cl::{
     CredentialSecretsBlindingFactors, Nonce,
 };
 use crate::identifiers::cred_def::CredentialDefinitionId;
-use crate::utils::qualifier::Qualifiable;
+use crate::utils::Qualifiable;
 use crate::{EmbedJson, Validatable, ValidationError};
 use indy_utils::did::DidValue;
 

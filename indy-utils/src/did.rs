@@ -1,16 +1,17 @@
+use once_cell::sync::Lazy;
+
 use regex::Regex;
 
 use crate::base58;
 #[cfg(feature = "ed25519")]
 use crate::keys::{KeyType, SignKey, VerKey};
-use crate::qualifier::Qualifiable;
-use crate::{Validatable, ValidationError};
+use crate::{Qualifiable, Validatable, ValidationError};
 
-lazy_static! {
-    /// The default identifier DID used when submitting ledger read requests
-    pub static ref DEFAULT_LIBINDY_DID: DidValue = DidValue::new("LibindyDid111111111111", None);
-}
+/// The default identifier DID used when submitting ledger read requests
+pub static DEFAULT_LIBINDY_DID: Lazy<DidValue> =
+    Lazy::new(|| DidValue::new("LibindyDid111111111111", None));
 
+/// Create a new DID with an optional seed value
 #[cfg(feature = "ed25519")]
 pub fn generate_did(
     seed: Option<&[u8]>,
@@ -31,9 +32,8 @@ pub struct DidMethod(pub String);
 
 impl Validatable for DidMethod {
     fn validate(&self) -> Result<(), ValidationError> {
-        lazy_static! {
-            static ref REGEX_METHOD_NAME: Regex = Regex::new("^[a-z0-9]+$").unwrap();
-        }
+        static REGEX_METHOD_NAME: Lazy<Regex> = Lazy::new(|| Regex::new("^[a-z0-9]+$").unwrap());
+
         if !REGEX_METHOD_NAME.is_match(&self.0) {
             return Err(invalid!(
                 "Invalid default name: {}. It does not match the DID method name format.",

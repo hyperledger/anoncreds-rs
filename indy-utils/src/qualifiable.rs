@@ -1,10 +1,11 @@
+use once_cell::sync::Lazy;
+
 use regex::Regex;
 
 use super::{Validatable, ValidationError};
 
-lazy_static! {
-    pub(crate) static ref REGEX: Regex = Regex::new("^([a-z0-9]+):([a-z0-9]+):(.*)$").unwrap();
-}
+pub(crate) static REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new("^([a-z0-9]+):([a-z0-9]+):(.*)$").unwrap());
 
 /// Combine a prefix, method, and value into a qualified identifier
 pub fn combine(prefix: &str, method: Option<&str>, entity: &str) -> String {
@@ -103,6 +104,7 @@ pub trait Qualifiable: From<String> + std::ops::Deref<Target = str> + Validatabl
     }
 }
 
+/// Derive a new `Qualifiable` string type
 #[macro_export]
 macro_rules! qualifiable_type {
     ($newtype:ident, $doc:expr) => {

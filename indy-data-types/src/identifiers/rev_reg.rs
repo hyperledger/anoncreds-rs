@@ -1,15 +1,17 @@
+use once_cell::sync::Lazy;
+
 use regex::Regex;
 
 use super::cred_def::CredentialDefinitionId;
 use super::DELIMITER;
-use crate::utils::qualifier::{self, Qualifiable};
+use crate::utils::{qualifiable, Qualifiable};
 use crate::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 use indy_utils::qualifiable_type;
 
-lazy_static! {
-    static ref QUALIFIED_REV_REG_ID: Regex = Regex::new("(^revreg:(?P<method>[a-z0-9]+):)?(?P<did>.+):4:(?P<cred_def_id>.+):(?P<rev_reg_type>.+):(?P<tag>.+)$").unwrap();
-}
+static QUALIFIED_REV_REG_ID: Lazy<Regex> = Lazy::new(|| {
+    Regex::new("(^revreg:(?P<method>[a-z0-9]+):)?(?P<did>.+):4:(?P<cred_def_id>.+):(?P<rev_reg_type>.+):(?P<tag>.+)$").unwrap()
+});
 
 qualifiable_type!(RevocationRegistryId, "A revocation registry identifier");
 
@@ -35,7 +37,7 @@ impl RevocationRegistryId {
             DELIMITER,
             tag
         );
-        Self::from(qualifier::combine(
+        Self::from(qualifiable::combine(
             Self::PREFIX,
             did.get_method(),
             id.as_str(),

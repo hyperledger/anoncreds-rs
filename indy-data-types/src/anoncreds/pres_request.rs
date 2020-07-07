@@ -11,7 +11,7 @@ use super::credential::Credential;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
-use crate::utils::qualifier::{self, Qualifiable};
+use crate::utils::{qualifiable, Qualifiable};
 use crate::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 use indy_utils::invalid;
@@ -383,7 +383,7 @@ fn _check_restriction(
 ) -> Result<(), ValidationError> {
     if *version == PresentationRequestVersion::V1
         && Credential::QUALIFIABLE_TAGS.contains(&tag_name)
-        && qualifier::is_fully_qualified(tag_value)
+        && qualifiable::is_fully_qualified(tag_value)
     {
         return Err(invalid!("Presentation request validation failed: fully qualified identifiers can not be used for presentation request of the first version. \
                     Please, set \"ver\":\"2.0\" to use fully qualified identifiers."));

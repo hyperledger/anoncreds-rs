@@ -1,7 +1,7 @@
 use super::cl::{CredentialKeyCorrectnessProof, Nonce};
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::schema::SchemaId;
-use crate::utils::qualifier::Qualifiable;
+use crate::utils::Qualifiable;
 use crate::{EmbedJson, Validatable, ValidationError};
 
 #[derive(Clone, Debug, PartialEq, Eq)]

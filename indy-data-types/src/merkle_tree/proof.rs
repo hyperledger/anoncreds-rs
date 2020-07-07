@@ -1,4 +1,4 @@
-use crate::utils::hash::{DefaultHash as Hash, TreeHash};
+use crate::utils::hash::{TreeHash, SHA256::DigestType as Hash};
 use crate::ValidationError;
 
 use super::tree::{Tree, TreeLeafData};

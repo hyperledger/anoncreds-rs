@@ -1,7 +1,7 @@
 use serde_json::Value as SJsonValue;
 
 use super::error::ValidationError;
-use super::hash::{digest, Sha256};
+use super::hash::SHA256;
 
 const ATTRIB: &str = "100";
 const GET_ATTR: &str = "104";
@@ -48,7 +48,7 @@ fn _serialize_signature(
                     && (key == "raw" || key == "hash" || key == "enc")
                 {
                     // do it only for attribute related request
-                    let hash = digest::<Sha256>(
+                    let hash = SHA256::digest(
                         &value
                             .as_str()
                             .ok_or_else(|| invalid!("Cannot update hash context"))?

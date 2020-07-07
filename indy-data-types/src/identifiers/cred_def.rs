@@ -1,5 +1,5 @@
 use super::schema::SchemaId;
-use crate::utils::qualifier::{self, Qualifiable};
+use crate::utils::{qualifiable, Qualifiable};
 use crate::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 use indy_utils::qualifiable_type;
@@ -34,7 +34,7 @@ impl CredentialDefinitionId {
             schema_id.0,
             tag
         );
-        Self::from(qualifier::combine(
+        Self::from(qualifiable::combine(
             Self::PREFIX,
             did.get_method(),
             id.as_str(),

@@ -1,4 +1,4 @@
-use crate::utils::qualifier::{self, Qualifiable};
+use crate::utils::{qualifiable, Qualifiable};
 use crate::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 use indy_utils::qualifiable_type;
@@ -22,7 +22,7 @@ impl SchemaId {
             DELIMITER,
             version
         );
-        Self::from(qualifier::combine(
+        Self::from(qualifiable::combine(
             Self::PREFIX,
             did.get_method(),
             id.as_str(),

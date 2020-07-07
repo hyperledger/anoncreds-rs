@@ -1,19 +1,34 @@
-pub use ursa::hash::sha2::{Digest, Sha256};
+pub use ursa::hash::sha2::Digest;
 
 use super::ValidationError;
 
-pub type DefaultHash = Sha256;
-pub const HASHBYTES: usize = 32;
-pub const EMPTY_HASH_BYTES: [u8; HASHBYTES] = [
-    227, 176, 196, 66, 152, 252, 28, 20, 154, 251, 244, 200, 153, 111, 185, 36, 39, 174, 65, 228,
-    100, 155, 147, 76, 164, 149, 153, 27, 120, 82, 184, 85,
-];
+macro_rules! hash_type {
+    ($modname:ident, $digest:path, $doc:expr) => {
+        #[doc=$doc]
+        #[allow(non_snake_case)]
+        pub mod $modname {
+            use once_cell::sync::Lazy;
+            use ursa::hash::sha2::Digest;
 
-pub fn digest<H: Digest + Default>(input: &[u8]) -> Vec<u8> {
-    let mut ctx = H::default();
-    ctx.input(input);
-    ctx.result().to_vec()
+            pub type DigestType = $digest;
+
+            pub fn digest<V: AsRef<[u8]>>(input: V) -> Vec<u8> {
+                DigestType::digest(input.as_ref()).to_vec()
+            }
+
+            pub fn digest_empty() -> &'static [u8] {
+                static EMPTY_HASH_BYTES: Lazy<Vec<u8>> = Lazy::new(|| digest(&[]));
+                EMPTY_HASH_BYTES.as_slice()
+            }
+
+            pub fn output_size() -> usize {
+                DigestType::output_size()
+            }
+        }
+    }
 }
+
+hash_type!(SHA256, ursa::hash::sha2::Sha256, "");
 
 pub trait TreeHash {
     fn hash_leaf<T>(leaf: &T) -> Result<Vec<u8>, ValidationError>
@@ -77,5 +92,22 @@ pub trait Hashable {
 impl<T: AsRef<[u8]>> Hashable for T {
     fn update_context<D: Digest>(&self, context: &mut D) -> Result<(), ValidationError> {
         Ok(context.input(self.as_ref()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hash_check_sha256() {
+        assert_eq!(SHA256::output_size(), 32);
+        assert_eq!(
+            SHA256::digest_empty(),
+            &[
+                227, 176, 196, 66, 152, 252, 28, 20, 154, 251, 244, 200, 153, 111, 185, 36, 39,
+                174, 65, 228, 100, 155, 147, 76, 164, 149, 153, 27, 120, 82, 184, 85,
+            ]
+        );
     }
 }
