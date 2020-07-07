@@ -88,6 +88,12 @@ define_error!(
 );
 
 define_error!(
+    EncryptionError,
+    "Encryption error",
+    "Error type for failure of encryption and decryption operations"
+);
+
+define_error!(
     UnexpectedError,
     "Unexpected error",
     "Error type for things that shouldn't normally occur"
@@ -125,6 +131,13 @@ impl From<ursa::errors::UrsaCryptoError> for ConversionError {
     }
 }
 
+#[cfg(any(feature = "cl", feature = "cl_native"))]
+impl From<ursa::errors::UrsaCryptoError> for EncryptionError {
+    fn from(err: ursa::errors::UrsaCryptoError) -> Self {
+        Self::from(err.to_string())
+    }
+}
+
 impl From<ValidationError> for ConversionError {
     fn from(err: ValidationError) -> Self {
         Self {
@@ -144,6 +157,15 @@ impl From<ConversionError> for ValidationError {
 }
 
 impl From<UnexpectedError> for ConversionError {
+    fn from(err: UnexpectedError) -> Self {
+        Self {
+            context: err.context,
+            source: err.source,
+        }
+    }
+}
+
+impl From<UnexpectedError> for EncryptionError {
     fn from(err: UnexpectedError) -> Self {
         Self {
             context: err.context,

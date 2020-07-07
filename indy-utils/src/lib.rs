@@ -9,12 +9,15 @@ pub extern crate serde;
 #[macro_use]
 pub extern crate serde_json;
 
+#[macro_use]
+pub extern crate zeroize;
+
 /// Common macros
 #[macro_use]
 pub mod macros;
 
 mod error;
-pub use error::{ConversionError, ValidationError};
+pub use error::{ConversionError, EncryptionError, UnexpectedError, ValidationError};
 
 pub trait TryClone: Sized {
     fn try_clone(&self) -> Result<Self, ConversionError>;
@@ -43,6 +46,9 @@ pub mod pack;
 
 #[cfg(feature = "txn_signature")]
 pub mod txn_signature;
+
+#[cfg(feature = "wallet_key")]
+pub mod wallet_key;
 
 #[cfg(feature = "wql")]
 pub mod wql;
