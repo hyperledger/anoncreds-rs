@@ -2,6 +2,8 @@ pub use ursa::hash::sha2::Digest;
 
 use super::ValidationError;
 
+/// Derive a new hash type
+#[macro_export]
 macro_rules! hash_type {
     ($modname:ident, $digest:path, $doc:expr) => {
         #[doc=$doc]
@@ -28,12 +30,14 @@ macro_rules! hash_type {
     }
 }
 
-hash_type!(SHA256, ursa::hash::sha2::Sha256, "");
+hash_type!(SHA256, ursa::hash::sha2::Sha256, "Sha256 hash");
 
+/// A trait for producing hashes of merkle tree leaves and nodes
 pub trait TreeHash {
     fn hash_leaf<T>(leaf: &T) -> Result<Vec<u8>, ValidationError>
     where
         T: Hashable;
+
     fn hash_nodes<T>(left: &T, right: &T) -> Result<Vec<u8>, ValidationError>
     where
         T: Hashable;

@@ -11,16 +11,18 @@ use super::error::ConversionError;
 use super::{Validatable, ValidationError};
 
 mod types;
-pub use types::*;
+pub use types::{ArrayKey, KeyEncoding, KeyType};
 
 #[cfg(feature = "ed25519")]
-pub static ED25519_SIGNER: Lazy<Ed25519Sha512> = Lazy::new(|| Ed25519Sha512::new());
+static ED25519_SIGNER: Lazy<Ed25519Sha512> = Lazy::new(|| Ed25519Sha512::new());
 
+/// Build an encoded verkey
 pub fn build_full_verkey(dest: &str, key: &str) -> Result<EncodedVerKey, ConversionError> {
     EncodedVerKey::from_str_qualified(key, Some(dest), None, None)
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// A raw signing key used for generating transaction signatures
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SignKey {
     pub key: Vec<u8>,
     pub alg: KeyType,
@@ -112,7 +114,8 @@ impl Drop for SignKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// A raw verkey used in verifying signatures
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VerKey {
     pub key: Vec<u8>,
     pub alg: KeyType,
@@ -220,7 +223,8 @@ impl Drop for VerKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// An encoded verkey appropriate for storing and transmitting
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EncodedVerKey {
     pub key: String,
     pub alg: KeyType,

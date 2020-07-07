@@ -9,93 +9,27 @@ use hmac::{Hmac, Mac};
 use ursa::encryption::{random_bytes, symm::chacha20poly1305::ChaCha20Poly1305 as ChaChaKey};
 use ursa::hash::sha2::Sha256;
 
-#[cfg(feature = "serde")]
-use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
-
+use crate::keys::ArrayKey;
 use crate::{EncryptionError, UnexpectedError};
 
 const KEY_BYTES: usize = 32;
 const ENC_KEY_SIZE: usize = 12 + KEY_BYTES + 16; // nonce + key_bytes + tag size
 
-#[derive(Clone, Debug, PartialEq, Eq, Zeroize)]
-pub struct Key<L: ArrayLength<u8>>(GenericArray<u8, L>);
-
-type Key32 = Key<U32>;
+type Key32 = ArrayKey<U32>;
 type NonceSize = <ChaChaKey as Aead>::NonceSize;
 type Nonce = GenericArray<u8, NonceSize>;
 type TagSize = <ChaChaKey as Aead>::TagSize;
 
-impl<L: ArrayLength<u8>> Key<L> {
-    pub fn new() -> Result<Self, UnexpectedError> {
-        Ok(Self(
-            random_bytes().map_err(|e| UnexpectedError::from_msg(e.to_string()))?,
-        ))
-    }
-
-    pub fn from_slice<D: AsRef<[u8]>>(data: D) -> Self {
-        Self(GenericArray::from_slice(data.as_ref()).clone())
-    }
-
-    pub fn extract(self) -> GenericArray<u8, L> {
-        self.0
-    }
+pub fn random_key<L: ArrayLength<u8>>() -> Result<ArrayKey<L>, UnexpectedError> {
+    Ok(ArrayKey::from(
+        random_bytes().map_err(|e| UnexpectedError::from_msg(e.to_string()))?,
+    ))
 }
 
-impl<L: ArrayLength<u8>> From<GenericArray<u8, L>> for Key<L> {
-    fn from(key: GenericArray<u8, L>) -> Self {
-        Self(key)
-    }
-}
-
-impl<L: ArrayLength<u8>> std::ops::Deref for Key<L> {
-    type Target = GenericArray<u8, L>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<L: ArrayLength<u8>> Serialize for Key<L> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(hex::encode(&self.0.as_slice()).as_str())
-    }
-}
-
-impl<'a, L: ArrayLength<u8>> Deserialize<'a> for Key<L> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'a>,
-    {
-        deserializer.deserialize_str(KeyVisitor {
-            _pd: std::marker::PhantomData,
-        })
-    }
-}
-
-struct KeyVisitor<L: ArrayLength<u8>> {
-    _pd: std::marker::PhantomData<L>,
-}
-
-impl<'a, L: ArrayLength<u8>> Visitor<'a> for KeyVisitor<L> {
-    type Value = Key<L>;
-
-    fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        formatter.write_str(stringify!($name))
-    }
-
-    fn visit_str<E>(self, value: &str) -> Result<Key<L>, E>
-    where
-        E: serde::de::Error,
-    {
-        let key = hex::decode(value).map_err(E::custom)?;
-        Ok(Key(GenericArray::clone_from_slice(key.as_slice())))
-    }
-}
-
+/// A wallet key record combining the keys required to encrypt
+/// and decrypt storage records
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
-pub struct IndyWalletKey {
+pub struct WalletKey {
     pub category_key: Key32,
     pub name_key: Key32,
     pub value_key: Key32,
@@ -105,16 +39,16 @@ pub struct IndyWalletKey {
     pub tags_hmac_key: Key32,
 }
 
-impl IndyWalletKey {
+impl WalletKey {
     pub fn new() -> Result<Self, UnexpectedError> {
         Ok(Self {
-            category_key: Key::new()?,
-            name_key: Key::new()?,
-            value_key: Key::new()?,
-            item_hmac_key: Key::new()?,
-            tag_name_key: Key::new()?,
-            tag_value_key: Key::new()?,
-            tags_hmac_key: Key::new()?,
+            category_key: random_key()?,
+            name_key: random_key()?,
+            value_key: random_key()?,
+            item_hmac_key: random_key()?,
+            tag_name_key: random_key()?,
+            tag_value_key: random_key()?,
+            tags_hmac_key: random_key()?,
         })
     }
 
@@ -130,7 +64,7 @@ impl IndyWalletKey {
     }
 
     pub fn encrypt_value<B: AsRef<[u8]>>(&self, value: B) -> Result<Vec<u8>, EncryptionError> {
-        let value_key = Key::new()?;
+        let value_key = random_key()?;
         let mut value = encrypt_non_searchable(&value_key, value.as_ref())?;
         let mut result = encrypt_non_searchable(&self.value_key, value_key.as_ref())?;
         result.append(&mut value);
@@ -164,7 +98,7 @@ impl IndyWalletKey {
             ));
         }
         let value = &enc_value[ENC_KEY_SIZE..];
-        let value_key = Key::from_slice(decrypt(&self.value_key, &enc_value[..ENC_KEY_SIZE])?);
+        let value_key = ArrayKey::from_slice(decrypt(&self.value_key, &enc_value[..ENC_KEY_SIZE])?);
         decrypt(&value_key, value)
     }
 
@@ -237,7 +171,7 @@ mod tests {
     #[test]
     fn wallet_key_non_searchable() {
         let input = b"hello";
-        let key = Key32::new().unwrap();
+        let key = random_key().unwrap();
         let enc = encrypt_non_searchable(&key, input).unwrap();
         assert_eq!(
             enc.len(),
@@ -250,8 +184,8 @@ mod tests {
     #[test]
     fn wallet_key_searchable() {
         let input = b"hello";
-        let key = Key32::new().unwrap();
-        let hmac_key = Key32::new().unwrap();
+        let key = random_key().unwrap();
+        let hmac_key = random_key().unwrap();
         let enc = encrypt_searchable(&key, &hmac_key, input).unwrap();
         assert_eq!(
             enc.len(),
@@ -264,7 +198,7 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn wallet_key_serde() {
-        let key = IndyWalletKey::new().unwrap();
+        let key = WalletKey::new().unwrap();
         let key_json = serde_json::to_string(&key).unwrap();
         let key_cmp = serde_json::from_str(&key_json).unwrap();
         assert_eq!(key, key_cmp);

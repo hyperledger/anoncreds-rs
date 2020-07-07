@@ -1,3 +1,5 @@
+pub extern crate aead;
+
 #[cfg(feature = "serde")]
 #[macro_use]
 pub extern crate serde;
@@ -39,7 +41,7 @@ pub mod keys;
 #[cfg(feature = "base64")]
 pub mod base64;
 
-/// SHA2 hashing
+/// Hash algorithms
 #[cfg(feature = "hash")]
 pub mod hash;
 
