@@ -20,15 +20,20 @@ type NonceSize = <ChaChaKey as Aead>::NonceSize;
 type Nonce = GenericArray<u8, NonceSize>;
 type TagSize = <ChaChaKey as Aead>::TagSize;
 
-pub fn random_key<L: ArrayLength<u8>>() -> Result<ArrayKey<L>, UnexpectedError> {
+fn random_key<L: ArrayLength<u8>>() -> Result<ArrayKey<L>, UnexpectedError> {
     Ok(ArrayKey::from(
         random_bytes().map_err(|e| UnexpectedError::from_msg(e.to_string()))?,
     ))
 }
 
+fn random_nonce() -> Result<Nonce, EncryptionError> {
+    random_bytes().map_err(|e| EncryptionError::from_msg(e.to_string()))
+}
+
 /// A wallet key record combining the keys required to encrypt
 /// and decrypt storage records
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct WalletKey {
     pub category_key: Key32,
     pub name_key: Key32,
@@ -117,10 +122,7 @@ impl WalletKey {
     }
 }
 
-pub fn create_nonce() -> Result<Nonce, EncryptionError> {
-    random_bytes().map_err(|e| EncryptionError::from_msg(e.to_string()))
-}
-
+/// Encrypt a value with a predictable nonce, making it searchable
 pub fn encrypt_searchable(
     enc_key: &Key32,
     hmac_key: &Key32,
@@ -140,9 +142,10 @@ pub fn encrypt_searchable(
     Ok(result)
 }
 
+/// Encrypt a value with a random nonce
 pub fn encrypt_non_searchable(enc_key: &Key32, input: &[u8]) -> Result<Vec<u8>, EncryptionError> {
     let key = ChaChaKey::new(enc_key);
-    let nonce = create_nonce()?;
+    let nonce = random_nonce()?;
     let mut enc = key
         .encrypt(&nonce, input)
         .map_err(|e| EncryptionError::from_msg(e.to_string()))?;
@@ -151,8 +154,9 @@ pub fn encrypt_non_searchable(enc_key: &Key32, input: &[u8]) -> Result<Vec<u8>, 
     Ok(result)
 }
 
+/// Decrypt a previously encrypted value with nonce attached
 pub fn decrypt(enc_key: &Key32, input: &[u8]) -> Result<Vec<u8>, EncryptionError> {
-    if input.len() < NonceSize::to_usize() {
+    if input.len() < NonceSize::to_usize() + TagSize::to_usize() {
         return Err(EncryptionError::from_msg(
             "Invalid length for encrypted buffer",
         ));

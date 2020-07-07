@@ -35,6 +35,7 @@ pub struct Protected {
     pub recipients: Vec<Recipient>,
 }
 
+/// A trait for custom key lookup implementations used by unpack
 pub trait KeyLookup: Sync {
     fn find<'f>(
         &'f self,
@@ -49,6 +50,7 @@ pub struct KeyLookupFn<'a> {
     cb: KeyLookupCb<'a>,
 }
 
+/// Create a `KeyLookup` from a callback function
 pub fn key_lookup_fn<'a, F>(cb: F) -> KeyLookupFn<'a>
 where
     F: Fn(&Vec<EncodedVerKey>) -> Option<(usize, SignKey)> + Send + Sync + 'a,

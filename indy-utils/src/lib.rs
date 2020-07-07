@@ -4,8 +4,8 @@ pub extern crate aead;
 #[macro_use]
 pub extern crate serde;
 
+#[cfg_attr(all(feature = "serde", feature = "wql"), macro_use)]
 #[cfg(feature = "serde")]
-#[macro_use]
 pub extern crate serde_json;
 
 #[macro_use]
