@@ -15,7 +15,7 @@ pub struct CredentialRequest {
     pub blinded_ms: EmbedJson<BlindedCredentialSecrets>,
     pub blinded_ms_correctness_proof: EmbedJson<BlindedCredentialSecretsCorrectnessProof>,
     pub nonce: Nonce,
-}
+} 
 
 impl CredentialRequest {
     #[allow(unused)]
