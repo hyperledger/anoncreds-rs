@@ -23,7 +23,7 @@ mod utils {
 
 pub use indy_utils::did::*;
 pub use indy_utils::keys::*;
-pub use indy_utils::{ConversionError, TryClone, Validatable, ValidationError};
+pub use indy_utils::{ConversionError, Validatable, ValidationError};
 
 #[cfg(any(feature = "cl", feature = "cl_native", feature = "hash"))]
 pub use indy_utils::ursa;

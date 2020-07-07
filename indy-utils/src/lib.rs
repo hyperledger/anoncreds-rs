@@ -19,15 +19,11 @@ pub mod macros;
 mod error;
 pub use error::{ConversionError, EncryptionError, UnexpectedError, ValidationError};
 
-pub trait TryClone: Sized {
-    fn try_clone(&self) -> Result<Self, ConversionError>;
-}
-
 /// Trait for qualifiable identifier types, having an optional prefix and method
 #[macro_use]
 pub mod qualifier;
 
-/// Trait and error definition for validatable data types
+/// Trait definition for validatable data types
 #[macro_use]
 mod validation;
 pub use validation::Validatable;
@@ -59,6 +55,7 @@ pub mod wql;
     feature = "cl_native",
     feature = "ed25519",
     feature = "hash",
-    feature = "pack"
+    feature = "pack",
+    feature = "wallet_key"
 ))]
 pub use ursa;
