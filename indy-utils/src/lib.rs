@@ -53,10 +53,6 @@ pub mod pack;
 #[cfg(feature = "txn_signature")]
 pub mod txn_signature;
 
-/// Indy wallet key with support for encryption and decryption
-#[cfg(feature = "wallet_key")]
-pub mod wallet_key;
-
 /// Wallet query language
 #[cfg(feature = "wql")]
 pub mod wql;
