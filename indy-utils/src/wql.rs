@@ -20,15 +20,11 @@ pub type Query = AbstractQuery<String, String>;
 impl<K, V> AbstractQuery<K, V> {
     pub fn optimise(self) -> Option<Self> {
         match self {
-            Self::Not(boxed_query) => {
-                if let Self::Not(nested_query) = *boxed_query {
-                    Some(*nested_query)
-                } else {
-                    Some(Self::Not(boxed_query))
-                }
-            }
-            Self::And(subqueries) if subqueries.len() == 0 => None,
-            Self::And(mut subqueries) if subqueries.len() == 1 => subqueries.remove(0).optimise(),
+            Self::Not(boxed_query) => match boxed_query.optimise() {
+                None => None,
+                Some(Self::Not(nested_query)) => Some(*nested_query),
+                Some(other) => Some(Self::Not(Box::new(other))),
+            },
             Self::And(subqueries) => {
                 let mut subqueries: Vec<Self> = subqueries
                     .into_iter()
@@ -41,8 +37,6 @@ impl<K, V> AbstractQuery<K, V> {
                     _ => Some(Self::And(subqueries)),
                 }
             }
-            Self::Or(subqueries) if subqueries.len() == 0 => None,
-            Self::Or(mut subqueries) if subqueries.len() == 1 => subqueries.remove(0).optimise(),
             Self::Or(subqueries) => {
                 let mut subqueries: Vec<Self> = subqueries
                     .into_iter()
@@ -58,8 +52,7 @@ impl<K, V> AbstractQuery<K, V> {
             Self::In(key, mut targets) if targets.len() == 1 => {
                 Some(Self::Eq(key, targets.remove(0)))
             }
-            Self::In(key, targets) => Some(Self::In(key, targets)),
-            _ => Some(self),
+            other => Some(other),
         }
     }
 
