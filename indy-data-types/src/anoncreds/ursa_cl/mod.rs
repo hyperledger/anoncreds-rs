@@ -34,61 +34,61 @@ pub struct WitnessSignature;
 
 #[cfg(all(feature = "serde", any(feature = "cl", feature = "cl_native")))]
 mod cl {
-    use crate::EmbedExtract;
+    use crate::EmbedExtractJson;
 
-    impl EmbedExtract for super::BlindedCredentialSecrets {
+    impl EmbedExtractJson for super::BlindedCredentialSecrets {
         type Inner = crate::ursa::cl::BlindedCredentialSecrets;
     }
 
-    impl EmbedExtract for super::BlindedCredentialSecretsCorrectnessProof {
+    impl EmbedExtractJson for super::BlindedCredentialSecretsCorrectnessProof {
         type Inner = crate::ursa::cl::BlindedCredentialSecretsCorrectnessProof;
     }
 
-    impl EmbedExtract for super::CredentialKeyCorrectnessProof {
+    impl EmbedExtractJson for super::CredentialKeyCorrectnessProof {
         type Inner = crate::ursa::cl::CredentialKeyCorrectnessProof;
     }
 
-    impl EmbedExtract for super::CredentialPrimaryPublicKey {
+    impl EmbedExtractJson for super::CredentialPrimaryPublicKey {
         type Inner = crate::ursa::cl::CredentialPrimaryPublicKey;
     }
 
-    impl EmbedExtract for super::CredentialRevocationPublicKey {
+    impl EmbedExtractJson for super::CredentialRevocationPublicKey {
         type Inner = crate::ursa::cl::CredentialRevocationPublicKey;
     }
 
-    impl EmbedExtract for super::CredentialSignature {
+    impl EmbedExtractJson for super::CredentialSignature {
         type Inner = crate::ursa::cl::CredentialSignature;
     }
 
-    impl EmbedExtract for super::MasterSecret {
+    impl EmbedExtractJson for super::MasterSecret {
         type Inner = crate::ursa::cl::MasterSecret;
     }
 
-    impl EmbedExtract for super::Proof {
+    impl EmbedExtractJson for super::Proof {
         type Inner = crate::ursa::cl::Proof;
     }
 
-    impl EmbedExtract for super::RevocationKeyPublic {
+    impl EmbedExtractJson for super::RevocationKeyPublic {
         type Inner = crate::ursa::cl::RevocationKeyPublic;
     }
 
-    impl EmbedExtract for super::RevocationRegistry {
+    impl EmbedExtractJson for super::RevocationRegistry {
         type Inner = crate::ursa::cl::RevocationRegistry;
     }
 
-    impl EmbedExtract for super::RevocationRegistryDelta {
+    impl EmbedExtractJson for super::RevocationRegistryDelta {
         type Inner = crate::ursa::cl::RevocationRegistryDelta;
     }
 
-    impl EmbedExtract for super::SignatureCorrectnessProof {
+    impl EmbedExtractJson for super::SignatureCorrectnessProof {
         type Inner = crate::ursa::cl::SignatureCorrectnessProof;
     }
 
-    impl EmbedExtract for super::Witness {
+    impl EmbedExtractJson for super::Witness {
         type Inner = crate::ursa::cl::Witness;
     }
 
-    impl EmbedExtract for super::WitnessSignature {
+    impl EmbedExtractJson for super::WitnessSignature {
         type Inner = crate::ursa::cl::WitnessSignature;
     }
 }
