@@ -6,8 +6,8 @@ use serde::{de, ser, Deserialize, Deserializer, Serialize, Serializer};
 #[cfg(feature = "serde")]
 use serde_json::Value;
 
-use super::cl::Nonce;
 use super::credential::Credential;
+use super::ursa_cl::Nonce;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;

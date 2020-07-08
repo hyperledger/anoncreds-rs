@@ -1,4 +1,4 @@
-use super::cl::{CredentialKeyCorrectnessProof, Nonce};
+use super::ursa_cl::{CredentialKeyCorrectnessProof, Nonce};
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::schema::SchemaId;
 use crate::utils::Qualifiable;

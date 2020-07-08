@@ -1,4 +1,4 @@
-use super::cl::RevocationKeyPublic;
+use super::ursa_cl::RevocationKeyPublic;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::utils::Qualifiable;

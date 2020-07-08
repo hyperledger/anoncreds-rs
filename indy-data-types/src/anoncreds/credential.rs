@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::cl::{CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, Witness};
+use super::ursa_cl::{CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, Witness};
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;

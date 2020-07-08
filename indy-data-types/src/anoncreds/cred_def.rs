@@ -1,4 +1,4 @@
-use super::cl::{CredentialPrimaryPublicKey, CredentialRevocationPublicKey};
+use super::ursa_cl::{CredentialPrimaryPublicKey, CredentialRevocationPublicKey};
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::schema::SchemaId;
 use crate::utils::Qualifiable;

@@ -1,4 +1,4 @@
-use super::cl::{
+use super::ursa_cl::{
     RevocationRegistry as CryptoRevocationRegistry,
     RevocationRegistryDelta as CryptoRevocationRegistryDelta,
 };

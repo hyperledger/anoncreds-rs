@@ -1,4 +1,4 @@
-use super::cl::{
+use super::ursa_cl::{
     BlindedCredentialSecrets, BlindedCredentialSecretsCorrectnessProof,
     CredentialSecretsBlindingFactors, Nonce,
 };

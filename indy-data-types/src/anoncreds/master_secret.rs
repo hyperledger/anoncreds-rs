@@ -1,4 +1,4 @@
-use super::cl::MasterSecret as CryptoMasterSecret;
+use super::ursa_cl::MasterSecret as CryptoMasterSecret;
 use crate::{EmbedJson, Validatable};
 
 #[derive(Clone, Debug, PartialEq, Eq)]

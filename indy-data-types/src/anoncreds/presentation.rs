@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::cl::Proof;
+use super::ursa_cl::Proof;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
