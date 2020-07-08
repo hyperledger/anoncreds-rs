@@ -29,8 +29,7 @@ pub struct CredentialDefinitionData {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(tag = "ver"))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(tag = "ver"))]
 pub enum CredentialDefinition {
     #[cfg_attr(feature = "serde", serde(rename = "1.0"))]
     CredentialDefinitionV1(CredentialDefinitionV1),
@@ -61,8 +60,11 @@ impl Validatable for CredentialDefinition {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(rename_all = "camelCase")
+)]
 pub struct CredentialDefinitionV1 {
     pub id: CredentialDefinitionId,
     pub schema_id: SchemaId,

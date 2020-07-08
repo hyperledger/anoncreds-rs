@@ -84,7 +84,7 @@ pub trait EmbedExtract {
 
 #[cfg(feature = "serde")]
 mod serde_support {
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
     use serde_json::value::{RawValue, Value};
     use std::convert::TryFrom;
 
@@ -116,8 +116,8 @@ mod serde_support {
         where
             D: Deserializer<'de>,
         {
-            let rawval = <&RawValue>::deserialize(deserializer)?;
-            Ok(EmbedJson::from_string(rawval.get().to_string()))
+            let value = Value::deserialize(deserializer)?;
+            Ok(EmbedJson::from_value(value).map_err(D::Error::custom)?)
         }
     }
 
@@ -161,6 +161,7 @@ mod tests {
         let embed = TestEmbed {
             v: EmbedJson::from_string(json.to_string()),
         };
+        // literal embedded value is maintained as-is
         assert_eq!(embed.v.to_string(), json);
     }
 
@@ -184,7 +185,8 @@ mod tests {
 
         let json = r#"{"a": 10, "v": {"val":  5}}"#;
         let test = serde_json::from_str::<TestEmbed>(json).unwrap();
-        assert_eq!(test.v.inner, r#"{"val":  5}"#);
+        // inner value is parsed and re-serialized
+        assert_eq!(test.v.inner, r#"{"val":5}"#);
 
         let inner = test.v.extract().unwrap();
         let cmp = V { val: 5 };
@@ -194,6 +196,6 @@ mod tests {
         assert_eq!(embed.inner, r#"{"val":5}"#);
 
         let reenc = serde_json::to_string(&test).unwrap();
-        assert_eq!(reenc, r#"{"a":10,"v":{"val":  5}}"#);
+        assert_eq!(reenc, r#"{"a":10,"v":{"val":5}}"#);
     }
 }
