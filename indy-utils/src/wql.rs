@@ -1,277 +1,367 @@
-#[cfg(feature = "serde")]
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-#[cfg(feature = "serde")]
-use serde_json::{self, Value};
+use crate::ConversionError;
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub enum Query {
-    And(Vec<Query>),
-    Or(Vec<Query>),
-    Not(Box<Query>),
-    Eq(String, String),
-    Neq(String, String),
-    Gt(String, String),
-    Gte(String, String),
-    Lt(String, String),
-    Lte(String, String),
-    Like(String, String),
-    In(String, Vec<String>),
+#[derive(Debug, Hash, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum AbstractQuery<K, V> {
+    And(Vec<Self>),
+    Or(Vec<Self>),
+    Not(Box<Self>),
+    Eq(K, V),
+    Neq(K, V),
+    Gt(K, V),
+    Gte(K, V),
+    Lt(K, V),
+    Lte(K, V),
+    Like(K, V),
+    In(K, Vec<V>),
 }
 
-#[cfg(feature = "serde")]
-impl Serialize for Query {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.to_value().serialize(serializer)
-    }
-}
+pub type Query = AbstractQuery<String, String>;
 
-#[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for Query {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let v = Value::deserialize(deserializer)?;
-
-        match v {
-            serde_json::Value::Object(map) => {
-                parse_query(map).map_err(|err| de::Error::missing_field(err))
-            }
-            serde_json::Value::Array(array) => {
-                // cast old restrictions format to wql
-                let mut res: Vec<serde_json::Value> = Vec::new();
-                for sub_query in array {
-                    let sub_query: serde_json::Map<String, serde_json::Value> = sub_query
-                        .as_object()
-                        .ok_or_else(|| de::Error::custom("Restriction is invalid"))?
-                        .clone()
-                        .into_iter()
-                        .filter(|&(_, ref v)| !v.is_null())
-                        .collect();
-
-                    if !sub_query.is_empty() {
-                        res.push(serde_json::Value::Object(sub_query));
-                    }
-                }
-
-                let mut map = serde_json::Map::new();
-                map.insert("$or".to_string(), serde_json::Value::Array(res));
-
-                parse_query(map).map_err(|err| de::Error::custom(err))
-            }
-            _ => Err(de::Error::missing_field(
-                "Restriction must be either object or array",
-            )),
-        }
-    }
-}
-
-impl Query {
-    pub fn optimise(self) -> Option<Query> {
+impl<K, V> AbstractQuery<K, V> {
+    pub fn optimise(self) -> Option<Self> {
         match self {
-            Query::Not(boxed_operator) => {
-                if let Query::Not(nested_operator) = *boxed_operator {
-                    Some(*nested_operator)
+            Self::Not(boxed_query) => {
+                if let Self::Not(nested_query) = *boxed_query {
+                    Some(*nested_query)
                 } else {
-                    Some(Query::Not(boxed_operator))
+                    Some(Self::Not(boxed_query))
                 }
             }
-            Query::And(suboperators) if suboperators.len() == 0 => None,
-            Query::And(mut suboperators) if suboperators.len() == 1 => {
-                suboperators.remove(0).optimise()
-            }
-            Query::And(suboperators) => {
-                let mut suboperators: Vec<Query> = suboperators
+            Self::And(subqueries) if subqueries.len() == 0 => None,
+            Self::And(mut subqueries) if subqueries.len() == 1 => subqueries.remove(0).optimise(),
+            Self::And(subqueries) => {
+                let mut subqueries: Vec<Self> = subqueries
                     .into_iter()
-                    .flat_map(|operator| operator.optimise())
+                    .flat_map(|query| query.optimise())
                     .collect();
 
-                match suboperators.len() {
+                match subqueries.len() {
                     0 => None,
-                    1 => Some(suboperators.remove(0)),
-                    _ => Some(Query::And(suboperators)),
+                    1 => Some(subqueries.remove(0)),
+                    _ => Some(Self::And(subqueries)),
                 }
             }
-            Query::Or(suboperators) if suboperators.len() == 0 => None,
-            Query::Or(mut suboperators) if suboperators.len() == 1 => {
-                suboperators.remove(0).optimise()
-            }
-            Query::Or(suboperators) => {
-                let mut suboperators: Vec<Query> = suboperators
+            Self::Or(subqueries) if subqueries.len() == 0 => None,
+            Self::Or(mut subqueries) if subqueries.len() == 1 => subqueries.remove(0).optimise(),
+            Self::Or(subqueries) => {
+                let mut subqueries: Vec<Self> = subqueries
                     .into_iter()
-                    .flat_map(|operator| operator.optimise())
+                    .flat_map(|query| query.optimise())
                     .collect();
 
-                match suboperators.len() {
+                match subqueries.len() {
                     0 => None,
-                    1 => Some(suboperators.remove(0)),
-                    _ => Some(Query::Or(suboperators)),
+                    1 => Some(subqueries.remove(0)),
+                    _ => Some(Self::Or(subqueries)),
                 }
             }
-            Query::In(key, mut targets) if targets.len() == 1 => {
-                Some(Query::Eq(key, targets.remove(0)))
+            Self::In(key, mut targets) if targets.len() == 1 => {
+                Some(Self::Eq(key, targets.remove(0)))
             }
-            Query::In(key, targets) => Some(Query::In(key, targets)),
+            Self::In(key, targets) => Some(Self::In(key, targets)),
             _ => Some(self),
         }
     }
 
-    #[cfg(feature = "serde")]
-    fn to_value(&self) -> serde_json::Value {
-        match *self {
-            Query::Eq(ref tag_name, ref tag_value) => json!({ tag_name: tag_value }),
-            Query::Neq(ref tag_name, ref tag_value) => json!({tag_name: {"$neq": tag_value}}),
-            Query::Gt(ref tag_name, ref tag_value) => json!({tag_name: {"$gt": tag_value}}),
-            Query::Gte(ref tag_name, ref tag_value) => json!({tag_name: {"$gte": tag_value}}),
-            Query::Lt(ref tag_name, ref tag_value) => json!({tag_name: {"$lt": tag_value}}),
-            Query::Lte(ref tag_name, ref tag_value) => json!({tag_name: {"$lte": tag_value}}),
-            Query::Like(ref tag_name, ref tag_value) => json!({tag_name: {"$like": tag_value}}),
-            Query::In(ref tag_name, ref tag_values) => json!({tag_name: {"$in": tag_values}}),
-            Query::And(ref operators) => {
-                if !operators.is_empty() {
-                    json!({
-                        "$and": operators.iter().map(|q: &Query| q.to_value()).collect::<Vec<serde_json::Value>>()
-                    })
-                } else {
-                    json!({})
-                }
+    pub fn map_names<RK, F>(self, f: &mut F) -> Result<AbstractQuery<RK, V>, ConversionError>
+    where
+        F: FnMut(K) -> Result<RK, ConversionError>,
+    {
+        self.map(f, &mut |_k, v| Ok(v))
+    }
+
+    pub fn map_values<RV, F>(self, f: &mut F) -> Result<AbstractQuery<K, RV>, ConversionError>
+    where
+        F: FnMut(&K, V) -> Result<RV, ConversionError>,
+    {
+        self.map(&mut |k| Ok(k), f)
+    }
+
+    pub fn map<RK, RV, KF, VF>(
+        self,
+        kf: &mut KF,
+        vf: &mut VF,
+    ) -> Result<AbstractQuery<RK, RV>, ConversionError>
+    where
+        KF: FnMut(K) -> Result<RK, ConversionError>,
+        VF: FnMut(&K, V) -> Result<RV, ConversionError>,
+    {
+        match self {
+            Self::Eq(tag_name, tag_value) => {
+                let tag_value = vf(&tag_name, tag_value)?;
+                Ok(AbstractQuery::<RK, RV>::Eq(kf(tag_name)?, tag_value))
             }
-            Query::Or(ref operators) => {
-                if !operators.is_empty() {
-                    json!({
-                        "$or": operators.iter().map(|q: &Query| q.to_value()).collect::<Vec<serde_json::Value>>()
-                    })
-                } else {
-                    json!({})
-                }
+            Self::Neq(tag_name, tag_value) => {
+                let tag_value = vf(&tag_name, tag_value)?;
+                Ok(AbstractQuery::<RK, RV>::Neq(kf(tag_name)?, tag_value))
             }
-            Query::Not(ref stmt) => json!({"$not": stmt.to_value()}),
+            Self::Gt(tag_name, tag_value) => {
+                let tag_value = vf(&tag_name, tag_value)?;
+                Ok(AbstractQuery::<RK, RV>::Gt(kf(tag_name)?, tag_value))
+            }
+            Self::Gte(tag_name, tag_value) => {
+                let tag_value = vf(&tag_name, tag_value)?;
+                Ok(AbstractQuery::<RK, RV>::Gte(kf(tag_name)?, tag_value))
+            }
+            Self::Lt(tag_name, tag_value) => {
+                let tag_value = vf(&tag_name, tag_value)?;
+                Ok(AbstractQuery::<RK, RV>::Lt(kf(tag_name)?, tag_value))
+            }
+            Self::Lte(tag_name, tag_value) => {
+                let tag_value = vf(&tag_name, tag_value)?;
+                Ok(AbstractQuery::<RK, RV>::Lte(kf(tag_name)?, tag_value))
+            }
+            Self::Like(tag_name, tag_value) => {
+                let tag_value = vf(&tag_name, tag_value)?;
+                Ok(AbstractQuery::<RK, RV>::Like(kf(tag_name)?, tag_value))
+            }
+            Self::In(tag_name, tag_values) => {
+                let tag_values = tag_values
+                    .into_iter()
+                    .map(|value| vf(&tag_name, value))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok(AbstractQuery::<RK, RV>::In(kf(tag_name)?, tag_values))
+            }
+            Self::And(subqueries) => {
+                let subqueries = subqueries
+                    .into_iter()
+                    .map(|query| query.map(kf, vf))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok(AbstractQuery::<RK, RV>::And(subqueries))
+            }
+            Self::Or(subqueries) => {
+                let subqueries = subqueries
+                    .into_iter()
+                    .map(|query| query.map(kf, vf))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok(AbstractQuery::<RK, RV>::Or(subqueries))
+            }
+            Self::Not(boxed_query) => Ok(AbstractQuery::<RK, RV>::Not(Box::new(
+                boxed_query.map(kf, vf)?,
+            ))),
         }
     }
 }
 
-impl Default for Query {
+impl<K, V> Default for AbstractQuery<K, V> {
     fn default() -> Self {
-        Query::And(Vec::new())
+        Self::And(Vec::new())
     }
 }
 
 #[cfg(feature = "serde")]
-impl ToString for Query {
-    fn to_string(&self) -> String {
-        self.to_value().to_string()
-    }
-}
+mod serde_support {
+    use std::string;
 
-#[cfg(feature = "serde")]
-fn parse_query(map: serde_json::Map<String, serde_json::Value>) -> Result<Query, &'static str> {
-    let mut operators: Vec<Query> = Vec::new();
+    use serde::ser::{Serialize, Serializer};
+    use serde::{de, Deserialize, Deserializer};
+    use serde_json::{self, Value};
 
-    for (key, value) in map {
-        if let Some(operator_) = parse_operator(key, value)? {
-            operators.push(operator_);
+    use super::{AbstractQuery, Query};
+
+    impl<K, V> Serialize for AbstractQuery<K, V>
+    where
+        for<'a> &'a K: Into<String>,
+        V: Serialize,
+    {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            self.to_value().serialize(serializer)
         }
     }
 
-    let query = if operators.len() == 1 {
-        operators.remove(0)
-    } else {
-        Query::And(operators)
-    };
+    impl<'de> Deserialize<'de> for Query {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let v = Value::deserialize(deserializer)?;
 
-    Ok(query)
-}
+            match v {
+                serde_json::Value::Object(map) => {
+                    parse_query(map).map_err(|err| de::Error::missing_field(err))
+                }
+                serde_json::Value::Array(array) => {
+                    // cast old restrictions format to wql
+                    let mut res: Vec<serde_json::Value> = Vec::new();
+                    for sub_query in array {
+                        let sub_query: serde_json::Map<String, serde_json::Value> = sub_query
+                            .as_object()
+                            .ok_or_else(|| de::Error::custom("Restriction is invalid"))?
+                            .clone()
+                            .into_iter()
+                            .filter(|&(_, ref v)| !v.is_null())
+                            .collect();
 
-#[cfg(feature = "serde")]
-fn parse_operator(key: String, value: serde_json::Value) -> Result<Option<Query>, &'static str> {
-    match (key.as_str(), value) {
-        ("$and", serde_json::Value::Array(values)) if values.is_empty() => Ok(None),
-        ("$and", serde_json::Value::Array(values)) => {
-            let operators: Vec<Query> = parse_list_operators(values)?;
-            Ok(Some(Query::And(operators)))
-        }
-        ("$and", _) => Err("$and must be array of JSON objects"),
-        ("$or", serde_json::Value::Array(values)) if values.is_empty() => Ok(None),
-        ("$or", serde_json::Value::Array(values)) => {
-            let operators: Vec<Query> = parse_list_operators(values)?;
-            Ok(Some(Query::Or(operators)))
-        }
-        ("$or", _) => Err("$or must be array of JSON objects"),
-        ("$not", serde_json::Value::Object(map)) => {
-            let operator = parse_query(map)?;
-            Ok(Some(Query::Not(Box::new(operator))))
-        }
-        ("$not", _) => Err("$not must be JSON object"),
-        (_, serde_json::Value::String(value)) => Ok(Some(Query::Eq(key, value))),
-        (_, serde_json::Value::Object(map)) => {
-            if map.len() == 1 {
-                let (operator_name, value) = map.into_iter().next().unwrap();
-                parse_single_operator(operator_name, key, value).map(|operator| Some(operator))
-            } else {
-                Err("value must be JSON object of length 1")
+                        if !sub_query.is_empty() {
+                            res.push(serde_json::Value::Object(sub_query));
+                        }
+                    }
+
+                    let mut map = serde_json::Map::new();
+                    map.insert("$or".to_string(), serde_json::Value::Array(res));
+
+                    parse_query(map).map_err(|err| de::Error::custom(err))
+                }
+                _ => Err(de::Error::missing_field(
+                    "Restriction must be either object or array",
+                )),
             }
         }
-        (_, _) => Err("Unsupported value"),
     }
-}
 
-#[cfg(feature = "serde")]
-fn parse_list_operators(operators: Vec<serde_json::Value>) -> Result<Vec<Query>, &'static str> {
-    let mut out_operators: Vec<Query> = Vec::with_capacity(operators.len());
-
-    for value in operators.into_iter() {
-        if let serde_json::Value::Object(map) = value {
-            let suboperator = parse_query(map)?;
-            out_operators.push(suboperator);
-        } else {
-            return Err("operator must be array of JSON objects");
+    impl<K, V> AbstractQuery<K, V>
+    where
+        for<'a> &'a K: Into<String>,
+        V: Serialize,
+    {
+        fn to_value(&self) -> serde_json::Value {
+            match self {
+                Self::Eq(ref tag_name, ref tag_value) => json!({ tag_name: tag_value }),
+                Self::Neq(ref tag_name, ref tag_value) => json!({tag_name: {"$neq": tag_value}}),
+                Self::Gt(ref tag_name, ref tag_value) => json!({tag_name: {"$gt": tag_value}}),
+                Self::Gte(ref tag_name, ref tag_value) => json!({tag_name: {"$gte": tag_value}}),
+                Self::Lt(ref tag_name, ref tag_value) => json!({tag_name: {"$lt": tag_value}}),
+                Self::Lte(ref tag_name, ref tag_value) => json!({tag_name: {"$lte": tag_value}}),
+                Self::Like(ref tag_name, ref tag_value) => json!({tag_name: {"$like": tag_value}}),
+                Self::In(ref tag_name, ref tag_values) => json!({tag_name: {"$in":tag_values}}),
+                Self::And(ref queries) => {
+                    if !queries.is_empty() {
+                        json!({
+                            "$and": queries.iter().map(|q| q.to_value()).collect::<Vec<serde_json::Value>>()
+                        })
+                    } else {
+                        json!({})
+                    }
+                }
+                Self::Or(ref queries) => {
+                    if !queries.is_empty() {
+                        json!({
+                            "$or": queries.iter().map(|q| q.to_value()).collect::<Vec<serde_json::Value>>()
+                        })
+                    } else {
+                        json!({})
+                    }
+                }
+                Self::Not(ref query) => json!({"$not": query.to_value()}),
+            }
         }
     }
 
-    Ok(out_operators)
-}
+    impl string::ToString for Query {
+        fn to_string(&self) -> String {
+            self.to_value().to_string()
+        }
+    }
 
-#[cfg(feature = "serde")]
-fn parse_single_operator(
-    operator_name: String,
-    key: String,
-    value: serde_json::Value,
-) -> Result<Query, &'static str> {
-    match (&*operator_name, value) {
-        ("$neq", serde_json::Value::String(value_)) => Ok(Query::Neq(key, value_)),
-        ("$neq", _) => Err("$neq must be used with string"),
-        ("$gt", serde_json::Value::String(value_)) => Ok(Query::Gt(key, value_)),
-        ("$gt", _) => Err("$gt must be used with string"),
-        ("$gte", serde_json::Value::String(value_)) => Ok(Query::Gte(key, value_)),
-        ("$gte", _) => Err("$gte must be used with string"),
-        ("$lt", serde_json::Value::String(value_)) => Ok(Query::Lt(key, value_)),
-        ("$lt", _) => Err("$lt must be used with string"),
-        ("$lte", serde_json::Value::String(value_)) => Ok(Query::Lte(key, value_)),
-        ("$lte", _) => Err("$lte must be used with string"),
-        ("$like", serde_json::Value::String(value_)) => Ok(Query::Like(key, value_)),
-        ("$like", _) => Err("$like must be used with string"),
-        ("$in", serde_json::Value::Array(values)) => {
-            let mut target_values: Vec<String> = Vec::with_capacity(values.len());
+    fn parse_query(map: serde_json::Map<String, serde_json::Value>) -> Result<Query, &'static str> {
+        let mut operators: Vec<Query> = Vec::new();
 
-            for v in values.into_iter() {
-                if let serde_json::Value::String(s) = v {
-                    target_values.push(s);
+        for (key, value) in map {
+            if let Some(operator_) = parse_operator(key, value)? {
+                operators.push(operator_);
+            }
+        }
+
+        let query = if operators.len() == 1 {
+            operators.remove(0)
+        } else {
+            Query::And(operators)
+        };
+
+        Ok(query)
+    }
+
+    fn parse_operator(
+        key: String,
+        value: serde_json::Value,
+    ) -> Result<Option<Query>, &'static str> {
+        match (key.as_str(), value) {
+            ("$and", serde_json::Value::Array(values)) if values.is_empty() => Ok(None),
+            ("$and", serde_json::Value::Array(values)) => {
+                let operators: Vec<Query> = parse_list_operators(values)?;
+                Ok(Some(Query::And(operators)))
+            }
+            ("$and", _) => Err("$and must be array of JSON objects"),
+            ("$or", serde_json::Value::Array(values)) if values.is_empty() => Ok(None),
+            ("$or", serde_json::Value::Array(values)) => {
+                let operators: Vec<Query> = parse_list_operators(values)?;
+                Ok(Some(Query::Or(operators)))
+            }
+            ("$or", _) => Err("$or must be array of JSON objects"),
+            ("$not", serde_json::Value::Object(map)) => {
+                let operator = parse_query(map)?;
+                Ok(Some(Query::Not(Box::new(operator))))
+            }
+            ("$not", _) => Err("$not must be JSON object"),
+            (_, serde_json::Value::String(value)) => Ok(Some(Query::Eq(key, value))),
+            (_, serde_json::Value::Object(map)) => {
+                if map.len() == 1 {
+                    let (operator_name, value) = map.into_iter().next().unwrap();
+                    parse_single_operator(operator_name, key, value).map(|operator| Some(operator))
                 } else {
-                    return Err("$in must be used with array of strings");
+                    Err("value must be JSON object of length 1")
                 }
             }
-
-            Ok(Query::In(key, target_values))
+            (_, _) => Err("Unsupported value"),
         }
-        ("$in", _) => Err("$in must be used with array of strings"),
-        (_, _) => Err("Unknown operator"),
+    }
+
+    fn parse_list_operators(operators: Vec<serde_json::Value>) -> Result<Vec<Query>, &'static str> {
+        let mut out_operators: Vec<Query> = Vec::with_capacity(operators.len());
+
+        for value in operators.into_iter() {
+            if let serde_json::Value::Object(map) = value {
+                let subquery = parse_query(map)?;
+                out_operators.push(subquery);
+            } else {
+                return Err("operator must be array of JSON objects");
+            }
+        }
+
+        Ok(out_operators)
+    }
+
+    fn parse_single_operator(
+        operator_name: String,
+        key: String,
+        value: serde_json::Value,
+    ) -> Result<Query, &'static str> {
+        match (&*operator_name, value) {
+            ("$neq", serde_json::Value::String(value_)) => Ok(Query::Neq(key, value_)),
+            ("$neq", _) => Err("$neq must be used with string"),
+            ("$gt", serde_json::Value::String(value_)) => Ok(Query::Gt(key, value_)),
+            ("$gt", _) => Err("$gt must be used with string"),
+            ("$gte", serde_json::Value::String(value_)) => Ok(Query::Gte(key, value_)),
+            ("$gte", _) => Err("$gte must be used with string"),
+            ("$lt", serde_json::Value::String(value_)) => Ok(Query::Lt(key, value_)),
+            ("$lt", _) => Err("$lt must be used with string"),
+            ("$lte", serde_json::Value::String(value_)) => Ok(Query::Lte(key, value_)),
+            ("$lte", _) => Err("$lte must be used with string"),
+            ("$like", serde_json::Value::String(value_)) => Ok(Query::Like(key, value_)),
+            ("$like", _) => Err("$like must be used with string"),
+            ("$in", serde_json::Value::Array(values)) => {
+                let mut target_values: Vec<String> = Vec::with_capacity(values.len());
+
+                for v in values.into_iter() {
+                    if let serde_json::Value::String(s) = v {
+                        target_values.push(s);
+                    } else {
+                        return Err("$in must be used with array of strings");
+                    }
+                }
+
+                Ok(Query::In(key, target_values))
+            }
+            ("$in", _) => Err("$in must be used with array of strings"),
+            (_, _) => Err("Unknown operator"),
+        }
     }
 }
 
-#[cfg(all(test, feature = "serde"))]
+#[cfg(test)]
 mod tests {
     use super::*;
     use rand::distributions::Alphanumeric;
@@ -281,6 +371,7 @@ mod tests {
         thread_rng().sample_iter(&Alphanumeric).take(len).collect()
     }
 
+    /// parse
     #[test]
     fn test_simple_operator_empty_json_parse() {
         let json = "{}";
