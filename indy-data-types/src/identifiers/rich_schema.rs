@@ -1,4 +1,4 @@
-use crate::utils::qualifier::Qualifiable;
+use crate::utils::Qualifiable;
 use crate::{Validatable, ValidationError};
 use indy_utils::qualifiable_type;
 
