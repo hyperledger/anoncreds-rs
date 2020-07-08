@@ -100,6 +100,11 @@ impl MerkleTree {
         self.root.hash()
     }
 
+    /// Returns the hex root hash of Merkle tree
+    pub fn root_hash_hex(&self) -> String {
+        indy_utils::hex::encode(self.root.hash())
+    }
+
     /// Returns the height of Merkle tree
     pub fn height(&self) -> usize {
         self.height

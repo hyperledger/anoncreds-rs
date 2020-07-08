@@ -1,5 +1,7 @@
 pub extern crate aead;
 
+pub extern crate hex;
+
 #[cfg(feature = "serde")]
 #[macro_use]
 pub extern crate serde;

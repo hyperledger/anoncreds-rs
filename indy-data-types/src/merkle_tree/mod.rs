@@ -217,7 +217,7 @@ mod tests {
             mt.append(String::from(i).as_bytes().to_vec()).unwrap();
         }
         assert_eq!(
-            hex::encode(mt.root_hash()),
+            mt.root_hash_hex(),
             "1285070cf01debc1155cef8dfd5ba54c05abb919a4c08c8632b079fb1e1e5e7c"
         );
     }
