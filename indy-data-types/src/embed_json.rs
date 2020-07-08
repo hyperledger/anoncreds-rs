@@ -3,6 +3,7 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::ops;
 
+/// A wrapper used to embed JSON inside other structures
 pub struct EmbedJson<T> {
     _pd: PhantomData<T>,
     pub inner: String,
@@ -70,15 +71,17 @@ impl<T> Ord for EmbedJson<T> {
     }
 }
 
+/// A helper method for converting an embeddable type into an `EmbedJson<T>`
 #[cfg(feature = "serde")]
-pub fn embed_json<T: EmbedExtract>(
+pub fn embed_json<T: EmbedExtractJson>(
     value: &T::Inner,
 ) -> Result<EmbedJson<T>, crate::ConversionError> {
     EmbedJson::embed(value)
 }
 
+/// A trait implemented by types to facilitate embedding and extracting JSON
 #[cfg(feature = "serde")]
-pub trait EmbedExtract {
+pub trait EmbedExtractJson {
     type Inner: serde::Serialize + for<'de> serde::Deserialize<'de>;
 }
 
@@ -88,10 +91,10 @@ mod serde_support {
     use serde_json::value::{RawValue, Value};
     use std::convert::TryFrom;
 
-    use super::{EmbedExtract, EmbedJson};
+    use super::{EmbedExtractJson, EmbedJson};
     use crate::ConversionError;
 
-    impl<T: EmbedExtract> EmbedJson<T> {
+    impl<T: EmbedExtractJson> EmbedJson<T> {
         pub fn embed(value: &T::Inner) -> Result<Self, crate::ConversionError> {
             Ok(serde_json::to_string(value).map(Self::from_string)?)
         }
@@ -173,7 +176,7 @@ mod tests {
             val: i32,
         }
 
-        impl EmbedExtract for V {
+        impl EmbedExtractJson for V {
             type Inner = Self;
         }
 
