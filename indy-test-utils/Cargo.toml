@@ -11,7 +11,7 @@ categories = ["authentication", "cryptography"]
 keywords = ["hyperledger", "indy", "ssi", "verifiable", "credentials"]
 
 [lib]
-name = "indy_test"
+name = "indy_test_utils"
 path = "src/lib.rs"
 crate-type = ["rlib"]
 
