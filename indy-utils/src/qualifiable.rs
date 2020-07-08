@@ -108,10 +108,11 @@ pub trait Qualifiable: From<String> + std::ops::Deref<Target = str> + Validatabl
 #[macro_export]
 macro_rules! qualifiable_type {
     ($newtype:ident, $doc:expr) => {
-        #[doc=$doc]
-        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-        pub struct $newtype(pub String);
+        $crate::serde_derive_impl! {
+            #[doc=$doc]
+            #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+            pub struct $newtype(pub String);
+        }
 
         impl From<String> for $newtype {
             fn from(val: String) -> Self {

@@ -67,3 +67,5 @@ pub mod wql;
     feature = "wallet_key"
 ))]
 pub extern crate ursa;
+
+pub extern crate once_cell;

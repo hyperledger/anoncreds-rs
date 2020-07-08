@@ -7,12 +7,29 @@ macro_rules! unwrap_opt_or_return {
     };
 }
 
+/// Used to optionally add Serialize and Deserialize traits to Qualifiable types
+#[cfg(feature = "serde")]
+#[macro_export]
+macro_rules! serde_derive_impl {
+    ($def:item) => {
+        #[derive(Serialize, Deserialize)]
+        $def
+    };
+}
+
+#[cfg(not(feature = "serde"))]
+#[macro_export]
+macro_rules! serde_derive_impl {
+    ($def:item) => {
+        $def
+    };
+}
+
 /// Derive a new handle type having an atomically increasing sequence number
 #[macro_export]
 macro_rules! new_handle_type (($newtype:ident, $counter:ident) => (
-    use once_cell::sync::Lazy;
-
-    static $counter: Lazy<std::sync::atomic::AtomicUsize> = Lazy::new(|| std::sync::atomic::AtomicUsize::new(0));
+    static $counter: $crate::once_cell::sync::Lazy<std::sync::atomic::AtomicUsize>
+        = $crate::once_cell::sync::Lazy::new(|| std::sync::atomic::AtomicUsize::new(0));
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
     pub struct $newtype(pub usize);
@@ -29,7 +46,6 @@ macro_rules! new_handle_type (($newtype:ident, $counter:ident) => (
         }
     }
 
-    #[cfg(feature="std")]
     impl std::fmt::Display for $newtype {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "{}({})", stringify!($newtype), self.0)
