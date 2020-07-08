@@ -6,7 +6,7 @@ use indy_utils::qualifiable_type;
 
 use super::DELIMITER;
 
-qualifiable_type!(CredentialDefinitionId);
+qualifiable_type!(CredentialDefinitionId, "A credential definition identifier");
 
 impl CredentialDefinitionId {
     pub const PREFIX: &'static str = "creddef";

@@ -12,7 +12,7 @@ mod macros;
 mod embed_json;
 pub use embed_json::EmbedJson;
 #[cfg(feature = "serde")]
-pub use embed_json::{embed_json, EmbedExtract};
+pub use embed_json::{embed_json, EmbedExtractJson};
 
 mod utils {
     pub use indy_utils::base58;
@@ -21,17 +21,21 @@ mod utils {
     pub use indy_utils::{qualifiable, Qualifiable};
 }
 
-pub use indy_utils::did::*;
-pub use indy_utils::keys::*;
+pub use indy_utils::did;
+pub use indy_utils::keys;
 pub use indy_utils::{ConversionError, Validatable, ValidationError};
 
 #[cfg(any(feature = "cl", feature = "cl_native", feature = "hash"))]
 pub use indy_utils::ursa;
 
+/// Type definitions related Indy credential issuance and verification
 pub mod anoncreds;
-mod identifiers;
+
 #[cfg(feature = "merkle_tree")]
+/// Patricia Merkle tree support
 pub mod merkle_tree;
+
+mod identifiers;
 
 pub use identifiers::cred_def::*;
 pub use identifiers::rev_reg::*;
