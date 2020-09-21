@@ -383,6 +383,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
 
 [[package]]
+name = "hkdf"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fa08a006102488bd9cd5b8013aabe84955cf5ae22e304c2caf655b633aefae3"
+dependencies = [
+ "digest",
+ "hmac",
+]
+
+[[package]]
 name = "hmac"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -413,7 +423,7 @@ dependencies = [
 
 [[package]]
 name = "indy-utils"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "aead",
  "base64",
@@ -421,7 +431,6 @@ dependencies = [
  "crypto_box",
  "futures-executor",
  "hex",
- "hmac",
  "once_cell",
  "rand",
  "regex",
@@ -888,9 +897,9 @@ dependencies = [
 
 [[package]]
 name = "ursa"
-version = "0.3.4"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "027295e18408125a4818881a222f7be172f42adb50fb62ff296571d68eccb53a"
+checksum = "42e50b5a83e303aa9e0a6affffbca0fe9444854d1c5fab409d401f1eaa9fa8b6"
 dependencies = [
  "aead",
  "amcl",
@@ -902,6 +911,7 @@ dependencies = [
  "failure",
  "glass_pumpkin",
  "hex",
+ "hkdf",
  "int_traits",
  "lazy_static",
  "log",

@@ -13,10 +13,6 @@ use super::{Validatable, ValidationError};
 mod types;
 pub use types::{ArrayKey, KeyEncoding, KeyType};
 
-/// Indy wallet key with support for encryption and decryption
-#[cfg(feature = "wallet_key")]
-pub mod wallet;
-
 #[cfg(feature = "ed25519")]
 static ED25519_SIGNER: Lazy<Ed25519Sha512> = Lazy::new(|| Ed25519Sha512::new());
 
