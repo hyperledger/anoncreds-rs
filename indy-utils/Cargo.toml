@@ -43,5 +43,5 @@ ursa = { version = "0.3.5", default-features = false, optional = true }
 zeroize = { version = "1.1", features = ["zeroize_derive"] }
 
 [dev-dependencies]
-futures-executor = "0.3.5"
+async-global-executor = "1.2"
 rand = "0.7"
