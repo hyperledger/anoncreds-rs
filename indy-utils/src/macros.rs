@@ -28,8 +28,7 @@ macro_rules! serde_derive_impl {
 /// Derive a new handle type having an atomically increasing sequence number
 #[macro_export]
 macro_rules! new_handle_type (($newtype:ident, $counter:ident) => (
-    static $counter: $crate::once_cell::sync::Lazy<std::sync::atomic::AtomicUsize>
-        = $crate::once_cell::sync::Lazy::new(|| std::sync::atomic::AtomicUsize::new(0));
+    static $counter: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
     pub struct $newtype(pub usize);
@@ -59,8 +58,14 @@ macro_rules! new_handle_type (($newtype:ident, $counter:ident) => (
         }
     }
 
+    impl PartialEq<usize> for $newtype {
+        fn eq(&self, other: &usize) -> bool {
+            self.0 == *other
+        }
+    }
+
     impl $crate::Validatable for $newtype {
-        fn validate(&self) -> Result<(), $crate::ValidationError> {
+        fn validate(&self) -> std::result::Result<(), $crate::ValidationError> {
             if(**self == 0) {
                 Err("Invalid handle: zero".into())
             } else {
@@ -73,4 +78,10 @@ macro_rules! new_handle_type (($newtype:ident, $counter:ident) => (
 #[cfg(test)]
 mod tests {
     new_handle_type!(TestHandle, TEST_HANDLE_CTR);
+
+    #[test]
+    fn test_handle_seq() {
+        assert_eq!(TestHandle::next(), 1);
+        assert_eq!(TestHandle::next(), 2);
+    }
 }
