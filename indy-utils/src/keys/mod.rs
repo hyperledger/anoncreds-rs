@@ -114,6 +114,20 @@ impl Drop for SignKey {
     }
 }
 
+impl Validatable for SignKey {
+    fn validate(&self) -> Result<(), ValidationError> {
+        if self.alg == KeyType::ED25519 {
+            if self.key.len() == 64 {
+                Ok(())
+            } else {
+                Err("Invalid key length".into())
+            }
+        } else {
+            Err("Unsupported signing key type".into())
+        }
+    }
+}
+
 /// A raw verkey used in verifying signatures
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VerKey {
@@ -201,11 +215,15 @@ impl std::fmt::Display for VerKey {
 
 impl Validatable for VerKey {
     fn validate(&self) -> Result<(), ValidationError> {
-        let bytes = self.key_bytes();
-        if bytes.len() == 32 {
-            Ok(())
+        if self.alg == KeyType::ED25519 {
+            let bytes = self.key_bytes();
+            if bytes.len() == 32 {
+                Ok(())
+            } else {
+                Err("Invalid key length".into())
+            }
         } else {
-            Err("Invalid key length".into())
+            Err("Unsupported verkey type".into())
         }
     }
 }
@@ -487,5 +505,18 @@ mod tests {
         let sig = sk.sign(&message).unwrap();
         let vk = sk.public_key().unwrap();
         assert!(vk.verify_signature(&message, &sig).unwrap());
+    }
+
+    #[test]
+    fn validate_keys() {
+        let sk = SignKey::generate(None).unwrap();
+        sk.validate().unwrap();
+        let vk = sk.public_key().unwrap();
+        vk.validate().unwrap();
+
+        let sk = SignKey::new(b"bad key", Some(KeyType::ED25519));
+        assert_eq!(sk.validate().is_ok(), false);
+        let vk = VerKey::new(b"bad key", Some(KeyType::ED25519));
+        assert_eq!(vk.validate().is_ok(), false);
     }
 }
