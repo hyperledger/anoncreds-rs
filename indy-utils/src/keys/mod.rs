@@ -120,7 +120,7 @@ impl Validatable for SignKey {
             if self.key.len() == 64 {
                 Ok(())
             } else {
-                Err("Invalid key length".into())
+                Err("Invalid signing key length".into())
             }
         } else {
             Err("Unsupported signing key type".into())
@@ -220,7 +220,7 @@ impl Validatable for VerKey {
             if bytes.len() == 32 {
                 Ok(())
             } else {
-                Err("Invalid key length".into())
+                Err("Invalid verkey length".into())
             }
         } else {
             Err("Unsupported verkey type".into())
@@ -374,7 +374,7 @@ impl EncodedVerKey {
     pub fn key_bytes(&self) -> Result<Vec<u8>, ConversionError> {
         match self.enc {
             KeyEncoding::BASE58 => Ok(base58::decode(&self.key)?),
-            _ => Err("Unsupported verkey format".into()),
+            _ => Err("Unsupported verkey encoding".into()),
         }
     }
 
@@ -418,12 +418,8 @@ impl std::fmt::Display for EncodedVerKey {
 
 impl Validatable for EncodedVerKey {
     fn validate(&self) -> Result<(), ValidationError> {
-        let bytes = self.key_bytes()?;
-        if bytes.len() == 32 {
-            Ok(())
-        } else {
-            Err("Invalid key length".into())
-        }
+        let verkey = self.decode()?;
+        verkey.validate()
     }
 }
 

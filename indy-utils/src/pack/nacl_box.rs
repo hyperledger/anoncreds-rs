@@ -14,7 +14,7 @@ where
 {
     let key = key.as_ref();
     if key.len() != cbox::KEY_SIZE {
-        Err(ValidationError::from("Invalid key length"))
+        Err(ValidationError::from("Invalid crypto box key length"))
     } else {
         let mut key_bytes = [0u8; cbox::KEY_SIZE];
         key_bytes.copy_from_slice(key);
