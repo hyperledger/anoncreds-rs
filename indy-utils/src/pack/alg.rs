@@ -1,6 +1,6 @@
 use ursa::encryption::symm::chacha20poly1305::ChaCha20Poly1305;
 use ursa::encryption::symm::{Encryptor, SymmetricEncryptor};
-use ursa::keys::PrivateKey;
+use ursa::keys::PrivateKey as UrsaPrivateKey;
 
 use std::string::ToString;
 
@@ -8,7 +8,7 @@ use super::nacl_box::*;
 use super::types::*;
 use crate::base64;
 use crate::error::ConversionError;
-use crate::keys::{EncodedVerKey, SignKey};
+use crate::keys::{EncodedVerKey, PrivateKey};
 
 pub const PROTECTED_HEADER_ENC: &'static str = "xchacha20poly1305_ietf";
 pub const PROTECTED_HEADER_TYP: &'static str = "JWM/1.0";
@@ -20,7 +20,7 @@ const TAG_SIZE: usize = 16;
 pub fn pack_message<M: AsRef<[u8]>>(
     message: M,
     receiver_list: Vec<EncodedVerKey>,
-    sender_key: Option<SignKey>,
+    sender_key: Option<PrivateKey>,
 ) -> Result<Vec<u8>, ConversionError> {
     // break early and error out if no receivers keys are provided
     if receiver_list.is_empty() {
@@ -28,7 +28,7 @@ pub fn pack_message<M: AsRef<[u8]>>(
     }
 
     // generate content encryption key that will encrypt `message`
-    let cek = PrivateKey(
+    let cek = UrsaPrivateKey(
         ChaCha20Poly1305::key_gen()
             .map_err(|_| "Error creating box encryption key")?
             .to_vec(),
@@ -62,7 +62,7 @@ pub fn pack_message<M: AsRef<[u8]>>(
 }
 
 fn prepare_protected_anoncrypt(
-    cek: &PrivateKey,
+    cek: &UrsaPrivateKey,
     receiver_list: Vec<EncodedVerKey>,
 ) -> Result<String, ConversionError> {
     let mut encrypted_recipients_struct: Vec<Recipient> = Vec::with_capacity(receiver_list.len());
@@ -87,9 +87,9 @@ fn prepare_protected_anoncrypt(
 }
 
 fn prepare_protected_authcrypt(
-    cek: &PrivateKey,
+    cek: &UrsaPrivateKey,
     receiver_list: Vec<EncodedVerKey>,
-    sender_key: &SignKey,
+    sender_key: &PrivateKey,
 ) -> Result<String, ConversionError> {
     let mut encrypted_recipients_struct: Vec<Recipient> = vec![];
 
@@ -159,17 +159,17 @@ fn format_pack_message(
     Ok(serde_json::to_vec(&jwe_struct)?)
 }
 
-pub async fn unpack_message<M: AsRef<[u8]>>(
-    message: M,
-    lookup: impl KeyLookup,
+pub async fn unpack_message<'f>(
+    message: impl AsRef<[u8]>,
+    lookup: impl KeyLookup<'f>,
 ) -> Result<(Vec<u8>, EncodedVerKey, Option<EncodedVerKey>), ConversionError> {
     let jwe = serde_json::from_slice(message.as_ref())?;
     unpack_jwe(&jwe, lookup).await
 }
 
-pub async fn unpack_jwe(
+pub async fn unpack_jwe<'f>(
     jwe_struct: &JWE,
-    lookup: impl KeyLookup,
+    lookup: impl KeyLookup<'f>,
 ) -> Result<(Vec<u8>, EncodedVerKey, Option<EncodedVerKey>), ConversionError> {
     // decode protected data
     let protected_decoded = base64::decode_urlsafe(&jwe_struct.protected)?;
@@ -210,7 +210,7 @@ pub async fn unpack_jwe(
 
 fn unpack_cek_authcrypt(
     recipient: &Recipient,
-    recip_sk: &SignKey,
+    recip_sk: &PrivateKey,
 ) -> Result<(EncodedVerKey, Vec<u8>), ConversionError> {
     let encrypted_key_vec = base64::decode_urlsafe(&recipient.encrypted_key)?;
     let iv = base64::decode_urlsafe(&recipient.header.iv.as_ref().unwrap())?;
@@ -238,7 +238,7 @@ fn unpack_cek_authcrypt(
 
 fn unpack_cek_anoncrypt(
     recipient: &Recipient,
-    recip_sk: &SignKey,
+    recip_sk: &PrivateKey,
 ) -> Result<Vec<u8>, ConversionError> {
     let encrypted_key = base64::decode_urlsafe(&recipient.encrypted_key)?;
 
@@ -253,10 +253,10 @@ fn unpack_cek_anoncrypt(
     Ok(cek)
 }
 
-async fn find_unpack_recipient(
+async fn find_unpack_recipient<'f>(
     protected: Protected,
-    lookup: impl KeyLookup,
-) -> Result<Option<(Recipient, EncodedVerKey, SignKey)>, ConversionError> {
+    lookup: impl KeyLookup<'f>,
+) -> Result<Option<(Recipient, EncodedVerKey, PrivateKey)>, ConversionError> {
     let mut recip_vks = Vec::<EncodedVerKey>::with_capacity(protected.recipients.len());
     for recipient in &protected.recipients {
         let vk = EncodedVerKey::from_str(&recipient.header.kid)?;
@@ -279,7 +279,7 @@ mod tests {
 
     #[test]
     fn test_anon_pack() {
-        let pk = SignKey::from_seed(b"000000000000000000000000000Test2")
+        let pk = PrivateKey::from_seed(b"000000000000000000000000000Test2")
             .unwrap()
             .public_key()
             .unwrap()
@@ -292,8 +292,8 @@ mod tests {
 
     #[test]
     fn test_auth_pack() {
-        let sk = SignKey::from_seed(b"000000000000000000000000000Test1").unwrap();
-        let pk = SignKey::from_seed(b"000000000000000000000000000Test2")
+        let sk = PrivateKey::from_seed(b"000000000000000000000000000Test1").unwrap();
+        let pk = PrivateKey::from_seed(b"000000000000000000000000000Test2")
             .unwrap()
             .public_key()
             .unwrap()
@@ -306,7 +306,7 @@ mod tests {
 
     #[test]
     fn test_anon_pack_round_trip() {
-        let sk1 = SignKey::from_seed(b"000000000000000000000000000Test3").unwrap();
+        let sk1 = PrivateKey::from_seed(b"000000000000000000000000000Test3").unwrap();
         let pk1 = sk1.public_key().unwrap().as_base58().unwrap();
 
         let input_msg = b"hello there";
@@ -322,7 +322,7 @@ mod tests {
         };
 
         let lookup_fn = key_lookup_fn(lookup);
-        let result = unpack_message(&packed, lookup_fn);
+        let result = unpack_message(&packed, &lookup_fn);
         let (msg, p_recip, p_send) = block_on(result).unwrap();
         assert_eq!(msg, input_msg);
         assert_eq!(p_recip, pk1);
@@ -331,9 +331,9 @@ mod tests {
 
     #[test]
     fn test_auth_pack_round_trip() {
-        let sk1 = SignKey::from_seed(b"000000000000000000000000000Test3").unwrap();
+        let sk1 = PrivateKey::from_seed(b"000000000000000000000000000Test3").unwrap();
         let pk1 = sk1.public_key().unwrap().as_base58().unwrap();
-        let sk2 = SignKey::from_seed(b"000000000000000000000000000Test4").unwrap();
+        let sk2 = PrivateKey::from_seed(b"000000000000000000000000000Test4").unwrap();
         let pk2 = sk2.public_key().unwrap().as_base58().unwrap();
 
         let input_msg = b"hello there";
@@ -349,7 +349,7 @@ mod tests {
         };
 
         let lookup_fn = key_lookup_fn(lookup);
-        let result = unpack_message(&packed, lookup_fn);
+        let result = unpack_message(&packed, &lookup_fn);
         let (msg, p_recip, p_send) = block_on(result).unwrap();
         assert_eq!(msg, input_msg);
         assert_eq!(p_recip, pk2);

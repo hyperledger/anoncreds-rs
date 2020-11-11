@@ -4,7 +4,7 @@ use regex::Regex;
 
 use crate::base58;
 #[cfg(feature = "ed25519")]
-use crate::keys::{KeyType, SignKey, VerKey};
+use crate::keys::{KeyType, PrivateKey, VerKey};
 use crate::{Qualifiable, Validatable, ValidationError};
 
 /// The default identifier DID used when submitting ledger read requests
@@ -15,10 +15,10 @@ pub static DEFAULT_LIBINDY_DID: Lazy<DidValue> =
 #[cfg(feature = "ed25519")]
 pub fn generate_did(
     seed: Option<&[u8]>,
-) -> Result<(ShortDidValue, SignKey, VerKey), crate::ConversionError> {
+) -> Result<(ShortDidValue, PrivateKey, VerKey), crate::ConversionError> {
     let sk = match seed {
-        Some(seed) => SignKey::from_seed(seed)?,
-        None => SignKey::generate(Some(KeyType::ED25519))?,
+        Some(seed) => PrivateKey::from_seed(seed)?,
+        None => PrivateKey::generate(Some(KeyType::ED25519))?,
     };
     let pk = sk.public_key()?;
     let did = base58::encode(&pk.as_ref()[..16]);

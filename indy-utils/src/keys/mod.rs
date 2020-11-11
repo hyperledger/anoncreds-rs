@@ -23,12 +23,12 @@ pub fn build_full_verkey(dest: &str, key: &str) -> Result<EncodedVerKey, Convers
 
 /// A raw signing key used for generating transaction signatures
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct SignKey {
+pub struct PrivateKey {
     pub key: Vec<u8>,
     pub alg: KeyType,
 }
 
-impl SignKey {
+impl PrivateKey {
     pub fn new<K: AsRef<[u8]>>(key: K, alg: Option<KeyType>) -> Self {
         Self {
             key: key.as_ref().to_vec(),
@@ -95,26 +95,26 @@ impl SignKey {
     }
 }
 
-impl AsRef<[u8]> for SignKey {
+impl AsRef<[u8]> for PrivateKey {
     fn as_ref(&self) -> &[u8] {
         self.key.as_ref()
     }
 }
 
-impl Zeroize for SignKey {
+impl Zeroize for PrivateKey {
     fn zeroize(&mut self) {
         self.key.zeroize();
         self.alg = KeyType::from("")
     }
 }
 
-impl Drop for SignKey {
+impl Drop for PrivateKey {
     fn drop(&mut self) {
         self.zeroize()
     }
 }
 
-impl Validatable for SignKey {
+impl Validatable for PrivateKey {
     fn validate(&self) -> Result<(), ValidationError> {
         if self.alg == KeyType::ED25519 {
             if self.key.len() == 64 {
@@ -497,7 +497,7 @@ mod tests {
     #[test]
     fn sign_and_verify() {
         let message = b"hello there";
-        let sk = SignKey::generate(None).unwrap();
+        let sk = PrivateKey::generate(None).unwrap();
         let sig = sk.sign(&message).unwrap();
         let vk = sk.public_key().unwrap();
         assert!(vk.verify_signature(&message, &sig).unwrap());
@@ -505,12 +505,12 @@ mod tests {
 
     #[test]
     fn validate_keys() {
-        let sk = SignKey::generate(None).unwrap();
+        let sk = PrivateKey::generate(None).unwrap();
         sk.validate().unwrap();
         let vk = sk.public_key().unwrap();
         vk.validate().unwrap();
 
-        let sk = SignKey::new(b"bad key", Some(KeyType::ED25519));
+        let sk = PrivateKey::new(b"bad key", Some(KeyType::ED25519));
         assert_eq!(sk.validate().is_ok(), false);
         let vk = VerKey::new(b"bad key", Some(KeyType::ED25519));
         assert_eq!(vk.validate().is_ok(), false);

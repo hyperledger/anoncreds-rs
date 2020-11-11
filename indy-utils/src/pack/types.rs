@@ -1,4 +1,4 @@
-use crate::keys::{EncodedVerKey, SignKey};
+use crate::keys::{EncodedVerKey, PrivateKey};
 
 use std::future::Future;
 
@@ -36,15 +36,17 @@ pub struct Protected {
 }
 
 /// A trait for custom key lookup implementations used by unpack
-pub trait KeyLookup: Sync {
-    fn find<'f>(
-        &'f self,
-        key: &'f Vec<EncodedVerKey>,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Option<(usize, SignKey)>> + Send + 'f>>;
+pub trait KeyLookup<'f> {
+    fn find<'a>(
+        self,
+        key: &'a Vec<EncodedVerKey>,
+    ) -> std::pin::Pin<Box<dyn Future<Output = Option<(usize, PrivateKey)>> + Send + 'a>>
+    where
+        'f: 'a;
 }
 
 type KeyLookupCb<'a> =
-    Box<dyn Fn(&Vec<EncodedVerKey>) -> Option<(usize, SignKey)> + Send + Sync + 'a>;
+    Box<dyn Fn(&Vec<EncodedVerKey>) -> Option<(usize, PrivateKey)> + Send + Sync + 'a>;
 
 pub struct KeyLookupFn<'a> {
     cb: KeyLookupCb<'a>,
@@ -53,25 +55,25 @@ pub struct KeyLookupFn<'a> {
 /// Create a `KeyLookup` from a callback function
 pub fn key_lookup_fn<'a, F>(cb: F) -> KeyLookupFn<'a>
 where
-    F: Fn(&Vec<EncodedVerKey>) -> Option<(usize, SignKey)> + Send + Sync + 'a,
+    F: Fn(&Vec<EncodedVerKey>) -> Option<(usize, PrivateKey)> + Send + Sync + 'a,
 {
     KeyLookupFn {
         cb: Box::new(cb) as KeyLookupCb,
     }
 }
 
-async fn lazy_lookup<'a>(
-    cb: &Box<dyn Fn(&Vec<EncodedVerKey>) -> Option<(usize, SignKey)> + Send + Sync + 'a>,
-    keys: &Vec<EncodedVerKey>,
-) -> Option<(usize, SignKey)> {
-    cb(keys)
-}
-
-impl<'a> KeyLookup for KeyLookupFn<'a> {
+impl<'a, 'l, 'r> KeyLookup<'l> for &'r KeyLookupFn<'a>
+where
+    'a: 'l,
+    'r: 'a,
+{
     fn find<'f>(
-        &'f self,
+        self,
         keys: &'f Vec<EncodedVerKey>,
-    ) -> std::pin::Pin<Box<dyn Future<Output = Option<(usize, SignKey)>> + Send + 'f>> {
-        Box::pin(lazy_lookup(&self.cb, keys))
+    ) -> std::pin::Pin<Box<dyn Future<Output = Option<(usize, PrivateKey)>> + Send + 'f>>
+    where
+        'l: 'f,
+    {
+        Box::pin(async move { (&self.cb)(keys) })
     }
 }

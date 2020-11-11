@@ -3,7 +3,7 @@ use ursa::blake2::{digest::Input, digest::VariableOutput, VarBlake2b};
 use ursa::encryption::random_vec;
 
 use crate::error::{ConversionError, UnexpectedError, ValidationError};
-use crate::keys::{KeyType, SignKey};
+use crate::keys::{KeyType, PrivateKey};
 
 const CBOX_NONCE_SIZE: usize = 24;
 
@@ -73,7 +73,7 @@ pub fn crypto_box_open(
 }
 
 pub fn crypto_box_seal(recip_pk: &[u8], message: &[u8]) -> Result<Vec<u8>, ConversionError> {
-    let sk = SignKey::generate(Some(KeyType::ED25519))?;
+    let sk = PrivateKey::generate(Some(KeyType::ED25519))?;
     let ephem_sk = sk.key_exchange()?;
     let ephem_sk_x: cbox::SecretKey = crypto_box_key(&ephem_sk)?;
     assert_eq!(ephem_sk_x.to_bytes(), ephem_sk.as_ref());
@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn test_box_seal() {
         // let sk = SignKey::generate(Some(KeyType::ED25519)).unwrap();
-        let sk = SignKey::from_seed(b"000000000000000000000000000Test0").unwrap();
+        let sk = PrivateKey::from_seed(b"000000000000000000000000000Test0").unwrap();
         let pk_x = sk.public_key().unwrap().key_exchange().unwrap();
         let sk_x = sk.key_exchange().unwrap();
 
