@@ -501,12 +501,13 @@ dependencies = [
 
 [[package]]
 name = "indy-utils"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "aead",
  "async-global-executor",
  "base64",
  "bs58",
+ "chacha20",
  "chacha20poly1305",
  "crypto_box",
  "hex",

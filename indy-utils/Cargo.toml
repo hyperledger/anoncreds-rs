@@ -1,6 +1,6 @@
 [package]
 name = "indy-utils"
-version = "0.3.4"
+version = "0.3.5"
 authors = ["Hyperledger Indy Contributors <hyperledger-indy@lists.hyperledger.org>"]
 description = "Utilities for Hyperledger Indy (https://www.hyperledger.org/projects), which provides a distributed-ledger-based foundation for self-sovereign identity (https://sovrin.org)."
 edition = "2018"
@@ -31,6 +31,7 @@ wql = []
 aead = "0.3"
 base64_rs = { package = "base64", version = "0.12", optional = true }
 bs58 = "0.3"
+chacha20 = "0.6"
 chacha20poly1305 = { version = "0.7", default-features = false, features = ["alloc", "chacha20"], optional = true }
 crypto_box = { version = "0.2", optional = true }
 hex = "0.4"
