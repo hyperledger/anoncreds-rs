@@ -1,11 +1,14 @@
-use crypto_box::{self as cbox, aead::Aead};
+use crypto_box::{
+    self as cbox,
+    aead::{generic_array::typenum::Unsigned, Aead},
+};
 use ursa::blake2::{digest::Input, digest::VariableOutput, VarBlake2b};
-use ursa::encryption::random_vec;
 
 use crate::error::{ConversionError, UnexpectedError, ValidationError};
 use crate::keys::{KeyType, PrivateKey};
+use crate::random::random_vec;
 
-const CBOX_NONCE_SIZE: usize = 24;
+const CBOX_NONCE_SIZE: usize = <cbox::Box as Aead>::NonceSize::USIZE;
 
 fn crypto_box_key<F, T>(key: F) -> Result<T, ValidationError>
 where
@@ -45,9 +48,9 @@ pub fn crypto_box(
     let box_inst = cbox::SalsaBox::new(&recip_pk, &sender_sk);
 
     let nonce = if let Some(nonce) = nonce {
-        nonce
+        nonce.as_slice().into()
     } else {
-        random_vec(CBOX_NONCE_SIZE).map_err(|_| "Error calculating nonce")?
+        random_vec(CBOX_NONCE_SIZE)
     };
 
     let ciphertext = box_inst

@@ -1,5 +1,7 @@
 use aead::generic_array::{ArrayLength, GenericArray};
 
+use crate::random::random_array;
+
 pub const KEY_ENC_BASE58: &'static str = "base58";
 
 pub const KEY_TYPE_ED25519: &'static str = "ed25519";
@@ -128,12 +130,26 @@ impl From<String> for KeyEncoding {
 pub struct ArrayKey<L: ArrayLength<u8>>(GenericArray<u8, L>);
 
 impl<L: ArrayLength<u8>> ArrayKey<L> {
+    #[inline]
     pub fn from_slice<D: AsRef<[u8]>>(data: D) -> Self {
         Self(GenericArray::from_slice(data.as_ref()).clone())
     }
 
+    #[inline]
     pub fn extract(self) -> GenericArray<u8, L> {
         self.0
+    }
+
+    #[inline]
+    pub fn random() -> Self {
+        Self(random_array())
+    }
+}
+
+impl<L: ArrayLength<u8>> Default for ArrayKey<L> {
+    #[inline]
+    fn default() -> Self {
+        Self(GenericArray::default())
     }
 }
 
@@ -147,6 +163,12 @@ impl<L: ArrayLength<u8>> std::ops::Deref for ArrayKey<L> {
     type Target = GenericArray<u8, L>;
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<L: ArrayLength<u8>> std::ops::DerefMut for ArrayKey<L> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

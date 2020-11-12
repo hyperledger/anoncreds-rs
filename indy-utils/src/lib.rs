@@ -39,6 +39,9 @@ pub mod did;
 /// Indy signing keys and verification keys
 pub mod keys;
 
+/// Random number generation
+pub mod random;
+
 /// Base64 encoding and decoding
 #[cfg(feature = "base64")]
 pub mod base64;

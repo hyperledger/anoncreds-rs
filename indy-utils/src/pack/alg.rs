@@ -1,6 +1,7 @@
-use ursa::encryption::symm::chacha20poly1305::ChaCha20Poly1305;
-use ursa::encryption::symm::{Encryptor, SymmetricEncryptor};
-use ursa::keys::PrivateKey as UrsaPrivateKey;
+use chacha20poly1305::{
+    aead::{generic_array::typenum::Unsigned, Aead, NewAead, Payload},
+    ChaCha20Poly1305, Key as ChaChaKey,
+};
 
 use std::string::ToString;
 
@@ -8,14 +9,18 @@ use super::nacl_box::*;
 use super::types::*;
 use crate::base64;
 use crate::error::ConversionError;
-use crate::keys::{EncodedVerKey, PrivateKey};
+use crate::keys::{ArrayKey, EncodedVerKey, PrivateKey};
+use crate::random::random_array;
 
 pub const PROTECTED_HEADER_ENC: &'static str = "xchacha20poly1305_ietf";
 pub const PROTECTED_HEADER_TYP: &'static str = "JWM/1.0";
 pub const PROTECTED_HEADER_ALG_AUTH: &'static str = "Authcrypt";
 pub const PROTECTED_HEADER_ALG_ANON: &'static str = "Anoncrypt";
 
-const TAG_SIZE: usize = 16;
+type KeySize = <ChaCha20Poly1305 as NewAead>::KeySize;
+
+const NONCE_SIZE: usize = <ChaCha20Poly1305 as Aead>::NonceSize::USIZE;
+const TAG_SIZE: usize = <ChaCha20Poly1305 as Aead>::TagSize::USIZE;
 
 pub fn pack_message<M: AsRef<[u8]>>(
     message: M,
@@ -28,11 +33,7 @@ pub fn pack_message<M: AsRef<[u8]>>(
     }
 
     // generate content encryption key that will encrypt `message`
-    let cek = UrsaPrivateKey(
-        ChaCha20Poly1305::key_gen()
-            .map_err(|_| "Error creating box encryption key")?
-            .to_vec(),
-    );
+    let cek = ArrayKey::random();
 
     let base64_protected = if let Some(sender_key) = sender_key {
         // returns authcrypted pack_message format. See Wire message format HIPE for details
@@ -43,15 +44,14 @@ pub fn pack_message<M: AsRef<[u8]>>(
     };
 
     // Use AEAD to encrypt `message` with "protected" data as "associated data"
-    let nonce = ChaCha20Poly1305::nonce_gen().map_err(|_| "Error creating nonce")?;
-    let symm = SymmetricEncryptor::<ChaCha20Poly1305>::new_with_key(cek.as_ref())
-        .map_err(|_| "Error creating encryptor")?;
-    let ciphertext = symm
-        .encrypt(
-            nonce.as_ref(),
-            base64_protected.as_bytes(),
-            message.as_ref(),
-        )
+    let chacha = ChaCha20Poly1305::new(ChaChaKey::from_slice(&cek));
+    let nonce = random_array();
+    let payload = Payload {
+        aad: base64_protected.as_bytes(),
+        msg: message.as_ref(),
+    };
+    let ciphertext = chacha
+        .encrypt(&nonce, payload)
         .map_err(|_| "Error encrypting payload")?;
     let iv = base64::encode_urlsafe(nonce);
     let clen = ciphertext.len() - TAG_SIZE;
@@ -62,7 +62,7 @@ pub fn pack_message<M: AsRef<[u8]>>(
 }
 
 fn prepare_protected_anoncrypt(
-    cek: &UrsaPrivateKey,
+    cek: &ArrayKey<KeySize>,
     receiver_list: Vec<EncodedVerKey>,
 ) -> Result<String, ConversionError> {
     let mut encrypted_recipients_struct: Vec<Recipient> = Vec::with_capacity(receiver_list.len());
@@ -87,7 +87,7 @@ fn prepare_protected_anoncrypt(
 }
 
 fn prepare_protected_authcrypt(
-    cek: &UrsaPrivateKey,
+    cek: &ArrayKey<KeySize>,
     receiver_list: Vec<EncodedVerKey>,
     sender_key: &PrivateKey,
 ) -> Result<String, ConversionError> {
@@ -192,17 +192,20 @@ pub async fn unpack_jwe<'f>(
     };
 
     // decrypt message
-    let symm = SymmetricEncryptor::<ChaCha20Poly1305>::new_with_key(&cek)
-        .map_err(|_| "Error creating encryptor")?;
+    let chacha = ChaCha20Poly1305::new_varkey(&cek)
+        .map_err(|_| "Error creating unpack decryptor for cek")?;
     let nonce = base64::decode_urlsafe(&jwe_struct.iv)?;
-    let mut payload = base64::decode_urlsafe(&jwe_struct.ciphertext)?;
-    payload.append(base64::decode_urlsafe(&jwe_struct.tag)?.as_mut());
-    let message = symm
-        .decrypt(
-            nonce.as_slice(),
-            jwe_struct.protected.as_bytes(),
-            payload.as_slice(),
-        )
+    if nonce.len() != NONCE_SIZE {
+        return Err("Invalid size for message nonce".into());
+    }
+    let mut ciphertext = base64::decode_urlsafe(&jwe_struct.ciphertext)?;
+    ciphertext.append(base64::decode_urlsafe(&jwe_struct.tag)?.as_mut());
+    let payload = Payload {
+        aad: jwe_struct.protected.as_bytes(),
+        msg: ciphertext.as_slice(),
+    };
+    let message = chacha
+        .decrypt(nonce.as_slice().into(), payload)
         .map_err(|_| "Error decrypting message payload")?;
 
     Ok((message, recip_pk, sender_verkey_option))

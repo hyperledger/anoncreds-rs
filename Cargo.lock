@@ -214,25 +214,34 @@ checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
 name = "chacha20"
-version = "0.4.3"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "086c0f07ac275808b7bf9a39f2fd013aae1498be83632814c8c4e0bd53f2dc58"
+checksum = "ed8738f14471a99f0e316c327e68fc82a3611cc2895fcb604b89eedaf8f39d95"
 dependencies = [
- "stream-cipher",
+ "cipher",
  "zeroize",
 ]
 
 [[package]]
 name = "chacha20poly1305"
-version = "0.5.1"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18b0c90556d8e3fec7cf18d84a2f53d27b21288f2fe481b830fadcf809e48205"
+checksum = "af1fc18e6d90c40164bf6c317476f2a98f04661e310e79830366b7e914c58a8e"
 dependencies = [
  "aead",
  "chacha20",
+ "cipher",
  "poly1305",
- "stream-cipher",
  "zeroize",
+]
+
+[[package]]
+name = "cipher"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12f8e7987cbd042a63249497f41aed09f8e65add917ea6566effbc56578d6801"
+dependencies = [
+ "generic-array 0.14.2",
 ]
 
 [[package]]
@@ -492,12 +501,13 @@ dependencies = [
 
 [[package]]
 name = "indy-utils"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "aead",
  "async-global-executor",
  "base64",
  "bs58",
+ "chacha20poly1305",
  "crypto_box",
  "hex",
  "once_cell",
@@ -983,11 +993,9 @@ version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42e50b5a83e303aa9e0a6affffbca0fe9444854d1c5fab409d401f1eaa9fa8b6"
 dependencies = [
- "aead",
  "amcl",
  "arrayref",
  "blake2",
- "chacha20poly1305",
  "curve25519-dalek",
  "ed25519-dalek",
  "failure",
