@@ -5,7 +5,7 @@ use chacha20::{
 };
 use rand::{rngs::OsRng, RngCore};
 
-type SeedSize = <ChaCha20 as NewStreamCipher>::KeySize;
+pub type SeedSize = <ChaCha20 as NewStreamCipher>::KeySize;
 
 /// Fill a mutable slice with random data using the
 /// system random number generator.
@@ -46,7 +46,7 @@ mod tests {
     use crate::base58;
 
     #[test]
-    fn random_det() {
+    fn random_det_expected() {
         let key = GenericArray::from_slice(b"00000000000000000000000000000My1");
         let ret = random_deterministic(&key, 32);
         assert_eq!(
