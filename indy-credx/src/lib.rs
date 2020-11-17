@@ -7,6 +7,7 @@ extern crate log;
 #[macro_use]
 extern crate serde;
 
+#[doc(hidden)]
 pub use indy_data_types::ursa;
 
 #[macro_use]
@@ -17,3 +18,6 @@ pub use self::error::{Error, ErrorKind};
 
 mod services;
 pub use services::*;
+
+#[cfg(feature = "ffi")]
+mod ffi;

@@ -1,6 +1,6 @@
 [package]
 name = "indy-credx"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Hyperledger Indy Contributors <hyperledger-indy@lists.hyperledger.org>"]
 edition = "2018"
 
@@ -11,6 +11,10 @@ license = "MIT/Apache-2.0"
 name = "indy_credx"
 path = "src/lib.rs"
 crate-type = ["staticlib", "rlib", "cdylib"]
+
+[features]
+default = ["ffi"]
+ffi = []
 
 [dependencies]
 log = "0.4.8"

@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "indy-credx"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "indy-data-types",
  "indy-utils",
