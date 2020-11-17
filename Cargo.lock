@@ -497,8 +497,8 @@ version = "0.1.0"
 dependencies = [
  "indy-data-types",
  "indy-utils",
- "lazy_static",
  "log",
+ "once_cell",
  "rand",
  "regex",
  "serde",

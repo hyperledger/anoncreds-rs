@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use once_cell::sync::Lazy;
 use regex::Regex;
 
 use super::helpers::*;
@@ -32,9 +33,8 @@ pub struct Filter {
     cred_def_id: String,
 }
 
-lazy_static! {
-    static ref INTERNAL_TAG_MATCHER: Regex = Regex::new("^attr::([^:]+)::(value|marker)$").unwrap();
-}
+static INTERNAL_TAG_MATCHER: Lazy<Regex> =
+    Lazy::new(|| Regex::new("^attr::([^:]+)::(value|marker)$").unwrap());
 
 pub struct Verifier {}
 
