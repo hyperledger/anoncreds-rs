@@ -1,15 +1,15 @@
-use super::ursa_cl::{CredentialKeyCorrectnessProof, Nonce};
+use super::nonce::Nonce;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::schema::SchemaId;
 use crate::utils::Qualifiable;
-use crate::{EmbedJson, Validatable, ValidationError};
+use crate::{Validatable, ValidationError};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialOffer {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
-    pub key_correctness_proof: EmbedJson<CredentialKeyCorrectnessProof>,
+    pub key_correctness_proof: ursa_cl!(CredentialKeyCorrectnessProof),
     pub nonce: Nonce,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub method_name: Option<String>,

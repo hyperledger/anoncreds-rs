@@ -1,10 +1,6 @@
-use super::ursa_cl::{
-    RevocationRegistry as CryptoRevocationRegistry,
-    RevocationRegistryDelta as CryptoRevocationRegistryDelta,
-};
-use crate::{EmbedJson, Validatable};
+use crate::Validatable;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "ver"))]
 pub enum RevocationRegistry {
@@ -12,13 +8,13 @@ pub enum RevocationRegistry {
     RevocationRegistryV1(RevocationRegistryV1),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct RevocationRegistryV1 {
-    pub value: EmbedJson<CryptoRevocationRegistry>,
+    pub value: ursa_cl!(RevocationRegistry),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "ver"))]
 pub enum RevocationRegistryDelta {
@@ -28,9 +24,9 @@ pub enum RevocationRegistryDelta {
 
 impl Validatable for RevocationRegistryDelta {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDeltaV1 {
-    pub value: EmbedJson<CryptoRevocationRegistryDelta>,
+    pub value: ursa_cl!(RevocationRegistryDelta),
 }

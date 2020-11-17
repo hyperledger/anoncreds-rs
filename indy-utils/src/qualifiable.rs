@@ -2,7 +2,7 @@ use once_cell::sync::Lazy;
 
 use regex::Regex;
 
-use super::{Validatable, ValidationError};
+use super::{invalid, Validatable, ValidationError};
 
 pub(crate) static REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new("^([a-z0-9]+):([a-z0-9]+):(.*)$").unwrap());
@@ -92,7 +92,7 @@ pub trait Qualifiable: From<String> + std::ops::Deref<Target = str> + Validatabl
             (Some(prev_method), rest) if prev_method == method => {
                 Ok(Self::combine(Some(method), rest))
             }
-            _ => Err(ValidationError::from(
+            _ => Err(invalid!(
                 "Identifier is already qualified with another method",
             )),
         }
@@ -124,6 +124,12 @@ macro_rules! qualifiable_type {
             type Target = str;
             fn deref(&self) -> &str {
                 &self.0
+            }
+        }
+
+        impl std::fmt::Display for $newtype {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str(self.0.as_str())
             }
         }
     };

@@ -9,11 +9,6 @@ extern crate serde_json;
 #[macro_use]
 mod macros;
 
-mod embed_json;
-pub use embed_json::EmbedJson;
-#[cfg(feature = "serde")]
-pub use embed_json::{embed_json, EmbedExtractJson};
-
 mod utils {
     pub use indy_utils::base58;
     #[cfg(feature = "hash")]
@@ -23,7 +18,7 @@ mod utils {
 
 pub use indy_utils::did;
 pub use indy_utils::keys;
-pub use indy_utils::{ConversionError, Validatable, ValidationError};
+pub use indy_utils::{invalid, ConversionError, Validatable, ValidationError};
 
 #[cfg(any(feature = "cl", feature = "cl_native", feature = "hash"))]
 pub use indy_utils::ursa;

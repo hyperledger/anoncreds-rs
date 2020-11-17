@@ -7,7 +7,7 @@ use serde::{de, ser, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
 use super::credential::Credential;
-use super::ursa_cl::Nonce;
+use super::nonce::Nonce;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
@@ -17,7 +17,7 @@ use indy_utils::did::DidValue;
 use indy_utils::invalid;
 use indy_utils::wql::Query;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PresentationRequestPayload {
     pub nonce: Nonce,
@@ -30,7 +30,7 @@ pub struct PresentationRequestPayload {
     pub non_revoked: Option<NonRevocedInterval>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PresentationRequest {
     PresentationRequestV1(PresentationRequestPayload),
     PresentationRequestV2(PresentationRequestPayload),

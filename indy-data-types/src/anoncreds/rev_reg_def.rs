@@ -1,20 +1,12 @@
-use super::ursa_cl::RevocationKeyPublic;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::utils::Qualifiable;
-use crate::{EmbedJson, Validatable, ValidationError};
+use crate::{invalid, Validatable, ValidationError};
 
 pub const CL_ACCUM: &str = "CL_ACCUM";
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct RevocationRegistryConfig {
-    pub issuance_type: Option<IssuanceType>,
-    pub max_cred_num: Option<u32>,
-}
-
 #[allow(non_camel_case_types)]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum IssuanceType {
     ISSUANCE_BY_DEFAULT,
@@ -28,7 +20,7 @@ impl IssuanceType {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum RegistryType {
     CL_ACCUM,
@@ -42,7 +34,7 @@ impl RegistryType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDefinitionValue {
@@ -53,14 +45,14 @@ pub struct RevocationRegistryDefinitionValue {
     pub tails_location: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct RevocationRegistryDefinitionValuePublicKeys {
-    pub accum_key: EmbedJson<RevocationKeyPublic>,
+    pub accum_key: ursa_cl!(RevocationKeyPublic),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(tag = "ver"))]
 pub enum RevocationRegistryDefinition {
@@ -97,13 +89,39 @@ impl Validatable for RevocationRegistryDefinition {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+#[derive(Clone, Debug)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Deserialize, Serialize),
+    serde(rename_all = "camelCase")
+)]
 pub struct RevocationRegistryDefinitionV1 {
     pub id: RevocationRegistryId,
     pub revoc_def_type: RegistryType,
     pub tag: String,
     pub cred_def_id: CredentialDefinitionId,
     pub value: RevocationRegistryDefinitionValue,
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct RevocationRegistryDefinitionPrivate {
+    pub value: ursa_cl!(RevocationKeyPrivate),
+}
+
+#[derive(Deserialize, Debug, Serialize)]
+pub struct RevocationRegistryConfig {
+    pub issuance_type: Option<IssuanceType>,
+    pub max_cred_num: Option<u32>,
+}
+
+impl Validatable for RevocationRegistryConfig {
+    fn validate(&self) -> Result<(), ValidationError> {
+        if let Some(num_) = self.max_cred_num {
+            if num_ == 0 {
+                return Err(invalid!("RevocationRegistryConfig validation failed: `max_cred_num` must be greater than 0"));
+            }
+        }
+        Ok(())
+    }
 }

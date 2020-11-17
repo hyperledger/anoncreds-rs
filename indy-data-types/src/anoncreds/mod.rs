@@ -1,5 +1,5 @@
-/// Wrappers around Ursa CL data types
-pub mod ursa_cl;
+#[macro_use]
+mod macros;
 
 /// Credential definitions
 pub mod cred_def;
@@ -15,6 +15,9 @@ pub mod credential;
 
 /// Identity master secret
 pub mod master_secret;
+
+/// Nonce used in presentation requests
+pub mod nonce;
 
 /// Presentation requests
 pub mod pres_request;

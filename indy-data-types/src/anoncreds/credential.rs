@@ -1,22 +1,21 @@
 use std::collections::HashMap;
 
-use super::ursa_cl::{CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, Witness};
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
-use crate::{EmbedJson, Validatable, ValidationError};
+use crate::{Validatable, ValidationError};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Credential {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
     pub rev_reg_id: Option<RevocationRegistryId>,
     pub values: CredentialValues,
-    pub signature: EmbedJson<CredentialSignature>,
-    pub signature_correctness_proof: EmbedJson<SignatureCorrectnessProof>,
-    pub rev_reg: Option<EmbedJson<RevocationRegistry>>,
-    pub witness: Option<EmbedJson<Witness>>,
+    pub signature: ursa_cl!(CredentialSignature),
+    pub signature_correctness_proof: ursa_cl!(SignatureCorrectnessProof),
+    pub rev_reg: Option<ursa_cl!(RevocationRegistry)>,
+    pub witness: Option<ursa_cl!(Witness)>,
 }
 
 impl Credential {
