@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use zeroize::Zeroize;
+
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
@@ -63,11 +65,10 @@ pub type ShortCredentialValues = HashMap<String, String>;
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialValues(pub HashMap<String, AttributeValues>);
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct AttributeValues {
-    pub raw: String,
-    pub encoded: String,
+impl Drop for CredentialValues {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
 }
 
 impl Validatable for CredentialValues {
@@ -78,4 +79,19 @@ impl Validatable for CredentialValues {
 
         Ok(())
     }
+}
+
+impl Zeroize for CredentialValues {
+    fn zeroize(&mut self) {
+        for attr in self.0.values_mut() {
+            attr.zeroize();
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Zeroize)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct AttributeValues {
+    pub raw: String,
+    pub encoded: String,
 }

@@ -5,21 +5,20 @@ use std::os::raw::c_char;
 use std::sync::{Arc, Mutex};
 
 use ffi_support::rust_string_to_c;
-use indy_utils::new_handle_type;
 use once_cell::sync::Lazy;
 use serde::Serialize;
 
 use super::error::ErrorCode;
 use crate::error::Result;
 use crate::services::types::{
-    Credential, Presentation, RevocationRegistry, RevocationRegistryDefinition,
+    Presentation, RevocationRegistry, RevocationRegistryDefinition,
     RevocationRegistryDefinitionPrivate, RevocationState,
 };
 
 pub(crate) static FFI_OBJECTS: Lazy<Mutex<BTreeMap<ObjectHandle, IndyObject>>> =
     Lazy::new(|| Mutex::new(BTreeMap::new()));
 
-new_handle_type!(ObjectHandle, FFI_OBJECT_COUNTER);
+indy_utils::new_handle_type!(ObjectHandle, FFI_OBJECT_COUNTER);
 
 impl ObjectHandle {
     pub(crate) fn create<O: AnyIndyObject + 'static>(value: O) -> Result<Self> {
@@ -135,8 +134,6 @@ macro_rules! impl_indy_object_from_json {
         }
     };
 }
-
-impl_indy_object!(Credential, "Credential");
 
 impl_indy_object!(Presentation, "Presentation");
 impl_indy_object!(RevocationRegistry, "RevocationRegistry");

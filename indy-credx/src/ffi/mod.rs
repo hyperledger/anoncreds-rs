@@ -17,6 +17,7 @@ mod object;
 
 mod util;
 
+mod cred;
 mod cred_def;
 mod cred_offer;
 mod cred_req;

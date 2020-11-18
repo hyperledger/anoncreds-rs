@@ -1,4 +1,5 @@
 from indy_credx import (
+    Credential,
     CredentialDefinition,
     CredentialOffer,
     CredentialRequest,
@@ -32,3 +33,7 @@ cred_req, cred_req_metadata = CredentialRequest.create(
 )
 
 print(cred_req.to_json())
+
+cred = Credential.create(cred_def, cred_def_pvt, cred_offer, cred_req, {"attr": "test"})
+print(cred)
+print(cred.to_json())

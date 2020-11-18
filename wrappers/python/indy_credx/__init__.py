@@ -3,6 +3,7 @@
 from .bindings import library_version
 from .error import CredxError, CredxErrorCode
 from .types import (
+    Credential,
     CredentialDefinition,
     CredentialDefinitionPrivate,
     KeyCorrectnessProof,
@@ -17,6 +18,7 @@ __all__ = (
     "library_version",
     "CredxError",
     "CredxErrorCode",
+    "Credential",
     "CredentialDefinition",
     "CredentialDefinitionPrivate",
     "KeyCorrectnessProof",

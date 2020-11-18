@@ -4,9 +4,12 @@ use std::iter::FromIterator;
 use super::types::*;
 use crate::error::Result;
 use crate::services::helpers::*;
-use crate::ursa::cl::{
-    issuer::Issuer as CryptoIssuer, RevocationRegistryDelta as CryptoRevocationRegistryDelta,
-    Witness,
+use crate::ursa::{
+    bn::BigNumber,
+    cl::{
+        issuer::Issuer as CryptoIssuer, RevocationRegistryDelta as CryptoRevocationRegistryDelta,
+        Witness,
+    },
 };
 use indy_data_types::anoncreds::{
     cred_def::{CredentialDefinitionData, CredentialDefinitionV1},
@@ -18,7 +21,7 @@ use indy_data_types::anoncreds::{
     },
     schema::SchemaV1,
 };
-use indy_utils::{Qualifiable, Validatable};
+use indy_utils::{hash::SHA256, Qualifiable, Validatable};
 
 use super::tails::{TailsFileReader, TailsReader, TailsWriter};
 
@@ -310,7 +313,7 @@ pub fn new_credential(
     cred_def_private: &CredentialDefinitionPrivate,
     cred_offer: &CredentialOffer,
     cred_request: &CredentialRequest,
-    cred_values: &CredentialValues,
+    cred_values: CredentialValues,
     revocation_config: Option<CredentialRevocationConfig>,
 ) -> Result<(
     Credential,
@@ -416,7 +419,7 @@ pub fn new_credential(
         schema_id: cred_offer.schema_id.clone(),
         cred_def_id: cred_offer.cred_def_id.clone(),
         rev_reg_id,
-        values: cred_values.clone(),
+        values: cred_values,
         signature: credential_signature,
         signature_correctness_proof,
         rev_reg: rev_reg.clone(),
@@ -515,6 +518,21 @@ pub fn merge_revocation_registry_deltas(
     }
 }
 
+pub fn encode_credential_attribute(raw_value: &str) -> Result<String> {
+    if let Ok(val) = raw_value.parse::<i32>() {
+        Ok(val.to_string())
+    } else {
+        let digest = SHA256::digest(raw_value.as_bytes());
+        #[cfg(target_endian = "big")]
+        let digest = {
+            let mut d = digest;
+            d.reverse();
+            d
+        };
+        Ok(BigNumber::from_bytes(&digest)?.to_dec()?)
+    }
+}
+
 pub struct CredentialRevocationConfig<'a> {
     pub reg_def: &'a RevocationRegistryDefinition,
     pub reg_def_private: &'a RevocationRegistryDefinitionPrivate,
@@ -537,15 +555,75 @@ impl<'a> std::fmt::Debug for CredentialRevocationConfig<'a> {
     }
 }
 
-/*#[cfg(test)]
+#[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_new_credential_definition() {
-        let attrs = r#"["one", "two"]"#;
-        let attr_names = serde_json::from_str::<AttributeNames>(attrs).unwrap();
-        Issuer::new_credential_definition(&attr_names, false).unwrap();
+    fn test_encode_attribute() {
+        assert_eq!(
+            encode_credential_attribute("101 Wilson Lane").unwrap(),
+            "68086943237164982734333428280784300550565381723532936263016368251445461241953"
+        );
+        assert_eq!(encode_credential_attribute("87121").unwrap(), "87121");
+        assert_eq!(
+            encode_credential_attribute("SLC").unwrap(),
+            "101327353979588246869873249766058188995681113722618593621043638294296500696424"
+        );
+        assert_eq!(
+            encode_credential_attribute("101 Tela Lane").unwrap(),
+            "63690509275174663089934667471948380740244018358024875547775652380902762701972"
+        );
+        assert_eq!(
+            encode_credential_attribute("UT").unwrap(),
+            "93856629670657830351991220989031130499313559332549427637940645777813964461231"
+        );
+        assert_eq!(
+            encode_credential_attribute("").unwrap(),
+            "102987336249554097029535212322581322789799900648198034993379397001115665086549"
+        );
+        assert_eq!(
+            encode_credential_attribute("None").unwrap(),
+            "99769404535520360775991420569103450442789945655240760487761322098828903685777"
+        );
+        assert_eq!(encode_credential_attribute("0").unwrap(), "0");
+        assert_eq!(encode_credential_attribute("1").unwrap(), "1");
+
+        // max i32
+        assert_eq!(
+            encode_credential_attribute("2147483647").unwrap(),
+            "2147483647"
+        );
+        assert_eq!(
+            encode_credential_attribute("2147483648").unwrap(),
+            "26221484005389514539852548961319751347124425277437769688639924217837557266135"
+        );
+
+        // min i32
+        assert_eq!(
+            encode_credential_attribute("-2147483648").unwrap(),
+            "-2147483648"
+        );
+        assert_eq!(
+            encode_credential_attribute("-2147483649").unwrap(),
+            "68956915425095939579909400566452872085353864667122112803508671228696852865689"
+        );
+
+        assert_eq!(
+            encode_credential_attribute("0.0").unwrap(),
+            "62838607218564353630028473473939957328943626306458686867332534889076311281879"
+        );
+        assert_eq!(
+            encode_credential_attribute("\x00").unwrap(),
+            "49846369543417741186729467304575255505141344055555831574636310663216789168157"
+        );
+        assert_eq!(
+            encode_credential_attribute("\x01").unwrap(),
+            "34356466678672179216206944866734405838331831190171667647615530531663699592602"
+        );
+        assert_eq!(
+            encode_credential_attribute("\x02").unwrap(),
+            "99398763056634537812744552006896172984671876672520535998211840060697129507206"
+        );
     }
 }
-*/

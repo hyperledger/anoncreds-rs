@@ -563,6 +563,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "zeroize",
 ]
 
 [[package]]

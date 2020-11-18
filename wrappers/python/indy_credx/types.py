@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Mapping, Sequence
 
 from . import bindings
 
@@ -141,3 +141,38 @@ class Schema(bindings.IndyObject):
     @property
     def id(self) -> str:
         return str(bindings.schema_get_id(self.handle))
+
+
+class Credential(bindings.IndyObject):
+    @classmethod
+    def create(
+        cls,
+        cred_def: [str, CredentialDefinition],
+        cred_def_private: [str, CredentialDefinitionPrivate],
+        cred_offer: [str, CredentialOffer],
+        cred_request: [str, CredentialRequest],
+        attr_raw_values: Mapping[str, str],
+        attr_enc_values: Mapping[str, str] = None,
+    ) -> "Credential":
+        if isinstance(cred_def, str):
+            cred_def = CredentialDefinition.from_json(cred_def)
+        if isinstance(cred_def_private, str):
+            cred_def_private = CredentialDefinitionPrivate.from_json(cred_def_private)
+        if isinstance(cred_offer, str):
+            cred_offer = CredentialOffer.from_json(cred_offer)
+        if isinstance(cred_request, str):
+            cred_request = CredentialRequest.from_json(cred_request)
+        cred = bindings.create_credential(
+            cred_def.handle,
+            cred_def_private.handle,
+            cred_offer.handle,
+            cred_request.handle,
+            attr_raw_values,
+            attr_enc_values,
+            None,
+        )
+        return Credential(cred)
+
+    @classmethod
+    def from_json(cls, value: str) -> "Credential":
+        return CredentialDefinition(bindings.credential_from_json(value))

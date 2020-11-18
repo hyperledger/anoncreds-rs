@@ -16,7 +16,7 @@ from ctypes import (
     Structure,
 )
 from ctypes.util import find_library
-from typing import Optional, Sequence, Union
+from typing import Optional, Mapping, Sequence, Union
 
 from .error import CredxError, CredxErrorCode
 
@@ -85,6 +85,15 @@ class str_list(Structure):
         ("count", c_size_t),
         ("data", POINTER(c_char_p)),
     ]
+
+    @classmethod
+    def create(cls, values: Optional[Sequence[str]]) -> "str_list":
+        inst = str_list()
+        if values is not None:
+            values = [encode_str(v) for v in values]
+            inst.count = len(values)
+            inst.data = (c_char_p * inst.count)(*values)
+        return inst
 
 
 def get_library() -> CDLL:
@@ -176,7 +185,7 @@ def encode_str(arg: Optional[Union[str, bytes, memoryview]]) -> c_char_p:
     Returns: None if the argument is None, otherwise the value encoded utf-8.
     """
     if arg is None:
-        return None
+        return c_char_p()
     if isinstance(arg, str):
         return c_char_p(arg.encode("utf-8"))
     return c_char_p(arg)
@@ -212,9 +221,7 @@ def create_schema(
     seq_no: int = None,
 ) -> ObjectHandle:
     result = ObjectHandle()
-    attrs = str_list()
-    attrs.count = len(attr_names)
-    attrs.data = (c_char_p * attrs.count)(*map(encode_str, attr_names))
+    attrs = str_list.create(attr_names)
     do_call(
         "credx_create_schema",
         encode_str(origin_did),
@@ -267,6 +274,39 @@ def credential_definition_get_id(handle: ObjectHandle) -> lib_string:
         byref(result),
     )
     return result
+
+
+def create_credential(
+    cred_def: ObjectHandle,
+    cred_def_private: ObjectHandle,
+    cred_offer: ObjectHandle,
+    cred_request: ObjectHandle,
+    attr_raw_values: Mapping[str, str],
+    attr_enc_values: Optional[Mapping[str, str]],
+    _revocation_config,
+) -> ObjectHandle:
+    cred = ObjectHandle()
+    names_list = str_list.create(attr_raw_values.keys())
+    raw_values_list = str_list.create(attr_raw_values.values())
+    if attr_enc_values:
+        enc_values_list = []
+        for name in attr_raw_values:
+            enc_values_list.append(attr_enc_values.get(name))
+    else:
+        enc_values_list = None
+    enc_values_list = str_list().create(enc_values_list)
+    do_call(
+        "credx_create_credential",
+        cred_def,
+        cred_def_private,
+        cred_offer,
+        cred_request,
+        names_list,
+        raw_values_list,
+        enc_values_list,
+        byref(cred),
+    )
+    return cred
 
 
 def create_credential_offer(
@@ -339,6 +379,10 @@ def credential_request_from_json(json: str) -> ObjectHandle:
 
 def credential_request_metadata_from_json(json: str) -> ObjectHandle:
     return _object_from_json("credx_credential_request_metadata_from_json", json)
+
+
+def credential_from_json(json: str) -> ObjectHandle:
+    return _object_from_json("credx_credential_from_json", json)
 
 
 def master_secret_from_json(json: str) -> ObjectHandle:
