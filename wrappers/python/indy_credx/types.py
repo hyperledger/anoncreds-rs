@@ -1,5 +1,3 @@
-import json
-
 from typing import Mapping, Sequence, Union
 
 from . import bindings
@@ -28,8 +26,10 @@ class CredentialDefinition(bindings.IndyObject):
         )
 
     @classmethod
-    def from_json(cls, value: str) -> "CredentialDefinition":
-        return CredentialDefinition(bindings.credential_definition_from_json(value))
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "CredentialDefinition":
+        return CredentialDefinition(
+            bindings._object_from_json("credx_credential_definition_from_json", value)
+        )
 
     @property
     def id(self) -> str:
@@ -38,16 +38,22 @@ class CredentialDefinition(bindings.IndyObject):
 
 class CredentialDefinitionPrivate(bindings.IndyObject):
     @classmethod
-    def from_json(cls, value: str) -> "CredentialDefinitionPrivate":
+    def load(
+        cls, value: Union[dict, str, bytes, memoryview]
+    ) -> "CredentialDefinitionPrivate":
         return CredentialDefinitionPrivate(
-            bindings.credential_definition_private_from_json(value)
+            bindings._object_from_json(
+                "credx_credential_definition_private_from_json", value
+            )
         )
 
 
 class KeyCorrectnessProof(bindings.IndyObject):
     @classmethod
-    def from_json(cls, value: str) -> "KeyCorrectnessProof":
-        return KeyCorrectnessProof(bindings.key_correctness_proof_from_json(value))
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "KeyCorrectnessProof":
+        return KeyCorrectnessProof(
+            bindings._object_from_json("credx_key_correctness_proof_from_json", value)
+        )
 
 
 class CredentialOffer(bindings.IndyObject):
@@ -69,8 +75,10 @@ class CredentialOffer(bindings.IndyObject):
         )
 
     @classmethod
-    def from_json(cls, value: str) -> "CredentialOffer":
-        return CredentialOffer(bindings.credential_offer_from_json(value))
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "CredentialOffer":
+        return CredentialOffer(
+            bindings._object_from_json("credx_credential_offer_from_json", value)
+        )
 
 
 class CredentialRequest(bindings.IndyObject):
@@ -99,15 +107,21 @@ class CredentialRequest(bindings.IndyObject):
         return CredentialRequest(cred_def), CredentialRequestMetadata(cred_def_metadata)
 
     @classmethod
-    def from_json(cls, value: str) -> "CredentialRequest":
-        return CredentialRequest(bindings.credential_request_from_json(value))
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "CredentialRequest":
+        return CredentialRequest(
+            bindings._object_from_json("credx_credential_request_from_json", value)
+        )
 
 
 class CredentialRequestMetadata(bindings.IndyObject):
     @classmethod
-    def from_json(cls, value: str) -> "CredentialRequestMetadata":
+    def load(
+        cls, value: Union[dict, str, bytes, memoryview]
+    ) -> "CredentialRequestMetadata":
         return CredentialRequestMetadata(
-            bindings.credential_request_metadata_from_json(value)
+            bindings._object_from_json(
+                "credx_credential_request_metadata_from_json", value
+            )
         )
 
 
@@ -117,8 +131,10 @@ class MasterSecret(bindings.IndyObject):
         return MasterSecret(bindings.create_master_secret())
 
     @classmethod
-    def from_json(cls, value: str) -> "MasterSecret":
-        return MasterSecret(bindings.master_secret_from_json(value))
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "MasterSecret":
+        return MasterSecret(
+            bindings._object_from_json("credx_master_secret_from_json", value)
+        )
 
 
 class Schema(bindings.IndyObject):
@@ -137,8 +153,8 @@ class Schema(bindings.IndyObject):
         )
 
     @classmethod
-    def from_json(cls, value: str) -> "Schema":
-        return Schema(bindings.schema_from_json(value))
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "Schema":
+        return Schema(bindings._object_from_json("credx_schema_from_json", value))
 
     @property
     def id(self) -> str:
@@ -199,16 +215,18 @@ class Credential(bindings.IndyObject):
         )
 
     @classmethod
-    def from_json(cls, value: str) -> "Credential":
-        return CredentialDefinition(bindings.credential_from_json(value))
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "Credential":
+        return Credential(
+            bindings._object_from_json("credx_credential_from_json", value)
+        )
 
 
 class PresentationRequest(bindings.IndyObject):
     @classmethod
-    def from_json(cls, value: [dict, str]) -> "PresentationRequest":
-        if isinstance(value, dict):
-            value = json.dumps(value)
-        return PresentationRequest(bindings.presentation_request_from_json(value))
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "PresentationRequest":
+        return PresentationRequest(
+            bindings._object_from_json("credx_presentation_request_from_json", value)
+        )
 
 
 class PresentCredentials:
@@ -295,5 +313,7 @@ class Presentation(bindings.IndyObject):
         )
 
     @classmethod
-    def from_json(cls, value: str) -> "Presentation":
-        return Presentation(bindings.presentation_from_json(value))
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "Presentation":
+        return Presentation(
+            bindings._object_from_json("credx_presentation_from_json", value)
+        )

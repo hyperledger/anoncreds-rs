@@ -264,7 +264,11 @@ def object_get_type_name(handle: ObjectHandle) -> lib_string:
     return result
 
 
-def _object_from_json(method: str, value: str) -> ObjectHandle:
+def _object_from_json(
+    method: str, value: Union[dict, str, bytes, memoryview]
+) -> ObjectHandle:
+    if isinstance(value, dict):
+        value = json.dumps(value)
     result = ObjectHandle()
     do_call(method, encode_str(value), byref(result))
     return result
@@ -462,43 +466,3 @@ def create_presentation(
         byref(present),
     )
     return present
-
-
-def schema_from_json(json: str) -> ObjectHandle:
-    return _object_from_json("credx_schema_from_json", json)
-
-
-def credential_definition_from_json(json: str) -> ObjectHandle:
-    return _object_from_json("credx_credential_definition_from_json", json)
-
-
-def credential_definition_private_from_json(json: str) -> ObjectHandle:
-    return _object_from_json("credx_credential_definition_private_from_json", json)
-
-
-def key_correctness_proof_from_json(json: str) -> ObjectHandle:
-    return _object_from_json("credx_key_correctness_proof_from_json", json)
-
-
-def credential_offer_from_json(json: str) -> ObjectHandle:
-    return _object_from_json("credx_credential_offer_from_json", json)
-
-
-def credential_request_from_json(json: str) -> ObjectHandle:
-    return _object_from_json("credx_credential_request_from_json", json)
-
-
-def credential_request_metadata_from_json(json: str) -> ObjectHandle:
-    return _object_from_json("credx_credential_request_metadata_from_json", json)
-
-
-def credential_from_json(json: str) -> ObjectHandle:
-    return _object_from_json("credx_credential_from_json", json)
-
-
-def master_secret_from_json(json: str) -> ObjectHandle:
-    return _object_from_json("credx_master_secret_from_json", json)
-
-
-def presentation_request_from_json(json: str) -> ObjectHandle:
-    return _object_from_json("credx_presentation_request_from_json", json)

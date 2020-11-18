@@ -1,5 +1,3 @@
-from time import time
-
 from indy_credx import (
     generate_nonce,
     Credential,
@@ -17,10 +15,8 @@ from indy_credx import (
 test_did = "55GkHamhTU1ZbTbV2ab9DE"
 
 schema = Schema.create(test_did, "schema name", "schema version", ["attr"], seq_no=15)
-print("Schema:", schema)
+print(schema)
 print(schema.to_json())
-
-print(Schema.from_json(schema.to_json()).to_json())
 
 cred_def, cred_def_pvt, key_proof = CredentialDefinition.create(
     test_did, schema, "CL", tag="tag", support_revocation=True
@@ -47,8 +43,7 @@ print(cred.to_json())
 cred_received = cred.process(cred_req_metadata, master_secret, cred_def)
 print(cred_received)
 
-timestamp = int(time())
-pres_req = PresentationRequest.from_json(
+pres_req = PresentationRequest.load(
     {
         "name": "proof",
         "version": "1.0",
