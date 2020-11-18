@@ -5,7 +5,7 @@ use zeroize::Zeroize;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
-use crate::{Validatable, ValidationError};
+use crate::{ConversionError, Validatable, ValidationError};
 
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
@@ -18,6 +18,22 @@ pub struct Credential {
     pub signature_correctness_proof: ursa_cl!(SignatureCorrectnessProof),
     pub rev_reg: Option<ursa_cl!(RevocationRegistry)>,
     pub witness: Option<ursa_cl!(Witness)>,
+}
+
+#[cfg(any(feature = "cl", feature = "cl_native"))]
+impl Credential {
+    pub fn try_clone(&self) -> Result<Self, ConversionError> {
+        Ok(Self {
+            schema_id: self.schema_id.clone(),
+            cred_def_id: self.cred_def_id.clone(),
+            rev_reg_id: self.rev_reg_id.clone(),
+            values: self.values.clone(),
+            signature: self.signature.try_clone()?,
+            signature_correctness_proof: self.signature_correctness_proof.try_clone()?,
+            rev_reg: self.rev_reg.clone(),
+            witness: self.witness.clone(),
+        })
+    }
 }
 
 impl Credential {

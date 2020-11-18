@@ -122,12 +122,12 @@ macro_rules! impl_indy_object_from_json {
         #[no_mangle]
         pub extern "C" fn $method(
             json: ffi_support::FfiStr,
-            result_p: *mut ObjectHandle,
-        ) -> ErrorCode {
+            result_p: *mut $crate::ffi::object::ObjectHandle,
+        ) -> $crate::ffi::error::ErrorCode {
             $crate::ffi::error::catch_error(|| {
                 check_useful_c_ptr!(result_p);
                 let obj = serde_json::from_str::<$ident>(json.as_str())?;
-                let handle = ObjectHandle::create(obj)?;
+                let handle = $crate::ffi::object::ObjectHandle::create(obj)?;
                 unsafe { *result_p = handle };
                 Ok(())
             })

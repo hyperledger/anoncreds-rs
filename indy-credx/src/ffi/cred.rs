@@ -3,6 +3,7 @@ use super::object::ObjectHandle;
 use super::util::FfiStrList;
 use crate::services::{
     issuer::{encode_credential_attribute, new_credential},
+    prover::process_credential,
     types::{AttributeValues, Credential, CredentialValues},
 };
 
@@ -15,6 +16,7 @@ pub extern "C" fn credx_create_credential(
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
     attr_enc_values: FfiStrList,
+    // revocation info
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
@@ -66,6 +68,35 @@ pub extern "C" fn credx_create_credential(
             cred_offer.load()?.cast_ref()?,
             cred_request.load()?.cast_ref()?,
             cred_values,
+            None,
+        )?;
+        let cred = ObjectHandle::create(cred)?;
+        unsafe { *cred_p = cred };
+        Ok(())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn credx_process_credential(
+    cred: ObjectHandle,
+    cred_req_metadata: ObjectHandle,
+    master_secret: ObjectHandle,
+    cred_def: ObjectHandle,
+    // rev_reg_def: ObjectHandle
+    cred_p: *mut ObjectHandle,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(cred_p);
+        let mut cred = cred
+            .load()?
+            .cast_ref::<Credential>()?
+            .try_clone()
+            .map_err(err_map!(Unexpected, "Error copying credential"))?;
+        process_credential(
+            &mut cred,
+            cred_req_metadata.load()?.cast_ref()?,
+            master_secret.load()?.cast_ref()?,
+            cred_def.load()?.cast_ref()?,
             None,
         )?;
         let cred = ObjectHandle::create(cred)?;

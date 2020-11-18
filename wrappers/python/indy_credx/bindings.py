@@ -309,6 +309,25 @@ def create_credential(
     return cred
 
 
+def process_credential(
+    cred: ObjectHandle,
+    cred_req_metadata: ObjectHandle,
+    master_secret: ObjectHandle,
+    cred_def: ObjectHandle,
+    rev_reg_def: Optional[ObjectHandle],
+) -> ObjectHandle:
+    result = ObjectHandle()
+    do_call(
+        "credx_process_credential",
+        cred,
+        cred_req_metadata,
+        master_secret,
+        cred_def,
+        byref(result),
+    )
+    return result
+
+
 def create_credential_offer(
     schema_id: str, cred_def: ObjectHandle, key_proof: ObjectHandle
 ) -> ObjectHandle:

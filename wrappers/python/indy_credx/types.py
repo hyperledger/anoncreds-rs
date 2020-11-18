@@ -162,16 +162,39 @@ class Credential(bindings.IndyObject):
             cred_offer = CredentialOffer.from_json(cred_offer)
         if isinstance(cred_request, str):
             cred_request = CredentialRequest.from_json(cred_request)
-        cred = bindings.create_credential(
-            cred_def.handle,
-            cred_def_private.handle,
-            cred_offer.handle,
-            cred_request.handle,
-            attr_raw_values,
-            attr_enc_values,
-            None,
+        return Credential(
+            bindings.create_credential(
+                cred_def.handle,
+                cred_def_private.handle,
+                cred_offer.handle,
+                cred_request.handle,
+                attr_raw_values,
+                attr_enc_values,
+                None,
+            )
         )
-        return Credential(cred)
+
+    def process(
+        self,
+        cred_req_metadata: [str, CredentialRequestMetadata],
+        master_secret: [str, CredentialRequestMetadata],
+        cred_def: [str, CredentialDefinition],
+    ) -> "Credential":
+        if isinstance(cred_req_metadata, str):
+            cred_req_metadata = CredentialRequestMetadata.from_json(cred_req_metadata)
+        if isinstance(master_secret, str):
+            master_secret = MasterSecret.from_json(master_secret)
+        if isinstance(cred_def, str):
+            cred_def = CredentialDefinition.from_json(cred_def)
+        return Credential(
+            bindings.process_credential(
+                self.handle,
+                cred_req_metadata.handle,
+                master_secret.handle,
+                cred_def.handle,
+                None,
+            )
+        )
 
     @classmethod
     def from_json(cls, value: str) -> "Credential":

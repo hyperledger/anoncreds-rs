@@ -37,3 +37,6 @@ print(cred_req.to_json())
 cred = Credential.create(cred_def, cred_def_pvt, cred_offer, cred_req, {"attr": "test"})
 print(cred)
 print(cred.to_json())
+
+cred2 = cred.process(cred_req_metadata, master_secret, cred_def)
+print(cred2)
