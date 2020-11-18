@@ -12,6 +12,13 @@ pub enum SignatureType {
 }
 
 impl SignatureType {
+    pub fn from_str(value: &str) -> Result<Self, ConversionError> {
+        match value {
+            CL_SIGNATURE_TYPE => Ok(Self::CL),
+            _ => Err(ConversionError::from_msg("Invalid signature type")),
+        }
+    }
+
     pub fn to_str(&self) -> &'static str {
         match *self {
             SignatureType::CL => CL_SIGNATURE_TYPE,

@@ -23,12 +23,4 @@ impl<'a> FfiStrList<'a> {
             .map(|s| s.as_str().to_string())
             .collect()
     }
-
-    pub fn len(&self) -> usize {
-        if self.data.is_null() {
-            0
-        } else {
-            self.count
-        }
-    }
 }

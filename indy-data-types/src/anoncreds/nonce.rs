@@ -3,7 +3,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 #[cfg(any(feature = "cl", feature = "cl_native"))]
-use crate::ursa::cl::Nonce as UrsaNonce;
+use crate::ursa::cl::{new_nonce, Nonce as UrsaNonce};
 #[cfg(feature = "serde")]
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 
@@ -19,7 +19,7 @@ impl Nonce {
     #[cfg(any(feature = "cl", feature = "cl_native"))]
     #[inline]
     pub fn new() -> Result<Self, ConversionError> {
-        let native = UrsaNonce::new()
+        let native = new_nonce()
             .map_err(|err| ConversionError::from_msg(format!("Error creating nonce: {}", err)))?;
         Self::from_native(native)
     }

@@ -47,8 +47,7 @@ pub fn new_credential_request(
         cred_def.value.revocation.as_ref(),
     )?;
     let mut credential_values_builder = CryptoIssuer::new_credential_values_builder()?;
-    credential_values_builder
-        .add_value_hidden("master_secret", &master_secret.as_native().value()?)?;
+    credential_values_builder.add_value_hidden("master_secret", &master_secret.value.value()?)?;
     let cred_values = credential_values_builder.finalize()?;
 
     let nonce = new_nonce()?;
@@ -103,7 +102,7 @@ pub fn process_credential(
         cred_def.value.revocation.as_ref(),
     )?;
     let credential_values =
-        build_credential_values(&credential.values.0, Some(master_secret.as_native()))?;
+        build_credential_values(&credential.values.0, Some(&master_secret.value))?;
     let rev_pub_key = match rev_reg_def {
         Some(RevocationRegistryDefinition::RevocationRegistryDefinitionV1(def)) => {
             Some(&def.value.public_keys.accum_key)
@@ -210,7 +209,7 @@ pub fn create_proof(
 
         let credential_schema = build_credential_schema(&schema.attr_names.0)?;
         let credential_values =
-            build_credential_values(&credential.values.0, Some(master_secret.as_native()))?;
+            build_credential_values(&credential.values.0, Some(&master_secret.value))?;
         let sub_proof_request =
             build_sub_proof_request(&req_attrs_for_cred, &req_predicates_for_cred)?;
 

@@ -1,10 +1,15 @@
-use ffi_support::FfiStr;
+use std::os::raw::c_char;
+
+use ffi_support::{rust_string_to_c, FfiStr};
 use indy_utils::Qualifiable;
 
 use super::error::ErrorCode;
 use super::object::ObjectHandle;
 use super::util::FfiStrList;
-use crate::services::{issuer::new_schema, types::DidValue};
+use crate::services::{
+    issuer::new_schema,
+    types::{DidValue, Schema},
+};
 
 #[no_mangle]
 pub extern "C" fn credx_create_schema(
@@ -29,3 +34,22 @@ pub extern "C" fn credx_create_schema(
         Ok(ErrorCode::Success)
     }
 }
+
+#[no_mangle]
+pub extern "C" fn credx_schema_get_id(
+    handle: ObjectHandle,
+    result_p: *mut *const c_char,
+) -> ErrorCode {
+    catch_err! {
+        check_useful_c_ptr!(result_p);
+        let schema = handle.load()?;
+        let id = match schema.cast_ref::<Schema>()? {
+            Schema::SchemaV1(s) => s.id.to_string(),
+        };
+        unsafe { *result_p = rust_string_to_c(id) };
+        Ok(ErrorCode::Success)
+    }
+}
+
+impl_indy_object!(Schema, "Schema");
+impl_indy_object_from_json!(Schema, credx_schema_from_json);

@@ -12,11 +12,16 @@ mod macros;
 mod error;
 use self::error::ErrorCode;
 
+#[macro_use]
 mod object;
 
-mod schema;
-
 mod util;
+
+mod cred_def;
+mod cred_offer;
+mod cred_req;
+mod master_secret;
+mod schema;
 
 #[no_mangle]
 pub extern "C" fn credx_set_default_logger() -> ErrorCode {

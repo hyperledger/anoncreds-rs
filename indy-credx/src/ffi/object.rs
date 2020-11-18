@@ -1,3 +1,4 @@
+use std::any::TypeId;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::os::raw::c_char;
@@ -11,10 +12,8 @@ use serde::Serialize;
 use super::error::ErrorCode;
 use crate::error::Result;
 use crate::services::types::{
-    Credential, CredentialDefinition, CredentialDefinitionPrivate, CredentialKeyCorrectnessProof,
-    CredentialOffer, CredentialRequest, CredentialRequestMetadata, MasterSecret, Presentation,
-    RevocationRegistry, RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate,
-    RevocationState, Schema,
+    Credential, Presentation, RevocationRegistry, RevocationRegistryDefinition,
+    RevocationRegistryDefinitionPrivate, RevocationState,
 };
 
 pub(crate) static FFI_OBJECTS: Lazy<Mutex<BTreeMap<ObjectHandle, IndyObject>>> =
@@ -58,6 +57,23 @@ impl IndyObject {
     pub fn new<O: AnyIndyObject + 'static>(value: O) -> Self {
         Self(Arc::new(value))
     }
+
+    pub fn cast_ref<O: AnyIndyObject + 'static>(&self) -> Result<&O> {
+        let result = unsafe { &*(&*self.0 as *const _ as *const O) };
+        if self.0.type_id() == TypeId::of::<O>() {
+            Ok(result)
+        } else {
+            Err(err_msg!(
+                "Expected {} instance, received {}",
+                result.type_name(),
+                self.0.type_name()
+            ))
+        }
+    }
+
+    pub fn type_name(&self) -> &'static str {
+        self.0.type_name()
+    }
 }
 
 pub(crate) trait ToJson {
@@ -82,11 +98,19 @@ where
 
 pub(crate) trait AnyIndyObject: Debug + ToJson + Send + Sync {
     fn type_name(&self) -> &'static str;
+
+    #[doc(hidden)]
+    fn type_id(&self) -> TypeId
+    where
+        Self: 'static,
+    {
+        TypeId::of::<Self>()
+    }
 }
 
 macro_rules! impl_indy_object {
     ($ident:path, $name:expr) => {
-        impl AnyIndyObject for $ident {
+        impl $crate::ffi::object::AnyIndyObject for $ident {
             fn type_name(&self) -> &'static str {
                 $name
             }
@@ -94,19 +118,26 @@ macro_rules! impl_indy_object {
     };
 }
 
-impl_indy_object!(Credential, "Credential");
-impl_indy_object!(CredentialDefinitionPrivate, "CredentialDefinitionPrivate");
-impl_indy_object!(CredentialDefinition, "CredentialDefinition");
-impl_indy_object!(
-    CredentialKeyCorrectnessProof,
-    "CredentialKeyCorrectnessProof"
-);
-impl_indy_object!(CredentialOffer, "CredentialOffer");
-impl_indy_object!(CredentialRequest, "CredentialRequest");
-impl_indy_object!(CredentialRequestMetadata, "CredentialRequestMetadata");
-impl_indy_object!(Schema, "Schema");
+macro_rules! impl_indy_object_from_json {
+    ($ident:path, $method:ident) => {
+        #[no_mangle]
+        pub extern "C" fn $method(
+            json: ffi_support::FfiStr,
+            result_p: *mut ObjectHandle,
+        ) -> ErrorCode {
+            catch_err! {
+                check_useful_c_ptr!(result_p);
+                let obj = serde_json::from_str::<$ident>(json.as_str())?;
+                let handle = ObjectHandle::create(obj)?;
+                unsafe { *result_p = handle };
+                Ok(ErrorCode::Success)
+            }
+        }
+    };
+}
 
-impl_indy_object!(MasterSecret, "MasterSecret");
+impl_indy_object!(Credential, "Credential");
+
 impl_indy_object!(Presentation, "Presentation");
 impl_indy_object!(RevocationRegistry, "RevocationRegistry");
 impl_indy_object!(RevocationRegistryDefinition, "RevocationRegistryDefinition");
@@ -124,8 +155,22 @@ pub extern "C" fn credx_object_get_json(
     catch_err! {
         check_useful_c_ptr!(result_p);
         let obj = handle.load()?;
-        let strval = obj.to_json()?;
-        unsafe { *result_p = rust_string_to_c(strval) };
+        let json = obj.to_json()?;
+        unsafe { *result_p = rust_string_to_c(json) };
+        Ok(ErrorCode::Success)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn credx_object_get_type_name(
+    handle: ObjectHandle,
+    result_p: *mut *const c_char,
+) -> ErrorCode {
+    catch_err! {
+        check_useful_c_ptr!(result_p);
+        let obj = handle.load()?;
+        let name = obj.type_name();
+        unsafe { *result_p = rust_string_to_c(name) };
         Ok(ErrorCode::Success)
     }
 }

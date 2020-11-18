@@ -9,9 +9,10 @@ from ctypes import (
     CDLL,
     byref,
     c_char_p,
+    c_int8,
     c_int64,
-    c_void_p,
     c_size_t,
+    c_void_p,
     Structure,
 )
 from ctypes.util import find_library
@@ -28,9 +29,13 @@ LOGGER = logging.getLogger(__name__)
 class ObjectHandle(c_int64):
     """Index of an active IndyObject instance."""
 
+    @property
+    def type_name(self) -> str:
+        return object_get_type_name(self)
+
     def __repr__(self) -> str:
         """Format object handle as a string."""
-        return f"{self.__class__.__name__}({self.value})"
+        return f'{self.__class__.__name__}("{self.type_name}", {self.value})'
 
     def __del__(self):
         object_free(self)
@@ -187,6 +192,18 @@ def object_get_json(handle: ObjectHandle) -> lib_string:
     return result
 
 
+def object_get_type_name(handle: ObjectHandle) -> lib_string:
+    result = lib_string()
+    do_call("credx_object_get_type_name", handle, byref(result))
+    return result
+
+
+def _object_from_json(method: str, value: str) -> ObjectHandle:
+    result = ObjectHandle()
+    do_call(method, encode_str(value), byref(result))
+    return result
+
+
 def create_schema(
     origin_did: str,
     name: str,
@@ -208,3 +225,121 @@ def create_schema(
         byref(result),
     )
     return result
+
+
+def schema_get_id(handle: ObjectHandle) -> lib_string:
+    result = lib_string()
+    do_call(
+        "credx_schema_get_id",
+        handle,
+        byref(result),
+    )
+    return result
+
+
+def create_credential_definition(
+    origin_did: str,
+    schema: ObjectHandle,
+    tag: Optional[str],
+    signature_type: str,
+    support_revocation: bool,
+) -> (ObjectHandle, ObjectHandle, ObjectHandle):
+    cred_def, cred_def_pvt, key_proof = ObjectHandle(), ObjectHandle(), ObjectHandle()
+    do_call(
+        "credx_create_credential_definition",
+        encode_str(origin_did),
+        schema,
+        encode_str(tag),
+        encode_str(signature_type),
+        c_int8(support_revocation),
+        byref(cred_def),
+        byref(cred_def_pvt),
+        byref(key_proof),
+    )
+    return (cred_def, cred_def_pvt, key_proof)
+
+
+def credential_definition_get_id(handle: ObjectHandle) -> lib_string:
+    result = lib_string()
+    do_call(
+        "credx_credential_definition_get_id",
+        handle,
+        byref(result),
+    )
+    return result
+
+
+def create_credential_offer(
+    schema_id: str, cred_def: ObjectHandle, key_proof: ObjectHandle
+) -> ObjectHandle:
+    cred_offer = ObjectHandle()
+    do_call(
+        "credx_create_credential_offer",
+        encode_str(schema_id),
+        cred_def,
+        key_proof,
+        byref(cred_offer),
+    )
+    return cred_offer
+
+
+def create_credential_request(
+    prover_did: str,
+    cred_def: ObjectHandle,
+    master_secret: ObjectHandle,
+    master_secret_id: str,
+    cred_offer: ObjectHandle,
+) -> (ObjectHandle, ObjectHandle):
+    cred_req, cred_req_metadata = ObjectHandle(), ObjectHandle()
+    do_call(
+        "credx_create_credential_request",
+        encode_str(prover_did),
+        cred_def,
+        master_secret,
+        encode_str(master_secret_id),
+        cred_offer,
+        byref(cred_req),
+        byref(cred_req_metadata),
+    )
+    return (cred_req, cred_req_metadata)
+
+
+def create_master_secret() -> ObjectHandle:
+    secret = ObjectHandle()
+    do_call(
+        "credx_create_master_secret",
+        byref(secret),
+    )
+    return secret
+
+
+def schema_from_json(json: str) -> ObjectHandle:
+    return _object_from_json("credx_schema_from_json", json)
+
+
+def credential_definition_from_json(json: str) -> ObjectHandle:
+    return _object_from_json("credx_credential_definition_from_json", json)
+
+
+def credential_definition_private_from_json(json: str) -> ObjectHandle:
+    return _object_from_json("credx_credential_definition_private_from_json", json)
+
+
+def key_correctness_proof_from_json(json: str) -> ObjectHandle:
+    return _object_from_json("credx_key_correctness_proof_from_json", json)
+
+
+def credential_offer_from_json(json: str) -> ObjectHandle:
+    return _object_from_json("credx_credential_offer_from_json", json)
+
+
+def credential_request_from_json(json: str) -> ObjectHandle:
+    return _object_from_json("credx_credential_request_from_json", json)
+
+
+def credential_request_metadata_from_json(json: str) -> ObjectHandle:
+    return _object_from_json("credx_credential_request_metadata_from_json", json)
+
+
+def master_secret_from_json(json: str) -> ObjectHandle:
+    return _object_from_json("credx_master_secret_from_json", json)
