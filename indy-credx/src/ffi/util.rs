@@ -1,16 +1,20 @@
+use std::marker::PhantomData;
 use std::slice;
 
 use ffi_support::FfiStr;
 
+use crate::error::Result;
+
 #[repr(C)]
-pub struct FfiStrList<'a> {
+pub struct FfiList<'a, T> {
     count: usize,
-    data: *const FfiStr<'a>,
+    data: *const T,
+    _pd: PhantomData<&'a ()>,
 }
 
-impl<'a> FfiStrList<'a> {
+impl<'a, T> FfiList<'a, T> {
     #[inline]
-    pub fn as_slice(&self) -> &[FfiStr] {
+    pub fn as_slice(&self) -> &[T] {
         if self.data.is_null() {
             &[]
         } else {
@@ -19,11 +23,13 @@ impl<'a> FfiStrList<'a> {
     }
 
     #[inline]
-    pub fn to_vec(&self) -> Vec<String> {
+    pub fn try_collect<R>(&self, mut f: impl FnMut(&T) -> Result<R>) -> Result<Vec<R>> {
         self.as_slice()
             .into_iter()
-            .map(|s| s.as_str().to_string())
-            .collect()
+            .try_fold(Vec::with_capacity(self.len()), |mut rs, v| {
+                rs.push(f(v)?);
+                Ok(rs)
+            })
     }
 
     #[inline]
@@ -38,5 +44,17 @@ impl<'a> FfiStrList<'a> {
         } else {
             self.count
         }
+    }
+}
+
+pub type FfiStrList<'a> = FfiList<'a, FfiStr<'a>>;
+
+impl<'a> FfiStrList<'a> {
+    pub fn to_string_vec(&self) -> Result<Vec<String>> {
+        self.try_collect(|s| {
+            Ok(s.as_opt_str()
+                .ok_or_else(|| err_msg!("Expected non-empty string"))?
+                .to_string())
+        })
     }
 }

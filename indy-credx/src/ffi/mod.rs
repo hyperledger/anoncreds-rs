@@ -10,7 +10,7 @@ ffi_support::define_string_destructor!(credx_string_free);
 mod macros;
 
 mod error;
-use self::error::ErrorCode;
+use self::error::{catch_error, ErrorCode};
 
 #[macro_use]
 mod object;
@@ -26,11 +26,11 @@ mod schema;
 
 #[no_mangle]
 pub extern "C" fn credx_set_default_logger() -> ErrorCode {
-    catch_err! {
+    catch_error(|| {
         env_logger::init();
         debug!("Initialized default logger");
-        Ok(ErrorCode::Success)
-    }
+        Ok(())
+    })
 }
 
 #[no_mangle]

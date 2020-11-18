@@ -1,6 +1,7 @@
 use crate::error::{Error, ErrorKind, Result};
 
 use std::os::raw::c_char;
+use std::panic::{catch_unwind, UnwindSafe};
 use std::sync::RwLock;
 
 use ffi_support::rust_string_to_c;
@@ -55,6 +56,24 @@ pub extern "C" fn credx_get_current_error(error_json_p: *mut *const c_char) -> E
     unsafe { *error_json_p = error };
 
     ErrorCode::Success
+}
+
+pub fn catch_error<F>(f: F) -> ErrorCode
+where
+    F: FnOnce() -> Result<()> + UnwindSafe,
+{
+    match catch_unwind(f) {
+        Ok(Ok(_)) => ErrorCode::Success,
+        Ok(Err(err)) => {
+            // lib error
+            set_last_error(Some(err))
+        }
+        Err(_) => {
+            // panic error
+            let err = err_msg!(Unexpected, "Panic during execution");
+            set_last_error(Some(err))
+        }
+    }
 }
 
 pub fn get_current_error_json() -> String {

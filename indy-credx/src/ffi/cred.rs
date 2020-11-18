@@ -1,4 +1,4 @@
-use super::error::ErrorCode;
+use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
 use super::util::FfiStrList;
 use crate::services::{
@@ -17,20 +17,32 @@ pub extern "C" fn credx_create_credential(
     attr_enc_values: FfiStrList,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {
-    catch_err! {
+    catch_error(|| {
         check_useful_c_ptr!(cred_p);
         if attr_names.is_empty() {
             return Err(err_msg!("Cannot create credential with no attribute"));
         }
         if attr_names.len() != attr_raw_values.len() {
-            return Err(err_msg!("Mismatch between length of attribute names and raw values"))
+            return Err(err_msg!(
+                "Mismatch between length of attribute names and raw values"
+            ));
         }
         let enc_values = attr_enc_values.as_slice();
         let mut cred_values = CredentialValues(Default::default());
         let mut attr_idx = 0;
-        for (name, raw) in attr_names.as_slice().into_iter().zip(attr_raw_values.as_slice().into_iter()) {
-            let name = name.as_opt_str().ok_or_else(|| err_msg!("Missing attribute name"))?.to_string();
-            let raw = raw.as_opt_str().ok_or_else(|| err_msg!("Missing attribute raw value"))?.to_string();
+        for (name, raw) in attr_names
+            .as_slice()
+            .into_iter()
+            .zip(attr_raw_values.as_slice().into_iter())
+        {
+            let name = name
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing attribute name"))?
+                .to_string();
+            let raw = raw
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing attribute raw value"))?
+                .to_string();
             let mut encoded = if attr_idx < enc_values.len() {
                 enc_values[attr_idx].as_opt_str().map(str::to_string)
             } else {
@@ -39,9 +51,13 @@ pub extern "C" fn credx_create_credential(
             if encoded.is_none() {
                 encoded.replace(encode_credential_attribute(&raw)?);
             }
-            cred_values.0.insert(name, AttributeValues {
-                raw, encoded: encoded.unwrap()
-            });
+            cred_values.0.insert(
+                name,
+                AttributeValues {
+                    raw,
+                    encoded: encoded.unwrap(),
+                },
+            );
             attr_idx += 1;
         }
         let (cred, rev_reg, rev_delta) = new_credential(
@@ -50,12 +66,12 @@ pub extern "C" fn credx_create_credential(
             cred_offer.load()?.cast_ref()?,
             cred_request.load()?.cast_ref()?,
             cred_values,
-            None
+            None,
         )?;
         let cred = ObjectHandle::create(cred)?;
         unsafe { *cred_p = cred };
-        Ok(ErrorCode::Success)
-    }
+        Ok(())
+    })
 }
 
 impl_indy_object!(Credential, "Credential");

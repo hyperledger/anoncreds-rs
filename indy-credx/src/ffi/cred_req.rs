@@ -1,7 +1,7 @@
 use ffi_support::FfiStr;
 use indy_utils::Qualifiable;
 
-use super::error::ErrorCode;
+use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
 use crate::services::{
     prover::new_credential_request,
@@ -18,7 +18,7 @@ pub extern "C" fn credx_create_credential_request(
     cred_req_p: *mut ObjectHandle,
     cred_req_meta_p: *mut ObjectHandle,
 ) -> ErrorCode {
-    catch_err! {
+    catch_error(|| {
         check_useful_c_ptr!(cred_req_p);
         check_useful_c_ptr!(cred_req_meta_p);
         let prover_did = DidValue::from_str(prover_did.as_str())?;
@@ -35,8 +35,8 @@ pub extern "C" fn credx_create_credential_request(
             *cred_req_p = cred_req;
             *cred_req_meta_p = cred_req_metadata;
         };
-        Ok(ErrorCode::Success)
-    }
+        Ok(())
+    })
 }
 
 impl_indy_object!(CredentialRequest, "CredentialRequest");

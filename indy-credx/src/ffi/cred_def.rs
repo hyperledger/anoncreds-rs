@@ -3,7 +3,7 @@ use std::os::raw::c_char;
 use ffi_support::{rust_string_to_c, FfiStr};
 use indy_utils::Qualifiable;
 
-use super::error::ErrorCode;
+use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
 use crate::services::{
     issuer::new_credential_definition,
@@ -24,7 +24,7 @@ pub extern "C" fn credx_create_credential_definition(
     cred_def_pvt_p: *mut ObjectHandle,
     key_proof_p: *mut ObjectHandle,
 ) -> ErrorCode {
-    catch_err! {
+    catch_error(|| {
         check_useful_c_ptr!(cred_def_p);
         check_useful_c_ptr!(cred_def_pvt_p);
         check_useful_c_ptr!(key_proof_p);
@@ -35,8 +35,8 @@ pub extern "C" fn credx_create_credential_definition(
             tag.as_opt_str().unwrap_or("default"),
             SignatureType::from_str(signature_type.as_str()).map_err(err_map!(Input))?,
             CredentialDefinitionConfig {
-                support_revocation: support_revocation != 0
-            }
+                support_revocation: support_revocation != 0,
+            },
         )?;
         let cred_def = ObjectHandle::create(cred_def)?;
         let cred_def_pvt = ObjectHandle::create(cred_def_pvt)?;
@@ -46,8 +46,8 @@ pub extern "C" fn credx_create_credential_definition(
             *cred_def_pvt_p = cred_def_pvt;
             *key_proof_p = key_proof;
         }
-        Ok(ErrorCode::Success)
-    }
+        Ok(())
+    })
 }
 
 #[no_mangle]
@@ -55,15 +55,15 @@ pub extern "C" fn credx_credential_definition_get_id(
     handle: ObjectHandle,
     result_p: *mut *const c_char,
 ) -> ErrorCode {
-    catch_err! {
+    catch_error(|| {
         check_useful_c_ptr!(result_p);
         let schema = handle.load()?;
         let id = match schema.cast_ref::<CredentialDefinition>()? {
             CredentialDefinition::CredentialDefinitionV1(c) => c.id.to_string(),
         };
         unsafe { *result_p = rust_string_to_c(id) };
-        Ok(ErrorCode::Success)
-    }
+        Ok(())
+    })
 }
 
 impl_indy_object!(CredentialDefinition, "CredentialDefinition");

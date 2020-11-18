@@ -8,7 +8,7 @@ use ffi_support::rust_string_to_c;
 use once_cell::sync::Lazy;
 use serde::Serialize;
 
-use super::error::ErrorCode;
+use super::error::{catch_error, ErrorCode};
 use crate::error::Result;
 use crate::services::types::{
     Presentation, RevocationRegistry, RevocationRegistryDefinition,
@@ -124,13 +124,13 @@ macro_rules! impl_indy_object_from_json {
             json: ffi_support::FfiStr,
             result_p: *mut ObjectHandle,
         ) -> ErrorCode {
-            catch_err! {
+            $crate::ffi::error::catch_error(|| {
                 check_useful_c_ptr!(result_p);
                 let obj = serde_json::from_str::<$ident>(json.as_str())?;
                 let handle = ObjectHandle::create(obj)?;
                 unsafe { *result_p = handle };
-                Ok(ErrorCode::Success)
-            }
+                Ok(())
+            })
         }
     };
 }
@@ -149,13 +149,13 @@ pub extern "C" fn credx_object_get_json(
     handle: ObjectHandle,
     result_p: *mut *const c_char,
 ) -> ErrorCode {
-    catch_err! {
+    catch_error(|| {
         check_useful_c_ptr!(result_p);
         let obj = handle.load()?;
         let json = obj.to_json()?;
         unsafe { *result_p = rust_string_to_c(json) };
-        Ok(ErrorCode::Success)
-    }
+        Ok(())
+    })
 }
 
 #[no_mangle]
@@ -163,13 +163,13 @@ pub extern "C" fn credx_object_get_type_name(
     handle: ObjectHandle,
     result_p: *mut *const c_char,
 ) -> ErrorCode {
-    catch_err! {
+    catch_error(|| {
         check_useful_c_ptr!(result_p);
         let obj = handle.load()?;
         let name = obj.type_name();
         unsafe { *result_p = rust_string_to_c(name) };
-        Ok(ErrorCode::Success)
-    }
+        Ok(())
+    })
 }
 
 #[no_mangle]
