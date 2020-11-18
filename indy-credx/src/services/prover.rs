@@ -128,7 +128,7 @@ pub fn process_credential(
 }
 
 pub fn create_presentation(
-    proof_req: &PresentationRequest,
+    pres_req: &PresentationRequest,
     credentials: &HashMap<String, &Credential>,
     requested_credentials: &RequestedCredentials,
     master_secret: &MasterSecret,
@@ -136,10 +136,10 @@ pub fn create_presentation(
     cred_defs: &HashMap<CredentialDefinitionId, &CredentialDefinition>,
     rev_states: &HashMap<String, Vec<&RevocationState>>,
 ) -> Result<Presentation> {
-    trace!("create_proof >>> credentials: {:?}, proof_req: {:?}, requested_credentials: {:?}, master_secret: {:?}, schemas: {:?}, cred_defs: {:?}, rev_states: {:?}",
-            credentials, proof_req, requested_credentials, secret!(&master_secret), schemas, cred_defs, rev_states);
+    trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, requested_credentials: {:?}, master_secret: {:?}, schemas: {:?}, cred_defs: {:?}, rev_states: {:?}",
+            credentials, pres_req, requested_credentials, secret!(&master_secret), schemas, cred_defs, rev_states);
 
-    let proof_req_val = proof_req.value();
+    let pres_req_val = pres_req.value();
     let mut proof_builder = CryptoProver::new_proof_builder()?;
     proof_builder.add_common_attribute("master_secret")?;
 
@@ -148,7 +148,7 @@ pub fn create_presentation(
     requested_proof.self_attested_attrs = requested_credentials.self_attested_attributes.clone();
 
     let credentials_for_proving =
-        prepare_credentials_for_proving(requested_credentials, proof_req_val)?;
+        prepare_credentials_for_proving(requested_credentials, pres_req_val)?;
     let mut sub_proof_index = 0;
     let non_credential_schema = build_non_credential_schema()?;
 
@@ -224,7 +224,7 @@ pub fn create_presentation(
             rev_state.as_ref().map(|r_info| &r_info.witness),
         )?;
 
-        let identifier = match proof_req {
+        let identifier = match pres_req {
             PresentationRequest::PresentationRequestV1(_) => Identifier {
                 schema_id: credential.schema_id.to_unqualified(),
                 cred_def_id: credential.cred_def_id.to_unqualified(),
@@ -244,7 +244,7 @@ pub fn create_presentation(
         update_requested_proof(
             req_attrs_for_cred,
             req_predicates_for_cred,
-            proof_req_val,
+            pres_req_val,
             credential,
             sub_proof_index,
             &mut requested_proof,
@@ -253,7 +253,7 @@ pub fn create_presentation(
         sub_proof_index += 1;
     }
 
-    let proof = proof_builder.finalize(proof_req_val.nonce.as_native())?;
+    let proof = proof_builder.finalize(pres_req_val.nonce.as_native())?;
 
     let full_proof = Presentation {
         proof,
@@ -326,13 +326,13 @@ rev_reg_delta: {:?}, rev_reg_idx: {}, timestamp: {:?}, rev_state: {:?}",
 
 fn prepare_credentials_for_proving(
     requested_credentials: &RequestedCredentials,
-    proof_req: &PresentationRequestPayload,
+    pres_req: &PresentationRequestPayload,
 ) -> Result<HashMap<ProvingCredentialKey, (Vec<RequestedAttributeInfo>, Vec<RequestedPredicateInfo>)>>
 {
     trace!(
-        "_prepare_credentials_for_proving >>> requested_credentials: {:?}, proof_req: {:?}",
+        "_prepare_credentials_for_proving >>> requested_credentials: {:?}, pres_req: {:?}",
         requested_credentials,
-        proof_req
+        pres_req
     );
 
     let mut credentials_for_proving: HashMap<
@@ -341,7 +341,7 @@ fn prepare_credentials_for_proving(
     > = HashMap::new();
 
     for (attr_referent, requested_attr) in requested_credentials.requested_attributes.iter() {
-        let attr_info = proof_req
+        let attr_info = pres_req
             .requested_attributes
             .get(attr_referent.as_str())
             .ok_or_else(|| {
@@ -373,7 +373,7 @@ fn prepare_credentials_for_proving(
 
     for (predicate_referent, proving_cred_key) in requested_credentials.requested_predicates.iter()
     {
-        let predicate_info = proof_req
+        let predicate_info = pres_req
             .requested_predicates
             .get(predicate_referent.as_str())
             .ok_or_else(|| {

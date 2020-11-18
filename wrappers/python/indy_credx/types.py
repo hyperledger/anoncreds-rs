@@ -15,7 +15,7 @@ class CredentialDefinition(bindings.IndyObject):
         tag: str = None,
     ) -> ("CredentialDefinition", "CredentialDefinitionPrivate", "KeyCorrectnessProof"):
         if isinstance(schema, str):
-            schema = Schema.from_json(schema)
+            schema = Schema.load(schema)
         cred_def, cred_def_pvt, key_proof = bindings.create_credential_definition(
             origin_did, schema.handle, tag, signature_type, support_revocation
         )
@@ -65,9 +65,9 @@ class CredentialOffer(bindings.IndyObject):
         key_proof: [str, KeyCorrectnessProof],
     ) -> "CredentialOffer":
         if isinstance(cred_def, str):
-            cred_def = CredentialDefinition.from_json(cred_def)
+            cred_def = CredentialDefinition.load(cred_def)
         if isinstance(key_proof, str):
-            key_proof = KeyCorrectnessProof.from_json(key_proof)
+            key_proof = KeyCorrectnessProof.load(key_proof)
         return CredentialOffer(
             bindings.create_credential_offer(
                 schema_id, cred_def.handle, key_proof.handle
@@ -92,11 +92,11 @@ class CredentialRequest(bindings.IndyObject):
         cred_offer: [str, CredentialOffer],
     ) -> ("CredentialRequest", "CredentialRequestMetadata"):
         if isinstance(cred_def, str):
-            cred_def = CredentialDefinition.from_json(cred_def)
+            cred_def = CredentialDefinition.load(cred_def)
         if isinstance(master_secret, str):
-            master_secret = MasterSecret.from_json(master_secret)
+            master_secret = MasterSecret.load(master_secret)
         if isinstance(cred_offer, str):
-            cred_offer = CredentialOffer.from_json(cred_offer)
+            cred_offer = CredentialOffer.load(cred_offer)
         cred_def, cred_def_metadata = bindings.create_credential_request(
             prover_did,
             cred_def.handle,
@@ -173,13 +173,13 @@ class Credential(bindings.IndyObject):
         attr_enc_values: Mapping[str, str] = None,
     ) -> "Credential":
         if isinstance(cred_def, str):
-            cred_def = CredentialDefinition.from_json(cred_def)
+            cred_def = CredentialDefinition.load(cred_def)
         if isinstance(cred_def_private, str):
-            cred_def_private = CredentialDefinitionPrivate.from_json(cred_def_private)
+            cred_def_private = CredentialDefinitionPrivate.load(cred_def_private)
         if isinstance(cred_offer, str):
-            cred_offer = CredentialOffer.from_json(cred_offer)
+            cred_offer = CredentialOffer.load(cred_offer)
         if isinstance(cred_request, str):
-            cred_request = CredentialRequest.from_json(cred_request)
+            cred_request = CredentialRequest.load(cred_request)
         return Credential(
             bindings.create_credential(
                 cred_def.handle,
@@ -199,11 +199,11 @@ class Credential(bindings.IndyObject):
         cred_def: [str, CredentialDefinition],
     ) -> "Credential":
         if isinstance(cred_req_metadata, str):
-            cred_req_metadata = CredentialRequestMetadata.from_json(cred_req_metadata)
+            cred_req_metadata = CredentialRequestMetadata.load(cred_req_metadata)
         if isinstance(master_secret, str):
-            master_secret = MasterSecret.from_json(master_secret)
+            master_secret = MasterSecret.load(master_secret)
         if isinstance(cred_def, str):
-            cred_def = CredentialDefinition.from_json(cred_def)
+            cred_def = CredentialDefinition.load(cred_def)
         return Credential(
             bindings.process_credential(
                 self.handle,
@@ -241,7 +241,7 @@ class PresentCredentials:
     def add_attributes(
         self,
         cred: Credential,
-        referents: Sequence[str],
+        *referents: Sequence[str],
         reveal: bool = True,
         timestamp: int = None,
     ):
@@ -255,7 +255,7 @@ class PresentCredentials:
     def add_predicates(
         self,
         cred: Credential,
-        referents: Sequence[str],
+        *referents: Sequence[str],
         timestamp: int = None,
     ):
         if not referents:
@@ -277,14 +277,14 @@ class Presentation(bindings.IndyObject):
         cred_defs: Sequence[Union[str, CredentialDefinition]],
     ) -> "Presentation":
         if isinstance(pres_req, str):
-            pres_req = PresentationRequest.from_json(pres_req)
+            pres_req = PresentationRequest.load(pres_req)
         if isinstance(master_secret, str):
-            master_secret = MasterSecret.from_json(master_secret)
+            master_secret = MasterSecret.load(master_secret)
         schemas = [
-            (Schema.from_json(s) if isinstance(s, str) else s).handle for s in schemas
+            (Schema.load(s) if isinstance(s, str) else s).handle for s in schemas
         ]
         cred_defs = [
-            (CredentialDefinition.from_json(c) if isinstance(c, str) else c).handle
+            (CredentialDefinition.load(c) if isinstance(c, str) else c).handle
             for c in cred_defs
         ]
         creds = []
@@ -316,4 +316,23 @@ class Presentation(bindings.IndyObject):
     def load(cls, value: Union[dict, str, bytes, memoryview]) -> "Presentation":
         return Presentation(
             bindings._object_from_json("credx_presentation_from_json", value)
+        )
+
+    def verify(
+        self,
+        pres_req: [str, PresentationRequest],
+        schemas: Sequence[Union[str, Schema]],
+        cred_defs: Sequence[Union[str, CredentialDefinition]],
+    ) -> bool:
+        if isinstance(pres_req, str):
+            pres_req = PresentationRequest.load(pres_req)
+        schemas = [
+            (Schema.load(s) if isinstance(s, str) else s).handle for s in schemas
+        ]
+        cred_defs = [
+            (CredentialDefinition.load(c) if isinstance(c, str) else c).handle
+            for c in cred_defs
+        ]
+        return bindings.verify_presentation(
+            self.handle, pres_req.handle, schemas, cred_defs
         )

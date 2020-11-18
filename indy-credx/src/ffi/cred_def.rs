@@ -4,12 +4,13 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use indy_utils::Qualifiable;
 
 use super::error::{catch_error, ErrorCode};
-use super::object::ObjectHandle;
+use super::object::{IndyObjectId, ObjectHandle};
 use crate::services::{
     issuer::new_credential_definition,
     types::{
-        CredentialDefinition, CredentialDefinitionConfig, CredentialDefinitionPrivate,
-        CredentialKeyCorrectnessProof as KeyCorrectnessProof, DidValue, SignatureType,
+        CredentialDefinition, CredentialDefinitionConfig, CredentialDefinitionId,
+        CredentialDefinitionPrivate, CredentialKeyCorrectnessProof as KeyCorrectnessProof,
+        DidValue, SignatureType,
     },
 };
 
@@ -77,3 +78,13 @@ impl_indy_object_from_json!(
 
 impl_indy_object!(KeyCorrectnessProof, "KeyCorrectnessProof");
 impl_indy_object_from_json!(KeyCorrectnessProof, credx_key_correctness_proof_from_json);
+
+impl IndyObjectId for CredentialDefinition {
+    type Id = CredentialDefinitionId;
+
+    fn get_id(&self) -> Self::Id {
+        match self {
+            CredentialDefinition::CredentialDefinitionV1(c) => c.id.clone(),
+        }
+    }
+}

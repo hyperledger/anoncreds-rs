@@ -440,7 +440,7 @@ def create_master_secret() -> ObjectHandle:
 
 
 def create_presentation(
-    proof_req: ObjectHandle,
+    pres_req: ObjectHandle,
     self_attest: Mapping[str, str],
     creds: Sequence[ObjectHandle],
     creds_prove: Sequence[CredentialProve],
@@ -455,7 +455,7 @@ def create_presentation(
     present = ObjectHandle()
     do_call(
         "credx_create_presentation",
-        proof_req,
+        pres_req,
         str_list.create(self_attest.keys()),
         str_list.create(self_attest.values()),
         object_handle_list.create(creds),
@@ -466,3 +466,23 @@ def create_presentation(
         byref(present),
     )
     return present
+
+
+def verify_presentation(
+    presentation: ObjectHandle,
+    pres_req: ObjectHandle,
+    schemas: Sequence[ObjectHandle],
+    cred_defs: Sequence[ObjectHandle],
+    # rev_reg_defs: Sequence[ObjectHandle],
+    # rev_regs: Sequence[ObjectHandle],
+) -> bool:
+    verify = c_int8()
+    do_call(
+        "credx_verify_presentation",
+        presentation,
+        pres_req,
+        object_handle_list.create(schemas),
+        object_handle_list.create(cred_defs),
+        byref(verify),
+    )
+    return bool(verify)

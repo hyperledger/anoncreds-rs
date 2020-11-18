@@ -1,6 +1,8 @@
 use std::any::TypeId;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Debug;
+use std::hash::{Hash, Hasher};
+use std::ops::{Deref, DerefMut};
 use std::os::raw::c_char;
 use std::sync::{Arc, Mutex};
 
@@ -72,6 +74,20 @@ impl IndyObject {
 
     pub fn type_name(&self) -> &'static str {
         self.0.type_name()
+    }
+}
+
+impl PartialEq for IndyObject {
+    fn eq(&self, other: &IndyObject) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl Eq for IndyObject {}
+
+impl Hash for IndyObject {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        std::ptr::hash(&*self.0, state);
     }
 }
 
@@ -174,4 +190,50 @@ pub extern "C" fn credx_object_get_type_name(
 #[no_mangle]
 pub extern "C" fn credx_object_free(handle: ObjectHandle) {
     handle.remove().ok();
+}
+
+pub(crate) trait IndyObjectId: AnyIndyObject {
+    type Id: Eq + Hash;
+
+    fn get_id(&self) -> Self::Id;
+}
+
+#[repr(transparent)]
+pub(crate) struct IndyObjectList(Vec<IndyObject>);
+
+impl IndyObjectList {
+    pub fn load(handles: &[ObjectHandle]) -> Result<Self> {
+        let loaded = handles
+            .into_iter()
+            .map(ObjectHandle::load)
+            .collect::<Result<_>>()?;
+        Ok(Self(loaded))
+    }
+
+    pub fn refs<T>(&self) -> Result<HashMap<<T as IndyObjectId>::Id, &T>>
+    where
+        T: AnyIndyObject + IndyObjectId + 'static,
+    {
+        let mut refs = HashMap::with_capacity(self.0.len());
+        for inst in self.0.iter() {
+            let inst = inst.cast_ref::<T>()?;
+            let id = inst.get_id();
+            refs.insert(id, inst);
+        }
+        Ok(refs)
+    }
+}
+
+impl Deref for IndyObjectList {
+    type Target = Vec<IndyObject>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for IndyObjectList {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }

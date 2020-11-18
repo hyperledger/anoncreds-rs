@@ -60,7 +60,7 @@ pres_req = PresentationRequest.load(
 
 present_creds = PresentCredentials()
 
-present_creds.add_attributes(cred_received, ("reft",))
+present_creds.add_attributes(cred_received, "reft", reveal=False)
 
 presentation = Presentation.create(
     pres_req, present_creds, master_secret, [schema], [cred_def]
@@ -68,3 +68,5 @@ presentation = Presentation.create(
 print(presentation)
 
 print(presentation.to_json())
+
+print("Verified:", presentation.verify(pres_req, [schema], [cred_def]))

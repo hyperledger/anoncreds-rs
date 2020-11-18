@@ -4,11 +4,11 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use indy_utils::Qualifiable;
 
 use super::error::{catch_error, ErrorCode};
-use super::object::ObjectHandle;
+use super::object::{IndyObjectId, ObjectHandle};
 use super::util::FfiStrList;
 use crate::services::{
     issuer::new_schema,
-    types::{DidValue, Schema},
+    types::{DidValue, Schema, SchemaId},
 };
 
 #[no_mangle]
@@ -58,3 +58,13 @@ pub extern "C" fn credx_schema_get_id(
 
 impl_indy_object!(Schema, "Schema");
 impl_indy_object_from_json!(Schema, credx_schema_from_json);
+
+impl IndyObjectId for Schema {
+    type Id = SchemaId;
+
+    fn get_id(&self) -> Self::Id {
+        match self {
+            Schema::SchemaV1(s) => s.id.clone(),
+        }
+    }
+}

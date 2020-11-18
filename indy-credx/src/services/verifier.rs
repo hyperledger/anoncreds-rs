@@ -28,37 +28,37 @@ static INTERNAL_TAG_MATCHER: Lazy<Regex> =
     Lazy::new(|| Regex::new("^attr::([^:]+)::(value|marker)$").unwrap());
 
 pub fn verify_presentation(
-    full_proof: &Presentation,
-    proof_req: &PresentationRequest,
+    presentation: &Presentation,
+    pres_req: &PresentationRequest,
     schemas: &HashMap<SchemaId, &Schema>,
     cred_defs: &HashMap<CredentialDefinitionId, &CredentialDefinition>,
     rev_reg_defs: &HashMap<RevocationRegistryId, &RevocationRegistryDefinition>,
     rev_regs: &HashMap<RevocationRegistryId, HashMap<u64, &RevocationRegistry>>,
 ) -> Result<bool> {
-    trace!("verify >>> full_proof: {:?}, proof_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_regs: {:?}",
-            full_proof, proof_req, schemas, cred_defs, rev_reg_defs, rev_regs);
+    trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_regs: {:?}",
+    presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_regs);
 
-    let proof_req = proof_req.value();
+    let pres_req = pres_req.value();
     let received_revealed_attrs: HashMap<String, Identifier> =
-        received_revealed_attrs(&full_proof)?;
+        received_revealed_attrs(&presentation)?;
     let received_unrevealed_attrs: HashMap<String, Identifier> =
-        received_unrevealed_attrs(&full_proof)?;
-    let received_predicates: HashMap<String, Identifier> = received_predicates(&full_proof)?;
-    let received_self_attested_attrs: HashSet<String> = received_self_attested_attrs(&full_proof);
+        received_unrevealed_attrs(&presentation)?;
+    let received_predicates: HashMap<String, Identifier> = received_predicates(&presentation)?;
+    let received_self_attested_attrs: HashSet<String> = received_self_attested_attrs(&presentation);
 
     compare_attr_from_proof_and_request(
-        proof_req,
+        pres_req,
         &received_revealed_attrs,
         &received_unrevealed_attrs,
         &received_self_attested_attrs,
         &received_predicates,
     )?;
 
-    verify_revealed_attribute_values(&proof_req, &full_proof)?;
+    verify_revealed_attribute_values(&pres_req, &presentation)?;
 
     verify_requested_restrictions(
-        &proof_req,
-        &full_proof.requested_proof,
+        &pres_req,
+        &presentation.requested_proof,
         &received_revealed_attrs,
         &received_unrevealed_attrs,
         &received_predicates,
@@ -66,7 +66,7 @@ pub fn verify_presentation(
     )?;
 
     compare_timestamps_from_proof_and_request(
-        proof_req,
+        pres_req,
         &received_revealed_attrs,
         &received_unrevealed_attrs,
         &received_self_attested_attrs,
@@ -76,8 +76,8 @@ pub fn verify_presentation(
     let mut proof_verifier = CryptoVerifier::new_proof_verifier()?;
     let non_credential_schema = build_non_credential_schema()?;
 
-    for sub_proof_index in 0..full_proof.identifiers.len() {
-        let identifier = full_proof.identifiers[sub_proof_index].clone();
+    for sub_proof_index in 0..presentation.identifiers.len() {
+        let identifier = presentation.identifiers[sub_proof_index].clone();
 
         let schema = match schemas
             .get(&identifier.schema_id)
@@ -126,14 +126,17 @@ pub fn verify_presentation(
 
         let attrs_for_credential = get_revealed_attributes_for_credential(
             sub_proof_index,
-            &full_proof.requested_proof,
-            proof_req,
+            &presentation.requested_proof,
+            pres_req,
         )?;
-        let predicates_for_credential =
-            get_predicates_for_credential(sub_proof_index, &full_proof.requested_proof, proof_req)?;
+        let predicates_for_credential = get_predicates_for_credential(
+            sub_proof_index,
+            &presentation.requested_proof,
+            pres_req,
+        )?;
 
         let credential_schema = build_credential_schema(&schema.attr_names.0)?;
-        let sub_proof_request =
+        let sub_pres_request =
             build_sub_proof_request(&attrs_for_credential, &predicates_for_credential)?;
 
         let credential_pub_key = CredentialPublicKey::build_from_parts(
@@ -151,7 +154,7 @@ pub fn verify_presentation(
         });
 
         proof_verifier.add_sub_proof_request(
-            &sub_proof_request,
+            &sub_pres_request,
             &credential_schema,
             &non_credential_schema,
             &credential_pub_key,
@@ -160,7 +163,7 @@ pub fn verify_presentation(
         )?;
     }
 
-    let valid = proof_verifier.verify(&full_proof.proof, proof_req.nonce.as_native())?;
+    let valid = proof_verifier.verify(&presentation.proof, pres_req.nonce.as_native())?;
 
     trace!("verify <<< valid: {:?}", valid);
 
@@ -174,19 +177,19 @@ pub fn generate_nonce() -> Result<Nonce> {
 fn get_revealed_attributes_for_credential(
     sub_proof_index: usize,
     requested_proof: &RequestedProof,
-    proof_req: &PresentationRequestPayload,
+    pres_req: &PresentationRequestPayload,
 ) -> Result<Vec<AttributeInfo>> {
-    trace!("_get_revealed_attributes_for_credential >>> sub_proof_index: {:?}, requested_credentials: {:?}, proof_req: {:?}",
-           sub_proof_index, requested_proof, proof_req);
+    trace!("_get_revealed_attributes_for_credential >>> sub_proof_index: {:?}, requested_credentials: {:?}, pres_req: {:?}",
+           sub_proof_index, requested_proof, pres_req);
 
     let mut revealed_attrs_for_credential = requested_proof
         .revealed_attrs
         .iter()
         .filter(|&(attr_referent, ref revealed_attr_info)| {
             sub_proof_index == revealed_attr_info.sub_proof_index as usize
-                && proof_req.requested_attributes.contains_key(attr_referent)
+                && pres_req.requested_attributes.contains_key(attr_referent)
         })
-        .map(|(attr_referent, _)| proof_req.requested_attributes[attr_referent].clone())
+        .map(|(attr_referent, _)| pres_req.requested_attributes[attr_referent].clone())
         .collect::<Vec<AttributeInfo>>();
 
     revealed_attrs_for_credential.append(
@@ -195,9 +198,9 @@ fn get_revealed_attributes_for_credential(
             .iter()
             .filter(|&(attr_referent, ref revealed_attr_info)| {
                 sub_proof_index == revealed_attr_info.sub_proof_index as usize
-                    && proof_req.requested_attributes.contains_key(attr_referent)
+                    && pres_req.requested_attributes.contains_key(attr_referent)
             })
-            .map(|(attr_referent, _)| proof_req.requested_attributes[attr_referent].clone())
+            .map(|(attr_referent, _)| pres_req.requested_attributes[attr_referent].clone())
             .collect::<Vec<AttributeInfo>>(),
     );
 
@@ -212,21 +215,21 @@ fn get_revealed_attributes_for_credential(
 fn get_predicates_for_credential(
     sub_proof_index: usize,
     requested_proof: &RequestedProof,
-    proof_req: &PresentationRequestPayload,
+    pres_req: &PresentationRequestPayload,
 ) -> Result<Vec<PredicateInfo>> {
-    trace!("_get_predicates_for_credential >>> sub_proof_index: {:?}, requested_credentials: {:?}, proof_req: {:?}",
-           sub_proof_index, requested_proof, proof_req);
+    trace!("_get_predicates_for_credential >>> sub_proof_index: {:?}, requested_credentials: {:?}, pres_req: {:?}",
+           sub_proof_index, requested_proof, pres_req);
 
     let predicates_for_credential = requested_proof
         .predicates
         .iter()
         .filter(|&(predicate_referent, requested_referent)| {
             sub_proof_index == requested_referent.sub_proof_index as usize
-                && proof_req
+                && pres_req
                     .requested_predicates
                     .contains_key(predicate_referent)
         })
-        .map(|(predicate_referent, _)| proof_req.requested_predicates[predicate_referent].clone())
+        .map(|(predicate_referent, _)| pres_req.requested_predicates[predicate_referent].clone())
         .collect::<Vec<PredicateInfo>>();
 
     trace!(
@@ -238,13 +241,13 @@ fn get_predicates_for_credential(
 }
 
 fn compare_attr_from_proof_and_request(
-    proof_req: &PresentationRequestPayload,
+    pres_req: &PresentationRequestPayload,
     received_revealed_attrs: &HashMap<String, Identifier>,
     received_unrevealed_attrs: &HashMap<String, Identifier>,
     received_self_attested_attrs: &HashSet<String>,
     received_predicates: &HashMap<String, Identifier>,
 ) -> Result<()> {
-    let requested_attrs: HashSet<String> = proof_req.requested_attributes.keys().cloned().collect();
+    let requested_attrs: HashSet<String> = pres_req.requested_attributes.keys().cloned().collect();
 
     let received_attrs: HashSet<String> = received_revealed_attrs
         .iter()
@@ -263,7 +266,7 @@ fn compare_attr_from_proof_and_request(
         ));
     }
 
-    let requested_predicates: HashSet<&String> = proof_req.requested_predicates.keys().collect();
+    let requested_predicates: HashSet<&String> = pres_req.requested_predicates.keys().collect();
 
     let received_predicates_: HashSet<&String> = received_predicates.keys().collect();
 
@@ -279,27 +282,27 @@ fn compare_attr_from_proof_and_request(
 }
 
 fn compare_timestamps_from_proof_and_request(
-    proof_req: &PresentationRequestPayload,
+    pres_req: &PresentationRequestPayload,
     received_revealed_attrs: &HashMap<String, Identifier>,
     received_unrevealed_attrs: &HashMap<String, Identifier>,
     received_self_attested_attrs: &HashSet<String>,
     received_predicates: &HashMap<String, Identifier>,
 ) -> Result<()> {
-    proof_req
+    pres_req
         .requested_attributes
         .iter()
         .map(|(referent, info)| {
             validate_timestamp(
                 &received_revealed_attrs,
                 referent,
-                &proof_req.non_revoked,
+                &pres_req.non_revoked,
                 &info.non_revoked,
             )
             .or_else(|_| {
                 validate_timestamp(
                     &received_unrevealed_attrs,
                     referent,
-                    &proof_req.non_revoked,
+                    &pres_req.non_revoked,
                     &info.non_revoked,
                 )
             })
@@ -312,14 +315,14 @@ fn compare_timestamps_from_proof_and_request(
         })
         .collect::<Result<Vec<()>>>()?;
 
-    proof_req
+    pres_req
         .requested_predicates
         .iter()
         .map(|(referent, info)| {
             validate_timestamp(
                 received_predicates,
                 referent,
-                &proof_req.non_revoked,
+                &pres_req.non_revoked,
                 &info.non_revoked,
             )
         })
@@ -406,11 +409,11 @@ fn get_proof_identifier(proof: &Presentation, index: u32) -> Result<Identifier> 
 }
 
 fn verify_revealed_attribute_values(
-    proof_req: &PresentationRequestPayload,
+    pres_req: &PresentationRequestPayload,
     proof: &Presentation,
 ) -> Result<()> {
     for (attr_referent, attr_info) in proof.requested_proof.revealed_attrs.iter() {
-        let attr_name = proof_req
+        let attr_name = pres_req
             .requested_attributes
             .get(attr_referent)
             .as_ref()
@@ -434,7 +437,7 @@ fn verify_revealed_attribute_values(
     }
 
     for (attr_referent, attr_infos) in proof.requested_proof.revealed_attr_groups.iter() {
-        let attr_names = proof_req
+        let attr_names = pres_req
             .requested_attributes
             .get(attr_referent)
             .as_ref()
@@ -455,7 +458,7 @@ fn verify_revealed_attribute_values(
                 )
             })?;
         if attr_infos.values.len() != attr_names.len() {
-            error!("Proof Revealed Attr Group does not match Proof Request Attribute Group, proof request attrs: {:?}, referent: {:?}, attr_infos: {:?}", proof_req.requested_attributes, attr_referent, attr_infos);
+            error!("Proof Revealed Attr Group does not match Proof Request Attribute Group, proof request attrs: {:?}, referent: {:?}, attr_infos: {:?}", pres_req.requested_attributes, attr_referent, attr_infos);
             return Err(err_msg!(
                 "Proof Revealed Attr Group does not match Proof Request Attribute Group",
             ));
@@ -522,7 +525,7 @@ fn verify_revealed_attribute_value(
 }
 
 fn verify_requested_restrictions(
-    proof_req: &PresentationRequestPayload,
+    pres_req: &PresentationRequestPayload,
     requested_proof: &RequestedProof,
     received_revealed_attrs: &HashMap<String, Identifier>,
     received_unrevealed_attrs: &HashMap<String, Identifier>,
@@ -535,7 +538,7 @@ fn verify_requested_restrictions(
         .map(|(r, id)| (r.to_string(), id.clone()))
         .collect();
 
-    let requested_attrs: HashMap<String, AttributeInfo> = proof_req
+    let requested_attrs: HashMap<String, AttributeInfo> = pres_req
         .requested_attributes
         .iter()
         .filter(|&(referent, info)| !is_self_attested(&referent, &info, self_attested_attrs))
@@ -570,7 +573,7 @@ fn verify_requested_restrictions(
             } else {
                 error!(
                     r#"Proof Request attribute restriction should contain "name" or "names" param. Current proof request: {:?}"#,
-                    proof_req
+                    pres_req
                 );
                 return Err(err_msg!(
                     r#"Proof Request attribute restriction should contain "name" or "names" param"#,
@@ -584,7 +587,7 @@ fn verify_requested_restrictions(
         }
     }
 
-    for (referent, info) in proof_req.requested_predicates.iter() {
+    for (referent, info) in pres_req.requested_predicates.iter() {
         if let Some(ref query) = info.restrictions {
             let filter = gather_filter_info(&referent, received_predicates)?;
 

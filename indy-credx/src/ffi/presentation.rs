@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use ffi_support::FfiStr;
 
 use super::error::{catch_error, ErrorCode};
-use super::object::ObjectHandle;
+use super::object::{IndyObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
-use crate::error::Result;
 use crate::services::{
     prover::create_presentation,
-    types::{CredentialDefinition, Presentation, RequestedCredentials, Schema},
+    types::{Presentation, RequestedCredentials},
+    verifier::verify_presentation,
 };
 
 impl_indy_object!(Presentation, "Presentation");
@@ -26,7 +26,7 @@ pub struct FfiCredentialProve<'a> {
 
 #[no_mangle]
 pub extern "C" fn credx_create_presentation(
-    proof_req: ObjectHandle,
+    pres_req: ObjectHandle,
     self_attest_names: FfiStrList,
     self_attest_values: FfiStrList,
     creds: FfiList<ObjectHandle>,
@@ -44,43 +44,14 @@ pub extern "C" fn credx_create_presentation(
             ));
         }
 
-        let load_creds = creds
-            .as_slice()
-            .into_iter()
-            .map(ObjectHandle::load)
-            .collect::<Result<Vec<_>>>()?;
-        let mut map_creds = HashMap::with_capacity(load_creds.len());
-        for (idx, cred) in load_creds.iter().enumerate() {
+        let creds = IndyObjectList::load(creds.as_slice())?;
+        let mut map_creds = HashMap::with_capacity(creds.len());
+        for (idx, cred) in creds.iter().enumerate() {
             map_creds.insert(idx.to_string(), cred.cast_ref()?);
         }
 
-        let load_schemas = schemas
-            .as_slice()
-            .into_iter()
-            .map(ObjectHandle::load)
-            .collect::<Result<Vec<_>>>()?;
-        let mut map_schemas = HashMap::with_capacity(load_schemas.len());
-        for schema in load_schemas.iter() {
-            let schema = schema.cast_ref()?;
-            let sid = match schema {
-                Schema::SchemaV1(s) => s.id.clone(),
-            };
-            map_schemas.insert(sid, schema);
-        }
-
-        let load_cred_defs = cred_defs
-            .as_slice()
-            .into_iter()
-            .map(ObjectHandle::load)
-            .collect::<Result<Vec<_>>>()?;
-        let mut map_cred_defs = HashMap::with_capacity(load_cred_defs.len());
-        for cred_def in load_cred_defs.iter() {
-            let cred_def = cred_def.cast_ref()?;
-            let cid = match cred_def {
-                CredentialDefinition::CredentialDefinitionV1(c) => c.id.clone(),
-            };
-            map_cred_defs.insert(cid, cred_def);
-        }
+        let schemas = IndyObjectList::load(schemas.as_slice())?;
+        let cred_defs = IndyObjectList::load(cred_defs.as_slice())?;
 
         let mut req_creds = RequestedCredentials::default();
         for (name, raw) in self_attest_names
@@ -99,7 +70,7 @@ pub extern "C" fn credx_create_presentation(
             req_creds.add_self_attested(name, raw);
         }
         for prove in creds_prove.as_slice() {
-            if prove.cred_idx < 0 || prove.cred_idx as usize >= load_creds.len() {
+            if prove.cred_idx < 0 || prove.cred_idx as usize >= creds.len() {
                 return Err(err_msg!("Invalid index for credential reference"));
             }
             let referent = prove
@@ -127,16 +98,42 @@ pub extern "C" fn credx_create_presentation(
         let map_rev_states = HashMap::new();
 
         let presentation = create_presentation(
-            proof_req.load()?.cast_ref()?,
+            pres_req.load()?.cast_ref()?,
             &map_creds,
             &req_creds,
             master_secret.load()?.cast_ref()?,
-            &map_schemas,
-            &map_cred_defs,
+            &schemas.refs()?,
+            &cred_defs.refs()?,
             &map_rev_states,
         )?;
         let presentation = ObjectHandle::create(presentation)?;
         unsafe { *presentation_p = presentation };
+        Ok(())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn credx_verify_presentation(
+    presentation: ObjectHandle,
+    pres_req: ObjectHandle,
+    schemas: FfiList<ObjectHandle>,
+    cred_defs: FfiList<ObjectHandle>,
+    result_p: *mut i8,
+) -> ErrorCode {
+    catch_error(|| {
+        let schemas = IndyObjectList::load(schemas.as_slice())?;
+        let cred_defs = IndyObjectList::load(cred_defs.as_slice())?;
+        let rev_reg_defs = HashMap::new();
+        let rev_regs = HashMap::new();
+        let verify = verify_presentation(
+            presentation.load()?.cast_ref()?,
+            pres_req.load()?.cast_ref()?,
+            &schemas.refs()?,
+            &cred_defs.refs()?,
+            &rev_reg_defs,
+            &rev_regs,
+        )?;
+        unsafe { *result_p = verify as i8 };
         Ok(())
     })
 }
