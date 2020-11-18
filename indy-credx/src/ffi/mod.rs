@@ -16,6 +16,8 @@ mod object;
 
 mod schema;
 
+mod util;
+
 #[no_mangle]
 pub extern "C" fn credx_set_default_logger() -> ErrorCode {
     catch_err! {

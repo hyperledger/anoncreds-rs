@@ -97,8 +97,6 @@ mod tests {
             },
         );
         let json = json!(req_proof_old).to_string();
-        println!("{}", json);
-
         let req_proof: RequestedProof = serde_json::from_str(&json).unwrap();
         assert!(req_proof.revealed_attr_groups.is_empty())
     }

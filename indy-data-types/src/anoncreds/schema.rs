@@ -3,6 +3,7 @@ use crate::utils::Qualifiable;
 use crate::{Validatable, ValidationError};
 
 use std::collections::HashSet;
+use std::iter::FromIterator;
 
 pub const MAX_ATTRIBUTES_COUNT: usize = 125;
 
@@ -58,9 +59,15 @@ impl AttributeNames {
     }
 }
 
+impl From<Vec<String>> for AttributeNames {
+    fn from(attrs: Vec<String>) -> Self {
+        Self(HashSet::from_iter(attrs))
+    }
+}
+
 impl From<HashSet<String>> for AttributeNames {
     fn from(attrs: HashSet<String>) -> Self {
-        AttributeNames(attrs)
+        Self(attrs)
     }
 }
 

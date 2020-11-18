@@ -5,11 +5,14 @@ import logging
 import os
 import sys
 from ctypes import (
+    POINTER,
     CDLL,
     byref,
     c_char_p,
     c_int64,
     c_void_p,
+    c_size_t,
+    Structure,
 )
 from ctypes.util import find_library
 from typing import Optional, Sequence, Union
@@ -70,6 +73,13 @@ class lib_string(c_char_p):
     def __del__(self):
         """Call the string destructor when this instance is released."""
         get_library().credx_string_free(self)
+
+
+class str_list(Structure):
+    _fields_ = [
+        ("count", c_size_t),
+        ("data", POINTER(c_char_p)),
+    ]
 
 
 def get_library() -> CDLL:
@@ -185,12 +195,15 @@ def create_schema(
     seq_no: int = None,
 ) -> ObjectHandle:
     result = ObjectHandle()
+    attrs = str_list()
+    attrs.count = len(attr_names)
+    attrs.data = (c_char_p * attrs.count)(*map(encode_str, attr_names))
     do_call(
         "credx_create_schema",
         encode_str(origin_did),
         encode_str(name),
         encode_str(version),
-        encode_str(json.dumps(attr_names)),
+        attrs,
         c_int64(seq_no or -1),
         byref(result),
     )

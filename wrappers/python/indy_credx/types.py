@@ -11,6 +11,7 @@ class Schema(bindings.IndyObject):
         name: str,
         version: str,
         attr_names: Sequence[str],
+        *,
         seq_no: int = None,
     ) -> "Schema":
         return Schema(
