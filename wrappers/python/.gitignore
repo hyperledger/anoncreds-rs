@@ -1,0 +1,4 @@
+__pycache__
+*.dylib
+*.dll
+*.so

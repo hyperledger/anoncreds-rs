@@ -1,6 +1,6 @@
 use ursa::cl::{
-    issuer, verifier, CredentialSchema, CredentialValues, MasterSecret, NonCredentialSchema,
-    SubProofRequest,
+    issuer, verifier, CredentialSchema, CredentialValues as CryptoCredentialValues,
+    MasterSecret as CryptoMasterSecret, NonCredentialSchema, SubProofRequest,
 };
 
 use crate::error::Result;
@@ -45,8 +45,8 @@ pub fn build_non_credential_schema() -> Result<NonCredentialSchema> {
 
 pub fn build_credential_values(
     credential_values: &HashMap<String, AttributeValues>,
-    master_secret: Option<&MasterSecret>,
-) -> Result<CredentialValues> {
+    master_secret: Option<&CryptoMasterSecret>,
+) -> Result<CryptoCredentialValues> {
     trace!(
         "build_credential_values >>> credential_values: {:?}",
         credential_values

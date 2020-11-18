@@ -8,7 +8,7 @@ pub use indy_data_types::{
         },
         cred_offer::CredentialOffer,
         cred_request::{CredentialRequest, CredentialRequestMetadata},
-        credential::{Credential, CredentialValues},
+        credential::{AttributeValues, Credential, CredentialValues},
         master_secret::MasterSecret,
         pres_request::PresentationRequest,
         presentation::Presentation,
