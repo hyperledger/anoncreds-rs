@@ -27,160 +27,148 @@ pub struct Filter {
 static INTERNAL_TAG_MATCHER: Lazy<Regex> =
     Lazy::new(|| Regex::new("^attr::([^:]+)::(value|marker)$").unwrap());
 
-pub struct Verifier {}
+pub fn verify_presentation(
+    full_proof: &Presentation,
+    proof_req: &PresentationRequest,
+    schemas: &HashMap<SchemaId, &Schema>,
+    cred_defs: &HashMap<CredentialDefinitionId, &CredentialDefinition>,
+    rev_reg_defs: &HashMap<RevocationRegistryId, &RevocationRegistryDefinition>,
+    rev_regs: &HashMap<RevocationRegistryId, HashMap<u64, &RevocationRegistry>>,
+) -> Result<bool> {
+    trace!("verify >>> full_proof: {:?}, proof_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_regs: {:?}",
+            full_proof, proof_req, schemas, cred_defs, rev_reg_defs, rev_regs);
 
-impl Verifier {
-    pub fn new() -> Verifier {
-        Verifier {}
-    }
+    let proof_req = proof_req.value();
+    let received_revealed_attrs: HashMap<String, Identifier> =
+        received_revealed_attrs(&full_proof)?;
+    let received_unrevealed_attrs: HashMap<String, Identifier> =
+        received_unrevealed_attrs(&full_proof)?;
+    let received_predicates: HashMap<String, Identifier> = received_predicates(&full_proof)?;
+    let received_self_attested_attrs: HashSet<String> = received_self_attested_attrs(&full_proof);
 
-    pub fn verify_presentation(
-        full_proof: &Presentation,
-        proof_req: &PresentationRequest,
-        schemas: &HashMap<SchemaId, &Schema>,
-        cred_defs: &HashMap<CredentialDefinitionId, &CredentialDefinition>,
-        rev_reg_defs: &HashMap<RevocationRegistryId, &RevocationRegistryDefinition>,
-        rev_regs: &HashMap<RevocationRegistryId, HashMap<u64, &RevocationRegistry>>,
-    ) -> Result<bool> {
-        trace!("verify >>> full_proof: {:?}, proof_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_regs: {:?}",
-               full_proof, proof_req, schemas, cred_defs, rev_reg_defs, rev_regs);
+    compare_attr_from_proof_and_request(
+        proof_req,
+        &received_revealed_attrs,
+        &received_unrevealed_attrs,
+        &received_self_attested_attrs,
+        &received_predicates,
+    )?;
 
-        let proof_req = proof_req.value();
-        let received_revealed_attrs: HashMap<String, Identifier> =
-            received_revealed_attrs(&full_proof)?;
-        let received_unrevealed_attrs: HashMap<String, Identifier> =
-            received_unrevealed_attrs(&full_proof)?;
-        let received_predicates: HashMap<String, Identifier> = received_predicates(&full_proof)?;
-        let received_self_attested_attrs: HashSet<String> =
-            received_self_attested_attrs(&full_proof);
+    verify_revealed_attribute_values(&proof_req, &full_proof)?;
 
-        compare_attr_from_proof_and_request(
-            proof_req,
-            &received_revealed_attrs,
-            &received_unrevealed_attrs,
-            &received_self_attested_attrs,
-            &received_predicates,
-        )?;
+    verify_requested_restrictions(
+        &proof_req,
+        &full_proof.requested_proof,
+        &received_revealed_attrs,
+        &received_unrevealed_attrs,
+        &received_predicates,
+        &received_self_attested_attrs,
+    )?;
 
-        verify_revealed_attribute_values(&proof_req, &full_proof)?;
+    compare_timestamps_from_proof_and_request(
+        proof_req,
+        &received_revealed_attrs,
+        &received_unrevealed_attrs,
+        &received_self_attested_attrs,
+        &received_predicates,
+    )?;
 
-        verify_requested_restrictions(
-            &proof_req,
-            &full_proof.requested_proof,
-            &received_revealed_attrs,
-            &received_unrevealed_attrs,
-            &received_predicates,
-            &received_self_attested_attrs,
-        )?;
+    let mut proof_verifier = CryptoVerifier::new_proof_verifier()?;
+    let non_credential_schema = build_non_credential_schema()?;
 
-        compare_timestamps_from_proof_and_request(
-            proof_req,
-            &received_revealed_attrs,
-            &received_unrevealed_attrs,
-            &received_self_attested_attrs,
-            &received_predicates,
-        )?;
+    for sub_proof_index in 0..full_proof.identifiers.len() {
+        let identifier = full_proof.identifiers[sub_proof_index].clone();
 
-        let mut proof_verifier = CryptoVerifier::new_proof_verifier()?;
-        let non_credential_schema = build_non_credential_schema()?;
+        let schema = match schemas
+            .get(&identifier.schema_id)
+            .ok_or_else(|| err_msg!("Schema not found for id: {:?}", identifier.schema_id))?
+        {
+            Schema::SchemaV1(schema) => schema,
+        };
 
-        for sub_proof_index in 0..full_proof.identifiers.len() {
-            let identifier = full_proof.identifiers[sub_proof_index].clone();
+        let cred_def = match cred_defs.get(&identifier.cred_def_id).ok_or_else(|| {
+            err_msg!(
+                "CredentialDefinition not found for id: {:?}",
+                identifier.cred_def_id
+            )
+        })? {
+            CredentialDefinition::CredentialDefinitionV1(cred_def) => cred_def,
+        };
 
-            let schema = match schemas
-                .get(&identifier.schema_id)
-                .ok_or_else(|| err_msg!("Schema not found for id: {:?}", identifier.schema_id))?
-            {
-                Schema::SchemaV1(schema) => schema,
-            };
+        let (rev_reg_def, rev_reg) = if let Some(timestamp) = identifier.timestamp {
+            let rev_reg_id = identifier
+                .rev_reg_id
+                .clone()
+                .ok_or_else(|| err_msg!("Revocation Registry Id not found"))?;
 
-            let cred_def = match cred_defs.get(&identifier.cred_def_id).ok_or_else(|| {
+            let rev_reg_def = Some(rev_reg_defs.get(&rev_reg_id).ok_or_else(|| {
                 err_msg!(
-                    "CredentialDefinition not found for id: {:?}",
-                    identifier.cred_def_id
+                    "RevocationRegistryDefinition not found for id: {:?}",
+                    identifier.rev_reg_id
                 )
-            })? {
-                CredentialDefinition::CredentialDefinitionV1(cred_def) => cred_def,
-            };
+            })?);
 
-            let (rev_reg_def, rev_reg) = if let Some(timestamp) = identifier.timestamp {
-                let rev_reg_id = identifier
-                    .rev_reg_id
-                    .clone()
-                    .ok_or_else(|| err_msg!("Revocation Registry Id not found"))?;
+            let rev_regs_for_cred = rev_regs
+                .get(&rev_reg_id)
+                .ok_or_else(|| err_msg!("RevocationRegistry not found for id: {:?}", rev_reg_id))?;
 
-                let rev_reg_def = Some(rev_reg_defs.get(&rev_reg_id).ok_or_else(|| {
-                    err_msg!(
-                        "RevocationRegistryDefinition not found for id: {:?}",
-                        identifier.rev_reg_id
-                    )
-                })?);
+            let rev_reg = Some(rev_regs_for_cred.get(&timestamp).ok_or_else(|| {
+                err_msg!(
+                    "RevocationRegistry not found for timestamp: {:?}",
+                    timestamp
+                )
+            })?);
 
-                let rev_regs_for_cred = rev_regs.get(&rev_reg_id).ok_or_else(|| {
-                    err_msg!("RevocationRegistry not found for id: {:?}", rev_reg_id)
-                })?;
+            (rev_reg_def, rev_reg)
+        } else {
+            (None, None)
+        };
 
-                let rev_reg = Some(rev_regs_for_cred.get(&timestamp).ok_or_else(|| {
-                    err_msg!(
-                        "RevocationRegistry not found for timestamp: {:?}",
-                        timestamp
-                    )
-                })?);
+        let attrs_for_credential = get_revealed_attributes_for_credential(
+            sub_proof_index,
+            &full_proof.requested_proof,
+            proof_req,
+        )?;
+        let predicates_for_credential =
+            get_predicates_for_credential(sub_proof_index, &full_proof.requested_proof, proof_req)?;
 
-                (rev_reg_def, rev_reg)
-            } else {
-                (None, None)
-            };
+        let credential_schema = build_credential_schema(&schema.attr_names.0)?;
+        let sub_proof_request =
+            build_sub_proof_request(&attrs_for_credential, &predicates_for_credential)?;
 
-            let attrs_for_credential = get_revealed_attributes_for_credential(
-                sub_proof_index,
-                &full_proof.requested_proof,
-                proof_req,
-            )?;
-            let predicates_for_credential = get_predicates_for_credential(
-                sub_proof_index,
-                &full_proof.requested_proof,
-                proof_req,
-            )?;
+        let credential_pub_key = CredentialPublicKey::build_from_parts(
+            &cred_def.value.primary,
+            cred_def.value.revocation.as_ref(),
+        )?;
 
-            let credential_schema = build_credential_schema(&schema.attr_names.0)?;
-            let sub_proof_request =
-                build_sub_proof_request(&attrs_for_credential, &predicates_for_credential)?;
+        let rev_key_pub = rev_reg_def.as_ref().map(|r_reg_def| match r_reg_def {
+            RevocationRegistryDefinition::RevocationRegistryDefinitionV1(reg_def) => {
+                &reg_def.value.public_keys.accum_key
+            }
+        });
+        let rev_reg = rev_reg.as_ref().map(|r_reg| match r_reg {
+            RevocationRegistry::RevocationRegistryV1(reg_def) => &reg_def.value,
+        });
 
-            let credential_pub_key = CredentialPublicKey::build_from_parts(
-                &cred_def.value.primary,
-                cred_def.value.revocation.as_ref(),
-            )?;
-
-            let rev_key_pub = rev_reg_def.as_ref().map(|r_reg_def| match r_reg_def {
-                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(reg_def) => {
-                    &reg_def.value.public_keys.accum_key
-                }
-            });
-            let rev_reg = rev_reg.as_ref().map(|r_reg| match r_reg {
-                RevocationRegistry::RevocationRegistryV1(reg_def) => &reg_def.value,
-            });
-
-            proof_verifier.add_sub_proof_request(
-                &sub_proof_request,
-                &credential_schema,
-                &non_credential_schema,
-                &credential_pub_key,
-                rev_key_pub,
-                rev_reg,
-            )?;
-        }
-
-        let valid = proof_verifier.verify(&full_proof.proof, proof_req.nonce.as_native())?;
-
-        trace!("verify <<< valid: {:?}", valid);
-
-        Ok(valid)
+        proof_verifier.add_sub_proof_request(
+            &sub_proof_request,
+            &credential_schema,
+            &non_credential_schema,
+            &credential_pub_key,
+            rev_key_pub,
+            rev_reg,
+        )?;
     }
 
-    pub fn generate_nonce(&self) -> Result<Nonce> {
-        new_nonce()
-    }
+    let valid = proof_verifier.verify(&full_proof.proof, proof_req.nonce.as_native())?;
+
+    trace!("verify <<< valid: {:?}", valid);
+
+    Ok(valid)
+}
+
+pub fn generate_nonce() -> Result<Nonce> {
+    new_nonce()
 }
 
 fn get_revealed_attributes_for_credential(

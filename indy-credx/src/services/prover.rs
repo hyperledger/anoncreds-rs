@@ -127,7 +127,7 @@ pub fn process_credential(
     Ok(())
 }
 
-pub fn create_proof(
+pub fn create_presentation(
     proof_req: &PresentationRequest,
     credentials: &HashMap<String, &Credential>,
     requested_credentials: &RequestedCredentials,

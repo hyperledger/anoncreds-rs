@@ -47,7 +47,7 @@ impl Default for CredentialDefinitionConfig {
 
 impl Validatable for CredentialDefinitionConfig {}
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct RequestedCredentials {
     pub(crate) self_attested_attributes: HashMap<String, String>,
     pub(crate) requested_attributes: HashMap<String, RequestedAttribute>,

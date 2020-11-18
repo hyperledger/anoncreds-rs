@@ -35,7 +35,7 @@ pub extern "C" fn credx_create_credential(
         for (name, raw) in attr_names
             .as_slice()
             .into_iter()
-            .zip(attr_raw_values.as_slice().into_iter())
+            .zip(attr_raw_values.as_slice())
         {
             let name = name
                 .as_opt_str()

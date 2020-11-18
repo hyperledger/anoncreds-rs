@@ -1,8 +1,14 @@
+from time import time
+
 from indy_credx import (
+    generate_nonce,
     Credential,
     CredentialDefinition,
     CredentialOffer,
     CredentialRequest,
+    PresentationRequest,
+    Presentation,
+    PresentCredentials,
     MasterSecret,
     Schema,
 )
@@ -38,5 +44,32 @@ cred = Credential.create(cred_def, cred_def_pvt, cred_offer, cred_req, {"attr": 
 print(cred)
 print(cred.to_json())
 
-cred2 = cred.process(cred_req_metadata, master_secret, cred_def)
-print(cred2)
+cred_received = cred.process(cred_req_metadata, master_secret, cred_def)
+print(cred_received)
+
+timestamp = int(time())
+pres_req = PresentationRequest.from_json(
+    {
+        "name": "proof",
+        "version": "1.0",
+        "nonce": generate_nonce(),
+        "requested_attributes": {
+            "reft": {
+                "name": "attr",
+            }
+        },
+        "requested_predicates": {},
+        "ver": "1.0",
+    }
+)
+
+present_creds = PresentCredentials()
+
+present_creds.add_attributes(cred_received, ("reft",))
+
+presentation = Presentation.create(
+    pres_req, present_creds, master_secret, [schema], [cred_def]
+)
+print(presentation)
+
+print(presentation.to_json())

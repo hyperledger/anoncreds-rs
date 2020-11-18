@@ -80,6 +80,22 @@ class lib_string(c_char_p):
         get_library().credx_string_free(self)
 
 
+class object_handle_list(Structure):
+    _fields_ = [
+        ("count", c_size_t),
+        ("data", POINTER(ObjectHandle)),
+    ]
+
+    @classmethod
+    def create(cls, values: Optional[Sequence[ObjectHandle]]) -> "object_handle_list":
+        inst = object_handle_list()
+        if values is not None:
+            values = list(values)
+            inst.count = len(values)
+            inst.data = (ObjectHandle * inst.count)(*values)
+        return inst
+
+
 class str_list(Structure):
     _fields_ = [
         ("count", c_size_t),
@@ -94,6 +110,47 @@ class str_list(Structure):
             inst.count = len(values)
             inst.data = (c_char_p * inst.count)(*values)
         return inst
+
+
+class CredentialProve(Structure):
+    _fields_ = [
+        ("cred_idx", c_int64),
+        ("referent", c_char_p),
+        ("is_predicate", c_int8),
+        ("reveal", c_int8),
+        ("timestamp", c_int64),
+    ]
+
+    @classmethod
+    def attribute(
+        cls, idx: int, referent: str, reveal: bool, timestamp: int = None
+    ) -> "CredentialProve":
+        return CredentialProve(
+            cred_idx=idx,
+            referent=encode_str(referent),
+            is_predicate=False,
+            reveal=reveal,
+            timestamp=-1 if timestamp is None else timestamp,
+        )
+
+    @classmethod
+    def predicate(
+        cls, idx: int, referent: str, timestamp: int = None
+    ) -> "CredentialProve":
+        return CredentialProve(
+            cred_idx=idx,
+            referent=encode_str(referent),
+            is_predicate=True,
+            reveal=True,
+            timestamp=-1 if timestamp is None else timestamp,
+        )
+
+
+class CredentialProveList(Structure):
+    _fields_ = [
+        ("count", c_int64),
+        ("data", POINTER(CredentialProve)),
+    ]
 
 
 def get_library() -> CDLL:
@@ -211,6 +268,12 @@ def _object_from_json(method: str, value: str) -> ObjectHandle:
     result = ObjectHandle()
     do_call(method, encode_str(value), byref(result))
     return result
+
+
+def generate_nonce() -> str:
+    result = lib_string()
+    do_call("credx_generate_nonce", byref(result))
+    return str(result)
 
 
 def create_schema(
@@ -372,6 +435,35 @@ def create_master_secret() -> ObjectHandle:
     return secret
 
 
+def create_presentation(
+    proof_req: ObjectHandle,
+    self_attest: Mapping[str, str],
+    creds: Sequence[ObjectHandle],
+    creds_prove: Sequence[CredentialProve],
+    master_secret: ObjectHandle,
+    schemas: Sequence[ObjectHandle],
+    cred_defs: Sequence[ObjectHandle],
+    # rev_states: Sequence[ObjectHandle],
+) -> ObjectHandle:
+    prove_list = CredentialProveList()
+    prove_list.count = len(creds_prove)
+    prove_list.data = (CredentialProve * prove_list.count)(*creds_prove)
+    present = ObjectHandle()
+    do_call(
+        "credx_create_presentation",
+        proof_req,
+        str_list.create(self_attest.keys()),
+        str_list.create(self_attest.values()),
+        object_handle_list.create(creds),
+        prove_list,
+        master_secret,
+        object_handle_list.create(schemas),
+        object_handle_list.create(cred_defs),
+        byref(present),
+    )
+    return present
+
+
 def schema_from_json(json: str) -> ObjectHandle:
     return _object_from_json("credx_schema_from_json", json)
 
@@ -406,3 +498,7 @@ def credential_from_json(json: str) -> ObjectHandle:
 
 def master_secret_from_json(json: str) -> ObjectHandle:
     return _object_from_json("credx_master_secret_from_json", json)
+
+
+def presentation_request_from_json(json: str) -> ObjectHandle:
+    return _object_from_json("credx_presentation_request_from_json", json)

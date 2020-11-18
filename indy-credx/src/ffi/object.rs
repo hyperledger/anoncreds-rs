@@ -11,8 +11,8 @@ use serde::Serialize;
 use super::error::{catch_error, ErrorCode};
 use crate::error::Result;
 use crate::services::types::{
-    Presentation, RevocationRegistry, RevocationRegistryDefinition,
-    RevocationRegistryDefinitionPrivate, RevocationState,
+    RevocationRegistry, RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate,
+    RevocationState,
 };
 
 pub(crate) static FFI_OBJECTS: Lazy<Mutex<BTreeMap<ObjectHandle, IndyObject>>> =
@@ -135,7 +135,6 @@ macro_rules! impl_indy_object_from_json {
     };
 }
 
-impl_indy_object!(Presentation, "Presentation");
 impl_indy_object!(RevocationRegistry, "RevocationRegistry");
 impl_indy_object!(RevocationRegistryDefinition, "RevocationRegistryDefinition");
 impl_indy_object!(

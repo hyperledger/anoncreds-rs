@@ -1,6 +1,6 @@
 """Indy-Credx Python wrapper library"""
 
-from .bindings import library_version
+from .bindings import generate_nonce, library_version
 from .error import CredxError, CredxErrorCode
 from .types import (
     Credential,
@@ -11,10 +11,14 @@ from .types import (
     CredentialRequest,
     CredentialRequestMetadata,
     MasterSecret,
+    PresentationRequest,
+    Presentation,
+    PresentCredentials,
     Schema,
 )
 
 __all__ = (
+    "generate_nonce",
     "library_version",
     "CredxError",
     "CredxErrorCode",
@@ -26,5 +30,8 @@ __all__ = (
     "CredentialRequest",
     "CredentialRequestMetadata",
     "MasterSecret",
+    "PresentationRequest",
+    "Presentation",
+    "PresentCredentials",
     "Schema",
 )

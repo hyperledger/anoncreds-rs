@@ -1,4 +1,6 @@
-from typing import Mapping, Sequence
+import json
+
+from typing import Mapping, Sequence, Union
 
 from . import bindings
 
@@ -199,3 +201,99 @@ class Credential(bindings.IndyObject):
     @classmethod
     def from_json(cls, value: str) -> "Credential":
         return CredentialDefinition(bindings.credential_from_json(value))
+
+
+class PresentationRequest(bindings.IndyObject):
+    @classmethod
+    def from_json(cls, value: [dict, str]) -> "PresentationRequest":
+        if isinstance(value, dict):
+            value = json.dumps(value)
+        return PresentationRequest(bindings.presentation_request_from_json(value))
+
+
+class PresentCredentials:
+    def __init__(self):
+        self.creds = {}
+        self.self_attest = {}
+
+    def add_self_attested(self, attest: Mapping[str, str]):
+        if attest:
+            self.self_attest.update(attest)
+
+    def add_attributes(
+        self,
+        cred: Credential,
+        referents: Sequence[str],
+        reveal: bool = True,
+        timestamp: int = None,
+    ):
+        if not referents:
+            return
+        if cred not in self.creds:
+            self.creds[cred] = ({}, {})
+        for reft in referents:
+            self.creds[cred][0][reft] = (reveal, timestamp)
+
+    def add_predicates(
+        self,
+        cred: Credential,
+        referents: Sequence[str],
+        timestamp: int = None,
+    ):
+        if not referents:
+            return
+        if cred not in self.creds:
+            self.creds[cred] = ({}, {})
+        for reft in referents:
+            self.creds[cred][1][reft] = timestamp
+
+
+class Presentation(bindings.IndyObject):
+    @classmethod
+    def create(
+        cls,
+        pres_req: [str, PresentationRequest],
+        present_creds: PresentCredentials,
+        master_secret: [str, MasterSecret],
+        schemas: Sequence[Union[str, Schema]],
+        cred_defs: Sequence[Union[str, CredentialDefinition]],
+    ) -> "Presentation":
+        if isinstance(pres_req, str):
+            pres_req = PresentationRequest.from_json(pres_req)
+        if isinstance(master_secret, str):
+            master_secret = MasterSecret.from_json(master_secret)
+        schemas = [
+            (Schema.from_json(s) if isinstance(s, str) else s).handle for s in schemas
+        ]
+        cred_defs = [
+            (CredentialDefinition.from_json(c) if isinstance(c, str) else c).handle
+            for c in cred_defs
+        ]
+        creds = []
+        creds_prove = []
+        for (cred, (attrs, preds)) in present_creds.creds.items():
+            idx = len(creds)
+            creds.append(cred.handle)
+            for (reft, (reveal, timestamp)) in attrs.items():
+                creds_prove.append(
+                    bindings.CredentialProve.attribute(idx, reft, reveal, timestamp)
+                )
+            for (reft, timestamp) in preds.items():
+                creds_prove.append(
+                    bindings.CredentialProve.predicate(idx, reft, timestamp)
+                )
+        return Presentation(
+            bindings.create_presentation(
+                pres_req.handle,
+                present_creds.self_attest,
+                creds,
+                creds_prove,
+                master_secret.handle,
+                schemas,
+                cred_defs,
+            )
+        )
+
+    @classmethod
+    def from_json(cls, value: str) -> "Presentation":
+        return Presentation(bindings.presentation_from_json(value))
