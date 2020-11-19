@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::HashSet;
 
 use super::tails::TailsReader;
 pub use indy_data_types::{
@@ -48,71 +48,124 @@ impl Default for CredentialDefinitionConfig {
 
 impl Validatable for CredentialDefinitionConfig {}
 
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub struct RequestedCredentials {
-    pub(crate) self_attested_attributes: HashMap<String, String>,
-    pub(crate) requested_attributes: HashMap<String, RequestedAttribute>,
-    pub(crate) requested_predicates: HashMap<String, ProvingCredentialKey>,
-}
+#[derive(Debug, Default)]
+pub struct PresentCredentials<'p>(pub(crate) Vec<PresentCredential<'p>>);
 
-impl RequestedCredentials {
-    pub fn add_self_attested(&mut self, referent: String, value: String) {
-        self.self_attested_attributes.insert(referent, value);
+impl<'p> PresentCredentials<'p> {
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    pub fn add_requested_attribute(
+    pub fn add_credential(
         &mut self,
-        referent: String,
-        cred_id: String,
+        cred: &'p Credential,
         timestamp: Option<u64>,
-        revealed: bool,
-    ) {
-        self.requested_attributes.insert(
-            referent,
-            RequestedAttribute {
-                cred_id,
-                timestamp,
-                revealed,
-            },
-        );
+        rev_state: Option<&'p CredentialRevocationState>,
+    ) -> AddCredential<'_, 'p> {
+        let idx = self.0.len();
+        self.0.push(PresentCredential {
+            cred,
+            timestamp,
+            rev_state,
+            requested_attributes: HashSet::new(),
+            requested_predicates: HashSet::new(),
+        });
+        AddCredential {
+            present: &mut self.0[idx],
+        }
     }
 
-    pub fn add_requested_predicate(
-        &mut self,
-        referent: String,
-        cred_id: String,
-        timestamp: Option<u64>,
-    ) {
-        self.requested_predicates
-            .insert(referent, ProvingCredentialKey { cred_id, timestamp });
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.iter().filter(|c| !c.is_empty()).count()
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct RequestedAttribute {
+impl Validatable for PresentCredentials<'_> {
+    fn validate(&self) -> std::result::Result<(), ValidationError> {
+        let mut attr_names = HashSet::new();
+        let mut pred_names = HashSet::new();
+
+        for c in self.0.iter() {
+            for (name, _reveal) in c.requested_attributes.iter() {
+                if !attr_names.insert(name.as_str()) {
+                    return Err(invalid!("Duplicate requested attribute referent: {}", name));
+                }
+            }
+
+            for name in c.requested_predicates.iter() {
+                if !pred_names.insert(name.as_str()) {
+                    return Err(invalid!("Duplicate requested predicate referent: {}", name));
+                }
+            }
+
+            if c.timestamp.is_some() != c.rev_state.is_some() {
+                return Err(invalid!(
+                    "Either timestamp and revocation state must be presented, or neither"
+                ));
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct PresentCredential<'p> {
+    pub cred: &'p Credential,
+    pub timestamp: Option<u64>,
+    pub rev_state: Option<&'p CredentialRevocationState>,
+    pub requested_attributes: HashSet<(String, bool)>,
+    pub requested_predicates: HashSet<String>,
+}
+
+impl PresentCredential<'_> {
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.requested_attributes.is_empty() && self.requested_predicates.is_empty()
+    }
+}
+
+#[derive(Debug)]
+pub struct AddCredential<'a, 'p> {
+    present: &'a mut PresentCredential<'p>,
+}
+
+impl<'a, 'p> AddCredential<'a, 'p> {
+    pub fn add_requested_attribute(&mut self, referent: String, revealed: bool) {
+        self.present
+            .requested_attributes
+            .insert((referent, revealed));
+    }
+
+    pub fn add_requested_predicate(&mut self, referent: String) {
+        self.present.requested_predicates.insert(referent);
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct RequestedAttribute<'a> {
     pub cred_id: String,
     pub timestamp: Option<u64>,
     pub revealed: bool,
+    pub rev_state: Option<&'a CredentialRevocationState>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Eq, PartialEq, Hash, Clone)]
+#[derive(Debug)]
+pub(crate) struct RequestedPredicate<'a> {
+    pub cred_id: String,
+    pub timestamp: Option<u64>,
+    pub rev_state: Option<&'a CredentialRevocationState>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct ProvingCredentialKey {
     pub cred_id: String,
     pub timestamp: Option<u64>,
-}
-
-impl Validatable for RequestedCredentials {
-    fn validate(&self) -> std::result::Result<(), ValidationError> {
-        if self.self_attested_attributes.is_empty()
-            && self.requested_attributes.is_empty()
-            && self.requested_predicates.is_empty()
-        {
-            return Err(invalid!(
-                "Requested Credentials validation failed: `self_attested_attributes` and `requested_attributes` and `requested_predicates` are empty"
-            ));
-        }
-        Ok(())
-    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

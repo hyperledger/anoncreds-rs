@@ -1,3 +1,5 @@
+from time import time
+
 from indy_credx import (
     generate_nonce,
     Credential,
@@ -5,13 +7,13 @@ from indy_credx import (
     CredentialOffer,
     CredentialRequest,
     CredentialRevocationConfig,
+    CredentialRevocationState,
     PresentationRequest,
     Presentation,
     PresentCredentials,
     MasterSecret,
-    Schema,
-    #    RevocationRegistry,
     RevocationRegistryDefinition,
+    Schema,
 )
 
 
@@ -26,9 +28,12 @@ cred_def, cred_def_pvt, key_proof = CredentialDefinition.create(
 )
 print(cred_def.handle)
 
-rev_reg_def, rev_reg_def_private, rev_reg = RevocationRegistryDefinition.create(
-    test_did, cred_def, "default", "CL_ACCUM", 100
-)
+(
+    rev_reg_def,
+    rev_reg_def_private,
+    rev_reg,
+    rev_reg_init_delta,
+) = RevocationRegistryDefinition.create(test_did, cred_def, "default", "CL_ACCUM", 100)
 print(rev_reg_def.tails_hash)
 
 master_secret = MasterSecret.create()
@@ -43,7 +48,9 @@ cred_req, cred_req_metadata = CredentialRequest.create(
 
 print(cred_req.to_json())
 
-cred, rev_reg_updated, rev_delta = Credential.create(
+issuer_rev_index = 1
+
+cred, rev_reg_updated, _rev_delta = Credential.create(
     cred_def,
     cred_def_pvt,
     cred_offer,
@@ -51,14 +58,20 @@ cred, rev_reg_updated, rev_delta = Credential.create(
     {"attr": "test"},
     None,
     CredentialRevocationConfig(
-        rev_reg_def, rev_reg_def_private, rev_reg, 0, rev_reg_def.tails_location
+        rev_reg_def,
+        rev_reg_def_private,
+        rev_reg,
+        issuer_rev_index,
+        rev_reg_def.tails_location,
     ),
 )
-print(cred, rev_reg_updated, rev_delta)
+print(cred, rev_reg_updated)
 print(cred.to_json())
 
-cred_received = cred.process(cred_req_metadata, master_secret, cred_def)
+cred_received = cred.process(cred_req_metadata, master_secret, cred_def, rev_reg_def)
 print(cred_received)
+
+timestamp = int(time())
 
 pres_req = PresentationRequest.load(
     {
@@ -68,16 +81,28 @@ pres_req = PresentationRequest.load(
         "requested_attributes": {
             "reft": {
                 "name": "attr",
+                "non_revoked": {"from": timestamp, "to": timestamp},
             }
         },
         "requested_predicates": {},
+        "non_revoked": {"from": timestamp, "to": timestamp},
         "ver": "1.0",
     }
 )
 
+rev_state = CredentialRevocationState.create(
+    rev_reg_def,
+    rev_reg_init_delta,
+    cred.rev_reg_index,
+    timestamp,
+    rev_reg_def.tails_location,
+)
+
 present_creds = PresentCredentials()
 
-present_creds.add_attributes(cred_received, "reft", reveal=False)
+present_creds.add_attributes(
+    cred_received, "reft", reveal=False, timestamp=timestamp, rev_state=rev_state
+)
 
 presentation = Presentation.create(
     pres_req, present_creds, master_secret, [schema], [cred_def]

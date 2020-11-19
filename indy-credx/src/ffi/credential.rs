@@ -1,4 +1,8 @@
-use ffi_support::FfiStr;
+use std::convert::TryInto;
+use std::os::raw::c_char;
+use std::ptr;
+
+use ffi_support::{rust_string_to_c, FfiStr};
 
 use super::error::{catch_error, ErrorCode};
 use super::object::{IndyObject, ObjectHandle};
@@ -17,7 +21,7 @@ pub struct FfiCredRevInfo<'a> {
     reg_def: ObjectHandle,
     reg_def_private: ObjectHandle,
     registry: ObjectHandle,
-    reg_idx: u32,
+    reg_idx: i64,
     tails_path: FfiStr<'a>,
 }
 
@@ -109,7 +113,10 @@ pub extern "C" fn credx_create_credential(
                 reg_def: revocation.reg_def.load()?,
                 reg_def_private: revocation.reg_def_private.load()?,
                 registry: revocation.registry.load()?,
-                reg_idx: revocation.reg_idx,
+                reg_idx: revocation
+                    .reg_idx
+                    .try_into()
+                    .map_err(|_| err_msg!("Invalid revocation index"))?,
                 tails_path,
             })
         } else {
@@ -150,7 +157,7 @@ pub extern "C" fn credx_process_credential(
     cred_req_metadata: ObjectHandle,
     master_secret: ObjectHandle,
     cred_def: ObjectHandle,
-    // rev_reg_def: ObjectHandle
+    rev_reg_def: ObjectHandle,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
@@ -165,7 +172,11 @@ pub extern "C" fn credx_process_credential(
             cred_req_metadata.load()?.cast_ref()?,
             master_secret.load()?.cast_ref()?,
             cred_def.load()?.cast_ref()?,
-            None,
+            rev_reg_def
+                .opt_load()?
+                .as_ref()
+                .map(IndyObject::cast_ref)
+                .transpose()?,
         )?;
         let cred = ObjectHandle::create(cred)?;
         unsafe { *cred_p = cred };
@@ -175,3 +186,33 @@ pub extern "C" fn credx_process_credential(
 
 impl_indy_object!(Credential, "Credential");
 impl_indy_object_from_json!(Credential, credx_credential_from_json);
+
+#[no_mangle]
+pub extern "C" fn credx_credential_get_attribute(
+    handle: ObjectHandle,
+    name: FfiStr,
+    result_p: *mut *const c_char,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(result_p);
+        let cred = handle.load()?;
+        let cred = cred.cast_ref::<Credential>()?;
+        let val = match name.as_opt_str().unwrap_or_default() {
+            "schema_id" => rust_string_to_c(cred.schema_id.to_string()),
+            "cred_def_id" => rust_string_to_c(cred.cred_def_id.to_string()),
+            "rev_reg_id" => cred
+                .rev_reg_id
+                .as_ref()
+                .map(|s| rust_string_to_c(s.to_string()))
+                .unwrap_or(ptr::null_mut()),
+            "rev_reg_index" => cred
+                .signature
+                .extract_index()
+                .map(|s| rust_string_to_c(s.to_string()))
+                .unwrap_or(ptr::null_mut()),
+            s => return Err(err_msg!("Unsupported attribute: {}", s)),
+        };
+        unsafe { *result_p = val };
+        Ok(())
+    })
+}

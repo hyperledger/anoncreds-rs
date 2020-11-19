@@ -10,7 +10,6 @@ from ctypes import (
     c_int8,
     c_int64,
     c_size_t,
-    c_uint32,
     c_void_p,
     pointer,
     CDLL,
@@ -65,6 +64,9 @@ class lib_string(c_char_p):
         """Returns the type ctypes should use for loading the result."""
         return c_void_p
 
+    def is_none(self) -> bool:
+        return self.value is None
+
     def opt_str(self) -> Optional[str]:
         return self.value.decode("utf-8") if self.value is not None else None
 
@@ -114,37 +116,67 @@ class str_list(Structure):
         return inst
 
 
+class CredentialEntry(Structure):
+    _fields_ = [
+        ("credential", ObjectHandle),
+        ("timestamp", c_int64),
+        ("rev_state", ObjectHandle),
+    ]
+
+    @classmethod
+    def create(
+        cls,
+        credential: ObjectHandle,
+        timestamp: int = None,
+        rev_state: ObjectHandle = None,
+    ) -> "CredentialEntry":
+        return CredentialEntry(
+            credential=credential,
+            timestamp=-1 if timestamp is None else timestamp,
+            rev_state=rev_state or ObjectHandle(),
+        )
+
+
+class CredentialEntryList(Structure):
+    _fields_ = [
+        ("count", c_int64),
+        ("data", POINTER(CredentialEntry)),
+    ]
+
+
 class CredentialProve(Structure):
     _fields_ = [
-        ("cred_idx", c_int64),
+        ("entry_idx", c_int64),
         ("referent", c_char_p),
         ("is_predicate", c_int8),
         ("reveal", c_int8),
-        ("timestamp", c_int64),
     ]
 
     @classmethod
     def attribute(
-        cls, idx: int, referent: str, reveal: bool, timestamp: int = None
+        cls,
+        entry_idx: int,
+        referent: str,
+        reveal: bool,
     ) -> "CredentialProve":
         return CredentialProve(
-            cred_idx=idx,
+            entry_idx=entry_idx,
             referent=encode_str(referent),
             is_predicate=False,
             reveal=reveal,
-            timestamp=-1 if timestamp is None else timestamp,
         )
 
     @classmethod
     def predicate(
-        cls, idx: int, referent: str, timestamp: int = None
+        cls,
+        entry_idx: int,
+        referent: str,
     ) -> "CredentialProve":
         return CredentialProve(
-            cred_idx=idx,
+            entry_idx=entry_idx,
             referent=encode_str(referent),
             is_predicate=True,
             reveal=True,
-            timestamp=-1 if timestamp is None else timestamp,
         )
 
 
@@ -160,7 +192,7 @@ class RevocationConfig(Structure):
         ("rev_reg_def", ObjectHandle),
         ("rev_reg_def_private", ObjectHandle),
         ("rev_reg", ObjectHandle),
-        ("rev_reg_index", c_uint32),
+        ("rev_reg_index", c_int64),
         ("tails_path", c_char_p),
     ]
 
@@ -303,9 +335,13 @@ def _object_from_json(
     return result
 
 
-def _object_get_attribute(method: str, handle: ObjectHandle, name: str) -> lib_string:
+def _object_get_attribute(
+    method: str, handle: ObjectHandle, name: str
+) -> Optional[lib_string]:
     result = lib_string()
     do_call(method, handle, encode_str(name), byref(result))
+    if result.is_none():
+        result = None
     return result
 
 
@@ -336,16 +372,6 @@ def create_schema(
     return result
 
 
-def schema_get_id(handle: ObjectHandle) -> lib_string:
-    result = lib_string()
-    do_call(
-        "credx_schema_get_id",
-        handle,
-        byref(result),
-    )
-    return result
-
-
 def create_credential_definition(
     origin_did: str,
     schema: ObjectHandle,
@@ -366,16 +392,6 @@ def create_credential_definition(
         byref(key_proof),
     )
     return (cred_def, cred_def_pvt, key_proof)
-
-
-def credential_definition_get_id(handle: ObjectHandle) -> lib_string:
-    result = lib_string()
-    do_call(
-        "credx_credential_definition_get_id",
-        handle,
-        byref(result),
-    )
-    return result
 
 
 def create_credential(
@@ -430,6 +446,7 @@ def process_credential(
         cred_req_metadata,
         master_secret,
         cred_def,
+        rev_reg_def or ObjectHandle(),
         byref(result),
     )
     return result
@@ -481,25 +498,27 @@ def create_master_secret() -> ObjectHandle:
 
 def create_presentation(
     pres_req: ObjectHandle,
+    credentials: Sequence[CredentialEntry],
+    credentials_prove: Sequence[CredentialProve],
     self_attest: Mapping[str, str],
-    creds: Sequence[ObjectHandle],
-    creds_prove: Sequence[CredentialProve],
     master_secret: ObjectHandle,
     schemas: Sequence[ObjectHandle],
     cred_defs: Sequence[ObjectHandle],
-    # rev_states: Sequence[ObjectHandle],
 ) -> ObjectHandle:
+    entry_list = CredentialEntryList()
+    entry_list.count = len(credentials)
+    entry_list.data = (CredentialEntry * entry_list.count)(*credentials)
     prove_list = CredentialProveList()
-    prove_list.count = len(creds_prove)
-    prove_list.data = (CredentialProve * prove_list.count)(*creds_prove)
+    prove_list.count = len(credentials_prove)
+    prove_list.data = (CredentialProve * prove_list.count)(*credentials_prove)
     present = ObjectHandle()
     do_call(
         "credx_create_presentation",
         pres_req,
+        entry_list,
+        prove_list,
         str_list.create(self_attest.keys()),
         str_list.create(self_attest.values()),
-        object_handle_list.create(creds),
-        prove_list,
         master_secret,
         object_handle_list.create(schemas),
         object_handle_list.create(cred_defs),
@@ -536,10 +555,11 @@ def create_revocation_registry(
     issuance_type: Optional[str],
     max_cred_num: int,
     tails_dir_path: Optional[str],
-) -> (ObjectHandle, ObjectHandle, ObjectHandle):
+) -> (ObjectHandle, ObjectHandle, ObjectHandle, ObjectHandle):
     reg_def = ObjectHandle()
     reg_def_private = ObjectHandle()
     reg_entry = ObjectHandle()
+    reg_init_delta = ObjectHandle()
     do_call(
         "credx_create_revocation_registry",
         encode_str(origin_did),
@@ -547,10 +567,33 @@ def create_revocation_registry(
         encode_str(tag),
         encode_str(rev_reg_type),
         encode_str(issuance_type),
-        c_uint32(max_cred_num),
+        c_int64(max_cred_num),
         encode_str(tails_dir_path),
         byref(reg_def),
         byref(reg_def_private),
         byref(reg_entry),
+        byref(reg_init_delta),
     )
-    return reg_def, reg_def_private, reg_entry
+    return reg_def, reg_def_private, reg_entry, reg_init_delta
+
+
+def create_or_update_revocation_state(
+    rev_reg_def: ObjectHandle,
+    rev_reg_delta: ObjectHandle,
+    rev_reg_index: int,
+    timestamp: int,
+    tails_path: str,
+    prev_rev_state: Optional[ObjectHandle],
+) -> ObjectHandle:
+    rev_state = ObjectHandle()
+    do_call(
+        "credx_create_or_update_revocation_state",
+        rev_reg_def,
+        rev_reg_delta,
+        c_int64(rev_reg_index),
+        c_int64(timestamp),
+        encode_str(tails_path),
+        prev_rev_state or ObjectHandle(),
+        byref(rev_state),
+    )
+    return rev_state

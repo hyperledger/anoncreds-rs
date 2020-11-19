@@ -32,8 +32,8 @@ pub fn verify_presentation(
     pres_req: &PresentationRequest,
     schemas: &HashMap<SchemaId, &Schema>,
     cred_defs: &HashMap<CredentialDefinitionId, &CredentialDefinition>,
-    rev_reg_defs: &HashMap<RevocationRegistryId, &RevocationRegistryDefinition>,
-    rev_regs: &HashMap<RevocationRegistryId, HashMap<u64, &RevocationRegistry>>,
+    rev_reg_defs: Option<&HashMap<RevocationRegistryId, &RevocationRegistryDefinition>>,
+    rev_regs: Option<&HashMap<RevocationRegistryId, HashMap<u64, &RevocationRegistry>>>,
 ) -> Result<bool> {
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_regs: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_regs);
@@ -81,14 +81,14 @@ pub fn verify_presentation(
 
         let schema = match schemas
             .get(&identifier.schema_id)
-            .ok_or_else(|| err_msg!("Schema not found for id: {:?}", identifier.schema_id))?
+            .ok_or_else(|| err_msg!("Schema not provided for ID: {:?}", identifier.schema_id))?
         {
             Schema::SchemaV1(schema) => schema,
         };
 
         let cred_def = match cred_defs.get(&identifier.cred_def_id).ok_or_else(|| {
             err_msg!(
-                "CredentialDefinition not found for id: {:?}",
+                "Credential Definition not provided for ID: {:?}",
                 identifier.cred_def_id
             )
         })? {
@@ -96,28 +96,43 @@ pub fn verify_presentation(
         };
 
         let (rev_reg_def, rev_reg) = if let Some(timestamp) = identifier.timestamp {
-            let rev_reg_id = identifier
-                .rev_reg_id
-                .clone()
-                .ok_or_else(|| err_msg!("Revocation Registry Id not found"))?;
+            let rev_reg_id = identifier.rev_reg_id.clone().ok_or_else(|| {
+                err_msg!("Timestamp provided but Revocation Registry Id not found")
+            })?;
+            if rev_reg_defs.is_none() {
+                return Err(err_msg!(
+                    "Timestamp provided but no Revocation Registry Definitions found"
+                ));
+            }
+            if rev_regs.is_none() {
+                return Err(err_msg!(
+                    "Timestamp provided but no Revocation Registries found"
+                ));
+            }
 
-            let rev_reg_def = Some(rev_reg_defs.get(&rev_reg_id).ok_or_else(|| {
-                err_msg!(
-                    "RevocationRegistryDefinition not found for id: {:?}",
-                    identifier.rev_reg_id
-                )
-            })?);
+            let rev_reg_def = Some(rev_reg_defs.as_ref().unwrap().get(&rev_reg_id).ok_or_else(
+                || {
+                    err_msg!(
+                        "Revocation Registry Definition not provided for ID: {:?}",
+                        rev_reg_id
+                    )
+                },
+            )?);
 
-            let rev_regs_for_cred = rev_regs
-                .get(&rev_reg_id)
-                .ok_or_else(|| err_msg!("RevocationRegistry not found for id: {:?}", rev_reg_id))?;
-
-            let rev_reg = Some(rev_regs_for_cred.get(&timestamp).ok_or_else(|| {
-                err_msg!(
-                    "RevocationRegistry not found for timestamp: {:?}",
-                    timestamp
-                )
-            })?);
+            let rev_reg = Some(
+                rev_regs
+                    .as_ref()
+                    .unwrap()
+                    .get(&rev_reg_id)
+                    .and_then(|regs| regs.get(&timestamp))
+                    .ok_or_else(|| {
+                        err_msg!(
+                            "Revocation Registry not provided for ID and timestamp: {:?}, {:?}",
+                            rev_reg_id,
+                            timestamp
+                        )
+                    })?,
+            );
 
             (rev_reg_def, rev_reg)
         } else {

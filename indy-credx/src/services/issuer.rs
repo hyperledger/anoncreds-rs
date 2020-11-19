@@ -172,6 +172,7 @@ pub fn create_revocation_registry<TW>(
     RevocationRegistryDefinition,
     RevocationRegistryDefinitionPrivate,
     RevocationRegistry,
+    RevocationRegistryDelta,
 )>
 where
     TW: TailsWriter,
@@ -223,24 +224,25 @@ where
     });
 
     // now update registry to reflect issuance-by-default
-    let revoc_reg = if issuance_type == IssuanceType::ISSUANCE_BY_DEFAULT {
+    let (revoc_reg, revoc_init_delta) = if issuance_type == IssuanceType::ISSUANCE_BY_DEFAULT {
         let tails_reader = TailsFileReader::new(&tails_location);
         let issued = BTreeSet::from_iter((1..=max_cred_num).into_iter());
-        let (reg, _delta) = update_revocation_registry(
+        update_revocation_registry(
             &revoc_reg_def,
             &revoc_reg,
             issued,
             BTreeSet::new(),
             &tails_reader,
-        )?;
-        reg
+        )?
     } else {
-        revoc_reg
+        let delta = revoc_reg.initial_delta();
+        (revoc_reg, delta)
     };
 
     let revoc_def_priv = RevocationRegistryDefinitionPrivate {
         value: revoc_key_priv,
     };
+
     trace!(
         "new_revocation_registry <<< revoc_reg_def: {:?}, private: {:?}, revoc_reg: {:?}",
         revoc_reg_def,
@@ -248,7 +250,7 @@ where
         revoc_reg
     );
 
-    Ok((revoc_reg_def, revoc_def_priv, revoc_reg))
+    Ok((revoc_reg_def, revoc_def_priv, revoc_reg, revoc_init_delta))
 }
 
 pub fn update_revocation_registry(

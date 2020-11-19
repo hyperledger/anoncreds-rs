@@ -37,6 +37,22 @@ impl ObjectHandle {
             .ok_or_else(|| err_msg!("Invalid object handle"))
     }
 
+    pub(crate) fn opt_load(&self) -> Result<Option<IndyObject>> {
+        if self.0 != 0 {
+            Some(
+                FFI_OBJECTS
+                    .lock()
+                    .map_err(|_| err_msg!("Error locking object store"))?
+                    .get(self)
+                    .cloned()
+                    .ok_or_else(|| err_msg!("Invalid object handle")),
+            )
+            .transpose()
+        } else {
+            Ok(None)
+        }
+    }
+
     pub(crate) fn remove(&self) -> Result<IndyObject> {
         FFI_OBJECTS
             .lock()
@@ -144,7 +160,10 @@ macro_rules! impl_indy_object_from_json {
         ) -> $crate::ffi::error::ErrorCode {
             $crate::ffi::error::catch_error(|| {
                 check_useful_c_ptr!(result_p);
-                let obj = serde_json::from_str::<$ident>(json.as_str())?;
+                let strval = json
+                    .as_opt_str()
+                    .ok_or_else(|| err_msg!("Missing JSON value"))?;
+                let obj = serde_json::from_str::<$ident>(strval)?;
                 let handle = $crate::ffi::object::ObjectHandle::create(obj)?;
                 unsafe { *result_p = handle };
                 Ok(())
@@ -204,7 +223,19 @@ impl IndyObjectList {
         Ok(Self(loaded))
     }
 
-    pub fn refs<T>(&self) -> Result<HashMap<<T as IndyObjectId>::Id, &T>>
+    pub fn refs<T>(&self) -> Result<Vec<&T>>
+    where
+        T: AnyIndyObject + 'static,
+    {
+        let mut refs = Vec::with_capacity(self.0.len());
+        for inst in self.0.iter() {
+            let inst = inst.cast_ref::<T>()?;
+            refs.push(inst);
+        }
+        Ok(refs)
+    }
+
+    pub fn refs_map<T>(&self) -> Result<HashMap<<T as IndyObjectId>::Id, &T>>
     where
         T: AnyIndyObject + IndyObjectId + 'static,
     {

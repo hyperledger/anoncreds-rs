@@ -1,5 +1,4 @@
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::types::*;
 use crate::error::Result;
@@ -17,7 +16,7 @@ use indy_data_types::anoncreds::{
         RevealedAttributeInfo, SubProofReferent,
     },
 };
-use indy_utils::Qualifiable;
+use indy_utils::{Qualifiable, Validatable};
 
 use super::tails::TailsReader;
 
@@ -129,15 +128,27 @@ pub fn process_credential(
 
 pub fn create_presentation(
     pres_req: &PresentationRequest,
-    credentials: &HashMap<String, &Credential>,
-    requested_credentials: &RequestedCredentials,
+    credentials: PresentCredentials,
+    self_attested: Option<HashMap<String, String>>,
     master_secret: &MasterSecret,
     schemas: &HashMap<SchemaId, &Schema>,
     cred_defs: &HashMap<CredentialDefinitionId, &CredentialDefinition>,
-    rev_states: &HashMap<String, Vec<&CredentialRevocationState>>,
 ) -> Result<Presentation> {
-    trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, requested_credentials: {:?}, master_secret: {:?}, schemas: {:?}, cred_defs: {:?}, rev_states: {:?}",
-            credentials, pres_req, requested_credentials, secret!(&master_secret), schemas, cred_defs, rev_states);
+    trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, master_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
+            credentials, pres_req, credentials, &self_attested, secret!(&master_secret), schemas, cred_defs);
+
+    if credentials.is_empty()
+        && self_attested
+            .as_ref()
+            .map(HashMap::is_empty)
+            .unwrap_or(true)
+    {
+        return Err(err_msg!(
+            "No credential mapping or self-attested attributes presented"
+        ));
+    }
+    // check for duplicate referents
+    credentials.validate()?;
 
     let pres_req_val = pres_req.value();
     let mut proof_builder = CryptoProver::new_proof_builder()?;
@@ -145,31 +156,26 @@ pub fn create_presentation(
 
     let mut requested_proof = RequestedProof::default();
 
-    requested_proof.self_attested_attrs = requested_credentials.self_attested_attributes.clone();
+    requested_proof.self_attested_attrs = self_attested.unwrap_or_default();
 
-    let credentials_for_proving =
-        prepare_credentials_for_proving(requested_credentials, pres_req_val)?;
     let mut sub_proof_index = 0;
     let non_credential_schema = build_non_credential_schema()?;
 
-    let mut identifiers: Vec<Identifier> = Vec::with_capacity(credentials_for_proving.len());
-    for (cred_key, (req_attrs_for_cred, req_predicates_for_cred)) in credentials_for_proving {
-        let credential = credentials.get(cred_key.cred_id.as_str()).ok_or_else(|| {
-            err_msg!(
-                "Credential not provided for ID: {}",
-                cred_key.cred_id.as_str()
-            )
-        })?;
+    let mut identifiers: Vec<Identifier> = Vec::with_capacity(credentials.len());
+    for present in credentials.0 {
+        if present.is_empty() {
+            continue;
+        }
+        let credential = present.cred;
 
-        let schema = schemas.get(&credential.schema_id).ok_or_else(|| {
-            error!("schemas {:?}", schemas);
-            err_msg!("Schema not provided for ID: {}", credential.schema_id)
-        })?;
+        let schema = *schemas
+            .get(&credential.schema_id)
+            .ok_or_else(|| err_msg!("Schema not provided for ID: {}", credential.schema_id))?;
         let schema = match schema {
             Schema::SchemaV1(schema) => schema,
         };
 
-        let cred_def = cred_defs.get(&credential.cred_def_id).ok_or_else(|| {
+        let cred_def = *cred_defs.get(&credential.cred_def_id).ok_or_else(|| {
             err_msg!(
                 "Credential Definition not provided for ID: {}",
                 credential.cred_def_id
@@ -177,29 +183,6 @@ pub fn create_presentation(
         })?;
         let cred_def = match cred_def {
             CredentialDefinition::CredentialDefinitionV1(cd) => cd,
-        };
-
-        let rev_state = if let Some(timestamp) = cred_key.timestamp {
-            let rev_reg_id = credential
-                .rev_reg_id
-                .clone()
-                .ok_or_else(|| err_msg!("Revocation Registry ID not found"))?;
-
-            let cred_rev_states = rev_states
-                .get(&rev_reg_id.0)
-                .or(rev_states.get(cred_key.cred_id.as_str()))
-                .ok_or_else(|| err_msg!("Revocation State not provided for ID: {}", rev_reg_id))?;
-
-            Some(
-                cred_rev_states
-                    .iter()
-                    .find(|state| state.timestamp == timestamp)
-                    .ok_or_else(|| {
-                        err_msg!("Revocation Info not provided for timestamp: {}", timestamp)
-                    })?,
-            )
-        } else {
-            None
         };
 
         let credential_pub_key = CredentialPublicKey::build_from_parts(
@@ -210,8 +193,12 @@ pub fn create_presentation(
         let credential_schema = build_credential_schema(&schema.attr_names.0)?;
         let credential_values =
             build_credential_values(&credential.values.0, Some(&master_secret.value))?;
-        let sub_proof_request =
-            build_sub_proof_request(&req_attrs_for_cred, &req_predicates_for_cred)?;
+        let (req_attrs, req_predicates) = prepare_credential_for_proving(
+            present.requested_attributes,
+            present.requested_predicates,
+            pres_req_val,
+        )?;
+        let sub_proof_request = build_sub_proof_request(&req_attrs, &req_predicates)?;
 
         proof_builder.add_sub_proof_request(
             &sub_proof_request,
@@ -220,8 +207,8 @@ pub fn create_presentation(
             &credential.signature,
             &credential_values,
             &credential_pub_key,
-            rev_state.as_ref().map(|r_info| &r_info.rev_reg),
-            rev_state.as_ref().map(|r_info| &r_info.witness),
+            present.rev_state.as_ref().map(|r_info| &r_info.rev_reg),
+            present.rev_state.as_ref().map(|r_info| &r_info.witness),
         )?;
 
         let identifier = match pres_req {
@@ -229,21 +216,21 @@ pub fn create_presentation(
                 schema_id: credential.schema_id.to_unqualified(),
                 cred_def_id: credential.cred_def_id.to_unqualified(),
                 rev_reg_id: credential.rev_reg_id.as_ref().map(|id| id.to_unqualified()),
-                timestamp: cred_key.timestamp,
+                timestamp: present.timestamp,
             },
             PresentationRequest::PresentationRequestV2(_) => Identifier {
                 schema_id: credential.schema_id.clone(),
                 cred_def_id: credential.cred_def_id.clone(),
                 rev_reg_id: credential.rev_reg_id.clone(),
-                timestamp: cred_key.timestamp,
+                timestamp: present.timestamp,
             },
         };
 
         identifiers.push(identifier);
 
         update_requested_proof(
-            req_attrs_for_cred,
-            req_predicates_for_cred,
+            req_attrs,
+            req_predicates,
             pres_req_val,
             credential,
             sub_proof_index,
@@ -272,7 +259,7 @@ pub fn create_or_update_revocation_state(
     rev_reg_delta: &RevocationRegistryDelta,
     rev_reg_idx: u32,
     timestamp: u64,
-    rev_state: Option<CredentialRevocationState>,
+    rev_state: Option<&CredentialRevocationState>,
 ) -> Result<CredentialRevocationState> {
     trace!(
         "create_or_update_revocation_state >>> , tails_reader: {:?}, revoc_reg_def: {:?}, \
@@ -292,55 +279,49 @@ rev_reg_delta: {:?}, rev_reg_idx: {}, timestamp: {:?}, rev_state: {:?}",
         RevocationRegistryDelta::RevocationRegistryDeltaV1(v1) => v1,
     };
 
-    let rev_state = match rev_state {
-        None => {
-            let witness = Witness::new(
-                rev_reg_idx,
-                revoc_reg_def.value.max_cred_num,
-                revoc_reg_def.value.issuance_type.to_bool(),
-                &rev_reg_delta.value,
-                &tails_reader,
-            )?;
-
-            CredentialRevocationState {
-                witness,
-                rev_reg: CryptoRevocationRegistry::from(rev_reg_delta.value.clone()),
-                timestamp,
-            }
-        }
-        Some(mut rev_state) => {
-            rev_state.witness.update(
+    let witness = match rev_state {
+        None => Witness::new(
+            rev_reg_idx,
+            revoc_reg_def.value.max_cred_num,
+            revoc_reg_def.value.issuance_type.to_bool(),
+            &rev_reg_delta.value,
+            &tails_reader,
+        )?,
+        Some(source_rev_state) => {
+            let mut witness = source_rev_state.witness.clone();
+            witness.update(
                 rev_reg_idx,
                 revoc_reg_def.value.max_cred_num,
                 &rev_reg_delta.value,
                 &tails_reader,
             )?;
-            rev_state.rev_reg = CryptoRevocationRegistry::from(rev_reg_delta.value.clone());
-            rev_state.timestamp = timestamp;
-            rev_state
+            witness
         }
     };
 
-    Ok(rev_state)
+    Ok(CredentialRevocationState {
+        witness,
+        rev_reg: CryptoRevocationRegistry::from(rev_reg_delta.value.clone()),
+        timestamp,
+    })
 }
 
-fn prepare_credentials_for_proving(
-    requested_credentials: &RequestedCredentials,
+fn prepare_credential_for_proving(
+    requested_attributes: HashSet<(String, bool)>,
+    requested_predicates: HashSet<String>,
     pres_req: &PresentationRequestPayload,
-) -> Result<HashMap<ProvingCredentialKey, (Vec<RequestedAttributeInfo>, Vec<RequestedPredicateInfo>)>>
-{
+) -> Result<(Vec<RequestedAttributeInfo>, Vec<RequestedPredicateInfo>)> {
     trace!(
-        "_prepare_credentials_for_proving >>> requested_credentials: {:?}, pres_req: {:?}",
-        requested_credentials,
+        "_prepare_credentials_for_proving >>> requested_attributes: {:?}, requested_predicates: {:?}, pres_req: {:?}",
+        requested_attributes,
+        requested_predicates,
         pres_req
     );
 
-    let mut credentials_for_proving: HashMap<
-        ProvingCredentialKey,
-        (Vec<RequestedAttributeInfo>, Vec<RequestedPredicateInfo>),
-    > = HashMap::new();
+    let mut attrs = Vec::with_capacity(requested_attributes.len());
+    let mut preds = Vec::with_capacity(requested_predicates.len());
 
-    for (attr_referent, requested_attr) in requested_credentials.requested_attributes.iter() {
+    for (attr_referent, revealed) in requested_attributes {
         let attr_info = pres_req
             .requested_attributes
             .get(attr_referent.as_str())
@@ -351,28 +332,14 @@ fn prepare_credentials_for_proving(
                 )
             })?;
 
-        let req_attr_info = RequestedAttributeInfo {
-            attr_referent: attr_referent.clone(),
+        attrs.push(RequestedAttributeInfo {
+            attr_referent,
             attr_info: attr_info.clone(),
-            revealed: requested_attr.revealed,
-        };
-
-        match credentials_for_proving.entry(ProvingCredentialKey {
-            cred_id: requested_attr.cred_id.clone(),
-            timestamp: requested_attr.timestamp,
-        }) {
-            Entry::Occupied(cred_for_proving) => {
-                let &mut (ref mut attributes_for_credential, _) = cred_for_proving.into_mut();
-                attributes_for_credential.push(req_attr_info);
-            }
-            Entry::Vacant(attributes_for_credential) => {
-                attributes_for_credential.insert((vec![req_attr_info], Vec::new()));
-            }
-        };
+            revealed,
+        });
     }
 
-    for (predicate_referent, proving_cred_key) in requested_credentials.requested_predicates.iter()
-    {
+    for predicate_referent in requested_predicates {
         let predicate_info = pres_req
             .requested_predicates
             .get(predicate_referent.as_str())
@@ -383,28 +350,19 @@ fn prepare_credentials_for_proving(
                 )
             })?;
 
-        let req_predicate_info = RequestedPredicateInfo {
-            predicate_referent: predicate_referent.clone(),
+        preds.push(RequestedPredicateInfo {
+            predicate_referent,
             predicate_info: predicate_info.clone(),
-        };
-
-        match credentials_for_proving.entry(proving_cred_key.clone()) {
-            Entry::Occupied(cred_for_proving) => {
-                let &mut (_, ref mut predicates_for_credential) = cred_for_proving.into_mut();
-                predicates_for_credential.push(req_predicate_info);
-            }
-            Entry::Vacant(v) => {
-                v.insert((Vec::new(), vec![req_predicate_info]));
-            }
-        };
+        });
     }
 
     trace!(
-        "_prepare_credentials_for_proving <<< credentials_for_proving: {:?}",
-        credentials_for_proving
+        "_prepare_credential_for_proving <<< attrs: {:?}, preds: {:?}",
+        attrs,
+        preds
     );
 
-    Ok(credentials_for_proving)
+    Ok((attrs, preds))
 }
 
 fn get_credential_values_for_attribute(
@@ -563,12 +521,23 @@ mod tests {
         }
     }
 
+    macro_rules! hashset {
+        ($( $val: expr ),*) => {
+            {
+                let mut set = ::std::collections::HashSet::new();
+                $(
+                    set.insert($val);
+                )*
+                set
+            }
+        }
+    }
+
     mod prepare_credentials_for_proving {
         use indy_data_types::anoncreds::pres_request::{AttributeInfo, PredicateInfo};
 
         use super::*;
 
-        const CRED_ID: &str = "8591bcac-ee7d-4bef-ba7e-984696440b30";
         const ATTRIBUTE_REFERENT: &str = "attribute_referent";
         const PREDICATE_REFERENT: &str = "predicate_referent";
 
@@ -606,58 +575,31 @@ mod tests {
             }
         }
 
-        fn _req_cred() -> RequestedCredentials {
-            RequestedCredentials {
-                self_attested_attributes: HashMap::new(),
-                requested_attributes: hashmap!(
-                    ATTRIBUTE_REFERENT.to_string() => RequestedAttribute{
-                        cred_id: CRED_ID.to_string(),
-                        timestamp: None,
-                        revealed: false,
-                    }
-                ),
-                requested_predicates: hashmap!(
-                    PREDICATE_REFERENT.to_string() => ProvingCredentialKey{ cred_id: CRED_ID.to_string(), timestamp: None }
-                ),
-            }
+        fn _req_cred() -> (HashSet<(String, bool)>, HashSet<String>) {
+            (
+                hashset!((ATTRIBUTE_REFERENT.to_string(), false)),
+                hashset!(PREDICATE_REFERENT.to_string()),
+            )
         }
 
         #[test]
-        fn prepare_credentials_for_proving_works() {
-            let req_cred = _req_cred();
+        fn prepare_credential_for_proving_works() {
+            let (req_attrs, req_preds) = _req_cred();
             let proof_req = _proof_req();
 
-            let res = prepare_credentials_for_proving(&req_cred, &proof_req).unwrap();
+            let (req_attr_info, req_pred_info) =
+                prepare_credential_for_proving(req_attrs, req_preds, &proof_req).unwrap();
 
-            assert_eq!(1, res.len());
-            assert!(res.contains_key(&ProvingCredentialKey {
-                cred_id: CRED_ID.to_string(),
-                timestamp: None
-            }));
-
-            let (req_attr_info, req_pred_info) = res
-                .get(&ProvingCredentialKey {
-                    cred_id: CRED_ID.to_string(),
-                    timestamp: None,
-                })
-                .unwrap();
             assert_eq!(1, req_attr_info.len());
             assert_eq!(1, req_pred_info.len());
         }
 
         #[test]
-        fn prepare_credentials_for_proving_works_for_multiple_attributes_with_same_credential() {
-            let mut req_cred = _req_cred();
+        fn prepare_credential_for_proving_works_for_multiple_attributes() {
+            let (mut req_attrs, req_preds) = _req_cred();
             let mut proof_req = _proof_req();
 
-            req_cred.requested_attributes.insert(
-                "attribute_referent_2".to_string(),
-                RequestedAttribute {
-                    cred_id: CRED_ID.to_string(),
-                    timestamp: None,
-                    revealed: false,
-                },
-            );
+            req_attrs.insert(("attribute_referent_2".to_string(), false));
 
             proof_req.requested_attributes.insert(
                 "attribute_referent_2".to_string(),
@@ -669,43 +611,32 @@ mod tests {
                 },
             );
 
-            let res = prepare_credentials_for_proving(&req_cred, &proof_req).unwrap();
+            let (req_attr_info, req_pred_info) =
+                prepare_credential_for_proving(req_attrs, req_preds, &proof_req).unwrap();
 
-            assert_eq!(1, res.len());
-            assert!(res.contains_key(&ProvingCredentialKey {
-                cred_id: CRED_ID.to_string(),
-                timestamp: None
-            }));
-
-            let (req_attr_info, req_pred_info) = res
-                .get(&ProvingCredentialKey {
-                    cred_id: CRED_ID.to_string(),
-                    timestamp: None,
-                })
-                .unwrap();
             assert_eq!(2, req_attr_info.len());
             assert_eq!(1, req_pred_info.len());
         }
 
         #[test]
-        fn prepare_credentials_for_proving_works_for_missed_attribute() {
-            let req_cred = _req_cred();
+        fn prepare_credential_for_proving_works_for_missed_attribute() {
+            let (req_attrs, req_preds) = _req_cred();
             let mut proof_req = _proof_req();
 
             proof_req.requested_attributes.clear();
 
-            let res = prepare_credentials_for_proving(&req_cred, &proof_req);
+            let res = prepare_credential_for_proving(req_attrs, req_preds, &proof_req);
             assert_kind!(Input, res);
         }
 
         #[test]
-        fn prepare_credentials_for_proving_works_for_missed_predicate() {
-            let req_cred = _req_cred();
+        fn prepare_credential_for_proving_works_for_missed_predicate() {
+            let (req_attrs, req_preds) = _req_cred();
             let mut proof_req = _proof_req();
 
             proof_req.requested_predicates.clear();
 
-            let res = prepare_credentials_for_proving(&req_cred, &proof_req);
+            let res = prepare_credential_for_proving(req_attrs, req_preds, &proof_req);
             assert_kind!(Input, res);
         }
     }

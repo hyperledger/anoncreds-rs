@@ -83,6 +83,7 @@ pub extern "C" fn credx_credential_definition_get_attribute(
     result_p: *mut *const c_char,
 ) -> ErrorCode {
     catch_error(|| {
+        check_useful_c_ptr!(result_p);
         let cred_def = handle.load()?;
         let cred_def = cred_def.cast_ref::<CredentialDefinition>()?;
         let val = match name.as_opt_str().unwrap_or_default() {

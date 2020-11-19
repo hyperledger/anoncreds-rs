@@ -1,13 +1,15 @@
+use std::convert::TryInto;
 use std::os::raw::c_char;
 
 use ffi_support::{rust_string_to_c, FfiStr};
 use indy_utils::Qualifiable;
 
 use super::error::{catch_error, ErrorCode};
-use super::object::{IndyObjectId, ObjectHandle};
+use super::object::{IndyObject, IndyObjectId, ObjectHandle};
 use crate::services::{
     issuer::create_revocation_registry,
-    tails::TailsFileWriter,
+    prover::create_or_update_revocation_state,
+    tails::{TailsFileReader, TailsFileWriter},
     types::{
         CredentialRevocationState, DidValue, IssuanceType, RegistryType, RevocationRegistry,
         RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate, RevocationRegistryDelta,
@@ -22,16 +24,18 @@ pub extern "C" fn credx_create_revocation_registry(
     tag: FfiStr,
     rev_reg_type: FfiStr,
     issuance_type: FfiStr,
-    max_cred_num: u32,
+    max_cred_num: i64,
     tails_dir_path: FfiStr,
     reg_def_p: *mut ObjectHandle,
     reg_def_private_p: *mut ObjectHandle,
     reg_entry_p: *mut ObjectHandle,
+    reg_init_delta_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(reg_def_p);
         check_useful_c_ptr!(reg_def_private_p);
         check_useful_c_ptr!(reg_entry_p);
+        check_useful_c_ptr!(reg_init_delta_p);
         let origin_did = {
             let did = origin_did
                 .as_opt_str()
@@ -50,22 +54,26 @@ pub extern "C" fn credx_create_revocation_registry(
             None => IssuanceType::default(),
         };
         let mut tails_writer = TailsFileWriter::new(tails_dir_path.into_opt_string());
-        let (reg_def, reg_def_private, reg_entry) = create_revocation_registry(
+        let (reg_def, reg_def_private, reg_entry, reg_init_delta) = create_revocation_registry(
             &origin_did,
             cred_def.load()?.cast_ref()?,
             tag,
             rev_reg_type,
             issuance_type,
-            max_cred_num,
+            max_cred_num
+                .try_into()
+                .map_err(|_| err_msg!("Invalid maximum credential count"))?,
             &mut tails_writer,
         )?;
         let reg_def = ObjectHandle::create(reg_def)?;
         let reg_def_private = ObjectHandle::create(reg_def_private)?;
         let reg_entry = ObjectHandle::create(reg_entry)?;
+        let reg_init_delta = ObjectHandle::create(reg_init_delta)?;
         unsafe {
             *reg_def_p = reg_def;
             *reg_def_private_p = reg_def_private;
             *reg_entry_p = reg_entry;
+            *reg_init_delta_p = reg_init_delta;
         };
         Ok(())
     })
@@ -94,6 +102,7 @@ pub extern "C" fn credx_revocation_registry_definition_get_attribute(
     result_p: *mut *const c_char,
 ) -> ErrorCode {
     catch_error(|| {
+        check_useful_c_ptr!(result_p);
         let reg_def = handle.load()?;
         let reg_def = reg_def.cast_ref::<RevocationRegistryDefinition>()?;
         let val = match name.as_opt_str().unwrap_or_default() {
@@ -132,5 +141,43 @@ impl_indy_object_from_json!(
     RevocationRegistryDelta,
     credx_revocation_registry_delta_from_json
 );
+
+#[no_mangle]
+pub extern "C" fn credx_create_or_update_revocation_state(
+    rev_reg_def: ObjectHandle,
+    rev_reg_delta: ObjectHandle,
+    rev_reg_index: i64,
+    timestamp: i64,
+    tails_path: FfiStr,
+    rev_state: ObjectHandle,
+    rev_state_p: *mut ObjectHandle,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(rev_state_p);
+        let prev_rev_state = rev_state.opt_load()?;
+        let tails_path = tails_path
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing tails file path"))?;
+        let tails_reader = TailsFileReader::new(tails_path);
+        let rev_state = create_or_update_revocation_state(
+            tails_reader,
+            rev_reg_def.load()?.cast_ref()?,
+            rev_reg_delta.load()?.cast_ref()?,
+            rev_reg_index
+                .try_into()
+                .map_err(|_| err_msg!("Invalid credential revocation index"))?,
+            timestamp
+                .try_into()
+                .map_err(|_| err_msg!("Invalid timestamp"))?,
+            prev_rev_state
+                .as_ref()
+                .map(IndyObject::cast_ref)
+                .transpose()?,
+        )?;
+        let rev_state = ObjectHandle::create(rev_state)?;
+        unsafe { *rev_state_p = rev_state };
+        Ok(())
+    })
+}
 
 impl_indy_object!(CredentialRevocationState, "CredentialRevocationState");

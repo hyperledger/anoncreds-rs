@@ -3,11 +3,12 @@ use std::collections::HashMap;
 use ffi_support::FfiStr;
 
 use super::error::{catch_error, ErrorCode};
-use super::object::{IndyObjectList, ObjectHandle};
+use super::object::{IndyObject, IndyObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
+use crate::error::Result;
 use crate::services::{
     prover::create_presentation,
-    types::{Presentation, RequestedCredentials},
+    types::{PresentCredentials, Presentation},
     verifier::verify_presentation,
 };
 
@@ -16,21 +17,51 @@ impl_indy_object_from_json!(Presentation, credx_presentation_from_json);
 
 #[derive(Debug)]
 #[repr(C)]
+pub struct FfiCredentialEntry {
+    credential: ObjectHandle,
+    timestamp: i64,
+    rev_state: ObjectHandle,
+}
+
+impl FfiCredentialEntry {
+    fn load(&self) -> Result<CredentialEntry> {
+        let credential = self.credential.load()?;
+        let timestamp = if self.timestamp < 0 {
+            None
+        } else {
+            Some(self.timestamp as u64)
+        };
+        let rev_state = self.rev_state.opt_load()?;
+        Ok(CredentialEntry {
+            credential,
+            timestamp,
+            rev_state,
+        })
+    }
+}
+
+#[derive(Debug)]
+#[repr(C)]
 pub struct FfiCredentialProve<'a> {
-    cred_idx: i64,
+    entry_idx: i64,
     referent: FfiStr<'a>,
     is_predicate: i8,
     reveal: i8,
-    timestamp: i64,
+}
+
+struct CredentialEntry {
+    credential: IndyObject,
+    timestamp: Option<u64>,
+    rev_state: Option<IndyObject>,
 }
 
 #[no_mangle]
 pub extern "C" fn credx_create_presentation(
     pres_req: ObjectHandle,
+    credentials: FfiList<FfiCredentialEntry>,
+    credentials_prove: FfiList<FfiCredentialProve>,
     self_attest_names: FfiStrList,
     self_attest_values: FfiStrList,
-    creds: FfiList<ObjectHandle>,
-    creds_prove: FfiList<FfiCredentialProve>,
     master_secret: ObjectHandle,
     schemas: FfiList<ObjectHandle>,
     cred_defs: FfiList<ObjectHandle>,
@@ -44,67 +75,82 @@ pub extern "C" fn credx_create_presentation(
             ));
         }
 
-        let creds = IndyObjectList::load(creds.as_slice())?;
-        let mut map_creds = HashMap::with_capacity(creds.len());
-        for (idx, cred) in creds.iter().enumerate() {
-            map_creds.insert(idx.to_string(), cred.cast_ref()?);
-        }
+        let credentials = credentials.as_slice();
+        let entries = credentials.into_iter().try_fold(
+            Vec::with_capacity(credentials.len()),
+            |mut r, ffi_entry| {
+                r.push(ffi_entry.load()?);
+                Result::Ok(r)
+            },
+        )?;
 
         let schemas = IndyObjectList::load(schemas.as_slice())?;
         let cred_defs = IndyObjectList::load(cred_defs.as_slice())?;
 
-        let mut req_creds = RequestedCredentials::default();
-        for (name, raw) in self_attest_names
-            .as_slice()
-            .into_iter()
-            .zip(self_attest_values.as_slice())
-        {
-            let name = name
-                .as_opt_str()
-                .ok_or_else(|| err_msg!("Missing attribute name"))?
-                .to_string();
-            let raw = raw
-                .as_opt_str()
-                .ok_or_else(|| err_msg!("Missing attribute raw value"))?
-                .to_string();
-            req_creds.add_self_attested(name, raw);
-        }
-        for prove in creds_prove.as_slice() {
-            if prove.cred_idx < 0 || prove.cred_idx as usize >= creds.len() {
-                return Err(err_msg!("Invalid index for credential reference"));
+        let self_attested = if !self_attest_names.is_empty() {
+            let mut self_attested = HashMap::new();
+            for (name, raw) in self_attest_names
+                .as_slice()
+                .into_iter()
+                .zip(self_attest_values.as_slice())
+            {
+                let name = name
+                    .as_opt_str()
+                    .ok_or_else(|| err_msg!("Missing attribute name"))?
+                    .to_string();
+                let raw = raw
+                    .as_opt_str()
+                    .ok_or_else(|| err_msg!("Missing attribute raw value"))?
+                    .to_string();
+                self_attested.insert(name, raw);
             }
-            let referent = prove
-                .referent
-                .as_opt_str()
-                .ok_or_else(|| err_msg!("Missing referent for credential proof info"))?
-                .to_string();
-            let timestamp = if prove.timestamp < 0 {
-                None
-            } else {
-                Some(prove.timestamp as u64)
-            };
-            if prove.is_predicate == 0 {
-                req_creds.add_requested_attribute(
-                    referent,
-                    prove.cred_idx.to_string(),
-                    timestamp,
-                    prove.reveal != 0,
-                );
-            } else {
-                req_creds.add_requested_predicate(referent, prove.cred_idx.to_string(), timestamp);
-            }
-        }
+            Some(self_attested)
+        } else {
+            None
+        };
 
-        let map_rev_states = HashMap::new();
+        let mut present_creds = PresentCredentials::default();
+
+        for (entry_idx, entry) in entries.iter().enumerate() {
+            let mut add_cred = present_creds.add_credential(
+                entry.credential.cast_ref()?,
+                entry.timestamp,
+                entry
+                    .rev_state
+                    .as_ref()
+                    .map(IndyObject::cast_ref)
+                    .transpose()?,
+            );
+
+            for prove in credentials_prove.as_slice() {
+                if prove.entry_idx < 0 {
+                    return Err(err_msg!("Invalid credential index"));
+                }
+                if prove.entry_idx as usize != entry_idx {
+                    continue;
+                }
+
+                let referent = prove
+                    .referent
+                    .as_opt_str()
+                    .ok_or_else(|| err_msg!("Missing referent for credential proof info"))?
+                    .to_string();
+
+                if prove.is_predicate == 0 {
+                    add_cred.add_requested_attribute(referent, prove.reveal != 0);
+                } else {
+                    add_cred.add_requested_predicate(referent);
+                }
+            }
+        }
 
         let presentation = create_presentation(
             pres_req.load()?.cast_ref()?,
-            &map_creds,
-            &req_creds,
+            present_creds,
+            self_attested,
             master_secret.load()?.cast_ref()?,
-            &schemas.refs()?,
-            &cred_defs.refs()?,
-            &map_rev_states,
+            &schemas.refs_map()?,
+            &cred_defs.refs_map()?,
         )?;
         let presentation = ObjectHandle::create(presentation)?;
         unsafe { *presentation_p = presentation };
@@ -123,15 +169,15 @@ pub extern "C" fn credx_verify_presentation(
     catch_error(|| {
         let schemas = IndyObjectList::load(schemas.as_slice())?;
         let cred_defs = IndyObjectList::load(cred_defs.as_slice())?;
-        let rev_reg_defs = HashMap::new();
-        let rev_regs = HashMap::new();
+        let rev_reg_defs = None;
+        let rev_regs = None;
         let verify = verify_presentation(
             presentation.load()?.cast_ref()?,
             pres_req.load()?.cast_ref()?,
-            &schemas.refs()?,
-            &cred_defs.refs()?,
-            &rev_reg_defs,
-            &rev_regs,
+            &schemas.refs_map()?,
+            &cred_defs.refs_map()?,
+            rev_reg_defs,
+            rev_regs,
         )?;
         unsafe { *result_p = verify as i8 };
         Ok(())
