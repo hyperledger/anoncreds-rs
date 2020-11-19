@@ -1,3 +1,4 @@
+#[cfg(any(feature = "cl", feature = "cl_native"))]
 use std::collections::HashSet;
 
 use crate::Validatable;

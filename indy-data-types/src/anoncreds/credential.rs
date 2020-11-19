@@ -5,7 +5,7 @@ use zeroize::Zeroize;
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::identifiers::schema::SchemaId;
-use crate::{ConversionError, Validatable, ValidationError};
+use crate::{Validatable, ValidationError};
 
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
@@ -22,7 +22,7 @@ pub struct Credential {
 
 #[cfg(any(feature = "cl", feature = "cl_native"))]
 impl Credential {
-    pub fn try_clone(&self) -> Result<Self, ConversionError> {
+    pub fn try_clone(&self) -> Result<Self, crate::ConversionError> {
         Ok(Self {
             schema_id: self.schema_id.clone(),
             cred_def_id: self.cred_def_id.clone(),
