@@ -52,17 +52,19 @@ pub extern "C" fn credx_create_schema(
 }
 
 #[no_mangle]
-pub extern "C" fn credx_schema_get_id(
+pub extern "C" fn credx_schema_get_attribute(
     handle: ObjectHandle,
+    name: FfiStr,
     result_p: *mut *const c_char,
 ) -> ErrorCode {
     catch_error(|| {
-        check_useful_c_ptr!(result_p);
         let schema = handle.load()?;
-        let id = match schema.cast_ref::<Schema>()? {
-            Schema::SchemaV1(s) => s.id.to_string(),
+        let schema = schema.cast_ref::<Schema>()?;
+        let val = match name.as_opt_str().unwrap_or_default() {
+            "id" => schema.get_id().to_string(),
+            s => return Err(err_msg!("Unsupported attribute: {}", s)),
         };
-        unsafe { *result_p = rust_string_to_c(id) };
+        unsafe { *result_p = rust_string_to_c(val) };
         Ok(())
     })
 }

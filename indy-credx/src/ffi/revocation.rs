@@ -1,4 +1,6 @@
-use ffi_support::FfiStr;
+use std::os::raw::c_char;
+
+use ffi_support::{rust_string_to_c, FfiStr};
 use indy_utils::Qualifiable;
 
 use super::error::{catch_error, ErrorCode};
@@ -7,8 +9,9 @@ use crate::services::{
     issuer::create_revocation_registry,
     tails::TailsFileWriter,
     types::{
-        DidValue, IssuanceType, RegistryType, RevocationRegistry, RevocationRegistryDefinition,
-        RevocationRegistryDefinitionPrivate, RevocationRegistryId, RevocationState,
+        CredentialRevocationState, DidValue, IssuanceType, RegistryType, RevocationRegistry,
+        RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate, RevocationRegistryDelta,
+        RevocationRegistryId,
     },
 };
 
@@ -84,6 +87,34 @@ impl IndyObjectId for RevocationRegistryDefinition {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn credx_revocation_registry_definition_get_attribute(
+    handle: ObjectHandle,
+    name: FfiStr,
+    result_p: *mut *const c_char,
+) -> ErrorCode {
+    catch_error(|| {
+        let reg_def = handle.load()?;
+        let reg_def = reg_def.cast_ref::<RevocationRegistryDefinition>()?;
+        let val = match name.as_opt_str().unwrap_or_default() {
+            "id" => reg_def.get_id().to_string(),
+            "tails_hash" => match reg_def {
+                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => {
+                    r.value.tails_hash.to_string()
+                }
+            },
+            "tails_location" => match reg_def {
+                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => {
+                    r.value.tails_location.to_string()
+                }
+            },
+            s => return Err(err_msg!("Unsupported attribute: {}", s)),
+        };
+        unsafe { *result_p = rust_string_to_c(val) };
+        Ok(())
+    })
+}
+
 impl_indy_object!(
     RevocationRegistryDefinitionPrivate,
     "RevocationRegistryDefinitionPrivate"
@@ -96,4 +127,10 @@ impl_indy_object_from_json!(
 impl_indy_object!(RevocationRegistry, "RevocationRegistry");
 impl_indy_object_from_json!(RevocationRegistry, credx_revocation_registry_from_json);
 
-impl_indy_object!(RevocationState, "RevocationState");
+impl_indy_object!(RevocationRegistryDelta, "RevocationRegistryDelta");
+impl_indy_object_from_json!(
+    RevocationRegistryDelta,
+    credx_revocation_registry_delta_from_json
+);
+
+impl_indy_object!(CredentialRevocationState, "CredentialRevocationState");

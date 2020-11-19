@@ -533,28 +533,6 @@ pub fn encode_credential_attribute(raw_value: &str) -> Result<String> {
     }
 }
 
-pub struct CredentialRevocationConfig<'a> {
-    pub reg_def: &'a RevocationRegistryDefinition,
-    pub reg_def_private: &'a RevocationRegistryDefinitionPrivate,
-    pub registry: &'a RevocationRegistry,
-    pub registry_idx: u32,
-    pub tails_reader: TailsReader,
-}
-
-impl<'a> std::fmt::Debug for CredentialRevocationConfig<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "CredentialRevocationConfig {{ reg_def: {:?}, private: {:?}, registry: {:?}, idx: {}, reader: {:?} }}",
-            self.reg_def,
-            secret!(self.reg_def_private),
-            self.registry,
-            secret!(self.registry_idx),
-            self.tails_reader,
-        )
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -5,8 +5,6 @@ import logging
 import os
 import sys
 from ctypes import (
-    POINTER,
-    CDLL,
     byref,
     c_char_p,
     c_int8,
@@ -14,6 +12,9 @@ from ctypes import (
     c_size_t,
     c_uint32,
     c_void_p,
+    pointer,
+    CDLL,
+    POINTER,
     Structure,
 )
 from ctypes.util import find_library
@@ -154,6 +155,33 @@ class CredentialProveList(Structure):
     ]
 
 
+class RevocationConfig(Structure):
+    _fields_ = [
+        ("rev_reg_def", ObjectHandle),
+        ("rev_reg_def_private", ObjectHandle),
+        ("rev_reg", ObjectHandle),
+        ("rev_reg_index", c_uint32),
+        ("tails_path", c_char_p),
+    ]
+
+    @classmethod
+    def create(
+        cls,
+        rev_reg_def: ObjectHandle,
+        rev_reg_def_private: ObjectHandle,
+        rev_reg: ObjectHandle,
+        rev_reg_index: int,
+        tails_path: str,
+    ) -> "RevocationConfig":
+        return RevocationConfig(
+            rev_reg_def=rev_reg_def,
+            rev_reg_def_private=rev_reg_def_private,
+            rev_reg=rev_reg,
+            rev_reg_index=rev_reg_index,
+            tails_path=encode_str(tails_path),
+        )
+
+
 def get_library() -> CDLL:
     """Return the CDLL instance, loading it if necessary."""
     global LIB
@@ -275,6 +303,12 @@ def _object_from_json(
     return result
 
 
+def _object_get_attribute(method: str, handle: ObjectHandle, name: str) -> lib_string:
+    result = lib_string()
+    do_call(method, handle, encode_str(name), byref(result))
+    return result
+
+
 def generate_nonce() -> str:
     result = lib_string()
     do_call("credx_generate_nonce", byref(result))
@@ -351,9 +385,11 @@ def create_credential(
     cred_request: ObjectHandle,
     attr_raw_values: Mapping[str, str],
     attr_enc_values: Optional[Mapping[str, str]],
-    _revocation_config,
-) -> ObjectHandle:
+    revocation_config: Optional[RevocationConfig],
+) -> (ObjectHandle, ObjectHandle, ObjectHandle):
     cred = ObjectHandle()
+    rev_reg = ObjectHandle()
+    rev_delta = ObjectHandle()
     names_list = str_list.create(attr_raw_values.keys())
     raw_values_list = str_list.create(attr_raw_values.values())
     if attr_enc_values:
@@ -372,9 +408,12 @@ def create_credential(
         names_list,
         raw_values_list,
         enc_values_list,
+        pointer(revocation_config),
         byref(cred),
+        byref(rev_reg),
+        byref(rev_delta),
     )
-    return cred
+    return cred, rev_reg, rev_delta
 
 
 def process_credential(

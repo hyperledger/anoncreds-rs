@@ -1,9 +1,11 @@
-from typing import Mapping, Sequence, Union
+from typing import Mapping, Optional, Sequence, Union
 
 from . import bindings
 
 
 class CredentialDefinition(bindings.IndyObject):
+    GET_ATTR = "credx_credential_definition_get_attribute"
+
     @classmethod
     def create(
         cls,
@@ -33,7 +35,13 @@ class CredentialDefinition(bindings.IndyObject):
 
     @property
     def id(self) -> str:
-        return str(bindings.credential_definition_get_id(self.handle))
+        return str(
+            bindings._object_get_attribute(
+                self.GET_ATTR,
+                self.handle,
+                "id",
+            )
+        )
 
 
 class CredentialDefinitionPrivate(bindings.IndyObject):
@@ -138,6 +146,8 @@ class MasterSecret(bindings.IndyObject):
 
 
 class Schema(bindings.IndyObject):
+    GET_ATTR = "credx_schema_get_attribute"
+
     @classmethod
     def create(
         cls,
@@ -158,7 +168,13 @@ class Schema(bindings.IndyObject):
 
     @property
     def id(self) -> str:
-        return str(bindings.schema_get_id(self.handle))
+        return str(
+            bindings._object_get_attribute(
+                self.GET_ATTR,
+                self.handle,
+                "id",
+            )
+        )
 
 
 class Credential(bindings.IndyObject):
@@ -171,7 +187,12 @@ class Credential(bindings.IndyObject):
         cred_request: [str, CredentialRequest],
         attr_raw_values: Mapping[str, str],
         attr_enc_values: Mapping[str, str] = None,
-    ) -> "Credential":
+        revocation_config: "CredentialRevocationConfig" = None,
+    ) -> (
+        "Credential",
+        Optional["RevocationRegistry"],
+        Optional["RevocationRegistryDelta"],
+    ):
         if not isinstance(cred_def, bindings.IndyObject):
             cred_def = CredentialDefinition.load(cred_def)
         if not isinstance(cred_def_private, bindings.IndyObject):
@@ -180,16 +201,19 @@ class Credential(bindings.IndyObject):
             cred_offer = CredentialOffer.load(cred_offer)
         if not isinstance(cred_request, bindings.IndyObject):
             cred_request = CredentialRequest.load(cred_request)
-        return Credential(
-            bindings.create_credential(
-                cred_def.handle,
-                cred_def_private.handle,
-                cred_offer.handle,
-                cred_request.handle,
-                attr_raw_values,
-                attr_enc_values,
-                None,
-            )
+        cred, rev_reg, rev_delta = bindings.create_credential(
+            cred_def.handle,
+            cred_def_private.handle,
+            cred_offer.handle,
+            cred_request.handle,
+            attr_raw_values,
+            attr_enc_values,
+            revocation_config._native if revocation_config else None,
+        )
+        return (
+            Credential(cred),
+            RevocationRegistry(rev_reg) if rev_reg else None,
+            RevocationRegistryDelta(rev_delta) if rev_delta else None,
         )
 
     def process(
@@ -349,6 +373,8 @@ class Presentation(bindings.IndyObject):
 
 
 class RevocationRegistryDefinition(bindings.IndyObject):
+    GET_ATTR = "credx_revocation_registry_definition_get_attribute"
+
     @classmethod
     def create(
         cls,
@@ -360,7 +386,11 @@ class RevocationRegistryDefinition(bindings.IndyObject):
         *,
         issuance_type: str = None,
         tails_dir_path: str = None,
-    ) -> "RevocationRegistryDefinition":
+    ) -> (
+        "RevocationRegistryDefinition",
+        "RevocationRegistryDefinitionPrivate",
+        "RevocationRegistry",
+    ):
         if not isinstance(cred_def, bindings.IndyObject):
             cred_def = CredentialDefinition.load(cred_def)
         reg_def, reg_def_private, reg_entry = bindings.create_revocation_registry(
@@ -388,6 +418,36 @@ class RevocationRegistryDefinition(bindings.IndyObject):
             )
         )
 
+    @property
+    def id(self) -> str:
+        return str(
+            bindings._object_get_attribute(
+                self.GET_ATTR,
+                self.handle,
+                "id",
+            )
+        )
+
+    @property
+    def tails_hash(self) -> str:
+        return str(
+            bindings._object_get_attribute(
+                self.GET_ATTR,
+                self.handle,
+                "tails_hash",
+            )
+        )
+
+    @property
+    def tails_location(self) -> str:
+        return str(
+            bindings._object_get_attribute(
+                self.GET_ATTR,
+                self.handle,
+                "tails_location",
+            )
+        )
+
 
 class RevocationRegistryDefinitionPrivate(bindings.IndyObject):
     @classmethod
@@ -406,4 +466,50 @@ class RevocationRegistry(bindings.IndyObject):
     def load(cls, value: Union[dict, str, bytes, memoryview]) -> "RevocationRegistry":
         return RevocationRegistry(
             bindings._object_from_json("credx_revocation_registry_from_json", value)
+        )
+
+
+class RevocationRegistryDelta(bindings.IndyObject):
+    @classmethod
+    def load(
+        cls, value: Union[dict, str, bytes, memoryview]
+    ) -> "RevocationRegistryDelta":
+        return RevocationRegistryDelta(
+            bindings._object_from_json(
+                "credx_revocation_registry_delta_from_json", value
+            )
+        )
+
+
+class CredentialRevocationConfig:
+    def __init__(
+        self,
+        rev_reg_def: [str, "RevocationRegistryDefinition"] = None,
+        rev_reg_def_private: [str, "RevocationRegistryDefinitionPrivate"] = None,
+        rev_reg: [str, "RevocationRegistry"] = None,
+        rev_reg_index: int = None,
+        tails_path: str = None,
+    ):
+        if not isinstance(rev_reg_def, bindings.IndyObject):
+            rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
+        self.rev_reg_def = rev_reg_def
+        if not isinstance(rev_reg_def_private, bindings.IndyObject):
+            rev_reg_def_private = RevocationRegistryDefinitionPrivate.load(
+                rev_reg_def_private
+            )
+        self.rev_reg_def_private = rev_reg_def_private
+        if not isinstance(rev_reg, bindings.IndyObject):
+            rev_reg = RevocationRegistry.load(rev_reg)
+        self.rev_reg = rev_reg
+        self.rev_reg_index = rev_reg_index
+        self.tails_path = tails_path
+
+    @property
+    def _native(self) -> bindings.RevocationConfig:
+        return bindings.RevocationConfig.create(
+            self.rev_reg_def.handle,
+            self.rev_reg_def_private.handle,
+            self.rev_reg.handle,
+            self.rev_reg_index,
+            self.tails_path,
         )

@@ -63,33 +63,8 @@ pub extern "C" fn credx_create_credential_definition(
     })
 }
 
-#[no_mangle]
-pub extern "C" fn credx_credential_definition_get_id(
-    handle: ObjectHandle,
-    result_p: *mut *const c_char,
-) -> ErrorCode {
-    catch_error(|| {
-        check_useful_c_ptr!(result_p);
-        let schema = handle.load()?;
-        let id = match schema.cast_ref::<CredentialDefinition>()? {
-            CredentialDefinition::CredentialDefinitionV1(c) => c.id.to_string(),
-        };
-        unsafe { *result_p = rust_string_to_c(id) };
-        Ok(())
-    })
-}
-
 impl_indy_object!(CredentialDefinition, "CredentialDefinition");
 impl_indy_object_from_json!(CredentialDefinition, credx_credential_definition_from_json);
-
-impl_indy_object!(CredentialDefinitionPrivate, "CredentialDefinitionPrivate");
-impl_indy_object_from_json!(
-    CredentialDefinitionPrivate,
-    credx_credential_definition_private_from_json
-);
-
-impl_indy_object!(KeyCorrectnessProof, "KeyCorrectnessProof");
-impl_indy_object_from_json!(KeyCorrectnessProof, credx_key_correctness_proof_from_json);
 
 impl IndyObjectId for CredentialDefinition {
     type Id = CredentialDefinitionId;
@@ -100,3 +75,30 @@ impl IndyObjectId for CredentialDefinition {
         }
     }
 }
+
+#[no_mangle]
+pub extern "C" fn credx_credential_definition_get_attribute(
+    handle: ObjectHandle,
+    name: FfiStr,
+    result_p: *mut *const c_char,
+) -> ErrorCode {
+    catch_error(|| {
+        let cred_def = handle.load()?;
+        let cred_def = cred_def.cast_ref::<CredentialDefinition>()?;
+        let val = match name.as_opt_str().unwrap_or_default() {
+            "id" => cred_def.get_id().to_string(),
+            s => return Err(err_msg!("Unsupported attribute: {}", s)),
+        };
+        unsafe { *result_p = rust_string_to_c(val) };
+        Ok(())
+    })
+}
+
+impl_indy_object!(CredentialDefinitionPrivate, "CredentialDefinitionPrivate");
+impl_indy_object_from_json!(
+    CredentialDefinitionPrivate,
+    credx_credential_definition_private_from_json
+);
+
+impl_indy_object!(KeyCorrectnessProof, "KeyCorrectnessProof");
+impl_indy_object_from_json!(KeyCorrectnessProof, credx_key_correctness_proof_from_json);

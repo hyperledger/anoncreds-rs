@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use super::tails::TailsReader;
 pub use indy_data_types::{
     anoncreds::{
         cred_def::{
@@ -115,19 +116,41 @@ impl Validatable for RequestedCredentials {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct RevocationState {
+pub struct CredentialRevocationState {
     pub(crate) witness: Witness,
     pub(crate) rev_reg: CryptoRevocationRegistry,
     pub(crate) timestamp: u64,
 }
 
-impl Validatable for RevocationState {
+impl Validatable for CredentialRevocationState {
     fn validate(&self) -> std::result::Result<(), ValidationError> {
         if self.timestamp == 0 {
             return Err(invalid!(
-                "RevocationState validation failed: `timestamp` must be greater than 0",
+                "Credential Revocation State validation failed: `timestamp` must be greater than 0",
             ));
         }
         Ok(())
+    }
+}
+
+pub struct CredentialRevocationConfig<'a> {
+    pub reg_def: &'a RevocationRegistryDefinition,
+    pub reg_def_private: &'a RevocationRegistryDefinitionPrivate,
+    pub registry: &'a RevocationRegistry,
+    pub registry_idx: u32,
+    pub tails_reader: TailsReader,
+}
+
+impl<'a> std::fmt::Debug for CredentialRevocationConfig<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "CredentialRevocationConfig {{ reg_def: {:?}, private: {:?}, registry: {:?}, idx: {}, reader: {:?} }}",
+            self.reg_def,
+            secret!(self.reg_def_private),
+            self.registry,
+            secret!(self.registry_idx),
+            self.tails_reader,
+        )
     }
 }

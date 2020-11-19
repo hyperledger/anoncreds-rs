@@ -4,6 +4,7 @@ from indy_credx import (
     CredentialDefinition,
     CredentialOffer,
     CredentialRequest,
+    CredentialRevocationConfig,
     PresentationRequest,
     Presentation,
     PresentCredentials,
@@ -25,9 +26,10 @@ cred_def, cred_def_pvt, key_proof = CredentialDefinition.create(
 )
 print(cred_def.handle)
 
-rev_reg_def, rev_reg_def_private, rev_reg_entry = RevocationRegistryDefinition.create(
+rev_reg_def, rev_reg_def_private, rev_reg = RevocationRegistryDefinition.create(
     test_did, cred_def, "default", "CL_ACCUM", 100
 )
+print(rev_reg_def.tails_hash)
 
 master_secret = MasterSecret.create()
 master_secret_id = "my id"
@@ -41,8 +43,18 @@ cred_req, cred_req_metadata = CredentialRequest.create(
 
 print(cred_req.to_json())
 
-cred = Credential.create(cred_def, cred_def_pvt, cred_offer, cred_req, {"attr": "test"})
-print(cred)
+cred, rev_reg_updated, rev_delta = Credential.create(
+    cred_def,
+    cred_def_pvt,
+    cred_offer,
+    cred_req,
+    {"attr": "test"},
+    None,
+    CredentialRevocationConfig(
+        rev_reg_def, rev_reg_def_private, rev_reg, 0, rev_reg_def.tails_location
+    ),
+)
+print(cred, rev_reg_updated, rev_delta)
 print(cred.to_json())
 
 cred_received = cred.process(cred_req_metadata, master_secret, cred_def)

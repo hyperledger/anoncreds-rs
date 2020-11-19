@@ -46,6 +46,12 @@ impl ObjectHandle {
     }
 }
 
+impl Default for ObjectHandle {
+    fn default() -> Self {
+        Self(0)
+    }
+}
+
 #[derive(Clone, Debug)]
 #[repr(transparent)]
 pub(crate) struct IndyObject(Arc<dyn AnyIndyObject>);

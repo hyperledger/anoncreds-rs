@@ -1,11 +1,45 @@
+use ffi_support::FfiStr;
+
 use super::error::{catch_error, ErrorCode};
-use super::object::ObjectHandle;
+use super::object::{IndyObject, ObjectHandle};
 use super::util::FfiStrList;
+use crate::error::Result;
 use crate::services::{
     issuer::{encode_credential_attribute, new_credential},
     prover::process_credential,
-    types::{AttributeValues, Credential, CredentialValues},
+    tails::TailsFileReader,
+    types::{AttributeValues, Credential, CredentialRevocationConfig, CredentialValues},
 };
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct FfiCredRevInfo<'a> {
+    reg_def: ObjectHandle,
+    reg_def_private: ObjectHandle,
+    registry: ObjectHandle,
+    reg_idx: u32,
+    tails_path: FfiStr<'a>,
+}
+
+struct RevocationConfig {
+    reg_def: IndyObject,
+    reg_def_private: IndyObject,
+    registry: IndyObject,
+    reg_idx: u32,
+    tails_path: String,
+}
+
+impl RevocationConfig {
+    pub fn ref_config(&self) -> Result<CredentialRevocationConfig> {
+        Ok(CredentialRevocationConfig {
+            reg_def: self.reg_def.cast_ref()?,
+            reg_def_private: self.reg_def_private.cast_ref()?,
+            registry: self.registry.cast_ref()?,
+            registry_idx: self.reg_idx,
+            tails_reader: TailsFileReader::new(self.tails_path.as_str()),
+        })
+    }
+}
 
 #[no_mangle]
 pub extern "C" fn credx_create_credential(
@@ -16,8 +50,10 @@ pub extern "C" fn credx_create_credential(
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
     attr_enc_values: FfiStrList,
-    // revocation info
+    revocation: *const FfiCredRevInfo,
     cred_p: *mut ObjectHandle,
+    rev_reg_p: *mut ObjectHandle,
+    rev_delta_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(cred_p);
@@ -62,16 +98,48 @@ pub extern "C" fn credx_create_credential(
             );
             attr_idx += 1;
         }
+        let revocation_config = if !revocation.is_null() {
+            let revocation = unsafe { &*revocation };
+            let tails_path = revocation
+                .tails_path
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing tails file path"))?
+                .to_string();
+            Some(RevocationConfig {
+                reg_def: revocation.reg_def.load()?,
+                reg_def_private: revocation.reg_def_private.load()?,
+                registry: revocation.registry.load()?,
+                reg_idx: revocation.reg_idx,
+                tails_path,
+            })
+        } else {
+            None
+        };
         let (cred, rev_reg, rev_delta) = new_credential(
             cred_def.load()?.cast_ref()?,
             cred_def_private.load()?.cast_ref()?,
             cred_offer.load()?.cast_ref()?,
             cred_request.load()?.cast_ref()?,
             cred_values,
-            None,
+            revocation_config
+                .as_ref()
+                .map(RevocationConfig::ref_config)
+                .transpose()?,
         )?;
         let cred = ObjectHandle::create(cred)?;
-        unsafe { *cred_p = cred };
+        let rev_reg = rev_reg
+            .map(ObjectHandle::create)
+            .transpose()?
+            .unwrap_or_default();
+        let rev_delta = rev_delta
+            .map(ObjectHandle::create)
+            .transpose()?
+            .unwrap_or_default();
+        unsafe {
+            *cred_p = cred;
+            *rev_reg_p = rev_reg;
+            *rev_delta_p = rev_delta;
+        };
         Ok(())
     })
 }

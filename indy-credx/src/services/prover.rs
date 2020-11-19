@@ -134,7 +134,7 @@ pub fn create_presentation(
     master_secret: &MasterSecret,
     schemas: &HashMap<SchemaId, &Schema>,
     cred_defs: &HashMap<CredentialDefinitionId, &CredentialDefinition>,
-    rev_states: &HashMap<String, Vec<&RevocationState>>,
+    rev_states: &HashMap<String, Vec<&CredentialRevocationState>>,
 ) -> Result<Presentation> {
     trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, requested_credentials: {:?}, master_secret: {:?}, schemas: {:?}, cred_defs: {:?}, rev_states: {:?}",
             credentials, pres_req, requested_credentials, secret!(&master_secret), schemas, cred_defs, rev_states);
@@ -183,7 +183,7 @@ pub fn create_presentation(
             let rev_reg_id = credential
                 .rev_reg_id
                 .clone()
-                .ok_or_else(|| err_msg!("Revocation Registry Id not found"))?;
+                .ok_or_else(|| err_msg!("Revocation Registry ID not found"))?;
 
             let cred_rev_states = rev_states
                 .get(&rev_reg_id.0)
@@ -272,8 +272,8 @@ pub fn create_or_update_revocation_state(
     rev_reg_delta: &RevocationRegistryDelta,
     rev_reg_idx: u32,
     timestamp: u64,
-    rev_state: Option<RevocationState>,
-) -> Result<RevocationState> {
+    rev_state: Option<CredentialRevocationState>,
+) -> Result<CredentialRevocationState> {
     trace!(
         "create_or_update_revocation_state >>> , tails_reader: {:?}, revoc_reg_def: {:?}, \
 rev_reg_delta: {:?}, rev_reg_idx: {}, timestamp: {:?}, rev_state: {:?}",
@@ -302,7 +302,7 @@ rev_reg_delta: {:?}, rev_reg_idx: {}, timestamp: {:?}, rev_state: {:?}",
                 &tails_reader,
             )?;
 
-            RevocationState {
+            CredentialRevocationState {
                 witness,
                 rev_reg: CryptoRevocationRegistry::from(rev_reg_delta.value.clone()),
                 timestamp,
