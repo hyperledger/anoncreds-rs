@@ -1,9 +1,12 @@
 use crate::identifiers::cred_def::CredentialDefinitionId;
 use crate::identifiers::rev_reg::RevocationRegistryId;
 use crate::utils::Qualifiable;
-use crate::{invalid, Validatable, ValidationError};
+use crate::{invalid, ConversionError, Validatable, ValidationError};
 
 pub const CL_ACCUM: &str = "CL_ACCUM";
+
+pub const ISSUANCE_BY_DEFAULT: &str = "ISSUANCE_BY_DEFAULT";
+pub const ISSUANCE_ON_DEMAND: &str = "ISSUANCE_ON_DEMAND";
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -14,8 +17,29 @@ pub enum IssuanceType {
 }
 
 impl IssuanceType {
+    pub fn from_str(value: &str) -> Result<Self, ConversionError> {
+        match value {
+            ISSUANCE_BY_DEFAULT => Ok(Self::ISSUANCE_BY_DEFAULT),
+            ISSUANCE_ON_DEMAND => Ok(Self::ISSUANCE_ON_DEMAND),
+            _ => Err(ConversionError::from_msg("Invalid issuance type")),
+        }
+    }
+
     pub fn to_bool(&self) -> bool {
         self.clone() == IssuanceType::ISSUANCE_BY_DEFAULT
+    }
+
+    pub fn to_str(&self) -> &'static str {
+        match *self {
+            Self::ISSUANCE_BY_DEFAULT => ISSUANCE_BY_DEFAULT,
+            Self::ISSUANCE_ON_DEMAND => ISSUANCE_ON_DEMAND,
+        }
+    }
+}
+
+impl Default for IssuanceType {
+    fn default() -> Self {
+        Self::ISSUANCE_BY_DEFAULT
     }
 }
 
@@ -27,9 +51,16 @@ pub enum RegistryType {
 }
 
 impl RegistryType {
+    pub fn from_str(value: &str) -> Result<Self, ConversionError> {
+        match value {
+            CL_ACCUM => Ok(Self::CL_ACCUM),
+            _ => Err(ConversionError::from_msg("Invalid registry type")),
+        }
+    }
+
     pub fn to_str(&self) -> &'static str {
         match *self {
-            RegistryType::CL_ACCUM => CL_ACCUM,
+            Self::CL_ACCUM => CL_ACCUM,
         }
     }
 }

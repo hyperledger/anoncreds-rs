@@ -9,6 +9,8 @@ from indy_credx import (
     PresentCredentials,
     MasterSecret,
     Schema,
+    #    RevocationRegistry,
+    RevocationRegistryDefinition,
 )
 
 
@@ -21,8 +23,11 @@ print(schema.to_json())
 cred_def, cred_def_pvt, key_proof = CredentialDefinition.create(
     test_did, schema, "CL", tag="tag", support_revocation=True
 )
-
 print(cred_def.handle)
+
+rev_reg_def, rev_reg_def_private, rev_reg_entry = RevocationRegistryDefinition.create(
+    test_did, cred_def, "default", "CL_ACCUM", 100
+)
 
 master_secret = MasterSecret.create()
 master_secret_id = "my id"

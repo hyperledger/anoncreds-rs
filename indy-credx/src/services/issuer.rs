@@ -160,7 +160,7 @@ pub fn make_revocation_registry_id(
     ))
 }
 
-pub fn new_revocation_registry<TW>(
+pub fn create_revocation_registry<TW>(
     origin_did: &DidValue,
     cred_def: &CredentialDefinition,
     tag: &str,

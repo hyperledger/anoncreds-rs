@@ -12,10 +12,6 @@ use serde::Serialize;
 
 use super::error::{catch_error, ErrorCode};
 use crate::error::Result;
-use crate::services::types::{
-    RevocationRegistry, RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate,
-    RevocationState,
-};
 
 pub(crate) static FFI_OBJECTS: Lazy<Mutex<BTreeMap<ObjectHandle, IndyObject>>> =
     Lazy::new(|| Mutex::new(BTreeMap::new()));
@@ -150,14 +146,6 @@ macro_rules! impl_indy_object_from_json {
         }
     };
 }
-
-impl_indy_object!(RevocationRegistry, "RevocationRegistry");
-impl_indy_object!(RevocationRegistryDefinition, "RevocationRegistryDefinition");
-impl_indy_object!(
-    RevocationRegistryDefinitionPrivate,
-    "RevocationRegistryDefinitionPrivate"
-);
-impl_indy_object!(RevocationState, "RevocationState");
 
 #[no_mangle]
 pub extern "C" fn credx_object_get_json(

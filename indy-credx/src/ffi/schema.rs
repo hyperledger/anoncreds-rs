@@ -22,11 +22,22 @@ pub extern "C" fn credx_create_schema(
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(result_p);
-        let origin_did = DidValue::from_str(origin_did.as_str())?;
+        let origin_did = {
+            let did = origin_did
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing origin DID"))?;
+            DidValue::from_str(did)?
+        };
+        let schema_name = schema_name
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing schema name"))?;
+        let schema_version = schema_version
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing schema version"))?;
         let schema = new_schema(
             &origin_did,
-            schema_name.as_str(),
-            schema_version.as_str(),
+            schema_name,
+            schema_version,
             attr_names.to_string_vec()?.into(),
             if seq_no > 0 {
                 Some(seq_no as u32)

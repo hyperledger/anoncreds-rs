@@ -12,6 +12,7 @@ from ctypes import (
     c_int8,
     c_int64,
     c_size_t,
+    c_uint32,
     c_void_p,
     Structure,
 )
@@ -314,7 +315,7 @@ def schema_get_id(handle: ObjectHandle) -> lib_string:
 def create_credential_definition(
     origin_did: str,
     schema: ObjectHandle,
-    tag: Optional[str],
+    tag: str,
     signature_type: str,
     support_revocation: bool,
 ) -> (ObjectHandle, ObjectHandle, ObjectHandle):
@@ -486,3 +487,31 @@ def verify_presentation(
         byref(verify),
     )
     return bool(verify)
+
+
+def create_revocation_registry(
+    origin_did: str,
+    cred_def: ObjectHandle,
+    tag: str,
+    rev_reg_type: str,
+    issuance_type: Optional[str],
+    max_cred_num: int,
+    tails_dir_path: Optional[str],
+) -> (ObjectHandle, ObjectHandle, ObjectHandle):
+    reg_def = ObjectHandle()
+    reg_def_private = ObjectHandle()
+    reg_entry = ObjectHandle()
+    do_call(
+        "credx_create_revocation_registry",
+        encode_str(origin_did),
+        cred_def,
+        encode_str(tag),
+        encode_str(rev_reg_type),
+        encode_str(issuance_type),
+        c_uint32(max_cred_num),
+        encode_str(tails_dir_path),
+        byref(reg_def),
+        byref(reg_def_private),
+        byref(reg_entry),
+    )
+    return reg_def, reg_def_private, reg_entry

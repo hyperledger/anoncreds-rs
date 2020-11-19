@@ -14,7 +14,7 @@ class CredentialDefinition(bindings.IndyObject):
         support_revocation: bool,
         tag: str = None,
     ) -> ("CredentialDefinition", "CredentialDefinitionPrivate", "KeyCorrectnessProof"):
-        if isinstance(schema, str):
+        if not isinstance(schema, bindings.IndyObject):
             schema = Schema.load(schema)
         cred_def, cred_def_pvt, key_proof = bindings.create_credential_definition(
             origin_did, schema.handle, tag, signature_type, support_revocation
@@ -64,9 +64,9 @@ class CredentialOffer(bindings.IndyObject):
         cred_def: [str, CredentialDefinition],
         key_proof: [str, KeyCorrectnessProof],
     ) -> "CredentialOffer":
-        if isinstance(cred_def, str):
+        if not isinstance(cred_def, bindings.IndyObject):
             cred_def = CredentialDefinition.load(cred_def)
-        if isinstance(key_proof, str):
+        if not isinstance(key_proof, bindings.IndyObject):
             key_proof = KeyCorrectnessProof.load(key_proof)
         return CredentialOffer(
             bindings.create_credential_offer(
@@ -91,11 +91,11 @@ class CredentialRequest(bindings.IndyObject):
         master_secret_id: str,
         cred_offer: [str, CredentialOffer],
     ) -> ("CredentialRequest", "CredentialRequestMetadata"):
-        if isinstance(cred_def, str):
+        if not isinstance(cred_def, bindings.IndyObject):
             cred_def = CredentialDefinition.load(cred_def)
-        if isinstance(master_secret, str):
+        if not isinstance(master_secret, bindings.IndyObject):
             master_secret = MasterSecret.load(master_secret)
-        if isinstance(cred_offer, str):
+        if not isinstance(cred_offer, bindings.IndyObject):
             cred_offer = CredentialOffer.load(cred_offer)
         cred_def, cred_def_metadata = bindings.create_credential_request(
             prover_did,
@@ -172,13 +172,13 @@ class Credential(bindings.IndyObject):
         attr_raw_values: Mapping[str, str],
         attr_enc_values: Mapping[str, str] = None,
     ) -> "Credential":
-        if isinstance(cred_def, str):
+        if not isinstance(cred_def, bindings.IndyObject):
             cred_def = CredentialDefinition.load(cred_def)
-        if isinstance(cred_def_private, str):
+        if not isinstance(cred_def_private, bindings.IndyObject):
             cred_def_private = CredentialDefinitionPrivate.load(cred_def_private)
-        if isinstance(cred_offer, str):
+        if not isinstance(cred_offer, bindings.IndyObject):
             cred_offer = CredentialOffer.load(cred_offer)
-        if isinstance(cred_request, str):
+        if not isinstance(cred_request, bindings.IndyObject):
             cred_request = CredentialRequest.load(cred_request)
         return Credential(
             bindings.create_credential(
@@ -198,11 +198,11 @@ class Credential(bindings.IndyObject):
         master_secret: [str, CredentialRequestMetadata],
         cred_def: [str, CredentialDefinition],
     ) -> "Credential":
-        if isinstance(cred_req_metadata, str):
+        if not isinstance(cred_req_metadata, bindings.IndyObject):
             cred_req_metadata = CredentialRequestMetadata.load(cred_req_metadata)
-        if isinstance(master_secret, str):
+        if not isinstance(master_secret, bindings.IndyObject):
             master_secret = MasterSecret.load(master_secret)
-        if isinstance(cred_def, str):
+        if not isinstance(cred_def, bindings.IndyObject):
             cred_def = CredentialDefinition.load(cred_def)
         return Credential(
             bindings.process_credential(
@@ -276,15 +276,20 @@ class Presentation(bindings.IndyObject):
         schemas: Sequence[Union[str, Schema]],
         cred_defs: Sequence[Union[str, CredentialDefinition]],
     ) -> "Presentation":
-        if isinstance(pres_req, str):
+        if not isinstance(pres_req, bindings.IndyObject):
             pres_req = PresentationRequest.load(pres_req)
-        if isinstance(master_secret, str):
+        if not isinstance(master_secret, bindings.IndyObject):
             master_secret = MasterSecret.load(master_secret)
         schemas = [
-            (Schema.load(s) if isinstance(s, str) else s).handle for s in schemas
+            (Schema.load(s) if not isinstance(s, bindings.IndyObject) else s).handle
+            for s in schemas
         ]
         cred_defs = [
-            (CredentialDefinition.load(c) if isinstance(c, str) else c).handle
+            (
+                CredentialDefinition.load(c)
+                if not isinstance(c, bindings.IndyObject)
+                else c
+            ).handle
             for c in cred_defs
         ]
         creds = []
@@ -324,15 +329,81 @@ class Presentation(bindings.IndyObject):
         schemas: Sequence[Union[str, Schema]],
         cred_defs: Sequence[Union[str, CredentialDefinition]],
     ) -> bool:
-        if isinstance(pres_req, str):
+        if not isinstance(pres_req, bindings.IndyObject):
             pres_req = PresentationRequest.load(pres_req)
         schemas = [
-            (Schema.load(s) if isinstance(s, str) else s).handle for s in schemas
+            (Schema.load(s) if not isinstance(s, bindings.IndyObject) else s).handle
+            for s in schemas
         ]
         cred_defs = [
-            (CredentialDefinition.load(c) if isinstance(c, str) else c).handle
+            (
+                CredentialDefinition.load(c)
+                if not isinstance(c, bindings.IndyObject)
+                else c
+            ).handle
             for c in cred_defs
         ]
         return bindings.verify_presentation(
             self.handle, pres_req.handle, schemas, cred_defs
+        )
+
+
+class RevocationRegistryDefinition(bindings.IndyObject):
+    @classmethod
+    def create(
+        cls,
+        origin_did: str,
+        cred_def: [str, CredentialDefinition],
+        tag: str,
+        registry_type: str,
+        max_cred_num: int,
+        *,
+        issuance_type: str = None,
+        tails_dir_path: str = None,
+    ) -> "RevocationRegistryDefinition":
+        if not isinstance(cred_def, bindings.IndyObject):
+            cred_def = CredentialDefinition.load(cred_def)
+        reg_def, reg_def_private, reg_entry = bindings.create_revocation_registry(
+            origin_did,
+            cred_def.handle,
+            tag,
+            registry_type,
+            issuance_type,
+            max_cred_num,
+            tails_dir_path,
+        )
+        return (
+            RevocationRegistryDefinition(reg_def),
+            RevocationRegistryDefinitionPrivate(reg_def_private),
+            RevocationRegistry(reg_entry),
+        )
+
+    @classmethod
+    def load(
+        cls, value: Union[dict, str, bytes, memoryview]
+    ) -> "RevocationRegistryDefinition":
+        return RevocationRegistryDefinition(
+            bindings._object_from_json(
+                "credx_revocation_registry_definition_from_json", value
+            )
+        )
+
+
+class RevocationRegistryDefinitionPrivate(bindings.IndyObject):
+    @classmethod
+    def load(
+        cls, value: Union[dict, str, bytes, memoryview]
+    ) -> "RevocationRegistryDefinitionPrivate":
+        return RevocationRegistryDefinitionPrivate(
+            bindings._object_from_json(
+                "credx_revocation_registry_definition_private_from_json", value
+            )
+        )
+
+
+class RevocationRegistry(bindings.IndyObject):
+    @classmethod
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "RevocationRegistry":
+        return RevocationRegistry(
+            bindings._object_from_json("credx_revocation_registry_from_json", value)
         )

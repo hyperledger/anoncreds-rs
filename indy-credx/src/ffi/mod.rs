@@ -17,13 +17,14 @@ mod object;
 
 mod util;
 
-mod cred;
 mod cred_def;
 mod cred_offer;
 mod cred_req;
+mod credential;
 mod master_secret;
 mod pres_req;
 mod presentation;
+mod revocation;
 mod schema;
 
 #[no_mangle]

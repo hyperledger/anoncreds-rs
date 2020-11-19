@@ -17,7 +17,12 @@ pub extern "C" fn credx_create_credential_offer(
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(cred_offer_p);
-        let schema_id = SchemaId::from_str(schema_id.as_str())?;
+        let schema_id = {
+            let sid = schema_id
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing schema ID"))?;
+            SchemaId::from_str(sid)?
+        };
         let cred_offer = new_credential_offer(
             &schema_id,
             cred_def.load()?.cast_ref()?,

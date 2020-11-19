@@ -29,12 +29,24 @@ pub extern "C" fn credx_create_credential_definition(
         check_useful_c_ptr!(cred_def_p);
         check_useful_c_ptr!(cred_def_pvt_p);
         check_useful_c_ptr!(key_proof_p);
-        let origin_did = DidValue::from_str(origin_did.as_str())?;
+        let origin_did = {
+            let did = origin_did
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing origin DID"))?;
+            DidValue::from_str(did)?
+        };
+        let tag = tag.as_opt_str().ok_or_else(|| err_msg!("Missing tag"))?;
+        let signature_type = {
+            let stype = signature_type
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing signature type"))?;
+            SignatureType::from_str(stype).map_err(err_map!(Input))?
+        };
         let (cred_def, cred_def_pvt, key_proof) = new_credential_definition(
             &origin_did,
             schema.load()?.cast_ref()?,
-            tag.as_opt_str().unwrap_or("default"),
-            SignatureType::from_str(signature_type.as_str()).map_err(err_map!(Input))?,
+            tag,
+            signature_type,
             CredentialDefinitionConfig {
                 support_revocation: support_revocation != 0,
             },

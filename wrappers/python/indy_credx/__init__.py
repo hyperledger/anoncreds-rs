@@ -15,6 +15,9 @@ from .types import (
     Presentation,
     PresentCredentials,
     Schema,
+    RevocationRegistry,
+    RevocationRegistryDefinition,
+    RevocationRegistryDefinitionPrivate,
 )
 
 __all__ = (
@@ -34,4 +37,7 @@ __all__ = (
     "Presentation",
     "PresentCredentials",
     "Schema",
+    "RevocationRegistry",
+    "RevocationRegistryDefinition",
+    "RevocationRegistryDefinitionPrivate",
 )
