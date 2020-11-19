@@ -43,14 +43,6 @@ impl Nonce {
         self.native
     }
 
-    #[cfg(any(feature = "cl", feature = "cl_native"))]
-    pub fn from_dec<S: Into<String>>(value: S) -> Result<Self, ConversionError> {
-        let strval = value.into();
-        let native = UrsaNonce::from_dec(&strval)?;
-        Ok(Self { strval, native })
-    }
-
-    #[cfg(not(any(feature = "cl", feature = "cl_native")))]
     pub fn from_dec<S: Into<String>>(value: S) -> Result<Self, ConversionError> {
         let strval = value.into();
         if strval.is_empty() {
@@ -61,6 +53,12 @@ impl Nonce {
                 return Err("Invalid bignum value".into());
             }
         }
+        #[cfg(any(feature = "cl", feature = "cl_native"))]
+        {
+            let native = UrsaNonce::from_dec(&strval)?;
+            Ok(Self { strval, native })
+        }
+        #[cfg(not(any(feature = "cl", feature = "cl_native")))]
         Ok(Self { strval })
     }
 
@@ -213,6 +211,7 @@ mod tests {
             "1a",
         ];
         for v in invalid.iter() {
+            println!("try {}", v);
             assert!(Nonce::try_from(*v).is_err())
         }
     }
