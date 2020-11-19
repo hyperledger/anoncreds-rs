@@ -415,6 +415,10 @@ class Presentation(bindings.IndyObject):
         pres_req: [str, PresentationRequest],
         schemas: Sequence[Union[str, Schema]],
         cred_defs: Sequence[Union[str, CredentialDefinition]],
+        rev_reg_defs: Sequence[Union[str, "RevocationRegistryDefinition"]] = None,
+        rev_reg_entries: Mapping[
+            str, Mapping[int, Union[str, "RevocationRegistry"]]
+        ] = None,
     ) -> bool:
         if not isinstance(pres_req, bindings.IndyObject):
             pres_req = PresentationRequest.load(pres_req)
@@ -430,8 +434,30 @@ class Presentation(bindings.IndyObject):
             ).handle
             for c in cred_defs
         ]
+        reg_defs = []
+        reg_entries = []
+        for reg_def in rev_reg_defs:
+            if not isinstance(reg_def, bindings.IndyObject):
+                reg_def = RevocationRegistryDefinition.load(reg_def)
+            reg_def_id = reg_def.id
+            if rev_reg_entries and reg_def_id in rev_reg_entries:
+                for timestamp, entry in rev_reg_entries[reg_def_id].items():
+                    if not isinstance(entry, bindings.IndyObject):
+                        entry = RevocationRegistry.load(entry)
+                    reg_entries.append(
+                        bindings.RevocationEntry.create(
+                            len(reg_defs), entry.handle, timestamp
+                        )
+                    )
+            reg_defs.append(reg_def.handle)
+
         return bindings.verify_presentation(
-            self.handle, pres_req.handle, schemas, cred_defs
+            self.handle,
+            pres_req.handle,
+            schemas,
+            cred_defs,
+            reg_defs,
+            reg_entries or None,
         )
 
 

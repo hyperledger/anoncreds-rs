@@ -1,14 +1,15 @@
 use std::collections::HashMap;
+use std::convert::TryInto;
 
 use ffi_support::FfiStr;
 
 use super::error::{catch_error, ErrorCode};
-use super::object::{IndyObject, IndyObjectList, ObjectHandle};
+use super::object::{IndyObject, IndyObjectId, IndyObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
 use crate::error::Result;
 use crate::services::{
     prover::create_presentation,
-    types::{PresentCredentials, Presentation},
+    types::{PresentCredentials, Presentation, RevocationRegistryDefinition},
     verifier::verify_presentation,
 };
 
@@ -75,14 +76,16 @@ pub extern "C" fn credx_create_presentation(
             ));
         }
 
-        let credentials = credentials.as_slice();
-        let entries = credentials.into_iter().try_fold(
-            Vec::with_capacity(credentials.len()),
-            |mut r, ffi_entry| {
-                r.push(ffi_entry.load()?);
-                Result::Ok(r)
-            },
-        )?;
+        let entries = {
+            let credentials = credentials.as_slice();
+            credentials.into_iter().try_fold(
+                Vec::with_capacity(credentials.len()),
+                |mut r, ffi_entry| {
+                    r.push(ffi_entry.load()?);
+                    Result::Ok(r)
+                },
+            )?
+        };
 
         let schemas = IndyObjectList::load(schemas.as_slice())?;
         let cred_defs = IndyObjectList::load(cred_defs.as_slice())?;
@@ -158,26 +161,73 @@ pub extern "C" fn credx_create_presentation(
     })
 }
 
+#[derive(Debug)]
+#[repr(C)]
+pub struct FfiRevocationEntry {
+    def_entry_idx: i64,
+    entry: ObjectHandle,
+    timestamp: i64,
+}
+
+impl FfiRevocationEntry {
+    fn load(&self) -> Result<(usize, IndyObject, u64)> {
+        let def_entry_idx = self
+            .def_entry_idx
+            .try_into()
+            .map_err(|_| err_msg!("Invalid revocation registry entry index"))?;
+        let entry = self.entry.load()?;
+        let timestamp = self
+            .timestamp
+            .try_into()
+            .map_err(|_| err_msg!("Invalid timestamp for revocation entry"))?;
+        Ok((def_entry_idx, entry, timestamp))
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn credx_verify_presentation(
     presentation: ObjectHandle,
     pres_req: ObjectHandle,
     schemas: FfiList<ObjectHandle>,
     cred_defs: FfiList<ObjectHandle>,
+    rev_reg_defs: FfiList<ObjectHandle>,
+    rev_reg_entries: FfiList<FfiRevocationEntry>,
     result_p: *mut i8,
 ) -> ErrorCode {
     catch_error(|| {
         let schemas = IndyObjectList::load(schemas.as_slice())?;
         let cred_defs = IndyObjectList::load(cred_defs.as_slice())?;
-        let rev_reg_defs = None;
-        let rev_regs = None;
+        let rev_reg_defs = IndyObjectList::load(rev_reg_defs.as_slice())?;
+        let rev_reg_entries = {
+            let entries = rev_reg_entries.as_slice();
+            entries.into_iter().try_fold(
+                Vec::with_capacity(entries.len()),
+                |mut r, ffi_entry| {
+                    r.push(ffi_entry.load()?);
+                    Result::Ok(r)
+                },
+            )?
+        };
+        let mut rev_regs = HashMap::new();
+        for (idx, entry, timestamp) in rev_reg_entries.iter() {
+            if *idx > rev_reg_defs.len() {
+                return Err(err_msg!("Invalid revocation registry entry index"));
+            }
+            let id = rev_reg_defs[*idx]
+                .cast_ref::<RevocationRegistryDefinition>()?
+                .get_id();
+            rev_regs
+                .entry(id)
+                .or_insert_with(HashMap::new)
+                .insert(*timestamp, entry.cast_ref()?);
+        }
         let verify = verify_presentation(
             presentation.load()?.cast_ref()?,
             pres_req.load()?.cast_ref()?,
             &schemas.refs_map()?,
             &cred_defs.refs_map()?,
-            rev_reg_defs,
-            rev_regs,
+            Some(&rev_reg_defs.refs_map()?),
+            Some(&rev_regs),
         )?;
         unsafe { *result_p = verify as i8 };
         Ok(())

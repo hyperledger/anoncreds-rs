@@ -101,7 +101,7 @@ rev_state = CredentialRevocationState.create(
 present_creds = PresentCredentials()
 
 present_creds.add_attributes(
-    cred_received, "reft", reveal=False, timestamp=timestamp, rev_state=rev_state
+    cred_received, "reft", reveal=True, timestamp=timestamp, rev_state=rev_state
 )
 
 presentation = Presentation.create(
@@ -111,4 +111,13 @@ print(presentation)
 
 print(presentation.to_json())
 
-print("Verified:", presentation.verify(pres_req, [schema], [cred_def]))
+print(
+    "Verified:",
+    presentation.verify(
+        pres_req,
+        [schema],
+        [cred_def],
+        [rev_reg_def],
+        {rev_reg_def.id: {timestamp: rev_reg}},
+    ),
+)

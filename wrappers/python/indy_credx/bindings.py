@@ -214,6 +214,34 @@ class RevocationConfig(Structure):
         )
 
 
+class RevocationEntry(Structure):
+    _fields_ = [
+        ("def_entry_idx", c_int64),
+        ("entry", ObjectHandle),
+        ("timestamp", c_int64),
+    ]
+
+    @classmethod
+    def create(
+        cls,
+        def_entry_idx: int,
+        entry: ObjectHandle,
+        timestamp: int,
+    ) -> "RevocationEntry":
+        return RevocationEntry(
+            def_entry_idx=def_entry_idx,
+            entry=entry,
+            timestamp=timestamp,
+        )
+
+
+class RevocationEntryList(Structure):
+    _fields_ = [
+        ("count", c_int64),
+        ("data", POINTER(RevocationEntry)),
+    ]
+
+
 def get_library() -> CDLL:
     """Return the CDLL instance, loading it if necessary."""
     global LIB
@@ -532,16 +560,22 @@ def verify_presentation(
     pres_req: ObjectHandle,
     schemas: Sequence[ObjectHandle],
     cred_defs: Sequence[ObjectHandle],
-    # rev_reg_defs: Sequence[ObjectHandle],
-    # rev_regs: Sequence[ObjectHandle],
+    rev_reg_defs: Sequence[ObjectHandle],
+    rev_regs: Sequence[RevocationEntry],
 ) -> bool:
     verify = c_int8()
+    entry_list = RevocationEntryList()
+    if rev_regs:
+        entry_list.count = len(rev_regs)
+        entry_list.data = (RevocationEntry * entry_list.count)(*rev_regs)
     do_call(
         "credx_verify_presentation",
         presentation,
         pres_req,
         object_handle_list.create(schemas),
         object_handle_list.create(cred_defs),
+        object_handle_list.create(rev_reg_defs),
+        entry_list,
         byref(verify),
     )
     return bool(verify)
