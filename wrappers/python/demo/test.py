@@ -128,10 +128,14 @@ rev_delta_2 = rev_reg.update(
     rev_reg_def, [], [issuer_rev_index], rev_reg_def.tails_location
 )
 
-rev_state2 = rev_state.update(
+rev_state.update(
     rev_reg_def, rev_delta_2, issuer_rev_index, timestamp, rev_reg_def.tails_location
 )
 
+present_creds = PresentCredentials()
+present_creds.add_attributes(
+    cred_received, "reft", reveal=True, timestamp=timestamp, rev_state=rev_state
+)
 presentation_2 = Presentation.create(
     pres_req, present_creds, {}, master_secret, [schema], [cred_def]
 )
