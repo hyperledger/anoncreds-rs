@@ -67,13 +67,11 @@ impl<'de> Deserialize<'de> for PresentationRequest {
         #[derive(Deserialize)]
         struct Helper {
             ver: Option<String>,
-            nonce: String,
         }
 
         let v = Value::deserialize(deserializer)?;
 
         let helper = Helper::deserialize(&v).map_err(de::Error::custom)?;
-        let nonce_cleaned = helper.nonce.replace(" ", "").replace("_", "");
 
         let req = match helper.ver {
             Some(version) => match version.as_ref() {
@@ -95,18 +93,7 @@ impl<'de> Deserialize<'de> for PresentationRequest {
                 PresentationRequest::PresentationRequestV1(request)
             }
         };
-        let nonce_parsed = match &req {
-            PresentationRequest::PresentationRequestV1(payload) => &payload.nonce,
-            PresentationRequest::PresentationRequestV2(payload) => &payload.nonce,
-        };
-        if nonce_cleaned.as_str() != &**nonce_parsed {
-            Err(de::Error::custom(format!(
-                "Invalid nonce provided: {}",
-                nonce_cleaned
-            )))
-        } else {
-            Ok(req)
-        }
+        Ok(req)
     }
 }
 

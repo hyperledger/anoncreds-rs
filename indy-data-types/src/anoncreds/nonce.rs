@@ -97,6 +97,14 @@ impl TryFrom<u64> for Nonce {
     }
 }
 
+impl TryFrom<u128> for Nonce {
+    type Error = ConversionError;
+
+    fn try_from(value: u128) -> Result<Self, Self::Error> {
+        Self::from_dec(value.to_string())
+    }
+}
+
 impl TryFrom<&str> for Nonce {
     type Error = ConversionError;
 
@@ -145,7 +153,7 @@ impl Serialize for Nonce {
     where
         S: Serializer,
     {
-        self.strval.serialize(serializer)
+        serializer.serialize_str(&self.strval)
     }
 }
 
@@ -161,7 +169,7 @@ impl<'a> Deserialize<'a> for Nonce {
             type Value = Nonce;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("expected BigNumber")
+                formatter.write_str("integer or string nonce")
             }
 
             fn visit_i64<E>(self, value: i64) -> Result<Nonce, E>
@@ -172,6 +180,13 @@ impl<'a> Deserialize<'a> for Nonce {
             }
 
             fn visit_u64<E>(self, value: u64) -> Result<Nonce, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(Nonce::try_from(value).map_err(E::custom)?)
+            }
+
+            fn visit_u128<E>(self, value: u128) -> Result<Nonce, E>
             where
                 E: serde::de::Error,
             {
