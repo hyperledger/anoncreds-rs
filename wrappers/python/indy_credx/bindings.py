@@ -452,7 +452,9 @@ def create_credential(
         names_list,
         raw_values_list,
         enc_values_list,
-        pointer(revocation_config),
+        pointer(revocation_config)
+        if revocation_config
+        else POINTER(RevocationConfig)(),
         byref(cred),
         byref(rev_reg),
         byref(rev_delta),

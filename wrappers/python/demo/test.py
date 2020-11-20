@@ -105,7 +105,7 @@ present_creds.add_attributes(
 )
 
 presentation = Presentation.create(
-    pres_req, present_creds, master_secret, [schema], [cred_def]
+    pres_req, present_creds, {}, master_secret, [schema], [cred_def]
 )
 print(presentation)
 

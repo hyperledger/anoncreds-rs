@@ -12,9 +12,9 @@ class CredentialDefinition(bindings.IndyObject):
         origin_did: str,
         schema: [str, "Schema"],
         signature_type: str,
+        tag: str,
         *,
-        support_revocation: bool,
-        tag: str = None,
+        support_revocation: bool = False,
     ) -> ("CredentialDefinition", "CredentialDefinitionPrivate", "KeyCorrectnessProof"):
         if not isinstance(schema, bindings.IndyObject):
             schema = Schema.load(schema)
@@ -354,6 +354,7 @@ class Presentation(bindings.IndyObject):
         cls,
         pres_req: [str, PresentationRequest],
         present_creds: PresentCredentials,
+        self_attest: Optional[Mapping[str, str]],
         master_secret: [str, MasterSecret],
         schemas: Sequence[Union[str, Schema]],
         cred_defs: Sequence[Union[str, CredentialDefinition]],
@@ -397,7 +398,7 @@ class Presentation(bindings.IndyObject):
                 pres_req.handle,
                 creds,
                 creds_prove,
-                present_creds.self_attest,
+                self_attest,
                 master_secret.handle,
                 schemas,
                 cred_defs,
