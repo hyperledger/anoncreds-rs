@@ -565,6 +565,33 @@ class RevocationRegistry(bindings.IndyObject):
             bindings._object_from_json("credx_revocation_registry_from_json", value)
         )
 
+    def revoke_credential(
+        self,
+        rev_reg_def: [str, RevocationRegistryDefinition],
+        cred_rev_idx: int,
+        tails_path: str,
+    ) -> "RevocationRegistryDelta":
+        if not isinstance(rev_reg_def, bindings.IndyObject):
+            rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
+        self.handle, rev_delta = bindings.revoke_credential(
+            rev_reg_def.handle, self.handle, cred_rev_idx, tails_path
+        )
+        return RevocationRegistryDelta(rev_delta)
+
+    def update(
+        self,
+        rev_reg_def: [str, RevocationRegistryDefinition],
+        issued: Sequence[int],
+        revoked: Sequence[int],
+        tails_path: str,
+    ) -> "RevocationRegistryDelta":
+        if not isinstance(rev_reg_def, bindings.IndyObject):
+            rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
+        self.handle, rev_delta = bindings.update_revocation_registry(
+            rev_reg_def.handle, self.handle, issued, revoked, tails_path
+        )
+        return RevocationRegistryDelta(rev_delta)
+
 
 class RevocationRegistryDelta(bindings.IndyObject):
     @classmethod

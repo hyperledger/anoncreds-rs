@@ -20,11 +20,11 @@ use indy_utils::{Qualifiable, Validatable};
 
 use super::tails::TailsReader;
 
-pub fn new_master_secret() -> Result<MasterSecret> {
+pub fn create_master_secret() -> Result<MasterSecret> {
     MasterSecret::new().map_err(err_map!(Unexpected))
 }
 
-pub fn new_credential_request(
+pub fn create_credential_request(
     prover_did: &DidValue,
     cred_def: &CredentialDefinition,
     master_secret: &MasterSecret,
@@ -32,7 +32,7 @@ pub fn new_credential_request(
     credential_offer: &CredentialOffer,
 ) -> Result<(CredentialRequest, CredentialRequestMetadata)> {
     trace!(
-        "new_credential_request >>> cred_def: {:?}, master_secret: {:?}, credential_offer: {:?}",
+        "create_credential_request >>> cred_def: {:?}, master_secret: {:?}, credential_offer: {:?}",
         cred_def,
         secret!(&master_secret),
         credential_offer
@@ -75,7 +75,7 @@ pub fn new_credential_request(
     };
 
     trace!(
-        "new_credential_request <<< credential_request: {:?}, credential_request_metadata: {:?}",
+        "create_credential_request <<< credential_request: {:?}, credential_request_metadata: {:?}",
         credential_request,
         credential_request_metadata
     );

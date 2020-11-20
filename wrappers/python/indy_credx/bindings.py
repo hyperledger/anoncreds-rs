@@ -100,6 +100,22 @@ class object_handle_list(Structure):
         return inst
 
 
+class int_list(Structure):
+    _fields_ = [
+        ("count", c_size_t),
+        ("data", POINTER(c_int64)),
+    ]
+
+    @classmethod
+    def create(cls, values: Optional[Sequence[str]]) -> "int_list":
+        inst = int_list()
+        if values is not None:
+            values = [c_int64(v) for v in values]
+            inst.count = len(values)
+            inst.data = (c_int64 * inst.count)(*values)
+        return inst
+
+
 class str_list(Structure):
     _fields_ = [
         ("count", c_size_t),
@@ -482,6 +498,26 @@ def process_credential(
     return result
 
 
+def revoke_credential(
+    rev_reg_def: ObjectHandle,
+    rev_reg: ObjectHandle,
+    cred_rev_idx: int,
+    tails_path: str,
+) -> (ObjectHandle, ObjectHandle):
+    upd_rev_reg = ObjectHandle()
+    rev_delta = ObjectHandle()
+    do_call(
+        "credx_revoke_credential",
+        rev_reg_def,
+        rev_reg,
+        c_int64(cred_rev_idx),
+        encode_str(tails_path),
+        byref(upd_rev_reg),
+        byref(rev_delta),
+    )
+    return upd_rev_reg, rev_delta
+
+
 def create_credential_offer(
     schema_id: str, cred_def: ObjectHandle, key_proof: ObjectHandle
 ) -> ObjectHandle:
@@ -611,6 +647,28 @@ def create_revocation_registry(
         byref(reg_init_delta),
     )
     return reg_def, reg_def_private, reg_entry, reg_init_delta
+
+
+def update_revocation_registry(
+    rev_reg_def: ObjectHandle,
+    rev_reg: ObjectHandle,
+    issued: Sequence[int],
+    revoked: Sequence[int],
+    tails_path: str,
+) -> (ObjectHandle, ObjectHandle):
+    upd_rev_reg = ObjectHandle()
+    rev_delta = ObjectHandle()
+    do_call(
+        "credx_update_revocation_registry",
+        rev_reg_def,
+        rev_reg,
+        int_list.create(issued),
+        int_list.create(revoked),
+        encode_str(tails_path),
+        byref(upd_rev_reg),
+        byref(rev_delta),
+    )
+    return upd_rev_reg, rev_delta
 
 
 def create_or_update_revocation_state(

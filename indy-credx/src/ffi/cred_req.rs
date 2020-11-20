@@ -4,7 +4,7 @@ use indy_utils::Qualifiable;
 use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
 use crate::services::{
-    prover::new_credential_request,
+    prover::create_credential_request,
     types::{CredentialRequest, CredentialRequestMetadata, DidValue},
 };
 
@@ -30,7 +30,7 @@ pub extern "C" fn credx_create_credential_request(
         let master_secret_id = master_secret_id
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing master secret ID"))?;
-        let (cred_req, cred_req_metadata) = new_credential_request(
+        let (cred_req, cred_req_metadata) = create_credential_request(
             &prover_did,
             cred_def.load()?.cast_ref()?,
             master_secret.load()?.cast_ref()?,

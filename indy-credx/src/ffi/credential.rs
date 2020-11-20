@@ -9,7 +9,7 @@ use super::object::{IndyObject, ObjectHandle};
 use super::util::FfiStrList;
 use crate::error::Result;
 use crate::services::{
-    issuer::{encode_credential_attribute, new_credential},
+    issuer::{create_credential, encode_credential_attribute},
     prover::process_credential,
     tails::TailsFileReader,
     types::{AttributeValues, Credential, CredentialRevocationConfig, CredentialValues},
@@ -122,7 +122,7 @@ pub extern "C" fn credx_create_credential(
         } else {
             None
         };
-        let (cred, rev_reg, rev_delta) = new_credential(
+        let (cred, rev_reg, rev_delta) = create_credential(
             cred_def.load()?.cast_ref()?,
             cred_def_private.load()?.cast_ref()?,
             cred_offer.load()?.cast_ref()?,

@@ -107,9 +107,34 @@ present_creds.add_attributes(
 presentation = Presentation.create(
     pres_req, present_creds, {}, master_secret, [schema], [cred_def]
 )
-print(presentation)
-
 print(presentation.to_json())
+
+print(
+    "Verified:",
+    presentation.verify(
+        pres_req,
+        [schema],
+        [cred_def],
+        [rev_reg_def],
+        {rev_reg_def.id: {timestamp: rev_reg}},
+    ),
+)
+
+
+# rev_delta_2 = rev_reg.revoke_credential(
+#     rev_reg_def, issuer_rev_index, rev_reg_def.tails_location
+# )
+rev_delta_2 = rev_reg.update(
+    rev_reg_def, [], [issuer_rev_index], rev_reg_def.tails_location
+)
+
+rev_state2 = rev_state.update(
+    rev_reg_def, rev_delta_2, issuer_rev_index, timestamp, rev_reg_def.tails_location
+)
+
+presentation_2 = Presentation.create(
+    pres_req, present_creds, {}, master_secret, [schema], [cred_def]
+)
 
 print(
     "Verified:",

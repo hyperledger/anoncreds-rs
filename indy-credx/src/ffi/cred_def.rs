@@ -6,7 +6,7 @@ use indy_utils::Qualifiable;
 use super::error::{catch_error, ErrorCode};
 use super::object::{IndyObjectId, ObjectHandle};
 use crate::services::{
-    issuer::new_credential_definition,
+    issuer::create_credential_definition,
     types::{
         CredentialDefinition, CredentialDefinitionConfig, CredentialDefinitionId,
         CredentialDefinitionPrivate, CredentialKeyCorrectnessProof as KeyCorrectnessProof,
@@ -42,7 +42,7 @@ pub extern "C" fn credx_create_credential_definition(
                 .ok_or_else(|| err_msg!("Missing signature type"))?;
             SignatureType::from_str(stype).map_err(err_map!(Input))?
         };
-        let (cred_def, cred_def_pvt, key_proof) = new_credential_definition(
+        let (cred_def, cred_def_pvt, key_proof) = create_credential_definition(
             &origin_did,
             schema.load()?.cast_ref()?,
             tag,

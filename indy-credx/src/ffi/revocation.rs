@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::convert::TryInto;
 use std::os::raw::c_char;
 
@@ -6,8 +7,10 @@ use indy_utils::Qualifiable;
 
 use super::error::{catch_error, ErrorCode};
 use super::object::{IndyObject, IndyObjectId, ObjectHandle};
+use super::util::FfiList;
+use crate::error::Result;
 use crate::services::{
-    issuer::create_revocation_registry,
+    issuer::{create_revocation_registry, revoke_credential, update_revocation_registry},
     prover::create_or_update_revocation_state,
     tails::{TailsFileReader, TailsFileWriter},
     types::{
@@ -76,6 +79,88 @@ pub extern "C" fn credx_create_revocation_registry(
             *reg_init_delta_p = reg_init_delta;
         };
         Ok(())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn credx_update_revocation_registry(
+    rev_reg_def: ObjectHandle,
+    rev_reg: ObjectHandle,
+    issued: FfiList<i64>,
+    revoked: FfiList<i64>,
+    tails_path: FfiStr,
+    rev_reg_p: *mut ObjectHandle,
+    rev_reg_delta_p: *mut ObjectHandle,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(rev_reg_p);
+        check_useful_c_ptr!(rev_reg_delta_p);
+        let issued = registry_indices_to_set(issued.as_slice().into_iter().cloned())?;
+        let revoked = registry_indices_to_set(revoked.as_slice().into_iter().cloned())?;
+        let tails_reader = TailsFileReader::new(
+            tails_path
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing tails file path"))?,
+        );
+        let (rev_reg, rev_reg_delta) = update_revocation_registry(
+            rev_reg_def.load()?.cast_ref()?,
+            rev_reg.load()?.cast_ref()?,
+            issued,
+            revoked,
+            &tails_reader,
+        )?;
+        let rev_reg = ObjectHandle::create(rev_reg)?;
+        let rev_reg_delta = ObjectHandle::create(rev_reg_delta)?;
+        unsafe {
+            *rev_reg_p = rev_reg;
+            *rev_reg_delta_p = rev_reg_delta;
+        };
+        Ok(())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn credx_revoke_credential(
+    rev_reg_def: ObjectHandle,
+    rev_reg: ObjectHandle,
+    cred_rev_idx: i64,
+    tails_path: FfiStr,
+    rev_reg_p: *mut ObjectHandle,
+    rev_reg_delta_p: *mut ObjectHandle,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(rev_reg_p);
+        check_useful_c_ptr!(rev_reg_delta_p);
+        let tails_reader = TailsFileReader::new(
+            tails_path
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing tails file path"))?,
+        );
+        let (rev_reg, rev_reg_delta) = revoke_credential(
+            rev_reg_def.load()?.cast_ref()?,
+            rev_reg.load()?.cast_ref()?,
+            cred_rev_idx
+                .try_into()
+                .map_err(|_| err_msg!("Invalid registry index"))?,
+            &tails_reader,
+        )?;
+        let rev_reg = ObjectHandle::create(rev_reg)?;
+        let rev_reg_delta = ObjectHandle::create(rev_reg_delta)?;
+        unsafe {
+            *rev_reg_p = rev_reg;
+            *rev_reg_delta_p = rev_reg_delta;
+        };
+        Ok(())
+    })
+}
+
+fn registry_indices_to_set(indices: impl Iterator<Item = i64>) -> Result<BTreeSet<u32>> {
+    indices.into_iter().try_fold(BTreeSet::new(), |mut r, idx| {
+        r.insert(
+            idx.try_into()
+                .map_err(|_| err_msg!("Invalid registry index"))?,
+        );
+        Result::Ok(r)
     })
 }
 
@@ -155,10 +240,11 @@ pub extern "C" fn credx_create_or_update_revocation_state(
     catch_error(|| {
         check_useful_c_ptr!(rev_state_p);
         let prev_rev_state = rev_state.opt_load()?;
-        let tails_path = tails_path
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing tails file path"))?;
-        let tails_reader = TailsFileReader::new(tails_path);
+        let tails_reader = TailsFileReader::new(
+            tails_path
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing tails file path"))?,
+        );
         let rev_state = create_or_update_revocation_state(
             tails_reader,
             rev_reg_def.load()?.cast_ref()?,

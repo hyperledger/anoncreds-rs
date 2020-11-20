@@ -25,14 +25,14 @@ use indy_utils::{hash::SHA256, Qualifiable, Validatable};
 
 use super::tails::{TailsFileReader, TailsReader, TailsWriter};
 
-pub fn new_schema(
+pub fn create_schema(
     origin_did: &DidValue,
     schema_name: &str,
     schema_version: &str,
     attr_names: AttributeNames,
     seq_no: Option<u32>,
 ) -> Result<Schema> {
-    trace!("new_schema >>> origin_did: {:?}, schema_name: {:?}, schema_version: {:?}, attr_names: {:?}",
+    trace!("create_schema >>> origin_did: {:?}, schema_name: {:?}, schema_version: {:?}, attr_names: {:?}",
         origin_did, schema_name, schema_version, attr_names);
 
     origin_did.validate()?;
@@ -72,7 +72,7 @@ pub fn make_credential_definition_id(
     ))
 }
 
-pub fn new_credential_definition(
+pub fn create_credential_definition(
     origin_did: &DidValue,
     schema: &Schema,
     tag: &str,
@@ -84,7 +84,7 @@ pub fn new_credential_definition(
     CredentialKeyCorrectnessProof,
 )> {
     trace!(
-        "new_credential_definition >>> schema: {:?}, config: {:?}",
+        "create_credential_definition >>> schema: {:?}, config: {:?}",
         schema,
         config
     );
@@ -123,7 +123,7 @@ pub fn new_credential_definition(
         value: correctness_proof,
     };
     trace!(
-        "new_credential_definition <<< cred_def: {:?}, cred_def: {:?}, key_correctness_proof: {:?}",
+        "create_credential_definition <<< cred_def: {:?}, cred_def: {:?}, key_correctness_proof: {:?}",
         cred_def,
         secret!(&cred_def_private),
         cred_key_proof
@@ -177,7 +177,7 @@ pub fn create_revocation_registry<TW>(
 where
     TW: TailsWriter,
 {
-    trace!("new_revocation_registry >>> origin_did: {:?}, cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}, issuance_type: {:?}",
+    trace!("create_revocation_registry >>> origin_did: {:?}, cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}, issuance_type: {:?}",
             origin_did, cred_def, tag, max_cred_num, rev_reg_type, issuance_type);
 
     let rev_reg_id = make_revocation_registry_id(origin_did, cred_def, tag, rev_reg_type)?;
@@ -244,7 +244,7 @@ where
     };
 
     trace!(
-        "new_revocation_registry <<< revoc_reg_def: {:?}, private: {:?}, revoc_reg: {:?}",
+        "create_revocation_registry <<< revoc_reg_def: {:?}, private: {:?}, revoc_reg: {:?}",
         revoc_reg_def,
         secret!(&revoc_def_priv),
         revoc_reg
@@ -282,12 +282,12 @@ pub fn update_revocation_registry(
     ))
 }
 
-pub fn new_credential_offer(
+pub fn create_credential_offer(
     schema_id: &SchemaId,
     cred_def: &CredentialDefinition,
     correctness_proof: &CredentialKeyCorrectnessProof,
 ) -> Result<CredentialOffer> {
-    trace!("new_credential_offer >>> cred_def: {:?}", cred_def);
+    trace!("create_credential_offer >>> cred_def: {:?}", cred_def);
 
     let nonce = Nonce::new().map_err(err_map!(Unexpected, "Error creating nonce"))?;
 
@@ -306,11 +306,11 @@ pub fn new_credential_offer(
         method_name: None,
     };
 
-    trace!("new_credential_offer <<< result: {:?}", credential_offer);
+    trace!("create_credential_offer <<< result: {:?}", credential_offer);
     Ok(credential_offer)
 }
 
-pub fn new_credential(
+pub fn create_credential(
     cred_def: &CredentialDefinition,
     cred_def_private: &CredentialDefinitionPrivate,
     cred_offer: &CredentialOffer,
@@ -322,7 +322,7 @@ pub fn new_credential(
     Option<RevocationRegistry>,
     Option<RevocationRegistryDelta>,
 )> {
-    trace!("new_credential >>> cred_def: {:?}, cred_def_private: {:?}, cred_offer.nonce: {:?}, cred_request: {:?},\
+    trace!("create_credential >>> cred_def: {:?}, cred_def_private: {:?}, cred_offer.nonce: {:?}, cred_request: {:?},\
             cred_values: {:?}, revocation_config: {:?}",
             cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&cred_values), revocation_config,
             );
@@ -437,7 +437,7 @@ pub fn new_credential(
     });
 
     trace!(
-        "new_credential <<< credential {:?}, rev_reg_delta {:?}",
+        "create_credential <<< credential {:?}, rev_reg_delta {:?}",
         secret!(&credential),
         rev_reg_delta
     );
@@ -446,23 +446,26 @@ pub fn new_credential(
 }
 
 pub fn revoke_credential(
+    rev_reg_def: &RevocationRegistryDefinition,
     rev_reg: &RevocationRegistry,
-    max_cred_num: u32,
-    rev_idx: u32,
+    cred_rev_idx: u32,
     tails_reader: &TailsReader,
 ) -> Result<(RevocationRegistry, RevocationRegistryDelta)> {
     trace!(
-        "revoke >>> rev_reg: {:?}, max_cred_num: {:?}, rev_idx: {:?}",
+        "revoke >>> rev_reg_def: {:?}, rev_reg: {:?}, cred_rev_idx: {:?}",
+        rev_reg_def,
         rev_reg,
-        max_cred_num,
-        secret!(&rev_idx)
+        secret!(&cred_rev_idx)
     );
 
+    let max_cred_num = match rev_reg_def {
+        RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => v1.value.max_cred_num,
+    };
     let mut rev_reg = match rev_reg {
         RevocationRegistry::RevocationRegistryV1(v1) => v1.value.clone(),
     };
     let rev_reg_delta =
-        CryptoIssuer::revoke_credential(&mut rev_reg, max_cred_num, rev_idx, tails_reader)?;
+        CryptoIssuer::revoke_credential(&mut rev_reg, max_cred_num, cred_rev_idx, tails_reader)?;
 
     let new_rev_reg =
         RevocationRegistry::RevocationRegistryV1(RevocationRegistryV1 { value: rev_reg });
@@ -476,23 +479,26 @@ pub fn revoke_credential(
 
 #[allow(dead_code)]
 pub fn recover_credential(
+    rev_reg_def: &RevocationRegistryDefinition,
     rev_reg: &RevocationRegistry,
-    max_cred_num: u32,
-    rev_idx: u32,
+    cred_rev_idx: u32,
     tails_reader: &TailsReader,
 ) -> Result<(RevocationRegistry, RevocationRegistryDelta)> {
     trace!(
-        "recover >>> rev_reg: {:?}, max_cred_num: {:?}, rev_idx: {:?}",
+        "recover >>> rev_reg_def: {:?}, rev_reg: {:?}, cred_rev_idx: {:?}",
+        rev_reg_def,
         rev_reg,
-        max_cred_num,
-        secret!(&rev_idx)
+        secret!(&cred_rev_idx)
     );
 
+    let max_cred_num = match rev_reg_def {
+        RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => v1.value.max_cred_num,
+    };
     let mut rev_reg = match rev_reg {
         RevocationRegistry::RevocationRegistryV1(v1) => v1.value.clone(),
     };
     let rev_reg_delta =
-        CryptoIssuer::recovery_credential(&mut rev_reg, max_cred_num, rev_idx, tails_reader)?;
+        CryptoIssuer::recovery_credential(&mut rev_reg, max_cred_num, cred_rev_idx, tails_reader)?;
 
     let new_rev_reg =
         RevocationRegistry::RevocationRegistryV1(RevocationRegistryV1 { value: rev_reg });

@@ -7,7 +7,7 @@ use super::error::{catch_error, ErrorCode};
 use super::object::{IndyObjectId, ObjectHandle};
 use super::util::FfiStrList;
 use crate::services::{
-    issuer::new_schema,
+    issuer::create_schema,
     types::{DidValue, Schema, SchemaId},
 };
 
@@ -34,7 +34,7 @@ pub extern "C" fn credx_create_schema(
         let schema_version = schema_version
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing schema version"))?;
-        let schema = new_schema(
+        let schema = create_schema(
             &origin_did,
             schema_name,
             schema_version,

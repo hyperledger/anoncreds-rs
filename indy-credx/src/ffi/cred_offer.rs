@@ -4,7 +4,7 @@ use indy_utils::Qualifiable;
 use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
 use crate::services::{
-    issuer::new_credential_offer,
+    issuer::create_credential_offer,
     types::{CredentialOffer, SchemaId},
 };
 
@@ -23,7 +23,7 @@ pub extern "C" fn credx_create_credential_offer(
                 .ok_or_else(|| err_msg!("Missing schema ID"))?;
             SchemaId::from_str(sid)?
         };
-        let cred_offer = new_credential_offer(
+        let cred_offer = create_credential_offer(
             &schema_id,
             cred_def.load()?.cast_ref()?,
             key_proof.load()?.cast_ref()?,
