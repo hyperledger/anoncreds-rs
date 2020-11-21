@@ -10,7 +10,10 @@ use super::object::{IndyObject, IndyObjectId, ObjectHandle};
 use super::util::FfiList;
 use crate::error::Result;
 use crate::services::{
-    issuer::{create_revocation_registry, revoke_credential, update_revocation_registry},
+    issuer::{
+        create_revocation_registry, merge_revocation_registry_deltas, revoke_credential,
+        update_revocation_registry,
+    },
     prover::create_or_update_revocation_state,
     tails::{TailsFileReader, TailsFileWriter},
     types::{
@@ -220,6 +223,26 @@ impl_indy_object_from_json!(
 
 impl_indy_object!(RevocationRegistry, "RevocationRegistry");
 impl_indy_object_from_json!(RevocationRegistry, credx_revocation_registry_from_json);
+
+#[no_mangle]
+pub extern "C" fn credx_merge_revocation_registry_deltas(
+    rev_reg_delta_1: ObjectHandle,
+    rev_reg_delta_2: ObjectHandle,
+    rev_reg_delta_p: *mut ObjectHandle,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(rev_reg_delta_p);
+        let rev_reg_delta = merge_revocation_registry_deltas(
+            rev_reg_delta_1.load()?.cast_ref()?,
+            rev_reg_delta_2.load()?.cast_ref()?,
+        )?;
+        let rev_reg_delta = ObjectHandle::create(rev_reg_delta)?;
+        unsafe {
+            *rev_reg_delta_p = rev_reg_delta;
+        };
+        Ok(())
+    })
+}
 
 impl_indy_object!(RevocationRegistryDelta, "RevocationRegistryDelta");
 impl_indy_object_from_json!(

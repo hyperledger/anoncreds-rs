@@ -604,6 +604,15 @@ class RevocationRegistryDelta(bindings.IndyObject):
             )
         )
 
+    def update_with(
+        self, next_delta: [str, "RevocationRegistryDelta"]
+    ) -> "RevocationRegistryDelta":
+        if not isinstance(next_delta, bindings.IndyObject):
+            next_delta = RevocationRegistryDelta.load(next_delta)
+        self.handle = bindings.merge_revocation_registry_deltas(
+            self.handle, next_delta.handle
+        )
+
 
 class CredentialRevocationConfig:
     def __init__(

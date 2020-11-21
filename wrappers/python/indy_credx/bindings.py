@@ -17,6 +17,7 @@ from ctypes import (
     Structure,
 )
 from ctypes.util import find_library
+from io import BytesIO
 from typing import Optional, Mapping, Sequence, Union
 
 from .error import CredxError, CredxErrorCode
@@ -36,7 +37,14 @@ class ObjectHandle(c_int64):
 
     def __repr__(self) -> str:
         """Format object handle as a string."""
-        return f'{self.__class__.__name__}("{self.type_name}", {self.value})'
+        if self.value:
+            try:
+                type_name = f'"{self.type_name}"'
+            except CredxError:
+                type_name = "<error>"
+        else:
+            type_name = "<none>"
+        return f"{self.__class__.__name__}({type_name}, {self.value})"
 
     def __del__(self):
         object_free(self)
@@ -48,9 +56,18 @@ class IndyObject:
     def __init__(self, handle: ObjectHandle) -> "IndyObject":
         self.handle = handle
 
+    def __bytes__(self) -> bytes:
+        return bytes(object_get_json(self.handle))
+
     def __repr__(self) -> str:
         """Format object as a string."""
         return f"{self.__class__.__name__}({self.handle.value})"
+
+    def copy(self):
+        return self.__class__(self.handle)
+
+    def to_dict(self) -> dict:
+        return json.load(BytesIO(memoryview(object_get_json(self.handle).value)))
 
     def to_json(self) -> str:
         return str(object_get_json(self.handle))
@@ -70,9 +87,9 @@ class lib_string(c_char_p):
     def opt_str(self) -> Optional[str]:
         return self.value.decode("utf-8") if self.value is not None else None
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         """Convert to bytes."""
-        return self.value
+        return bytes(self.value)
 
     def __str__(self):
         """Convert to str."""
@@ -669,6 +686,20 @@ def update_revocation_registry(
         byref(rev_delta),
     )
     return upd_rev_reg, rev_delta
+
+
+def merge_revocation_registry_deltas(
+    rev_reg_delta_1: ObjectHandle,
+    rev_reg_delta_2: ObjectHandle,
+) -> ObjectHandle:
+    rev_delta = ObjectHandle()
+    do_call(
+        "credx_merge_revocation_registry_deltas",
+        rev_reg_delta_1,
+        rev_reg_delta_2,
+        byref(rev_delta),
+    )
+    return rev_delta
 
 
 def create_or_update_revocation_state(
