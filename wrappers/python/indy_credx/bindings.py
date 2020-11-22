@@ -467,8 +467,9 @@ def create_credential(
     cred = ObjectHandle()
     rev_reg = ObjectHandle()
     rev_delta = ObjectHandle()
-    names_list = str_list.create(attr_raw_values.keys())
-    raw_values_list = str_list.create(attr_raw_values.values())
+    attr_keys = list(attr_raw_values.keys())
+    names_list = str_list.create(attr_keys)
+    raw_values_list = str_list.create(str(attr_raw_values[k]) for k in attr_keys)
     if attr_enc_values:
         enc_values_list = []
         for name in attr_raw_values:
@@ -493,6 +494,16 @@ def create_credential(
         byref(rev_delta),
     )
     return cred, rev_reg, rev_delta
+
+
+def encode_credential_attributes(
+    attr_raw_values: Mapping[str, str]
+) -> Mapping[str, str]:
+    attr_keys = list(attr_raw_values.keys())
+    raw_values_list = str_list.create(str(attr_raw_values[k]) for k in attr_keys)
+    result = lib_string()
+    do_call("credx_encode_credential_attributes", raw_values_list, byref(result))
+    return dict(zip(attr_keys, str(result).split(",")))
 
 
 def process_credential(

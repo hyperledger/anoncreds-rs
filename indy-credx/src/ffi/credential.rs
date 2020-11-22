@@ -152,6 +152,29 @@ pub extern "C" fn credx_create_credential(
 }
 
 #[no_mangle]
+pub extern "C" fn credx_encode_credential_attributes(
+    attr_raw_values: FfiStrList,
+    result_p: *mut *const c_char,
+) -> ErrorCode {
+    catch_error(|| {
+        let mut result = String::new();
+        for raw_val in attr_raw_values.as_slice() {
+            let enc_val = encode_credential_attribute(
+                raw_val
+                    .as_opt_str()
+                    .ok_or_else(|| err_msg!("Missing attribute raw value"))?,
+            )?;
+            if !result.is_empty() {
+                result.push(',');
+            }
+            result.push_str(enc_val.as_str());
+        }
+        unsafe { *result_p = rust_string_to_c(result) };
+        Ok(())
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn credx_process_credential(
     cred: ObjectHandle,
     cred_req_metadata: ObjectHandle,
