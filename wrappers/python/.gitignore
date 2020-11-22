@@ -3,3 +3,5 @@ __pycache__
 *.dll
 *.so
 *.egg-info
+dist
+build

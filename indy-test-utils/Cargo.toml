@@ -1,7 +1,7 @@
 [package]
 name = "indy-test-utils"
 version = "0.1.0"
-authors = ["Hyperledger Indy Contributors <hyperledger-indy@lists.hyperledger.org>"]
+authors = ["Hyperledger Indy Contributors <indy@lists.hyperledger.org>"]
 description = "Utilities for testing Hyperledger Indy (https://www.hyperledger.org/projects), which provides a distributed-ledger-based foundation for self-sovereign identity (https://sovrin.org)."
 edition = "2018"
 license = "Apache-2.0"

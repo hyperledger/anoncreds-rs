@@ -15,6 +15,8 @@ if __name__ == "__main__":
     setup(
         name=PACKAGE_NAME,
         version=VERSION,
+        author="Hyperledger Indy Contributors",
+        author_email="indy@lists.hyperledger.org",
         long_description=long_description,
         long_description_content_type="text/markdown",
         url="https://github.com/bcgov/indy-shared-rs",

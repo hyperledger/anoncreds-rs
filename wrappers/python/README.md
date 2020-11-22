@@ -6,13 +6,13 @@ A Python wrapper around the `indy-credx` Rust library, this module provides supp
 
 ## Credit
 
-The initial implementation of Indy-Credx was developed by the Verifiable Organizations Network (VON) team based at the Province of British Columbia, and derives largely from the implementation within [Hyperledger Indy-SDK](https://github.com/hyperledger/indy-sdk). To learn more about VON and what's happening with decentralized identity in British Columbia, please go to [https://vonx.io](https://vonx.io).
+The initial implementation of `indy-shared-rs` was developed by the Verifiable Organizations Network (VON) team based at the Province of British Columbia, and derives largely from the implementations within [Hyperledger Indy-SDK](https://github.com/hyperledger/indy-sdk). To learn more about VON and what's happening with decentralized identity in British Columbia, please go to [https://vonx.io](https://vonx.io).
 
 ## Contributing
 
 Pull requests are welcome! Please read our [contributions guide](https://github.com/bcgov/indy-shared-rs/blob/master/CONTRIBUTING.md) and submit your PRs. We enforce [developer certificate of origin](https://developercertificate.org/) (DCO) commit signing. See guidance [here](https://github.com/apps/dco).
 
-We also welcome issues submitted about problems you encounter in using Indy-Credx.
+We also welcome issues submitted about problems you encounter in using `indy-shared-rs`.
 
 ## License
 

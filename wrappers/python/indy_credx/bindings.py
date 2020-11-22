@@ -313,12 +313,14 @@ def _load_library(lib_name: str) -> CDLL:
 
     lib_path = find_library(lib_name)
     if not lib_path:
-        raise CredxError(CredxErrorCode.WRAPPER, f"Error loading library: {lib_name}")
+        raise CredxError(
+            CredxErrorCode.WRAPPER, f"Library not found in path: {lib_path}"
+        )
     try:
         return CDLL(lib_path)
     except OSError as e:
         raise CredxError(
-            CredxErrorCode.WRAPPER, f"Error loading library: {lib_name}"
+            CredxErrorCode.WRAPPER, f"Error loading library: {lib_path}"
         ) from e
 
 
