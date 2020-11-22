@@ -23,7 +23,7 @@ if __name__ == "__main__":
         packages=find_packages(),
         include_package_data=True,
         package_data={
-            "lib": [
+            "": [
                 "indy_credx.dll",
                 "libindy_credx.dylib",
                 "libindy_credx.so",
