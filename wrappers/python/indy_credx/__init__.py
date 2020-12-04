@@ -20,6 +20,7 @@ from .types import (
     RevocationRegistry,
     RevocationRegistryDefinition,
     RevocationRegistryDefinitionPrivate,
+    RevocationRegistryDelta,
 )
 
 __all__ = (
@@ -44,5 +45,6 @@ __all__ = (
     "RevocationRegistry",
     "RevocationRegistryDefinition",
     "RevocationRegistryDefinitionPrivate",
+    "RevocationRegistryDelta",
     "Schema",
 )
