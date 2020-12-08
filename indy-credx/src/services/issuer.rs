@@ -53,7 +53,7 @@ pub fn make_credential_definition_id(
     schema_seq_no: Option<u32>,
     tag: &str,
     signature_type: SignatureType,
-) -> Result<(CredentialDefinitionId, SchemaId)> {
+) -> Result<CredentialDefinitionId> {
     let schema_id = match (origin_did.get_method(), schema_id.get_method()) {
         (None, Some(_)) => {
             return Err(err_msg!(
@@ -64,11 +64,13 @@ pub fn make_credential_definition_id(
     };
     let schema_infix_id = schema_seq_no
         .map(|n| SchemaId(n.to_string()))
-        .unwrap_or(SchemaId(schema_id.0.clone()));
+        .unwrap_or(schema_id.clone());
 
-    Ok((
-        CredentialDefinitionId::new(origin_did, &schema_infix_id, &signature_type.to_str(), tag),
-        schema_infix_id,
+    Ok(CredentialDefinitionId::new(
+        origin_did,
+        &schema_infix_id,
+        &signature_type.to_str(),
+        tag,
     ))
 }
 
@@ -92,8 +94,17 @@ pub fn create_credential_definition(
     let schema = match schema {
         Schema::SchemaV1(s) => s,
     };
-    let (cred_def_id, schema_id) =
+    let cred_def_id =
         make_credential_definition_id(origin_did, &schema.id, schema.seq_no, tag, signature_type)?;
+
+    // Indy-Node requires the published schema ID field is the schema sequence number
+    let schema_id = SchemaId(
+        schema
+            .seq_no
+            .as_ref()
+            .map(|s| s.to_string())
+            .unwrap_or(schema.id.0.clone()),
+    );
 
     let credential_schema = build_credential_schema(&schema.attr_names.0)?;
     let non_credential_schema = build_non_credential_schema()?;

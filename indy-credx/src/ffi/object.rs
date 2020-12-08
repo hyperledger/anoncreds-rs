@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::os::raw::c_char;
 use std::sync::{Arc, Mutex};
 
-use ffi_support::rust_string_to_c;
+use ffi_support::{rust_string_to_c, ByteBuffer};
 use once_cell::sync::Lazy;
 use serde::Serialize;
 
@@ -110,12 +110,12 @@ impl Hash for IndyObject {
 }
 
 pub(crate) trait ToJson {
-    fn to_json(&self) -> Result<String>;
+    fn to_json(&self) -> Result<Vec<u8>>;
 }
 
 impl ToJson for IndyObject {
     #[inline]
-    fn to_json(&self) -> Result<String> {
+    fn to_json(&self) -> Result<Vec<u8>> {
         self.0.to_json()
     }
 }
@@ -124,8 +124,8 @@ impl<T> ToJson for T
 where
     T: Serialize,
 {
-    fn to_json(&self) -> Result<String> {
-        serde_json::to_string(self).map_err(err_map!("Error serializing object"))
+    fn to_json(&self) -> Result<Vec<u8>> {
+        serde_json::to_vec(self).map_err(err_map!("Error serializing object"))
     }
 }
 
@@ -155,15 +155,12 @@ macro_rules! impl_indy_object_from_json {
     ($ident:path, $method:ident) => {
         #[no_mangle]
         pub extern "C" fn $method(
-            json: ffi_support::FfiStr,
+            json: ffi_support::ByteBuffer,
             result_p: *mut $crate::ffi::object::ObjectHandle,
         ) -> $crate::ffi::error::ErrorCode {
             $crate::ffi::error::catch_error(|| {
                 check_useful_c_ptr!(result_p);
-                let strval = json
-                    .as_opt_str()
-                    .ok_or_else(|| err_msg!("Missing JSON value"))?;
-                let obj = serde_json::from_str::<$ident>(strval)?;
+                let obj = serde_json::from_slice::<$ident>(json.as_slice())?;
                 let handle = $crate::ffi::object::ObjectHandle::create(obj)?;
                 unsafe { *result_p = handle };
                 Ok(())
@@ -175,13 +172,13 @@ macro_rules! impl_indy_object_from_json {
 #[no_mangle]
 pub extern "C" fn credx_object_get_json(
     handle: ObjectHandle,
-    result_p: *mut *const c_char,
+    result_p: *mut ByteBuffer,
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(result_p);
         let obj = handle.load()?;
         let json = obj.to_json()?;
-        unsafe { *result_p = rust_string_to_c(json) };
+        unsafe { *result_p = ByteBuffer::from_vec(json) };
         Ok(())
     })
 }

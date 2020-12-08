@@ -5,16 +5,18 @@ import logging
 import os
 import sys
 from ctypes import (
+    Array,
+    CDLL,
+    POINTER,
+    Structure,
     byref,
     c_char_p,
     c_int8,
     c_int64,
     c_size_t,
+    c_ubyte,
     c_void_p,
     pointer,
-    CDLL,
-    POINTER,
-    Structure,
 )
 from ctypes.util import find_library
 from io import BytesIO
@@ -57,7 +59,7 @@ class IndyObject:
         self.handle = handle
 
     def __bytes__(self) -> bytes:
-        return bytes(object_get_json(self.handle))
+        return bytes(self.to_json_buffer())
 
     def __repr__(self) -> str:
         """Format object as a string."""
@@ -67,13 +69,42 @@ class IndyObject:
         return self.__class__(self.handle)
 
     def to_dict(self) -> dict:
-        return json.load(BytesIO(memoryview(object_get_json(self.handle).value)))
+        return json.load(BytesIO(self.to_json_buffer()))
 
     def to_json(self) -> str:
-        return str(object_get_json(self.handle))
+        return bytes(object_get_json(self.handle)).decode("utf-8")
+
+    def to_json_buffer(self) -> memoryview:
+        return memoryview(object_get_json(self.handle).raw)
 
 
-class lib_string(c_char_p):
+class ByteBuffer(Structure):
+    """A byte buffer allocated by the library."""
+
+    _fields_ = [
+        ("len", c_int64),
+        ("value", c_void_p),
+    ]
+
+    @property
+    def raw(self) -> Array:
+        ret = (c_ubyte * self.len).from_address(self.value)
+        setattr(ret, "_ref_", self)  # ensure buffer is not dropped
+        return ret
+
+    def __bytes__(self) -> bytes:
+        return bytes(self.raw)
+
+    def __repr__(self) -> str:
+        """Format byte buffer as a string."""
+        return repr(bytes(self))
+
+    def __del__(self):
+        """Call the byte buffer destructor when this instance is released."""
+        get_library().credx_buffer_free(self)
+
+
+class StrBuffer(c_char_p):
     """A string allocated by the library."""
 
     @classmethod
@@ -82,34 +113,38 @@ class lib_string(c_char_p):
         return c_void_p
 
     def is_none(self) -> bool:
+        """Check if the returned string pointer is null."""
         return self.value is None
 
     def opt_str(self) -> Optional[str]:
-        return self.value.decode("utf-8") if self.value is not None else None
+        """Convert to an optional string."""
+        val = self.value
+        return val.decode("utf-8") if val is not None else None
 
     def __bytes__(self) -> bytes:
         """Convert to bytes."""
-        return bytes(self.value)
+        return self.value
 
     def __str__(self):
-        """Convert to str."""
+        """Convert to a string."""
         # not allowed to return None
-        return self.value.decode("utf-8") if self.value is not None else ""
+        val = self.opt_str()
+        return val if val is not None else ""
 
     def __del__(self):
         """Call the string destructor when this instance is released."""
         get_library().credx_string_free(self)
 
 
-class object_handle_list(Structure):
+class FfiObjectHandleList(Structure):
     _fields_ = [
         ("count", c_size_t),
         ("data", POINTER(ObjectHandle)),
     ]
 
     @classmethod
-    def create(cls, values: Optional[Sequence[ObjectHandle]]) -> "object_handle_list":
-        inst = object_handle_list()
+    def create(cls, values: Optional[Sequence[ObjectHandle]]) -> "FfiObjectHandleList":
+        inst = FfiObjectHandleList()
         if values is not None:
             values = list(values)
             inst.count = len(values)
@@ -117,15 +152,15 @@ class object_handle_list(Structure):
         return inst
 
 
-class int_list(Structure):
+class FfiIntList(Structure):
     _fields_ = [
         ("count", c_size_t),
         ("data", POINTER(c_int64)),
     ]
 
     @classmethod
-    def create(cls, values: Optional[Sequence[str]]) -> "int_list":
-        inst = int_list()
+    def create(cls, values: Optional[Sequence[str]]) -> "FfiIntList":
+        inst = FfiIntList()
         if values is not None:
             values = [c_int64(v) for v in values]
             inst.count = len(values)
@@ -133,15 +168,15 @@ class int_list(Structure):
         return inst
 
 
-class str_list(Structure):
+class FfiStrList(Structure):
     _fields_ = [
         ("count", c_size_t),
         ("data", POINTER(c_char_p)),
     ]
 
     @classmethod
-    def create(cls, values: Optional[Sequence[str]]) -> "str_list":
-        inst = str_list()
+    def create(cls, values: Optional[Sequence[str]]) -> "FfiStrList":
+        inst = FfiStrList()
         if values is not None:
             values = [encode_str(v) for v in values]
             inst.count = len(values)
@@ -288,7 +323,7 @@ def library_version() -> str:
     """Get the version of the installed aries-askar library."""
     lib = get_library()
     lib.credx_version.restype = c_void_p
-    return str(lib_string(lib.credx_version()))
+    return str(StrBuffer(lib.credx_version()))
 
 
 def _load_library(lib_name: str) -> CDLL:
@@ -339,7 +374,7 @@ def get_current_error(expect: bool = False) -> Optional[CredxError]:
     Args:
         expect: Return a default error message if none is found
     """
-    err_json = lib_string()
+    err_json = StrBuffer()
     if not get_library().credx_get_current_error(byref(err_json)):
         try:
             msg = json.loads(err_json.value)
@@ -359,7 +394,7 @@ def decode_str(value: c_char_p) -> str:
     return value.decode("utf-8")
 
 
-def encode_str(arg: Optional[Union[str, bytes, memoryview]]) -> c_char_p:
+def encode_str(arg: Optional[Union[str, bytes]]) -> c_char_p:
     """
     Encode an optional input argument as a string.
 
@@ -372,36 +407,62 @@ def encode_str(arg: Optional[Union[str, bytes, memoryview]]) -> c_char_p:
     return c_char_p(arg)
 
 
+class FfiByteBuffer(Structure):
+    """A byte buffer allocated by python."""
+
+    _fields_ = [
+        ("len", c_int64),
+        ("value", POINTER(c_ubyte)),
+    ]
+
+
+def encode_bytes(arg: Optional[Union[str, bytes]]) -> FfiByteBuffer:
+    buf = FfiByteBuffer()
+    if isinstance(arg, memoryview):
+        buf.len = arg.nbytes
+        if arg.contiguous and not arg.readonly:
+            buf.value = (c_ubyte * buf.len).from_buffer(arg.obj)
+        else:
+            buf.value = (c_ubyte * buf.len).from_buffer_copy(arg.obj)
+    elif isinstance(arg, bytearray):
+        buf.len = len(arg)
+        buf.value = (c_ubyte * buf.len).from_buffer(arg)
+    elif arg is not None:
+        if isinstance(arg, str):
+            arg = arg.encode("utf-8")
+        buf.len = len(arg)
+        buf.value = (c_ubyte * buf.len).from_buffer_copy(arg)
+    return buf
+
+
 def object_free(handle: ObjectHandle):
     get_library().credx_object_free(handle)
 
 
-def object_get_json(handle: ObjectHandle) -> lib_string:
-    result = lib_string()
+def object_get_json(handle: ObjectHandle) -> ByteBuffer:
+    result = ByteBuffer()
     do_call("credx_object_get_json", handle, byref(result))
     return result
 
 
-def object_get_type_name(handle: ObjectHandle) -> lib_string:
-    result = lib_string()
+def object_get_type_name(handle: ObjectHandle) -> StrBuffer:
+    result = StrBuffer()
     do_call("credx_object_get_type_name", handle, byref(result))
     return result
 
 
-def _object_from_json(
-    method: str, value: Union[dict, str, bytes, memoryview]
-) -> ObjectHandle:
+def _object_from_json(method: str, value: Union[dict, str, bytes]) -> ObjectHandle:
     if isinstance(value, dict):
         value = json.dumps(value)
     result = ObjectHandle()
-    do_call(method, encode_str(value), byref(result))
+    do_call(method, encode_bytes(value), byref(result))
     return result
 
 
 def _object_get_attribute(
     method: str, handle: ObjectHandle, name: str
-) -> Optional[lib_string]:
-    result = lib_string()
+) -> Optional[StrBuffer]:
+    result = StrBuffer()
     do_call(method, handle, encode_str(name), byref(result))
     if result.is_none():
         result = None
@@ -409,7 +470,7 @@ def _object_get_attribute(
 
 
 def generate_nonce() -> str:
-    result = lib_string()
+    result = StrBuffer()
     do_call("credx_generate_nonce", byref(result))
     return str(result)
 
@@ -422,7 +483,7 @@ def create_schema(
     seq_no: int = None,
 ) -> ObjectHandle:
     result = ObjectHandle()
-    attrs = str_list.create(attr_names)
+    attrs = FfiStrList.create(attr_names)
     do_call(
         "credx_create_schema",
         encode_str(origin_did),
@@ -470,15 +531,15 @@ def create_credential(
     rev_reg = ObjectHandle()
     rev_delta = ObjectHandle()
     attr_keys = list(attr_raw_values.keys())
-    names_list = str_list.create(attr_keys)
-    raw_values_list = str_list.create(str(attr_raw_values[k]) for k in attr_keys)
+    names_list = FfiStrList.create(attr_keys)
+    raw_values_list = FfiStrList.create(str(attr_raw_values[k]) for k in attr_keys)
     if attr_enc_values:
         enc_values_list = []
         for name in attr_raw_values:
             enc_values_list.append(attr_enc_values.get(name))
     else:
         enc_values_list = None
-    enc_values_list = str_list().create(enc_values_list)
+    enc_values_list = FfiStrList().create(enc_values_list)
     do_call(
         "credx_create_credential",
         cred_def,
@@ -502,8 +563,8 @@ def encode_credential_attributes(
     attr_raw_values: Mapping[str, str]
 ) -> Mapping[str, str]:
     attr_keys = list(attr_raw_values.keys())
-    raw_values_list = str_list.create(str(attr_raw_values[k]) for k in attr_keys)
-    result = lib_string()
+    raw_values_list = FfiStrList.create(str(attr_raw_values[k]) for k in attr_keys)
+    result = StrBuffer()
     do_call("credx_encode_credential_attributes", raw_values_list, byref(result))
     return dict(zip(attr_keys, str(result).split(",")))
 
@@ -613,11 +674,11 @@ def create_presentation(
         pres_req,
         entry_list,
         prove_list,
-        str_list.create(self_attest.keys()),
-        str_list.create(self_attest.values()),
+        FfiStrList.create(self_attest.keys()),
+        FfiStrList.create(self_attest.values()),
         master_secret,
-        object_handle_list.create(schemas),
-        object_handle_list.create(cred_defs),
+        FfiObjectHandleList.create(schemas),
+        FfiObjectHandleList.create(cred_defs),
         byref(present),
     )
     return present
@@ -640,9 +701,9 @@ def verify_presentation(
         "credx_verify_presentation",
         presentation,
         pres_req,
-        object_handle_list.create(schemas),
-        object_handle_list.create(cred_defs),
-        object_handle_list.create(rev_reg_defs),
+        FfiObjectHandleList.create(schemas),
+        FfiObjectHandleList.create(cred_defs),
+        FfiObjectHandleList.create(rev_reg_defs),
         entry_list,
         byref(verify),
     )
@@ -692,8 +753,8 @@ def update_revocation_registry(
         "credx_update_revocation_registry",
         rev_reg_def,
         rev_reg,
-        int_list.create(issued),
-        int_list.create(revoked),
+        FfiIntList.create(issued),
+        FfiIntList.create(revoked),
         encode_str(tails_path),
         byref(upd_rev_reg),
         byref(rev_delta),

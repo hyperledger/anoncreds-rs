@@ -20,7 +20,6 @@ from indy_credx import (
 test_did = "55GkHamhTU1ZbTbV2ab9DE"
 
 schema = Schema.create(test_did, "schema name", "schema version", ["attr"], seq_no=15)
-print(schema)
 print(schema.to_dict())
 
 cred_def, cred_def_pvt, key_proof = CredentialDefinition.create(

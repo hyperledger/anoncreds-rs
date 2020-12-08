@@ -551,6 +551,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "ursa",
+ "zeroize",
 ]
 
 [[package]]

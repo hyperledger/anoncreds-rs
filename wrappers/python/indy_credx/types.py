@@ -43,6 +43,16 @@ class CredentialDefinition(bindings.IndyObject):
             )
         )
 
+    @property
+    def schema_id(self) -> str:
+        return str(
+            bindings._object_get_attribute(
+                self.GET_ATTR,
+                self.handle,
+                "schema_id",
+            )
+        )
+
 
 class CredentialDefinitionPrivate(bindings.IndyObject):
     @classmethod

@@ -88,6 +88,11 @@ pub extern "C" fn credx_credential_definition_get_attribute(
         let cred_def = cred_def.cast_ref::<CredentialDefinition>()?;
         let val = match name.as_opt_str().unwrap_or_default() {
             "id" => cred_def.get_id().to_string(),
+            "schema_id" => match cred_def {
+                CredentialDefinition::CredentialDefinitionV1(cred_def) => {
+                    cred_def.schema_id.to_string()
+                }
+            },
             s => return Err(err_msg!("Unsupported attribute: {}", s)),
         };
         unsafe { *result_p = rust_string_to_c(val) };
