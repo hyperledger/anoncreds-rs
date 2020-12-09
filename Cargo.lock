@@ -536,7 +536,7 @@ dependencies = [
 
 [[package]]
 name = "indy-credx"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "env_logger",
  "ffi-support",
@@ -556,7 +556,7 @@ dependencies = [
 
 [[package]]
 name = "indy-data-types"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "hex",
  "indy-utils",
@@ -576,7 +576,7 @@ dependencies = [
 
 [[package]]
 name = "indy-utils"
-version = "0.3.7"
+version = "0.3.8"
 dependencies = [
  "aead",
  "async-global-executor",

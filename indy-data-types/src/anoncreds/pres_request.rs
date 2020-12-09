@@ -352,6 +352,13 @@ fn _process_operator(
                 .collect::<Result<Vec<()>, ValidationError>>()?;
             Ok(())
         }
+        Query::Exist(ref tag_names) => {
+            tag_names
+                .iter()
+                .map(|tag_name| _check_restriction(tag_name, "", version))
+                .collect::<Result<Vec<()>, ValidationError>>()?;
+            Ok(())
+        }
         Query::And(ref operators) | Query::Or(ref operators) => {
             operators
                 .iter()

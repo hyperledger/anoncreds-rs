@@ -13,6 +13,7 @@ pub enum AbstractQuery<K, V> {
     Lte(K, V),
     Like(K, V),
     In(K, Vec<V>),
+    Exist(Vec<K>),
 }
 
 pub type Query = AbstractQuery<String, String>;
@@ -115,6 +116,12 @@ impl<K, V> AbstractQuery<K, V> {
                     .collect::<Result<Vec<_>, _>>()?;
                 Ok(AbstractQuery::<RK, RV>::In(kf(tag_name)?, tag_values))
             }
+            Self::Exist(tag_names) => Ok(AbstractQuery::<RK, RV>::Exist(
+                tag_names.into_iter().try_fold(vec![], |mut v, tag_name| {
+                    v.push(kf(tag_name)?);
+                    Result::<_, ConversionError>::Ok(v)
+                })?,
+            )),
             Self::And(subqueries) => {
                 let subqueries = subqueries
                     .into_iter()
@@ -142,13 +149,13 @@ impl<K, V> Default for AbstractQuery<K, V> {
     }
 }
 
-#[cfg(feature = "serde")]
+#[cfg(feature = "serde_support")]
 mod serde_support {
     use std::string;
 
     use serde::ser::{Serialize, Serializer};
     use serde::{de, Deserialize, Deserializer};
-    use serde_json::{self, Value};
+    use serde_json::{self, json, Value};
 
     use super::{AbstractQuery, Query};
 
@@ -220,6 +227,9 @@ mod serde_support {
                 Self::Lte(ref tag_name, ref tag_value) => json!({tag_name: {"$lte": tag_value}}),
                 Self::Like(ref tag_name, ref tag_value) => json!({tag_name: {"$like": tag_value}}),
                 Self::In(ref tag_name, ref tag_values) => json!({tag_name: {"$in":tag_values}}),
+                Self::Exist(ref tag_names) => {
+                    json!({ "$exist": tag_names.iter().map(Into::into).collect::<Vec<String>>() })
+                }
                 Self::And(ref queries) => {
                     if !queries.is_empty() {
                         json!({
@@ -272,16 +282,22 @@ mod serde_support {
         value: serde_json::Value,
     ) -> Result<Option<Query>, &'static str> {
         match (key.as_str(), value) {
-            ("$and", serde_json::Value::Array(values)) if values.is_empty() => Ok(None),
             ("$and", serde_json::Value::Array(values)) => {
-                let operators: Vec<Query> = parse_list_operators(values)?;
-                Ok(Some(Query::And(operators)))
+                if values.is_empty() {
+                    Ok(None)
+                } else {
+                    let operators: Vec<Query> = parse_list_operators(values)?;
+                    Ok(Some(Query::And(operators)))
+                }
             }
             ("$and", _) => Err("$and must be array of JSON objects"),
-            ("$or", serde_json::Value::Array(values)) if values.is_empty() => Ok(None),
             ("$or", serde_json::Value::Array(values)) => {
-                let operators: Vec<Query> = parse_list_operators(values)?;
-                Ok(Some(Query::Or(operators)))
+                if values.is_empty() {
+                    Ok(None)
+                } else {
+                    let operators: Vec<Query> = parse_list_operators(values)?;
+                    Ok(Some(Query::Or(operators)))
+                }
             }
             ("$or", _) => Err("$or must be array of JSON objects"),
             ("$not", serde_json::Value::Object(map)) => {
@@ -289,6 +305,23 @@ mod serde_support {
                 Ok(Some(Query::Not(Box::new(operator))))
             }
             ("$not", _) => Err("$not must be JSON object"),
+            ("$exist", serde_json::Value::String(key)) => Ok(Some(Query::Exist(vec![key]))),
+            ("$exist", serde_json::Value::Array(keys)) => {
+                if keys.is_empty() {
+                    Ok(None)
+                } else {
+                    let mut ks = vec![];
+                    for key in keys {
+                        if let serde_json::Value::String(key) = key {
+                            ks.push(key);
+                        } else {
+                            return Err("$exist must be used with a string or array of strings");
+                        }
+                    }
+                    Ok(Some(Query::Exist(ks)))
+                }
+            }
+            ("$exist", _) => Err("$exist must be used with a string or array of strings"),
             (_, serde_json::Value::String(value)) => Ok(Some(Query::Eq(key, value))),
             (_, serde_json::Value::Object(map)) => {
                 if map.len() == 1 {
@@ -359,6 +392,7 @@ mod tests {
     use super::*;
     use rand::distributions::Alphanumeric;
     use rand::{thread_rng, Rng};
+    use serde_json::json;
 
     fn _random_string(len: usize) -> String {
         thread_rng().sample_iter(&Alphanumeric).take(len).collect()
@@ -536,6 +570,33 @@ mod tests {
         let query: Query = ::serde_json::from_str(&json).unwrap();
 
         let expected = Query::In(name1, vec![value1, value2, value3]);
+
+        assert_eq!(query, expected);
+    }
+
+    #[test]
+    fn test_exist_parse_string() {
+        let name1 = _random_string(10);
+
+        let json = format!(r#"{{"$exist":"{}"}}"#, name1);
+
+        let query: Query = ::serde_json::from_str(&json).unwrap();
+
+        let expected = Query::Exist(vec![name1]);
+
+        assert_eq!(query, expected);
+    }
+
+    #[test]
+    fn test_exist_parse_array() {
+        let name1 = _random_string(10);
+        let name2 = _random_string(10);
+
+        let json = format!(r#"{{"$exist":["{}","{}"]}}"#, name1, name2);
+
+        let query: Query = ::serde_json::from_str(&json).unwrap();
+
+        let expected = Query::Exist(vec![name1, name2]);
 
         assert_eq!(query, expected);
     }

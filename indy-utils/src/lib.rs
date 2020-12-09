@@ -2,13 +2,9 @@ pub extern crate aead;
 
 pub extern crate hex;
 
-#[cfg(feature = "serde")]
+#[cfg(any(feature = "serde_support", test))]
 #[macro_use]
 pub extern crate serde;
-
-#[cfg_attr(all(feature = "serde", feature = "wql"), macro_use)]
-#[cfg(feature = "serde")]
-pub extern crate serde_json;
 
 #[macro_use]
 pub extern crate zeroize;
