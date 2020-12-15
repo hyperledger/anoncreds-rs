@@ -536,6 +536,18 @@ class RevocationRegistryDefinition(bindings.IndyObject):
         )
 
     @property
+    def max_cred_num(self) -> int:
+        return int(
+            str(
+                bindings._object_get_attribute(
+                    self.GET_ATTR,
+                    self.handle,
+                    "max_cred_num",
+                )
+            )
+        )
+
+    @property
     def tails_hash(self) -> str:
         return str(
             bindings._object_get_attribute(

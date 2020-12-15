@@ -195,6 +195,11 @@ pub extern "C" fn credx_revocation_registry_definition_get_attribute(
         let reg_def = reg_def.cast_ref::<RevocationRegistryDefinition>()?;
         let val = match name.as_opt_str().unwrap_or_default() {
             "id" => reg_def.get_id().to_string(),
+            "max_cred_num" => match reg_def {
+                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => {
+                    r.value.max_cred_num.to_string()
+                }
+            },
             "tails_hash" => match reg_def {
                 RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => {
                     r.value.tails_hash.to_string()
