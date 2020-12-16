@@ -261,6 +261,7 @@ class RevocationConfig(Structure):
         ("rev_reg_def_private", ObjectHandle),
         ("rev_reg", ObjectHandle),
         ("rev_reg_index", c_int64),
+        ("rev_reg_used", FfiIntList),
         ("tails_path", c_char_p),
     ]
 
@@ -271,6 +272,7 @@ class RevocationConfig(Structure):
         rev_reg_def_private: ObjectHandle,
         rev_reg: ObjectHandle,
         rev_reg_index: int,
+        rev_reg_used: Sequence[int],
         tails_path: str,
     ) -> "RevocationConfig":
         return RevocationConfig(
@@ -278,6 +280,7 @@ class RevocationConfig(Structure):
             rev_reg_def_private=rev_reg_def_private,
             rev_reg=rev_reg,
             rev_reg_index=rev_reg_index,
+            rev_reg_used=FfiIntList.create(rev_reg_used),
             tails_path=encode_str(tails_path),
         )
 

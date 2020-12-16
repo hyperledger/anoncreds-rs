@@ -5,6 +5,7 @@ use ffi_support::FfiStr;
 
 use crate::error::Result;
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct FfiList<'a, T> {
     count: usize,

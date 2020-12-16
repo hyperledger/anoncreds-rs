@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::convert::TryInto;
 use std::os::raw::c_char;
 use std::ptr;
@@ -6,7 +7,7 @@ use ffi_support::{rust_string_to_c, FfiStr};
 
 use super::error::{catch_error, ErrorCode};
 use super::object::{IndyObject, ObjectHandle};
-use super::util::FfiStrList;
+use super::util::{FfiList, FfiStrList};
 use crate::error::Result;
 use crate::services::{
     issuer::{create_credential, encode_credential_attribute},
@@ -22,6 +23,7 @@ pub struct FfiCredRevInfo<'a> {
     reg_def_private: ObjectHandle,
     registry: ObjectHandle,
     reg_idx: i64,
+    reg_used: FfiList<'a, i64>,
     tails_path: FfiStr<'a>,
 }
 
@@ -30,16 +32,18 @@ struct RevocationConfig {
     reg_def_private: IndyObject,
     registry: IndyObject,
     reg_idx: u32,
+    reg_used: HashSet<u32>,
     tails_path: String,
 }
 
 impl RevocationConfig {
-    pub fn ref_config(&self) -> Result<CredentialRevocationConfig> {
+    pub fn as_ref_config(&self) -> Result<CredentialRevocationConfig> {
         Ok(CredentialRevocationConfig {
             reg_def: self.reg_def.cast_ref()?,
             reg_def_private: self.reg_def_private.cast_ref()?,
             registry: self.registry.cast_ref()?,
             registry_idx: self.reg_idx,
+            registry_used: &self.reg_used,
             tails_reader: TailsFileReader::new(self.tails_path.as_str()),
         })
     }
@@ -109,6 +113,14 @@ pub extern "C" fn credx_create_credential(
                 .as_opt_str()
                 .ok_or_else(|| err_msg!("Missing tails file path"))?
                 .to_string();
+            let mut reg_used = HashSet::new();
+            for reg_idx in revocation.reg_used.as_slice() {
+                reg_used.insert(
+                    (*reg_idx)
+                        .try_into()
+                        .map_err(|_| err_msg!("Invalid revocation index"))?,
+                );
+            }
             Some(RevocationConfig {
                 reg_def: revocation.reg_def.load()?,
                 reg_def_private: revocation.reg_def_private.load()?,
@@ -117,6 +129,7 @@ pub extern "C" fn credx_create_credential(
                     .reg_idx
                     .try_into()
                     .map_err(|_| err_msg!("Invalid revocation index"))?,
+                reg_used,
                 tails_path,
             })
         } else {
@@ -130,7 +143,7 @@ pub extern "C" fn credx_create_credential(
             cred_values,
             revocation_config
                 .as_ref()
-                .map(RevocationConfig::ref_config)
+                .map(RevocationConfig::as_ref_config)
                 .transpose()?,
         )?;
         let cred = ObjectHandle::create(cred)?;

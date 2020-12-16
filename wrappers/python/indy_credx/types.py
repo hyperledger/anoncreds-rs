@@ -231,7 +231,7 @@ class Credential(bindings.IndyObject):
     def process(
         self,
         cred_req_metadata: [str, CredentialRequestMetadata],
-        master_secret: [str, CredentialRequestMetadata],
+        master_secret: [str, MasterSecret],
         cred_def: [str, CredentialDefinition],
         rev_reg_def: Optional[Union[str, "RevocationRegistryDefinition"]] = None,
     ) -> "Credential":
@@ -643,6 +643,7 @@ class CredentialRevocationConfig:
         rev_reg_def_private: [str, "RevocationRegistryDefinitionPrivate"] = None,
         rev_reg: [str, "RevocationRegistry"] = None,
         rev_reg_index: int = None,
+        rev_reg_used: Sequence[int] = None,
         tails_path: str = None,
     ):
         if not isinstance(rev_reg_def, bindings.IndyObject):
@@ -657,6 +658,7 @@ class CredentialRevocationConfig:
             rev_reg = RevocationRegistry.load(rev_reg)
         self.rev_reg = rev_reg
         self.rev_reg_index = rev_reg_index
+        self.rev_reg_used = rev_reg_used
         self.tails_path = tails_path
 
     @property
@@ -666,6 +668,7 @@ class CredentialRevocationConfig:
             self.rev_reg_def_private.handle,
             self.rev_reg.handle,
             self.rev_reg_index,
+            self.rev_reg_used,
             self.tails_path,
         )
 

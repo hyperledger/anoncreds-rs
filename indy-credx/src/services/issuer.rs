@@ -388,14 +388,14 @@ pub fn create_credential(
                 _ => Some(reg_reg_id.clone()),
             };
             let witness = {
-                let used = HashSet::new(); // FIXME HashSet::from_iter((0..revocation.registry_idx).into_iter());
+                let empty = HashSet::new();
                 let (by_default, issued, revoked) = match rev_reg_def.issuance_type {
-                    IssuanceType::ISSUANCE_ON_DEMAND => (false, used, HashSet::new()),
-                    IssuanceType::ISSUANCE_BY_DEFAULT => (true, HashSet::new(), used),
+                    IssuanceType::ISSUANCE_ON_DEMAND => (false, revocation.registry_used, &empty),
+                    IssuanceType::ISSUANCE_BY_DEFAULT => (true, &empty, revocation.registry_used),
                 };
 
                 let rev_reg_delta =
-                    CryptoRevocationRegistryDelta::from_parts(None, &rev_reg, &issued, &revoked);
+                    CryptoRevocationRegistryDelta::from_parts(None, &rev_reg, issued, revoked);
                 Witness::new(
                     revocation.registry_idx,
                     rev_reg_def.max_cred_num,
@@ -466,7 +466,7 @@ pub fn revoke_credential(
         "revoke >>> rev_reg_def: {:?}, rev_reg: {:?}, cred_rev_idx: {:?}",
         rev_reg_def,
         rev_reg,
-        secret!(&cred_rev_idx)
+        cred_rev_idx
     );
 
     let max_cred_num = match rev_reg_def {

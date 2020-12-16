@@ -25,7 +25,7 @@ print(schema.to_dict())
 cred_def, cred_def_pvt, key_proof = CredentialDefinition.create(
     test_did, schema, "CL", tag="tag", support_revocation=True
 )
-print(cred_def.handle)
+print(cred_def)
 
 (
     rev_reg_def,
@@ -33,23 +33,24 @@ print(cred_def.handle)
     rev_reg,
     rev_reg_init_delta,
 ) = RevocationRegistryDefinition.create(test_did, cred_def, "default", "CL_ACCUM", 100)
-print(rev_reg_def.tails_hash)
+print("Tails file hash:", rev_reg_def.tails_hash)
 
 master_secret = MasterSecret.create()
 master_secret_id = "my id"
 
 cred_offer = CredentialOffer.create(schema.id, cred_def, key_proof)
-print(cred_offer)
+print("Credential offer:")
+print(cred_offer.to_json())
 
 cred_req, cred_req_metadata = CredentialRequest.create(
     test_did, cred_def, master_secret, master_secret_id, cred_offer
 )
-
+print("Credential request:")
 print(cred_req.to_json())
 
 issuer_rev_index = 1
 
-cred, rev_reg_updated, _rev_delta = Credential.create(
+cred, _rev_reg_updated, _rev_delta = Credential.create(
     cred_def,
     cred_def_pvt,
     cred_offer,
@@ -61,14 +62,16 @@ cred, rev_reg_updated, _rev_delta = Credential.create(
         rev_reg_def_private,
         rev_reg,
         issuer_rev_index,
+        (),
         rev_reg_def.tails_location,
     ),
 )
-print(cred, rev_reg_updated)
+print("Issued credential:")
 print(cred.to_json())
 
 cred_received = cred.process(cred_req_metadata, master_secret, cred_def, rev_reg_def)
-print(cred_received)
+print("Processed credential:")
+print(cred_received.to_json())
 
 timestamp = int(time())
 
@@ -106,7 +109,7 @@ present_creds.add_attributes(
 presentation = Presentation.create(
     pres_req, present_creds, {}, master_secret, [schema], [cred_def]
 )
-print(presentation.to_json())
+# print(presentation.to_json())
 
 print(
     "Verified:",
