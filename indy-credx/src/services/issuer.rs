@@ -466,7 +466,7 @@ pub fn revoke_credential(
         "revoke >>> rev_reg_def: {:?}, rev_reg: {:?}, cred_rev_idx: {:?}",
         rev_reg_def,
         rev_reg,
-        cred_rev_idx
+        secret!(&cred_rev_idx)
     );
 
     let max_cred_num = match rev_reg_def {
