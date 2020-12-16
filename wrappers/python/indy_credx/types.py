@@ -324,8 +324,10 @@ class PresentCredentials:
     ):
         if cred not in self.entries:
             self.entries[cred] = {}
+        if rev_state and not isinstance(rev_state, bindings.IndyObject):
+            rev_state = CredentialRevocationState.load(rev_state)
         if timestamp not in self.entries[cred]:
-            self.entries[cred][timestamp] = (set(), set(), rev_state)
+            self.entries[cred][timestamp] = [set(), set(), rev_state]
         elif rev_state:
             self.entries[cred][timestamp][2] = rev_state
         return self.entries[cred][timestamp]
@@ -336,7 +338,7 @@ class PresentCredentials:
         *referents: Sequence[str],
         reveal: bool = True,
         timestamp: int = None,
-        rev_state: "CredentialRevocationState" = None,
+        rev_state: [str, "CredentialRevocationState"] = None,
     ):
         if not referents:
             return
@@ -349,7 +351,7 @@ class PresentCredentials:
         cred: Credential,
         *referents: Sequence[str],
         timestamp: int = None,
-        rev_state: "CredentialRevocationState" = None,
+        rev_state: [str, "CredentialRevocationState"] = None,
     ):
         if not referents:
             return

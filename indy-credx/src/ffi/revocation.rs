@@ -295,3 +295,4 @@ pub extern "C" fn credx_create_or_update_revocation_state(
 }
 
 impl_indy_object!(CredentialRevocationState, "CredentialRevocationState");
+impl_indy_object_from_json!(CredentialRevocationState, credx_revocation_state_from_json);
