@@ -560,29 +560,31 @@ fn verify_requested_restrictions(
         .map(|(referent, info)| (referent.to_string(), info.clone()))
         .collect();
 
-    for (referent, info) in requested_attrs {
+    for (referent, info) in requested_attrs.iter() {
         if let Some(ref query) = info.restrictions {
             let filter = gather_filter_info(&referent, &proof_attr_identifiers)?;
 
-            let name_value_map: HashMap<String, Option<&str>> = if let Some(name) = info.name {
+            let attr_value_map: HashMap<String, Option<&str>> = if let Some(name) =
+                info.name.as_ref()
+            {
                 let mut map = HashMap::new();
                 map.insert(
                     name.clone(),
                     requested_proof
                         .revealed_attrs
-                        .get(&referent)
+                        .get(referent)
                         .map(|attr| attr.raw.as_str()),
                 );
                 map
-            } else if let Some(names) = info.names {
+            } else if let Some(names) = info.names.as_ref() {
                 let mut map = HashMap::new();
                 let attrs = requested_proof
                     .revealed_attr_groups
-                    .get(&referent)
+                    .get(referent)
                     .ok_or_else(|| err_msg!("Proof does not have referent from proof request"))?;
                 for name in names {
-                    let val = attrs.values.get(&name).map(|attr| attr.raw.as_str());
-                    map.insert(name, val);
+                    let val = attrs.values.get(name).map(|attr| attr.raw.as_str());
+                    map.insert(name.clone(), val);
                 }
                 map
             } else {
@@ -595,9 +597,9 @@ fn verify_requested_restrictions(
                 ));
             };
 
-            do_process_operator(&name_value_map, &query, &filter).map_err(err_map!(
+            process_operator(&attr_value_map, &query, &filter).map_err(err_map!(
                 "Requested restriction validation failed for \"{:?}\" attributes",
-                &name_value_map
+                &attr_value_map
             ))?;
         }
     }
@@ -606,7 +608,41 @@ fn verify_requested_restrictions(
         if let Some(ref query) = info.restrictions {
             let filter = gather_filter_info(&referent, received_predicates)?;
 
-            process_operator(&info.name, &query, &filter, None).map_err(err_map!(
+            // start with the predicate requested attribute, which is un-revealed
+            let mut attr_value_map = HashMap::new();
+            attr_value_map.insert(info.name.to_string(), None);
+
+            // include any revealed attributes for the same credential (based on sub_proof_index)
+            let pred_sub_proof_index = requested_proof
+                .predicates
+                .get(referent)
+                .unwrap()
+                .sub_proof_index;
+            for attr_referent in requested_proof.revealed_attrs.keys() {
+                let attr_info = requested_proof.revealed_attrs.get(attr_referent).unwrap();
+                let attr_sub_proof_index = attr_info.sub_proof_index;
+                if pred_sub_proof_index == attr_sub_proof_index {
+                    let attr_name = requested_attrs.get(attr_referent).unwrap().name.clone();
+                    if let Some(name) = attr_name {
+                        attr_value_map.insert(name, Some(attr_info.raw.as_str()));
+                    }
+                }
+            }
+            for attr_referent in requested_proof.revealed_attr_groups.keys() {
+                let attr_info = requested_proof
+                    .revealed_attr_groups
+                    .get(attr_referent)
+                    .unwrap();
+                let attr_sub_proof_index = attr_info.sub_proof_index;
+                if pred_sub_proof_index == attr_sub_proof_index {
+                    for name in attr_info.values.keys() {
+                        let raw_val = attr_info.values.get(name).unwrap().raw.as_str();
+                        attr_value_map.insert(name.clone(), Some(raw_val.clone()));
+                    }
+                }
+            }
+
+            process_operator(&attr_value_map, &query, &filter).map_err(err_map!(
                 "Requested restriction validation failed for \"{}\" predicate",
                 &info.name
             ))?;
@@ -665,17 +701,6 @@ fn gather_filter_info(referent: &str, identifiers: &HashMap<String, Identifier>)
 }
 
 fn process_operator(
-    attr: &str,
-    restriction_op: &Query,
-    filter: &Filter,
-    revealed_value: Option<&str>,
-) -> Result<()> {
-    let mut attr_value_map = HashMap::new();
-    attr_value_map.insert(attr.to_string(), revealed_value);
-    do_process_operator(&attr_value_map, restriction_op, filter)
-}
-
-fn do_process_operator(
     attr_value_map: &HashMap<String, Option<&str>>,
     restriction_op: &Query,
     filter: &Filter,
@@ -713,14 +738,14 @@ fn do_process_operator(
         }
         Query::And(ref operators) => operators
             .iter()
-            .map(|op| do_process_operator(attr_value_map, op, filter))
+            .map(|op| process_operator(attr_value_map, op, filter))
             .collect::<Result<Vec<()>>>()
             .map(|_| ())
             .map_err(err_map!("$and operator validation failed.")),
         Query::Or(ref operators) => {
             let res = operators
                 .iter()
-                .any(|op| do_process_operator(attr_value_map, op, filter).is_ok());
+                .any(|op| process_operator(attr_value_map, op, filter).is_ok());
             if res {
                 Ok(())
             } else {
@@ -731,7 +756,7 @@ fn do_process_operator(
             }
         }
         Query::Not(ref operator) => {
-            if do_process_operator(attr_value_map, &*operator, filter).is_err() {
+            if process_operator(attr_value_map, &*operator, filter).is_err() {
                 Ok(())
             } else {
                 Err(err_msg!(
@@ -884,37 +909,48 @@ mod tests {
         }
     }
 
+    fn _process_operator(
+        attr: &str,
+        restriction_op: &Query,
+        filter: &Filter,
+        revealed_value: Option<&str>,
+    ) -> Result<()> {
+        let mut attr_value_map = HashMap::new();
+        attr_value_map.insert(attr.to_string(), revealed_value);
+        process_operator(&attr_value_map, restriction_op, filter)
+    }
+
     #[test]
     fn test_process_op_eq() {
         let filter = filter();
 
         let mut op = Query::Eq(schema_id_tag(), SCHEMA_ID.to_string());
-        process_operator("zip", &op, &filter, None).unwrap();
+        _process_operator("zip", &op, &filter, None).unwrap();
 
         op = Query::And(vec![
             Query::Eq(attr_tag(), "1".to_string()),
             Query::Eq(schema_id_tag(), SCHEMA_ID.to_string()),
         ]);
-        process_operator("zip", &op, &filter, None).unwrap();
+        _process_operator("zip", &op, &filter, None).unwrap();
 
         op = Query::And(vec![
             Query::Eq(bad_attr_tag(), "1".to_string()),
             Query::Eq(schema_id_tag(), SCHEMA_ID.to_string()),
         ]);
-        assert!(process_operator("zip", &op, &filter, None).is_err());
+        assert!(_process_operator("zip", &op, &filter, None).is_err());
 
         op = Query::Eq(schema_id_tag(), "NOT HERE".to_string());
-        assert!(process_operator("zip", &op, &filter, None).is_err());
+        assert!(_process_operator("zip", &op, &filter, None).is_err());
     }
 
     #[test]
     fn test_process_op_ne() {
         let filter = filter();
         let mut op = Query::Neq(schema_id_tag(), SCHEMA_ID.to_string());
-        assert!(process_operator("zip", &op, &filter, None).is_err());
+        assert!(_process_operator("zip", &op, &filter, None).is_err());
 
         op = Query::Neq(schema_id_tag(), "NOT HERE".to_string());
-        process_operator("zip", &op, &filter, None).unwrap()
+        _process_operator("zip", &op, &filter, None).unwrap()
     }
 
     #[test]
@@ -923,11 +959,11 @@ mod tests {
         let mut cred_def_ids = vec!["Not Here".to_string()];
 
         let mut op = Query::In(cred_def_id_tag(), cred_def_ids.clone());
-        assert!(process_operator("zip", &op, &filter, None).is_err());
+        assert!(_process_operator("zip", &op, &filter, None).is_err());
 
         cred_def_ids.push(CRED_DEF_ID.to_string());
         op = Query::In(cred_def_id_tag(), cred_def_ids.clone());
-        process_operator("zip", &op, &filter, None).unwrap()
+        _process_operator("zip", &op, &filter, None).unwrap()
     }
 
     #[test]
@@ -937,13 +973,13 @@ mod tests {
             Query::Eq(schema_id_tag(), "Not Here".to_string()),
             Query::Eq(cred_def_id_tag(), "Not Here".to_string()),
         ]);
-        assert!(process_operator("zip", &op, &filter, None).is_err());
+        assert!(_process_operator("zip", &op, &filter, None).is_err());
 
         op = Query::Or(vec![
             Query::Eq(schema_id_tag(), SCHEMA_ID.to_string()),
             Query::Eq(cred_def_id_tag(), "Not Here".to_string()),
         ]);
-        process_operator("zip", &op, &filter, None).unwrap()
+        _process_operator("zip", &op, &filter, None).unwrap()
     }
 
     #[test]
@@ -953,19 +989,19 @@ mod tests {
             Query::Eq(schema_id_tag(), "Not Here".to_string()),
             Query::Eq(cred_def_id_tag(), "Not Here".to_string()),
         ]);
-        assert!(process_operator("zip", &op, &filter, None).is_err());
+        assert!(_process_operator("zip", &op, &filter, None).is_err());
 
         op = Query::And(vec![
             Query::Eq(schema_id_tag(), SCHEMA_ID.to_string()),
             Query::Eq(cred_def_id_tag(), "Not Here".to_string()),
         ]);
-        assert!(process_operator("zip", &op, &filter, None).is_err());
+        assert!(_process_operator("zip", &op, &filter, None).is_err());
 
         op = Query::And(vec![
             Query::Eq(schema_id_tag(), SCHEMA_ID.to_string()),
             Query::Eq(cred_def_id_tag(), CRED_DEF_ID.to_string()),
         ]);
-        process_operator("zip", &op, &filter, None).unwrap()
+        _process_operator("zip", &op, &filter, None).unwrap()
     }
 
     #[test]
@@ -975,13 +1011,13 @@ mod tests {
             Query::Eq(schema_id_tag(), SCHEMA_ID.to_string()),
             Query::Eq(cred_def_id_tag(), CRED_DEF_ID.to_string()),
         ])));
-        assert!(process_operator("zip", &op, &filter, None).is_err());
+        assert!(_process_operator("zip", &op, &filter, None).is_err());
 
         op = Query::Not(Box::new(Query::And(vec![
             Query::Eq(schema_id_tag(), "Not Here".to_string()),
             Query::Eq(cred_def_id_tag(), "Not Here".to_string()),
         ])));
-        process_operator("zip", &op, &filter, None).unwrap()
+        _process_operator("zip", &op, &filter, None).unwrap()
     }
 
     #[test]
@@ -1001,7 +1037,7 @@ mod tests {
                 Query::Eq(issuer_did_tag(), "Not Here".to_string()),
             ]),
         ]);
-        assert!(process_operator("zip", &op, &filter, None).is_err());
+        assert!(_process_operator("zip", &op, &filter, None).is_err());
 
         op = Query::Or(vec![
             Query::And(vec![
@@ -1017,7 +1053,7 @@ mod tests {
                 Query::Eq(issuer_did_tag(), "Not Here".to_string()),
             ]),
         ]);
-        assert!(process_operator("zip", &op, &filter, None).is_err());
+        assert!(_process_operator("zip", &op, &filter, None).is_err());
 
         op = Query::Or(vec![
             Query::And(vec![
@@ -1033,7 +1069,7 @@ mod tests {
                 Query::Eq(issuer_did_tag(), "Not Here".to_string()),
             ]),
         ]);
-        process_operator("zip", &op, &filter, None).unwrap()
+        _process_operator("zip", &op, &filter, None).unwrap()
     }
 
     #[test]
@@ -1057,7 +1093,7 @@ mod tests {
                 Query::Eq(issuer_did_tag(), ISSUER_DID.to_string()),
             ]),
         ]);
-        assert!(process_operator("zip", &op, &filter, None).is_err());
+        assert!(_process_operator("zip", &op, &filter, None).is_err());
 
         op = Query::And(vec![
             Query::And(vec![
@@ -1081,7 +1117,7 @@ mod tests {
                 "NOT HERE".to_string(),
             ))),
         ]);
-        process_operator("zip", &op, &filter, None).unwrap();
+        _process_operator("zip", &op, &filter, None).unwrap();
 
         op = Query::And(vec![
             Query::And(vec![
@@ -1105,7 +1141,7 @@ mod tests {
                 SCHEMA_VERSION.to_string(),
             ))),
         ]);
-        assert!(process_operator("zip", &op, &filter, None).is_err());
+        assert!(_process_operator("zip", &op, &filter, None).is_err());
     }
 
     #[test]
@@ -1114,16 +1150,16 @@ mod tests {
         let value = "value";
 
         let mut op = Query::Eq(attr_tag_value(), value.to_string());
-        process_operator("zip", &op, &filter, Some(value)).unwrap();
+        _process_operator("zip", &op, &filter, Some(value)).unwrap();
 
         op = Query::And(vec![
             Query::Eq(attr_tag_value(), value.to_string()),
             Query::Eq(schema_issuer_did_tag(), SCHEMA_ISSUER_DID.to_string()),
         ]);
-        process_operator("zip", &op, &filter, Some(value)).unwrap();
+        _process_operator("zip", &op, &filter, Some(value)).unwrap();
 
         op = Query::Eq(attr_tag_value(), value.to_string());
-        assert!(process_operator("zip", &op, &filter, Some("NOT HERE")).is_err());
+        assert!(_process_operator("zip", &op, &filter, Some("NOT HERE")).is_err());
     }
 
     fn _received() -> HashMap<String, Identifier> {
