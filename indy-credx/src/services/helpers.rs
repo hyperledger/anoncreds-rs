@@ -1,6 +1,9 @@
-use ursa::cl::{
-    issuer, verifier, CredentialSchema, CredentialValues as CryptoCredentialValues,
-    MasterSecret as CryptoMasterSecret, NonCredentialSchema, SubProofRequest,
+use ursa::{
+    bn::BigNumber,
+    cl::{
+        issuer, verifier, CredentialSchema, CredentialValues as CryptoCredentialValues,
+        MasterSecret as CryptoMasterSecret, NonCredentialSchema, SubProofRequest,
+    },
 };
 
 use crate::error::Result;
@@ -10,6 +13,7 @@ use indy_data_types::anoncreds::{
     nonce::Nonce,
     pres_request::{AttributeInfo, NonRevocedInterval, PredicateInfo},
 };
+use indy_utils::hash::SHA256;
 
 use std::collections::{HashMap, HashSet};
 
@@ -65,6 +69,21 @@ pub fn build_credential_values(
     trace!("build_credential_values <<< res: {:?}", res);
 
     Ok(res)
+}
+
+pub fn encode_credential_attribute(raw_value: &str) -> Result<String> {
+    if let Ok(val) = raw_value.parse::<i32>() {
+        Ok(val.to_string())
+    } else {
+        let digest = SHA256::digest(raw_value.as_bytes());
+        #[cfg(target_endian = "big")]
+        let digest = {
+            let mut d = digest;
+            d.reverse();
+            d
+        };
+        Ok(BigNumber::from_bytes(&digest)?.to_dec()?)
+    }
 }
 
 pub fn build_sub_proof_request(

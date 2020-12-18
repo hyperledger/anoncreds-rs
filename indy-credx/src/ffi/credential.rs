@@ -10,10 +10,11 @@ use super::object::{IndyObject, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
 use crate::error::Result;
 use crate::services::{
-    issuer::{create_credential, encode_credential_attribute},
+    issuer::create_credential,
     prover::process_credential,
     tails::TailsFileReader,
-    types::{AttributeValues, Credential, CredentialRevocationConfig, CredentialValues},
+    types::{Credential, CredentialRevocationConfig, MakeCredentialValues},
+    utils::encode_credential_attribute,
 };
 
 #[derive(Debug)]
@@ -74,7 +75,7 @@ pub extern "C" fn credx_create_credential(
             ));
         }
         let enc_values = attr_enc_values.as_slice();
-        let mut cred_values = CredentialValues(Default::default());
+        let mut cred_values = MakeCredentialValues::default();
         let mut attr_idx = 0;
         for (name, raw) in attr_names
             .as_slice()
@@ -89,21 +90,16 @@ pub extern "C" fn credx_create_credential(
                 .as_opt_str()
                 .ok_or_else(|| err_msg!("Missing attribute raw value"))?
                 .to_string();
-            let mut encoded = if attr_idx < enc_values.len() {
+            let encoded = if attr_idx < enc_values.len() {
                 enc_values[attr_idx].as_opt_str().map(str::to_string)
             } else {
                 None
             };
-            if encoded.is_none() {
-                encoded.replace(encode_credential_attribute(&raw)?);
+            if let Some(encoded) = encoded {
+                cred_values.add_encoded(name, raw, encoded);
+            } else {
+                cred_values.add_raw(name, raw)?;
             }
-            cred_values.0.insert(
-                name,
-                AttributeValues {
-                    raw,
-                    encoded: encoded.unwrap(),
-                },
-            );
             attr_idx += 1;
         }
         let revocation_config = if !revocation.is_null() {
@@ -140,7 +136,7 @@ pub extern "C" fn credx_create_credential(
             cred_def_private.load()?.cast_ref()?,
             cred_offer.load()?.cast_ref()?,
             cred_request.load()?.cast_ref()?,
-            cred_values,
+            cred_values.into(),
             revocation_config
                 .as_ref()
                 .map(RevocationConfig::as_ref_config)

@@ -4,12 +4,9 @@ use std::iter::FromIterator;
 use super::types::*;
 use crate::error::Result;
 use crate::services::helpers::*;
-use crate::ursa::{
-    bn::BigNumber,
-    cl::{
-        issuer::Issuer as CryptoIssuer, RevocationRegistryDelta as CryptoRevocationRegistryDelta,
-        Witness,
-    },
+use crate::ursa::cl::{
+    issuer::Issuer as CryptoIssuer, RevocationRegistryDelta as CryptoRevocationRegistryDelta,
+    Witness,
 };
 use indy_data_types::anoncreds::{
     cred_def::{CredentialDefinitionData, CredentialDefinitionV1},
@@ -21,7 +18,7 @@ use indy_data_types::anoncreds::{
     },
     schema::SchemaV1,
 };
-use indy_utils::{hash::SHA256, Qualifiable, Validatable};
+use indy_utils::{Qualifiable, Validatable};
 
 use super::tails::{TailsFileReader, TailsReader, TailsWriter};
 
@@ -534,21 +531,6 @@ pub fn merge_revocation_registry_deltas(
             result.value.merge(&other.value)?;
             Ok(RevocationRegistryDelta::RevocationRegistryDeltaV1(result))
         }
-    }
-}
-
-pub fn encode_credential_attribute(raw_value: &str) -> Result<String> {
-    if let Ok(val) = raw_value.parse::<i32>() {
-        Ok(val.to_string())
-    } else {
-        let digest = SHA256::digest(raw_value.as_bytes());
-        #[cfg(target_endian = "big")]
-        let digest = {
-            let mut d = digest;
-            d.reverse();
-            d
-        };
-        Ok(BigNumber::from_bytes(&digest)?.to_dec()?)
     }
 }
 

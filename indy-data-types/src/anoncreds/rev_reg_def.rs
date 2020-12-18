@@ -92,6 +92,12 @@ pub enum RevocationRegistryDefinition {
 }
 
 impl RevocationRegistryDefinition {
+    pub fn id(&self) -> &RevocationRegistryId {
+        match self {
+            RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => &r.id,
+        }
+    }
+
     pub fn to_unqualified(self) -> RevocationRegistryDefinition {
         match self {
             RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => {

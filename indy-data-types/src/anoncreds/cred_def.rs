@@ -42,6 +42,12 @@ pub enum CredentialDefinition {
 }
 
 impl CredentialDefinition {
+    pub fn id(&self) -> &CredentialDefinitionId {
+        match self {
+            CredentialDefinition::CredentialDefinitionV1(c) => &c.id,
+        }
+    }
+
     pub fn to_unqualified(self) -> CredentialDefinition {
         match self {
             CredentialDefinition::CredentialDefinitionV1(cred_def) => {

@@ -77,7 +77,7 @@ pub struct CredentialInfo {
 
 pub type ShortCredentialValues = HashMap<String, String>;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CredentialValues(pub HashMap<String, AttributeValues>);
 

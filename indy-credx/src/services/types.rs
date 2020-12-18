@@ -25,6 +25,8 @@ pub use indy_data_types::{
 pub use indy_utils::did::DidValue;
 use indy_utils::{invalid, Validatable, ValidationError};
 
+use crate::error::Error;
+use crate::services::helpers::encode_credential_attribute;
 use crate::ursa::cl::{RevocationRegistry as CryptoRevocationRegistry, Witness};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,6 +49,45 @@ impl Default for CredentialDefinitionConfig {
 }
 
 impl Validatable for CredentialDefinitionConfig {}
+
+#[derive(Debug, Default)]
+pub struct MakeCredentialValues(pub(crate) CredentialValues);
+
+impl MakeCredentialValues {
+    pub fn add_encoded(
+        &mut self,
+        name: impl Into<String>,
+        raw: impl Into<String>,
+        encoded: String,
+    ) {
+        self.0 .0.insert(
+            name.into(),
+            AttributeValues {
+                raw: raw.into(),
+                encoded,
+            },
+        );
+    }
+
+    pub fn add_raw(
+        &mut self,
+        name: impl Into<String>,
+        raw: impl Into<String>,
+    ) -> Result<(), Error> {
+        let raw = raw.into();
+        let encoded = encode_credential_attribute(&raw)?;
+        self.0
+             .0
+            .insert(name.into(), AttributeValues { raw, encoded });
+        Ok(())
+    }
+}
+
+impl Into<CredentialValues> for MakeCredentialValues {
+    fn into(self) -> CredentialValues {
+        self.0
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct PresentCredentials<'p>(pub(crate) Vec<PresentCredential<'p>>);
@@ -136,14 +177,14 @@ pub struct AddCredential<'a, 'p> {
 }
 
 impl<'a, 'p> AddCredential<'a, 'p> {
-    pub fn add_requested_attribute(&mut self, referent: String, revealed: bool) {
+    pub fn add_requested_attribute(&mut self, referent: impl Into<String>, revealed: bool) {
         self.present
             .requested_attributes
-            .insert((referent, revealed));
+            .insert((referent.into(), revealed));
     }
 
-    pub fn add_requested_predicate(&mut self, referent: String) {
-        self.present.requested_predicates.insert(referent);
+    pub fn add_requested_predicate(&mut self, referent: impl Into<String>) {
+        self.present.requested_predicates.insert(referent.into());
     }
 }
 

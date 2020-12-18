@@ -16,6 +16,12 @@ pub enum Schema {
 }
 
 impl Schema {
+    pub fn id(&self) -> &SchemaId {
+        match self {
+            Schema::SchemaV1(s) => &s.id,
+        }
+    }
+
     pub fn to_unqualified(self) -> Schema {
         match self {
             Schema::SchemaV1(schema) => Schema::SchemaV1(SchemaV1 {
@@ -56,6 +62,16 @@ pub struct AttributeNames(pub HashSet<String>);
 impl AttributeNames {
     pub fn new() -> Self {
         AttributeNames(HashSet::new())
+    }
+}
+
+impl From<&[&str]> for AttributeNames {
+    fn from(attrs: &[&str]) -> Self {
+        let mut attrset = HashSet::new();
+        for attr in attrs {
+            attrset.insert(attr.to_string());
+        }
+        Self(attrset)
     }
 }
 
