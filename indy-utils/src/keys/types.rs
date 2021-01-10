@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use aead::generic_array::{ArrayLength, GenericArray};
 
 use crate::random::random_array;
@@ -126,10 +128,12 @@ impl From<String> for KeyEncoding {
 }
 
 /// A secure key representation for fixed-length keys
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Zeroize)]
+#[derive(Clone, Debug, Hash, Zeroize)]
 pub struct ArrayKey<L: ArrayLength<u8>>(GenericArray<u8, L>);
 
 impl<L: ArrayLength<u8>> ArrayKey<L> {
+    pub const SIZE: usize = L::USIZE;
+
     #[inline]
     pub fn from_slice<D: AsRef<[u8]>>(data: D) -> Self {
         Self(GenericArray::from_slice(data.as_ref()).clone())
@@ -169,6 +173,24 @@ impl<L: ArrayLength<u8>> std::ops::Deref for ArrayKey<L> {
 impl<L: ArrayLength<u8>> std::ops::DerefMut for ArrayKey<L> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl<L: ArrayLength<u8>> PartialEq for ArrayKey<L> {
+    fn eq(&self, other: &Self) -> bool {
+        **self == **other
+    }
+}
+impl<L: ArrayLength<u8>> Eq for ArrayKey<L> {}
+
+impl<L: ArrayLength<u8>> PartialOrd for ArrayKey<L> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.0.partial_cmp(&*other)
+    }
+}
+impl<L: ArrayLength<u8>> Ord for ArrayKey<L> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&*other)
     }
 }
 
