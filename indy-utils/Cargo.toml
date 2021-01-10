@@ -6,7 +6,7 @@ description = "Utilities for Hyperledger Indy (https://www.hyperledger.org/proje
 edition = "2018"
 license = "Apache-2.0"
 readme = "../README.md"
-repository = "https://github.com/bcgov/indy-shared-rs/"
+repository = "https://github.com/hyperledger/indy-shared-rs/"
 categories = ["authentication", "cryptography"]
 keywords = ["hyperledger", "indy", "ssi", "verifiable", "credentials"]
 

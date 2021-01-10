@@ -582,7 +582,7 @@ dependencies = [
 
 [[package]]
 name = "indy-utils"
-version = "0.3.8"
+version = "0.3.9"
 dependencies = [
  "aead",
  "async-global-executor",

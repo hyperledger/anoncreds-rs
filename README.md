@@ -21,10 +21,10 @@ The initial implementation of `indy-shared-rs` was developed by the Verifiable O
 
 ## Contributing
 
-Pull requests are welcome! Please read our [contributions guide](https://github.com/bcgov/indy-shared-rs/blob/master/CONTRIBUTING.md) and submit your PRs. We enforce [developer certificate of origin](https://developercertificate.org/) (DCO) commit signing. See guidance [here](https://github.com/apps/dco).
+Pull requests are welcome! Please read our [contributions guide](https://github.com/hyperledger/indy-shared-rs/blob/master/CONTRIBUTING.md) and submit your PRs. We enforce [developer certificate of origin](https://developercertificate.org/) (DCO) commit signing. See guidance [here](https://github.com/apps/dco).
 
 We also welcome issues submitted about problems you encounter in using `indy-shared-rs`.
 
 ## License
 
-[Apache License Version 2.0](https://github.com/bcgov/indy-shared-rs/blob/master/LICENSE)
+[Apache License Version 2.0](https://github.com/hyperledger/indy-shared-rs/blob/master/LICENSE)
