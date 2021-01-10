@@ -1,6 +1,6 @@
 [package]
 name = "indy-utils"
-version = "0.3.8"
+version = "0.3.9"
 authors = ["Hyperledger Indy Contributors <indy@lists.hyperledger.org>"]
 description = "Utilities for Hyperledger Indy (https://www.hyperledger.org/projects), which provides a distributed-ledger-based foundation for self-sovereign identity (https://sovrin.org)."
 edition = "2018"
