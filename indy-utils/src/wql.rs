@@ -602,6 +602,23 @@ mod tests {
     }
 
     #[test]
+    fn test_and_exist() {
+        let name1 = _random_string(10);
+        let name2 = _random_string(10);
+
+        let json = format!(
+            r#"{{"$and":[{{"$exist":"{}"}},{{"$exist":"{}"}}]}}"#,
+            name1, name2
+        );
+
+        let query: Query = ::serde_json::from_str(&json).unwrap();
+
+        let expected = Query::And(vec![Query::Exist(vec![name1]), Query::Exist(vec![name2])]);
+
+        assert_eq!(query, expected);
+    }
+
+    #[test]
     fn test_and_with_one_eq_parse() {
         let name1 = _random_string(10);
         let value1 = _random_string(10);
@@ -728,7 +745,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // order
     fn test_short_and_with_multiple_eq_parse() {
         let name1 = _random_string(10);
         let value1 = _random_string(10);
@@ -743,12 +759,14 @@ mod tests {
         );
 
         let query: Query = ::serde_json::from_str(&json).unwrap();
-
-        let expected = Query::And(vec![
+        let mut clauses = vec![
             Query::Eq(name1, value1),
             Query::Eq(name2, value2),
             Query::Eq(name3, value3),
-        ]);
+        ];
+        clauses.sort();
+
+        let expected = Query::And(clauses);
 
         assert_eq!(query, expected);
     }
