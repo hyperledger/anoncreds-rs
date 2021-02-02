@@ -20,12 +20,20 @@ from indy_credx import (
 test_did = "55GkHamhTU1ZbTbV2ab9DE"
 
 schema = Schema.create(test_did, "schema name", "schema version", ["attr"], seq_no=15)
-print(schema.to_dict())
+assert schema.to_dict() == {
+    "ver": "1.0",
+    "id": f"{test_did}:2:schema name:schema version",
+    "name": "schema name",
+    "version": "schema version",
+    "attrNames": ["attr"],
+    "seqNo": 15,
+}
+
 
 cred_def, cred_def_pvt, key_proof = CredentialDefinition.create(
     test_did, schema, "CL", tag="tag", support_revocation=True
 )
-print(cred_def)
+assert cred_def.id == f"{test_did}:3:CL:15:tag"
 
 (
     rev_reg_def,
@@ -33,20 +41,20 @@ print(cred_def)
     rev_reg,
     rev_reg_init_delta,
 ) = RevocationRegistryDefinition.create(test_did, cred_def, "default", "CL_ACCUM", 100)
-print("Tails file hash:", rev_reg_def.tails_hash)
+# print("Tails file hash:", rev_reg_def.tails_hash)
 
 master_secret = MasterSecret.create()
 master_secret_id = "my id"
 
 cred_offer = CredentialOffer.create(schema.id, cred_def, key_proof)
-print("Credential offer:")
-print(cred_offer.to_json())
+# print("Credential offer:")
+# print(cred_offer.to_json())
 
 cred_req, cred_req_metadata = CredentialRequest.create(
     test_did, cred_def, master_secret, master_secret_id, cred_offer
 )
-print("Credential request:")
-print(cred_req.to_json())
+# print("Credential request:")
+# print(cred_req.to_json())
 
 issuer_rev_index = 1
 
@@ -66,12 +74,12 @@ cred, _rev_reg_updated, _rev_delta = Credential.create(
         rev_reg_def.tails_location,
     ),
 )
-print("Issued credential:")
-print(cred.to_json())
+# print("Issued credential:")
+# print(cred.to_json())
 
 cred_received = cred.process(cred_req_metadata, master_secret, cred_def, rev_reg_def)
-print("Processed credential:")
-print(cred_received.to_json())
+# print("Processed credential:")
+# print(cred_received.to_json())
 
 timestamp = int(time())
 
@@ -111,16 +119,14 @@ presentation = Presentation.create(
 )
 # print(presentation.to_json())
 
-print(
-    "Verified:",
-    presentation.verify(
-        pres_req,
-        [schema],
-        [cred_def],
-        [rev_reg_def],
-        {rev_reg_def.id: {timestamp: rev_reg}},
-    ),
+verified = presentation.verify(
+    pres_req,
+    [schema],
+    [cred_def],
+    [rev_reg_def],
+    {rev_reg_def.id: {timestamp: rev_reg}},
 )
+assert verified
 
 
 # rev_delta_2 = rev_reg.revoke_credential(
@@ -142,13 +148,13 @@ presentation_2 = Presentation.create(
     pres_req, present_creds, {}, master_secret, [schema], [cred_def]
 )
 
-print(
-    "Verified:",
-    presentation.verify(
-        pres_req,
-        [schema],
-        [cred_def],
-        [rev_reg_def],
-        {rev_reg_def.id: {timestamp: rev_reg}},
-    ),
+verified = presentation.verify(
+    pres_req,
+    [schema],
+    [cred_def],
+    [rev_reg_def],
+    {rev_reg_def.id: {timestamp: rev_reg}},
 )
+assert not verified
+
+print("ok")
