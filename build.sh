@@ -10,6 +10,7 @@
 RUSTUP=${RUSTUP:-`command -v rustup`}
 PROJECT=indy-credx
 LIB_NAME=indy_credx
+FEATURES="${BUILD_FEATURES:-default}"
 
 if [ ! -x "$RUSTUP" ]; then
 	echo "rustup command not found: it can be obtained from https://rustup.rs/"
@@ -75,7 +76,7 @@ if [ "$TARGET" = "apple-darwin" ]; then
 	TARGET_LIBS=
 	for target in $MACOS_UNIVERSAL_TARGETS; do
 		echo "Building $PROJECT for toolchain '$BUILD_TOOLCHAIN', target '$target'.."
-		$RUSTUP run $BUILD_TOOLCHAIN cargo build --release --target $target
+		$RUSTUP run $BUILD_TOOLCHAIN cargo build --manifest-path indy-credx/Cargo.toml --release --features $FEATURES --target $target
 		TARGET_LIBS="./target/$target/release/lib${LIB_NAME}.dylib $TARGET_LIBS"
 	done
 
@@ -86,7 +87,7 @@ if [ "$TARGET" = "apple-darwin" ]; then
 else
 	# Build normal target
 	echo "Building $PROJECT for toolchain '$BUILD_TOOLCHAIN'.."
-	CMD="$RUSTUP run $BUILD_TOOLCHAIN cargo build --release"
+	CMD="$RUSTUP run $BUILD_TOOLCHAIN cargo build --manifest-path indy-credx/Cargo.toml --release --features $FEATURES"
 	if [ -n "$TARGET" ]; then
 		$CMD --target "$TARGET"
 	else

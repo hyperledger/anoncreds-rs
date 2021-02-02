@@ -35,6 +35,7 @@ jobs:
 
       - name: Build library
         env:
+          BUILD_FEATURES: vendored
           BUILD_TARGET: ${{ matrix.target }}
         run: ./build.sh
 
@@ -75,6 +76,7 @@ jobs:
 
       - name: Build library
         env:
+          BUILD_FEATURES: vendored
           BUILD_TARGET: ${{ matrix.target }}
           BUILD_TOOLCHAIN: ${{ matrix.toolchain }}
         run: ./build.sh

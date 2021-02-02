@@ -7,14 +7,10 @@ on:
     branches: [main]
 
 jobs:
-  test:
-    name: Test Suite
+  lints:
+    name: Lints
 
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout sources
@@ -40,25 +36,55 @@ jobs:
           command: fmt
           args: --all -- --check
 
+  test:
+    name: Test Suite
+    needs: [lints]
+
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Cache cargo resources
+        uses: Swatinem/rust-cache@v1
+
       - name: Debug build
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --all-targets
+          args: --manifest-path indy-credx/Cargo.toml --features vendored
 
-      - name: Test default features
+      - name: Test indy-utils
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --manifest-path indy-utils/Cargo.toml
 
-      - name: Test CL
+      - name: Test indy-data-types (CL)
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --manifest-path indy-data-types/Cargo.toml --features cl
 
-      - name: Test CL-native
+      - name: Test indy-data-types (CL-native)
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --manifest-path indy-data-types/Cargo.toml --features cl_native
+          args: --manifest-path indy-data-types/Cargo.toml --features cl_native,vendored
+
+      - name: Test indy-credx (vendored)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --manifest-path indy-credx/Cargo.toml --features vendored
