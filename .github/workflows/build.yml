@@ -1,6 +1,14 @@
 name: "Build Packages"
 
-"on": push
+"on":
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish packages"
+        required: true
+        default: "false"
 
 jobs:
   build-manylinux:
@@ -155,3 +163,14 @@ jobs:
         with:
           name: python-${{ runner.os }}
           path: wrappers/python/dist/*
+
+      - if: |
+          (github.event_name == 'release' ||
+            (github.event_name == 'workflow_dispatch' &&
+             github.event.inputs.publish == 'true'))
+        name: Publish python package
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          twine upload --skip-existing wrappers/python/dist/*
