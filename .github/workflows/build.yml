@@ -1,0 +1,176 @@
+name: "Build Packages"
+
+"on":
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish packages"
+        required: true
+        default: "false"
+
+jobs:
+  build-manylinux:
+    name: Build Library (Manylinux)
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            lib: libindy_credx.so
+            container: andrewwhitehead/manylinux2014-base
+
+    container: ${{ matrix.container }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Cache cargo resources
+        uses: Swatinem/rust-cache@v1
+
+      - name: Build library
+        env:
+          BUILD_FEATURES: vendored
+          BUILD_TARGET: ${{ matrix.target }}
+        run: sh ./build.sh
+
+      - name: Upload library artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: library-${{ runner.os }}
+          path: target/release/${{ matrix.lib }}
+
+  build-other:
+    name: Build Library (MacOS/Win)
+
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest # macos-11.0 for universal
+            lib: libindy_credx.dylib
+            # target: apple-darwin
+            toolchain: stable # beta for universal
+          - os: windows-latest
+            lib: indy_credx.dll
+            toolchain: stable
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+
+      - name: Cache cargo resources
+        uses: Swatinem/rust-cache@v1
+
+      # pre-build so that openssl dependency is cached, otherwise it will complain:
+      # "This perl implementation doesn't produce Windows like paths"
+      - if: "runner.os == 'Windows'"
+        name: Pre-build (Windows)
+        uses: actions-rs/cargo@v1
+        env:
+          OPENSSL_STATIC: 1
+        with:
+          command: build
+          args: --release --manifest-path indy-credx/Cargo.toml --features vendored
+
+      - name: Build library
+        env:
+          BUILD_FEATURES: vendored
+          BUILD_TARGET: ${{ matrix.target }}
+          BUILD_TOOLCHAIN: ${{ matrix.toolchain }}
+          OPENSSL_STATIC: 1
+        run: sh ./build.sh
+
+      - name: Upload library artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: library-${{ runner.os }}
+          path: target/release/${{ matrix.lib }}
+
+  build-py:
+    name: Build Python
+    needs: [build-manylinux, build-other]
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.6]
+        include:
+          - os: ubuntu-latest
+            plat-name: manylinux2014_x86_64
+          - os: macos-latest
+            plat-name: macosx_10_9_x86_64 # macosx_10_9_universal2
+          - os: windows-latest
+            plat-name: win_amd64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine auditwheel
+
+      - name: Fetch library artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: library-${{ runner.os }}
+          path: wrappers/python/indy_credx/
+
+      - name: Build python package
+        run: |
+          python setup.py bdist_wheel --python-tag=py3 --plat-name=${{ matrix.plat-name }}
+        working-directory: wrappers/python
+
+      - name: Test python package
+        shell: sh
+        run: |
+          cd wrappers/python
+          pip install --upgrade pip
+          pip install dist/*
+          python -m demo.test
+
+      - if: "runner.os == 'Linux'"
+        name: Auditwheel
+        run: auditwheel show wrappers/python/dist/*
+
+      - name: Upload python package
+        uses: actions/upload-artifact@v2
+        with:
+          name: python-${{ runner.os }}
+          path: wrappers/python/dist/*
+
+      - if: |
+          (github.event_name == 'release' ||
+            (github.event_name == 'workflow_dispatch' &&
+             github.event.inputs.publish == 'true'))
+        name: Publish python package
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          twine upload --skip-existing wrappers/python/dist/*
