@@ -27,7 +27,7 @@ macro_rules! hash_type {
                 DigestType::output_size()
             }
         }
-    }
+    };
 }
 
 hash_type!(SHA256, sha2::Sha256, "Sha256 hash");

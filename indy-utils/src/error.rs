@@ -18,49 +18,63 @@ macro_rules! define_error {
             }
 
             pub fn from_err<E>(err: E) -> Self
-            where E: StdError + Send + Sync + 'static {
+            where
+                E: StdError + Send + Sync + 'static,
+            {
                 Self {
                     context: None,
-                    source: Some(Box::new(err) as DynError)
+                    source: Some(Box::new(err) as DynError),
                 }
             }
 
             pub fn from_msg_err<M, E>(msg: M, err: E) -> Self
-            where M: Into<String>, E: StdError + Send + Sync + 'static
-             {
+            where
+                M: Into<String>,
+                E: StdError + Send + Sync + 'static,
+            {
                 Self {
                     context: Some(msg.into()),
-                    source: Some(Box::new(err) as DynError)
+                    source: Some(Box::new(err) as DynError),
                 }
             }
         }
 
         impl From<&str> for $name {
             fn from(context: &str) -> Self {
-                Self { context: Some(context.to_owned()), source: None }
+                Self {
+                    context: Some(context.to_owned()),
+                    source: None,
+                }
             }
         }
 
         impl From<String> for $name {
             fn from(context: String) -> Self {
-                Self { context: Some(context), source: None }
+                Self {
+                    context: Some(context),
+                    source: None,
+                }
             }
         }
 
         impl From<Option<String>> for $name {
             fn from(context: Option<String>) -> Self {
-                Self { context, source: None }
+                Self {
+                    context,
+                    source: None,
+                }
             }
         }
 
         impl<M, E> From<(M, E)> for $name
-        where M: Into<String>,
-        E: StdError + Send + Sync + 'static {
+        where
+            M: Into<String>,
+            E: StdError + Send + Sync + 'static,
+        {
             fn from((context, err): (M, E)) -> Self {
                 Self::from_msg_err(context, err)
             }
         }
-
 
         impl Into<String> for $name {
             fn into(self) -> String {
@@ -72,9 +86,8 @@ macro_rules! define_error {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, $short)?;
                 match self.context {
-                    Some(ref context) =>
-                        write!(f, ": {}", context),
-                    None => Ok(())
+                    Some(ref context) => write!(f, ": {}", context),
+                    None => Ok(()),
                 }
             }
         }
