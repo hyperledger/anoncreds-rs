@@ -2,7 +2,7 @@ use std::error::Error as StdError;
 use std::fmt::{self, Display, Formatter};
 use std::result::Result as StdResult;
 
-use ursa::errors::{UrsaCryptoError, UrsaCryptoErrorKind};
+use crate::ursa::errors::{UrsaCryptoError, UrsaCryptoErrorKind};
 
 pub type Result<T> = std::result::Result<T, Error>;
 

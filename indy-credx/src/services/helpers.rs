@@ -1,12 +1,4 @@
-use ursa::{
-    bn::BigNumber,
-    cl::{
-        issuer, verifier, CredentialSchema, CredentialValues as CryptoCredentialValues,
-        MasterSecret as CryptoMasterSecret, NonCredentialSchema, SubProofRequest,
-    },
-};
-
-use crate::error::Result;
+use std::collections::{HashMap, HashSet};
 
 use indy_data_types::anoncreds::{
     credential::AttributeValues,
@@ -15,7 +7,14 @@ use indy_data_types::anoncreds::{
 };
 use indy_utils::hash::SHA256;
 
-use std::collections::{HashMap, HashSet};
+use crate::error::Result;
+use crate::ursa::{
+    bn::BigNumber,
+    cl::{
+        issuer, verifier, CredentialSchema, CredentialValues as CryptoCredentialValues,
+        MasterSecret as CryptoMasterSecret, NonCredentialSchema, SubProofRequest,
+    },
+};
 
 pub fn attr_common_view(attr: &str) -> String {
     attr.replace(" ", "").to_lowercase()

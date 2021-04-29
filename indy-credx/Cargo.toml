@@ -45,8 +45,3 @@ version = "0.4"
 path = "../indy-utils"
 default-features = false
 features = ["wql"]
-
-[dependencies.ursa]
-version = "0.3.5"
-default-features = false
-features = ["cl_native", "log", "serde"]
