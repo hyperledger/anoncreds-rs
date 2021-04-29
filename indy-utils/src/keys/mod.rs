@@ -1,7 +1,4 @@
 #[cfg(feature = "ed25519")]
-use once_cell::sync::Lazy;
-
-#[cfg(feature = "ed25519")]
 use ursa::signatures::{ed25519::Ed25519Sha512, SignatureScheme};
 
 use zeroize::Zeroize;
@@ -11,10 +8,7 @@ use super::error::ConversionError;
 use super::{Validatable, ValidationError};
 
 mod types;
-pub use types::{ArrayKey, KeyEncoding, KeyType};
-
-#[cfg(feature = "ed25519")]
-static ED25519_SIGNER: Lazy<Ed25519Sha512> = Lazy::new(|| Ed25519Sha512::new());
+pub use types::{KeyEncoding, KeyType};
 
 /// Build an encoded verkey
 pub fn build_full_verkey(dest: &str, key: &str) -> Result<EncodedVerKey, ConversionError> {
@@ -41,7 +35,7 @@ impl PrivateKey {
         let alg = alg.unwrap_or_default();
         match alg {
             KeyType::ED25519 => {
-                let (_pk, sk) = ED25519_SIGNER
+                let (_pk, sk) = Ed25519Sha512
                     .keypair(None)
                     .map_err(|_| "Error creating signing key")?;
                 Ok(Self::new(sk, Some(KeyType::ED25519)))
@@ -86,7 +80,7 @@ impl PrivateKey {
         match self.alg {
             KeyType::ED25519 => {
                 let sk = ursa::keys::PrivateKey(self.key_bytes());
-                Ok(ED25519_SIGNER
+                Ok(Ed25519Sha512
                     .sign(message.as_ref(), &sk)
                     .map_err(|err| format!("Error signing payload: {}", err))?)
             }
@@ -189,7 +183,7 @@ impl VerKey {
         match self.alg {
             KeyType::ED25519 => {
                 let vk = ursa::keys::PublicKey(self.key_bytes());
-                Ok(ED25519_SIGNER
+                Ok(Ed25519Sha512
                     .verify(message.as_ref(), signature.as_ref(), &vk)
                     .map_err(|err| format!("Error validating message signature: {}", err))?)
             }
@@ -503,6 +497,7 @@ mod tests {
         assert!(vk.verify_signature(&message, &sig).unwrap());
     }
 
+    #[cfg(feature = "ed25519")]
     #[test]
     fn validate_keys() {
         let sk = PrivateKey::generate(None).unwrap();

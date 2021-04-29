@@ -124,20 +124,6 @@ impl From<std::string::FromUtf8Error> for ConversionError {
     }
 }
 
-#[cfg(any(feature = "cl", feature = "cl_native"))]
-impl From<ursa::errors::UrsaCryptoError> for ConversionError {
-    fn from(err: ursa::errors::UrsaCryptoError) -> Self {
-        Self::from(err.to_string())
-    }
-}
-
-#[cfg(any(feature = "cl", feature = "cl_native"))]
-impl From<ursa::errors::UrsaCryptoError> for EncryptionError {
-    fn from(err: ursa::errors::UrsaCryptoError) -> Self {
-        Self::from(err.to_string())
-    }
-}
-
 impl From<ValidationError> for ConversionError {
     fn from(err: ValidationError) -> Self {
         Self {
