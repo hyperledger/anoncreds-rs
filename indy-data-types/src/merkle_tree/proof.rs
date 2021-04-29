@@ -1,7 +1,7 @@
-use crate::utils::hash::{TreeHash, SHA256::DigestType as Hash};
-use crate::ValidationError;
+use indy_utils::hash::{TreeHash, SHA256::DigestType as Hash};
 
 use super::tree::{Tree, TreeLeafData};
+use crate::ValidationError;
 
 /// An inclusion proof represent the fact that a `value` is a member
 /// of a `MerkleTree` with root hash `root_hash`.

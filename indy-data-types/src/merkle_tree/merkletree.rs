@@ -1,11 +1,11 @@
-use crate::utils::hash::{
+use indy_utils::hash::{
     TreeHash,
     SHA256::{digest_empty, DigestType as Hash},
 };
-use crate::ValidationError;
 
 use super::proof::{Lemma, Proof};
 use super::tree::{LeavesIntoIterator, LeavesIterator, Tree, TreeLeafData};
+use crate::ValidationError;
 
 /// A Merkle tree is a binary tree, with values of type `T` at the leafs,
 /// and where every internal node holds the hash of the concatenation of the hashes of its children nodes.
@@ -102,7 +102,7 @@ impl MerkleTree {
 
     /// Returns the hex root hash of Merkle tree
     pub fn root_hash_hex(&self) -> String {
-        indy_utils::hex::encode(self.root.hash())
+        hex::encode(self.root.hash())
     }
 
     /// Returns the height of Merkle tree

@@ -1,4 +1,4 @@
-pub use ursa::hash::sha2::Digest;
+pub use sha2::Digest;
 
 use super::ValidationError;
 
@@ -10,7 +10,7 @@ macro_rules! hash_type {
         #[allow(non_snake_case)]
         pub mod $modname {
             use once_cell::sync::Lazy;
-            use ursa::hash::sha2::Digest;
+            use sha2::Digest;
 
             pub type DigestType = $digest;
 
@@ -27,10 +27,10 @@ macro_rules! hash_type {
                 DigestType::output_size()
             }
         }
-    }
+    };
 }
 
-hash_type!(SHA256, ursa::hash::sha2::Sha256, "Sha256 hash");
+hash_type!(SHA256, sha2::Sha256, "Sha256 hash");
 
 /// A trait for producing hashes of merkle tree leaves and nodes
 pub trait TreeHash {
@@ -49,9 +49,9 @@ impl<H: Digest> TreeHash for H {
         T: Hashable,
     {
         let mut ctx = Self::new();
-        ctx.input(&[0x00]);
+        ctx.update(&[0x00]);
         leaf.update_context(&mut ctx)?;
-        Ok(ctx.result().to_vec())
+        Ok(ctx.finalize().to_vec())
     }
 
     fn hash_nodes<T>(left: &T, right: &T) -> Result<Vec<u8>, ValidationError>
@@ -59,10 +59,10 @@ impl<H: Digest> TreeHash for H {
         T: Hashable,
     {
         let mut ctx = Self::new();
-        ctx.input(&[0x01]);
+        ctx.update(&[0x01]);
         left.update_context(&mut ctx)?;
         right.update_context(&mut ctx)?;
-        Ok(ctx.result().to_vec())
+        Ok(ctx.finalize().to_vec())
     }
 }
 
@@ -95,7 +95,7 @@ pub trait Hashable {
 
 impl<T: AsRef<[u8]>> Hashable for T {
     fn update_context<D: Digest>(&self, context: &mut D) -> Result<(), ValidationError> {
-        Ok(context.input(self.as_ref()))
+        Ok(context.update(self.as_ref()))
     }
 }
 

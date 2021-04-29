@@ -1,11 +1,13 @@
+use indy_utils::hash::{TreeHash, SHA256::DigestType as Hash};
+
+use self::tree::{Tree, TreeLeafData};
+use crate::ValidationError;
+
 mod merkletree;
+pub use self::merkletree::MerkleTree;
+
 mod proof;
 mod tree;
-
-pub use self::merkletree::MerkleTree;
-use self::tree::{Tree, TreeLeafData};
-use crate::utils::hash::{TreeHash, SHA256::DigestType as Hash};
-use crate::ValidationError;
 
 impl MerkleTree {
     fn count_bits(v: usize) -> usize {

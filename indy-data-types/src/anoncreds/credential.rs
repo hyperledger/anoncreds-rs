@@ -28,8 +28,11 @@ impl Credential {
             cred_def_id: self.cred_def_id.clone(),
             rev_reg_id: self.rev_reg_id.clone(),
             values: self.values.clone(),
-            signature: self.signature.try_clone()?,
-            signature_correctness_proof: self.signature_correctness_proof.try_clone()?,
+            signature: self.signature.try_clone().map_err(|e| e.to_string())?,
+            signature_correctness_proof: self
+                .signature_correctness_proof
+                .try_clone()
+                .map_err(|e| e.to_string())?,
             rev_reg: self.rev_reg.clone(),
             witness: self.witness.clone(),
         })

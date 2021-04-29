@@ -1,13 +1,8 @@
 pub extern crate aead;
 
-pub extern crate hex;
-
-#[cfg(any(feature = "serde_support", test))]
+#[cfg(any(feature = "serde", test))]
 #[macro_use]
 pub extern crate serde;
-
-#[macro_use]
-pub extern crate zeroize;
 
 /// Common macros
 #[macro_use]
@@ -35,9 +30,6 @@ pub mod did;
 /// Indy signing keys and verification keys
 pub mod keys;
 
-/// Random number generation
-pub mod random;
-
 /// Base64 encoding and decoding
 #[cfg(feature = "base64")]
 pub mod base64;
@@ -46,27 +38,10 @@ pub mod base64;
 #[cfg(feature = "hash")]
 pub mod hash;
 
-/// Message packing and unpacking
-#[cfg(feature = "pack")]
-pub mod pack;
-
 /// Generation of normalized ledger transaction for signing
 #[cfg(feature = "txn_signature")]
 pub mod txn_signature;
 
 /// Wallet query language
 #[cfg(feature = "wql")]
-pub mod wql;
-
-/// Re-export ursa to avoid version conflicts
-#[cfg(any(
-    feature = "cl",
-    feature = "cl_native",
-    feature = "ed25519",
-    feature = "hash",
-    feature = "pack",
-    feature = "wallet_key"
-))]
-pub extern crate ursa;
-
-pub extern crate once_cell;
+pub use indy_wql as wql;

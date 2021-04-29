@@ -11,8 +11,6 @@ mod macros;
 
 mod utils {
     pub use indy_utils::base58;
-    #[cfg(feature = "hash")]
-    pub use indy_utils::hash;
     pub use indy_utils::{qualifiable, Qualifiable};
 }
 
@@ -20,8 +18,8 @@ pub use indy_utils::did;
 pub use indy_utils::keys;
 pub use indy_utils::{invalid, ConversionError, Validatable, ValidationError};
 
-#[cfg(any(feature = "cl", feature = "cl_native", feature = "hash"))]
-pub use indy_utils::ursa;
+#[cfg(any(feature = "cl", feature = "cl_native"))]
+pub use ursa;
 
 /// Type definitions related Indy credential issuance and verification
 pub mod anoncreds;

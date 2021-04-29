@@ -1,24 +1,41 @@
-use crate::ConversionError;
+//! Indy WQL (wallet query language) parsing and optimization
 
+#![deny(missing_debug_implementations, missing_docs, rust_2018_idioms)]
+
+/// An abstract query representation over a key and value type
 #[derive(Debug, Hash, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AbstractQuery<K, V> {
+    /// Logical AND of multiple clauses
     And(Vec<Self>),
+    /// Logical OR of multiple clauses
     Or(Vec<Self>),
+    /// Negation of a clause
     Not(Box<Self>),
+    /// Equality comparison for a field value
     Eq(K, V),
+    /// Inequality comparison for a field value
     Neq(K, V),
+    /// Greater-than comparison for a field value
     Gt(K, V),
+    /// Greater-than-or-equal comparison for a field value
     Gte(K, V),
+    /// Less-than comparison for a field value
     Lt(K, V),
+    /// Less-than-or-equal comparison for a field value
     Lte(K, V),
+    /// SQL 'LIKE'-compatible string comparison for a field value
     Like(K, V),
+    /// Match one of multiple field values in a set
     In(K, Vec<V>),
+    /// Match any non-null field value of the given field names
     Exist(Vec<K>),
 }
 
+/// A concrete query implementation with String keys and values
 pub type Query = AbstractQuery<String, String>;
 
 impl<K, V> AbstractQuery<K, V> {
+    /// Perform basic query clause optimization
     pub fn optimise(self) -> Option<Self> {
         match self {
             Self::Not(boxed_query) => match boxed_query.optimise() {
@@ -57,28 +74,31 @@ impl<K, V> AbstractQuery<K, V> {
         }
     }
 
-    pub fn map_names<RK, F>(self, f: &mut F) -> Result<AbstractQuery<RK, V>, ConversionError>
-    where
-        F: FnMut(K) -> Result<RK, ConversionError>,
-    {
-        self.map(f, &mut |_k, v| Ok(v))
+    /// Perform a transformation on all field names in query clauses
+    pub fn map_names<RK, E>(
+        self,
+        mut f: impl FnMut(K) -> Result<RK, E>,
+    ) -> Result<AbstractQuery<RK, V>, E> {
+        self.map(&mut f, &mut |_k, v| Ok(v))
     }
 
-    pub fn map_values<RV, F>(self, f: &mut F) -> Result<AbstractQuery<K, RV>, ConversionError>
-    where
-        F: FnMut(&K, V) -> Result<RV, ConversionError>,
-    {
-        self.map(&mut |k| Ok(k), f)
+    /// Perform a transformation on all field values in query clauses
+    pub fn map_values<RV, E>(
+        self,
+        mut f: impl FnMut(&K, V) -> Result<RV, E>,
+    ) -> Result<AbstractQuery<K, RV>, E> {
+        self.map(&mut |k| Ok(k), &mut f)
     }
 
-    pub fn map<RK, RV, KF, VF>(
+    /// Transform all query clauses using field name and value conversions
+    pub fn map<RK, RV, KF, VF, E>(
         self,
         kf: &mut KF,
         vf: &mut VF,
-    ) -> Result<AbstractQuery<RK, RV>, ConversionError>
+    ) -> Result<AbstractQuery<RK, RV>, E>
     where
-        KF: FnMut(K) -> Result<RK, ConversionError>,
-        VF: FnMut(&K, V) -> Result<RV, ConversionError>,
+        KF: FnMut(K) -> Result<RK, E>,
+        VF: FnMut(&K, V) -> Result<RV, E>,
     {
         match self {
             Self::Eq(tag_name, tag_value) => {
@@ -113,27 +133,27 @@ impl<K, V> AbstractQuery<K, V> {
                 let tag_values = tag_values
                     .into_iter()
                     .map(|value| vf(&tag_name, value))
-                    .collect::<Result<Vec<_>, _>>()?;
+                    .collect::<Result<Vec<_>, E>>()?;
                 Ok(AbstractQuery::<RK, RV>::In(kf(tag_name)?, tag_values))
             }
             Self::Exist(tag_names) => Ok(AbstractQuery::<RK, RV>::Exist(
                 tag_names.into_iter().try_fold(vec![], |mut v, tag_name| {
                     v.push(kf(tag_name)?);
-                    Result::<_, ConversionError>::Ok(v)
+                    Result::<_, E>::Ok(v)
                 })?,
             )),
             Self::And(subqueries) => {
                 let subqueries = subqueries
                     .into_iter()
                     .map(|query| query.map(kf, vf))
-                    .collect::<Result<Vec<_>, _>>()?;
+                    .collect::<Result<Vec<_>, E>>()?;
                 Ok(AbstractQuery::<RK, RV>::And(subqueries))
             }
             Self::Or(subqueries) => {
                 let subqueries = subqueries
                     .into_iter()
                     .map(|query| query.map(kf, vf))
-                    .collect::<Result<Vec<_>, _>>()?;
+                    .collect::<Result<Vec<_>, E>>()?;
                 Ok(AbstractQuery::<RK, RV>::Or(subqueries))
             }
             Self::Not(boxed_query) => Ok(AbstractQuery::<RK, RV>::Not(Box::new(
@@ -155,7 +175,7 @@ mod serde_support {
 
     use serde::ser::{Serialize, Serializer};
     use serde::{de, Deserialize, Deserializer};
-    use serde_json::{self, json, Value};
+    use serde_json::{self, json, Value as JsonValue};
 
     use super::{AbstractQuery, Query};
 
@@ -177,17 +197,17 @@ mod serde_support {
         where
             D: Deserializer<'de>,
         {
-            let v = Value::deserialize(deserializer)?;
+            let v = JsonValue::deserialize(deserializer)?;
 
             match v {
-                serde_json::Value::Object(map) => {
+                JsonValue::Object(map) => {
                     parse_query(map).map_err(|err| de::Error::missing_field(err))
                 }
-                serde_json::Value::Array(array) => {
+                JsonValue::Array(array) => {
                     // cast old restrictions format to wql
-                    let mut res: Vec<serde_json::Value> = Vec::new();
+                    let mut res: Vec<JsonValue> = Vec::new();
                     for sub_query in array {
-                        let sub_query: serde_json::Map<String, serde_json::Value> = sub_query
+                        let sub_query: serde_json::Map<String, JsonValue> = sub_query
                             .as_object()
                             .ok_or_else(|| de::Error::custom("Restriction is invalid"))?
                             .clone()
@@ -196,12 +216,12 @@ mod serde_support {
                             .collect();
 
                         if !sub_query.is_empty() {
-                            res.push(serde_json::Value::Object(sub_query));
+                            res.push(JsonValue::Object(sub_query));
                         }
                     }
 
                     let mut map = serde_json::Map::new();
-                    map.insert("$or".to_string(), serde_json::Value::Array(res));
+                    map.insert("$or".to_string(), JsonValue::Array(res));
 
                     parse_query(map).map_err(|err| de::Error::custom(err))
                 }
@@ -217,7 +237,7 @@ mod serde_support {
         for<'a> &'a K: Into<String>,
         V: Serialize,
     {
-        fn to_value(&self) -> serde_json::Value {
+        fn to_value(&self) -> JsonValue {
             match self {
                 Self::Eq(ref tag_name, ref tag_value) => json!({ tag_name: tag_value }),
                 Self::Neq(ref tag_name, ref tag_value) => json!({tag_name: {"$neq": tag_value}}),
@@ -233,7 +253,7 @@ mod serde_support {
                 Self::And(ref queries) => {
                     if !queries.is_empty() {
                         json!({
-                            "$and": queries.iter().map(|q| q.to_value()).collect::<Vec<serde_json::Value>>()
+                            "$and": queries.iter().map(|q| q.to_value()).collect::<Vec<JsonValue>>()
                         })
                     } else {
                         json!({})
@@ -242,7 +262,7 @@ mod serde_support {
                 Self::Or(ref queries) => {
                     if !queries.is_empty() {
                         json!({
-                            "$or": queries.iter().map(|q| q.to_value()).collect::<Vec<serde_json::Value>>()
+                            "$or": queries.iter().map(|q| q.to_value()).collect::<Vec<JsonValue>>()
                         })
                     } else {
                         json!({})
@@ -259,7 +279,7 @@ mod serde_support {
         }
     }
 
-    fn parse_query(map: serde_json::Map<String, serde_json::Value>) -> Result<Query, &'static str> {
+    fn parse_query(map: serde_json::Map<String, JsonValue>) -> Result<Query, &'static str> {
         let mut operators: Vec<Query> = Vec::new();
 
         for (key, value) in map {
@@ -277,12 +297,9 @@ mod serde_support {
         Ok(query)
     }
 
-    fn parse_operator(
-        key: String,
-        value: serde_json::Value,
-    ) -> Result<Option<Query>, &'static str> {
+    fn parse_operator(key: String, value: JsonValue) -> Result<Option<Query>, &'static str> {
         match (key.as_str(), value) {
-            ("$and", serde_json::Value::Array(values)) => {
+            ("$and", JsonValue::Array(values)) => {
                 if values.is_empty() {
                     Ok(None)
                 } else {
@@ -291,7 +308,7 @@ mod serde_support {
                 }
             }
             ("$and", _) => Err("$and must be array of JSON objects"),
-            ("$or", serde_json::Value::Array(values)) => {
+            ("$or", JsonValue::Array(values)) => {
                 if values.is_empty() {
                     Ok(None)
                 } else {
@@ -300,19 +317,19 @@ mod serde_support {
                 }
             }
             ("$or", _) => Err("$or must be array of JSON objects"),
-            ("$not", serde_json::Value::Object(map)) => {
+            ("$not", JsonValue::Object(map)) => {
                 let operator = parse_query(map)?;
                 Ok(Some(Query::Not(Box::new(operator))))
             }
             ("$not", _) => Err("$not must be JSON object"),
-            ("$exist", serde_json::Value::String(key)) => Ok(Some(Query::Exist(vec![key]))),
-            ("$exist", serde_json::Value::Array(keys)) => {
+            ("$exist", JsonValue::String(key)) => Ok(Some(Query::Exist(vec![key]))),
+            ("$exist", JsonValue::Array(keys)) => {
                 if keys.is_empty() {
                     Ok(None)
                 } else {
                     let mut ks = vec![];
                     for key in keys {
-                        if let serde_json::Value::String(key) = key {
+                        if let JsonValue::String(key) = key {
                             ks.push(key);
                         } else {
                             return Err("$exist must be used with a string or array of strings");
@@ -322,8 +339,8 @@ mod serde_support {
                 }
             }
             ("$exist", _) => Err("$exist must be used with a string or array of strings"),
-            (_, serde_json::Value::String(value)) => Ok(Some(Query::Eq(key, value))),
-            (_, serde_json::Value::Object(map)) => {
+            (_, JsonValue::String(value)) => Ok(Some(Query::Eq(key, value))),
+            (_, JsonValue::Object(map)) => {
                 if map.len() == 1 {
                     let (operator_name, value) = map.into_iter().next().unwrap();
                     parse_single_operator(operator_name, key, value).map(|operator| Some(operator))
@@ -335,11 +352,11 @@ mod serde_support {
         }
     }
 
-    fn parse_list_operators(operators: Vec<serde_json::Value>) -> Result<Vec<Query>, &'static str> {
+    fn parse_list_operators(operators: Vec<JsonValue>) -> Result<Vec<Query>, &'static str> {
         let mut out_operators: Vec<Query> = Vec::with_capacity(operators.len());
 
         for value in operators.into_iter() {
-            if let serde_json::Value::Object(map) = value {
+            if let JsonValue::Object(map) = value {
                 let subquery = parse_query(map)?;
                 out_operators.push(subquery);
             } else {
@@ -353,26 +370,26 @@ mod serde_support {
     fn parse_single_operator(
         operator_name: String,
         key: String,
-        value: serde_json::Value,
+        value: JsonValue,
     ) -> Result<Query, &'static str> {
         match (&*operator_name, value) {
-            ("$neq", serde_json::Value::String(value_)) => Ok(Query::Neq(key, value_)),
+            ("$neq", JsonValue::String(value_)) => Ok(Query::Neq(key, value_)),
             ("$neq", _) => Err("$neq must be used with string"),
-            ("$gt", serde_json::Value::String(value_)) => Ok(Query::Gt(key, value_)),
+            ("$gt", JsonValue::String(value_)) => Ok(Query::Gt(key, value_)),
             ("$gt", _) => Err("$gt must be used with string"),
-            ("$gte", serde_json::Value::String(value_)) => Ok(Query::Gte(key, value_)),
+            ("$gte", JsonValue::String(value_)) => Ok(Query::Gte(key, value_)),
             ("$gte", _) => Err("$gte must be used with string"),
-            ("$lt", serde_json::Value::String(value_)) => Ok(Query::Lt(key, value_)),
+            ("$lt", JsonValue::String(value_)) => Ok(Query::Lt(key, value_)),
             ("$lt", _) => Err("$lt must be used with string"),
-            ("$lte", serde_json::Value::String(value_)) => Ok(Query::Lte(key, value_)),
+            ("$lte", JsonValue::String(value_)) => Ok(Query::Lte(key, value_)),
             ("$lte", _) => Err("$lte must be used with string"),
-            ("$like", serde_json::Value::String(value_)) => Ok(Query::Like(key, value_)),
+            ("$like", JsonValue::String(value_)) => Ok(Query::Like(key, value_)),
             ("$like", _) => Err("$like must be used with string"),
-            ("$in", serde_json::Value::Array(values)) => {
+            ("$in", JsonValue::Array(values)) => {
                 let mut target_values: Vec<String> = Vec::with_capacity(values.len());
 
                 for v in values.into_iter() {
-                    if let serde_json::Value::String(s) = v {
+                    if let JsonValue::String(s) = v {
                         target_values.push(s);
                     } else {
                         return Err("$in must be used with array of strings");
@@ -395,7 +412,7 @@ mod tests {
     use serde_json::json;
 
     fn _random_string(len: usize) -> String {
-        thread_rng().sample_iter(&Alphanumeric).take(len).collect()
+        String::from_utf8(thread_rng().sample_iter(&Alphanumeric).take(len).collect()).unwrap()
     }
 
     /// parse
@@ -2854,7 +2871,7 @@ mod tests {
 
         let json = json!(vec![
             json ! ({name1.clone(): value1.clone()}),
-            json!({ name2.clone(): serde_json::Value::Null })
+            json!({ name2.clone(): ::serde_json::Value::Null })
         ])
         .to_string();
 
