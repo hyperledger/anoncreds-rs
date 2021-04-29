@@ -22,7 +22,7 @@ impl MasterSecret {
 
     pub fn try_clone(&self) -> Result<Self, ConversionError> {
         Ok(Self {
-            value: self.value.try_clone()?,
+            value: self.value.try_clone().map_err(|e| e.to_string())?,
         })
     }
 }

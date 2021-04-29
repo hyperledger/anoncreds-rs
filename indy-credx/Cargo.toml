@@ -1,6 +1,6 @@
 [package]
 name = "indy-credx"
-version = "0.2.3"
+version = "0.3.0"
 authors = ["Hyperledger Indy Contributors <indy@lists.hyperledger.org>"]
 description = "Verifiable credential issuance and presentation for Hyperledger Indy (https://www.hyperledger.org/projects), which provides a distributed-ledger-based foundation for self-sovereign identity (https://sovrin.org)."
 edition = "2018"
@@ -30,17 +30,18 @@ rand = "0.7"
 regex = "1.2.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sha2 = "0.9"
 tempfile = "3.1.0"
 thiserror = "1.0.9"
 zeroize = { version = "1.1", optional = true }
 
 [dependencies.indy-data-types]
-version = "0.4"
+version = "0.5"
 path = "../indy-data-types"
 features = ["cl_native"]
 
 [dependencies.indy-utils]
-version = "0.3"
+version = "0.4"
 path = "../indy-utils"
 default-features = false
 features = ["wql"]

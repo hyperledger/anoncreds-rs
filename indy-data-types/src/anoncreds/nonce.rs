@@ -27,7 +27,7 @@ impl Nonce {
     #[cfg(any(feature = "cl", feature = "cl_native"))]
     #[inline]
     pub fn from_native(native: UrsaNonce) -> Result<Self, ConversionError> {
-        let strval = native.to_dec()?;
+        let strval = native.to_dec().map_err(|e| e.to_string())?;
         Ok(Self { strval, native })
     }
 
@@ -55,7 +55,7 @@ impl Nonce {
         }
         #[cfg(any(feature = "cl", feature = "cl_native"))]
         {
-            let native = UrsaNonce::from_dec(&strval)?;
+            let native = UrsaNonce::from_dec(&strval).map_err(|e| e.to_string())?;
             Ok(Self { strval, native })
         }
         #[cfg(not(any(feature = "cl", feature = "cl_native")))]

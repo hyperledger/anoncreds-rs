@@ -4,13 +4,13 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
 use indy_utils::base58;
+use sha2::{Digest, Sha256};
 use tempfile;
 
 use crate::error::Result;
 use crate::ursa::{
     cl::{RevocationTailsAccessor, RevocationTailsGenerator, Tail},
     errors::{UrsaCryptoError, UrsaCryptoErrorKind},
-    hash::{sha2::Sha256, Digest},
 };
 
 const TAILS_BLOB_TAG_SZ: u8 = 2;
@@ -110,10 +110,10 @@ impl TailsReaderImpl for TailsFileReader {
         loop {
             let sz = file.read(&mut buf)?;
             if sz == 0 {
-                self.hash = Some(hasher.result().to_vec());
+                self.hash = Some(hasher.finalize().to_vec());
                 return Ok(self.hash.as_ref().unwrap().clone());
             }
-            hasher.input(&buf[0..sz]);
+            hasher.update(&buf[0..sz]);
         }
     }
 
@@ -155,14 +155,14 @@ impl TailsWriter for TailsFileWriter {
         let mut hasher = Sha256::default();
         let version = &[0u8, 2u8];
         file.write(version)?;
-        hasher.input(version);
+        hasher.update(version);
         while let Some(tail) = generator.try_next()? {
             let tail_bytes = tail.to_bytes()?;
             file.write(tail_bytes.as_slice())?;
-            hasher.input(tail_bytes);
+            hasher.update(tail_bytes);
         }
         let tails_size = &file.seek(SeekFrom::Current(0))?;
-        let hash = base58::encode(hasher.result());
+        let hash = base58::encode(hasher.finalize());
         let path = tempf.path().with_file_name(hash.clone());
         let _outf = match tempf.persist_noclobber(&path) {
             Ok(f) => f,

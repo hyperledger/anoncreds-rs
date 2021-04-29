@@ -88,13 +88,12 @@ pub struct CredentialDefinitionV1 {
 
 #[cfg(any(feature = "cl", feature = "cl_native"))]
 impl CredentialDefinitionV1 {
-    pub fn get_public_key(
-        &self,
-    ) -> Result<crate::ursa::cl::CredentialPublicKey, crate::ConversionError> {
+    pub fn get_public_key(&self) -> Result<crate::ursa::cl::CredentialPublicKey, ConversionError> {
         let key = crate::ursa::cl::CredentialPublicKey::build_from_parts(
             &self.value.primary,
             self.value.revocation.as_ref(),
-        )?;
+        )
+        .map_err(|e| e.to_string())?;
         Ok(key)
     }
 }
@@ -123,7 +122,7 @@ impl CredentialKeyCorrectnessProof {
         #[cfg(any(feature = "cl", feature = "cl_native"))]
         {
             Ok(Self {
-                value: self.value.try_clone()?,
+                value: self.value.try_clone().map_err(|e| e.to_string())?,
             })
         }
         #[cfg(not(any(feature = "cl", feature = "cl_native")))]

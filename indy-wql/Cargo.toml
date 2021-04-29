@@ -2,7 +2,7 @@
 name = "indy-wql"
 version = "0.4.0"
 authors = ["Hyperledger Indy Contributors <indy@lists.hyperledger.org>"]
-description = "Utilities for Hyperledger Indy (https://www.hyperledger.org/projects), which provides a distributed-ledger-based foundation for self-sovereign identity (https://sovrin.org)."
+description = "Wallet Query Language for Hyperledger Indy (https://www.hyperledger.org/projects), which provides a distributed-ledger-based foundation for self-sovereign identity (https://sovrin.org)."
 edition = "2018"
 license = "Apache-2.0"
 readme = "../README.md"
