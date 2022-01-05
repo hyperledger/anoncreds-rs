@@ -3,7 +3,7 @@ macro_rules! unwrap_opt_or_return {
         match $opt {
             Some(val) => val,
             None => return $err,
-        };
+        }
     };
 }
 
