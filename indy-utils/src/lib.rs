@@ -1,5 +1,3 @@
-pub extern crate aead;
-
 #[cfg(any(feature = "serde", test))]
 #[macro_use]
 pub extern crate serde;

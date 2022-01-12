@@ -1,5 +1,14 @@
 #[cfg(feature = "ed25519")]
-use ursa::signatures::{ed25519::Ed25519Sha512, SignatureScheme};
+use curve25519_dalek::edwards::CompressedEdwardsY;
+#[cfg(feature = "ed25519")]
+use ed25519_dalek::{ExpandedSecretKey, PublicKey, SecretKey, Signature};
+#[cfg(feature = "ed25519")]
+use rand::{thread_rng, RngCore};
+#[cfg(feature = "ed25519")]
+use sha2::digest::Digest;
+
+#[cfg(feature = "ed25519")]
+use std::convert::TryFrom;
 
 use zeroize::Zeroize;
 
@@ -35,10 +44,9 @@ impl PrivateKey {
         let alg = alg.unwrap_or_default();
         match alg {
             KeyType::ED25519 => {
-                let (_pk, sk) = Ed25519Sha512
-                    .keypair(None)
-                    .map_err(|_| "Error creating signing key")?;
-                Ok(Self::new(sk, Some(KeyType::ED25519)))
+                let mut sk = [0u8; 32];
+                thread_rng().fill_bytes(&mut sk[..]);
+                Self::from_seed(&sk[..])
             }
             _ => Err("Unsupported key type".into()),
         }
@@ -46,9 +54,12 @@ impl PrivateKey {
 
     #[cfg(feature = "ed25519")]
     pub fn from_seed(seed: &[u8]) -> Result<Self, ConversionError> {
-        let (_pk, sk) = Ed25519Sha512::expand_keypair(seed)
+        let sk = SecretKey::from_bytes(seed)
             .map_err(|err| format!("Error creating signing key: {}", err))?;
-        Ok(Self::new(sk, Some(KeyType::ED25519)))
+        let mut esk = [0u8; 64];
+        esk[..32].copy_from_slice(sk.as_bytes());
+        esk[32..].copy_from_slice(PublicKey::from(&sk).as_bytes());
+        Ok(Self::new(esk, Some(KeyType::ED25519)))
     }
 
     pub fn public_key(&self) -> Result<VerKey, ConversionError> {
@@ -66,10 +77,11 @@ impl PrivateKey {
     pub fn key_exchange(&self) -> Result<Self, ConversionError> {
         match self.alg {
             KeyType::ED25519 => {
-                let sk = ursa::keys::PrivateKey(self.key_bytes());
-                let x_sk = Ed25519Sha512::sign_key_to_key_exchange(&sk)
-                    .map_err(|err| format!("Error converting to x25519 key: {}", err))?;
-                Ok(Self::new(&x_sk, Some(KeyType::X25519)))
+                let mut hash = sha2::Sha512::digest(&self.key[..32]);
+                let x_sk =
+                    x25519_dalek::StaticSecret::from(<[u8; 32]>::try_from(&hash[..32]).unwrap());
+                hash.zeroize();
+                Ok(Self::new(&x_sk.to_bytes(), Some(KeyType::X25519)))
             }
             _ => Err("Unsupported key format for key exchange".into()),
         }
@@ -79,10 +91,10 @@ impl PrivateKey {
     pub fn sign<M: AsRef<[u8]>>(&self, message: M) -> Result<Vec<u8>, ConversionError> {
         match self.alg {
             KeyType::ED25519 => {
-                let sk = ursa::keys::PrivateKey(self.key_bytes());
-                Ok(Ed25519Sha512
-                    .sign(message.as_ref(), &sk)
-                    .map_err(|err| format!("Error signing payload: {}", err))?)
+                let esk = ExpandedSecretKey::from(&SecretKey::from_bytes(&self.key[..32]).unwrap());
+                let pk = PublicKey::from_bytes(&self.key[32..]).unwrap();
+                let sig = esk.sign(message.as_ref(), &pk);
+                Ok(sig.to_bytes().into())
             }
             _ => Err("Unsupported key format for signing".into()),
         }
@@ -164,11 +176,15 @@ impl VerKey {
     pub fn key_exchange(&self) -> Result<Self, ConversionError> {
         match self.alg {
             KeyType::ED25519 => {
-                let vk = ursa::keys::PublicKey(self.key_bytes());
-                let x_vk = Ed25519Sha512::ver_key_to_key_exchange(&vk).map_err(|err| {
-                    format!("Error converting to x25519 key: {}", err.to_string())
-                })?;
-                Ok(Self::new(&x_vk, Some(KeyType::X25519)))
+                let vky = CompressedEdwardsY::from_slice(&self.key[..]);
+                if let Some(x_vk) = vky.decompress() {
+                    Ok(Self::new(
+                        x_vk.to_montgomery().as_bytes().to_vec(),
+                        Some(KeyType::X25519),
+                    ))
+                } else {
+                    Err("Error converting to x25519 key".into())
+                }
             }
             _ => Err("Unsupported verkey type".into()),
         }
@@ -182,10 +198,12 @@ impl VerKey {
     ) -> Result<bool, ConversionError> {
         match self.alg {
             KeyType::ED25519 => {
-                let vk = ursa::keys::PublicKey(self.key_bytes());
-                Ok(Ed25519Sha512
-                    .verify(message.as_ref(), signature.as_ref(), &vk)
-                    .map_err(|err| format!("Error validating message signature: {}", err))?)
+                let vk = PublicKey::from_bytes(&self.key[..]).unwrap();
+                if let Ok(sig) = Signature::try_from(signature.as_ref()) {
+                    Ok(vk.verify_strict(message.as_ref(), &sig).is_ok())
+                } else {
+                    Err("Error validating message signature".into())
+                }
             }
             _ => Err("Unsupported verkey type".into()),
         }
@@ -258,13 +276,11 @@ impl EncodedVerKey {
         if key.chars().next() == Some('~') {
             let mut vk_bytes = base58::decode(&key[1..])?;
             if vk_bytes.len() != 16 {
-                return Err(ConversionError::from_msg(
-                    "Expected 16-byte abbreviated verkey",
-                ));
+                return Err("Expected 16-byte abbreviated verkey".into());
             }
             let mut did_bytes = base58::decode(did)?;
             if did_bytes.len() != 16 {
-                return Err(ConversionError::from_msg("DID must be 16 bytes in length"));
+                return Err("DID must be 16 bytes in length".into());
             }
             did_bytes.append(&mut vk_bytes);
             Ok(Self::new(
@@ -284,11 +300,11 @@ impl EncodedVerKey {
     pub fn abbreviated_for_did(&self, did: &str) -> Result<String, ConversionError> {
         let did_bytes = base58::decode(did)?;
         if did_bytes.len() != 16 {
-            return Err(ConversionError::from_msg("DID must be 16 bytes in length"));
+            return Err("DID must be 16 bytes in length".into());
         }
         let vk = self.key_bytes()?;
         if vk.len() != 32 {
-            return Err(ConversionError::from_msg("Expected 32-byte verkey"));
+            return Err("Expected 32-byte verkey".into());
         }
         if &vk[..16] == did_bytes.as_slice() {
             let mut result = "~".to_string();
@@ -489,12 +505,38 @@ mod tests {
 
     #[cfg(feature = "ed25519")]
     #[test]
+    fn key_from_seed() {
+        const SEED: &[u8; 32] = b"aaaabbbbccccddddeeeeffffgggghhhh";
+        let sk = PrivateKey::from_seed(&SEED[..]).unwrap();
+        assert_eq!(
+            &sk.as_ref()[..],
+            &[
+                97, 97, 97, 97, 98, 98, 98, 98, 99, 99, 99, 99, 100, 100, 100, 100, 101, 101, 101,
+                101, 102, 102, 102, 102, 103, 103, 103, 103, 104, 104, 104, 104, 113, 22, 13, 44,
+                71, 184, 166, 148, 196, 234, 85, 148, 234, 22, 204, 148, 187, 247, 77, 119, 250,
+                28, 37, 255, 29, 31, 159, 159, 245, 68, 107, 235
+            ]
+        );
+        let xk = sk.key_exchange().unwrap();
+        assert_eq!(
+            &xk.as_ref(),
+            &[
+                208, 235, 232, 147, 241, 214, 250, 182, 45, 157, 20, 202, 31, 184, 226, 115, 149,
+                82, 210, 89, 50, 100, 22, 67, 21, 8, 124, 198, 100, 252, 237, 107
+            ]
+        );
+    }
+
+    #[cfg(feature = "ed25519")]
+    #[test]
     fn sign_and_verify() {
         let message = b"hello there";
         let sk = PrivateKey::generate(None).unwrap();
         let sig = sk.sign(&message).unwrap();
         let vk = sk.public_key().unwrap();
         assert!(vk.verify_signature(&message, &sig).unwrap());
+        assert!(vk.verify_signature(&message, &[]).is_err());
+        assert!(!vk.verify_signature(&"goodbye", &sig).unwrap());
     }
 
     #[cfg(feature = "ed25519")]
