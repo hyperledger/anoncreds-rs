@@ -1,6 +1,7 @@
 use once_cell::sync::Lazy;
 
 use regex::Regex;
+use sha2::{Digest, Sha256};
 
 use crate::base58;
 #[cfg(feature = "ed25519")]
@@ -12,16 +13,30 @@ pub static DEFAULT_LIBINDY_DID: Lazy<DidValue> =
     Lazy::new(|| DidValue::new("LibindyDid111111111111", None));
 
 /// Create a new DID with an optional seed value
+/// Version determines version of self-certification to be used
+/// 1 (default) = did:sov
+/// 2 = did:indy
 #[cfg(feature = "ed25519")]
 pub fn generate_did(
     seed: Option<&[u8]>,
+    version: Option<usize>,
 ) -> Result<(ShortDidValue, PrivateKey, VerKey), crate::ConversionError> {
     let sk = match seed {
         Some(seed) => PrivateKey::from_seed(seed)?,
         None => PrivateKey::generate(Some(KeyType::ED25519))?,
     };
+
     let pk = sk.public_key()?;
-    let did = base58::encode(&pk.as_ref()[..16]);
+    let did = match version {
+        Some(1) | None => Ok(base58::encode(&pk.as_ref()[..16])),
+        Some(2) => {
+            let mut hasher = Sha256::new();
+            Digest::update(&mut hasher, &pk.as_ref());
+            let hash = hasher.finalize();
+            Ok(base58::encode(&hash[..16]))
+        }
+        _ => Err("Version must be one of 1,2"),
+    }?;
     Ok((ShortDidValue::from(did), sk, pk))
 }
 
@@ -132,7 +147,7 @@ mod tests {
 
     #[test]
     fn generate_abbreviate() {
-        let (did, _sk, vk) = generate_did(None).unwrap();
+        let (did, _sk, vk) = generate_did(None, None).unwrap();
         let vk_b58 = vk.as_base58().unwrap();
         let vk_short = vk_b58.abbreviated_for_did(&did).unwrap();
         assert_eq!(vk_short.chars().next(), Some('~'));
