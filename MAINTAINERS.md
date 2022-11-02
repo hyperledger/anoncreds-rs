@@ -1,37 +1,103 @@
 # Maintainers
 
-## About This File
+<!-- Please keep all lists sorted alphabetically by github -->
 
-You can find out who's contributed recently just by looking at GitHub's
-[contributors list](../../graphs/contributors). But there are a few more
-things you ought to know about who maintains this code, and how they do it:
+## Active Maintainers
 
-1. Make sure you read our [contributor guidelines](http://bit.ly/2ugd0bq)
-   so you understand how we work and how to collaborate effectively.
-   This includes instructions about pull request and code review protocols,
-   and it explains what we mean by calling someone a "maintainer" in this
-   file.
-2. Be aware that individual folders in the project may have more
-   specific maintainers; if you see another `MAINTAINERS.md` in a subfolder,
-   that governs the tree below it.
-3. A lot of interactions with maintainers take place on [Jira](https://jira.hyperledger.org/projects/IS).
-   You'll need [Linux Foundation credentials](https://identity.linuxfoundation.org) to
-   comment there; creating them is self-service. The project name you want, once in
-   jira, is "IS".
-4. The other important communication mechanism to know about is [Rocket.Chat](https://chat.hyperledger.org).
-   Again, you use your Linux Foundation credentials. Most of the team hangs out
-   there during their work day; look for `#indy-sdk`, `#indy`, `#indy-pr-review`,
-   and so forth.
-5. We use developer certificate of origin (DCO) in all hyperledger repositories,
-   so to get your pull requests accepted, you must certify your commits by signing off on each commit.
-   More information can be found in [Signing Commits](docs/signing-commits.md) article.
+<!-- anoncreds-maintainers group has maintainer access to anoncreds-rs repo -->
 
-## Who To Contact
+| Name             | Github           | LFID             |
+| ---------------- | ---------------- | ---------------- |
+| Andrew Whitehead | andrewwhitehead  | cywolf           |
+| Berend Sliedrecht| blu3beri         | beri14           |
+| Darko Kulic      | dkulic           | dkulic           |
+| Stephen Curran   | swcurran         | swcurran         |
+| Timo Glastra     | TimoGlastra      | TimoGlastra      |
+| Wade Barnes      | WadeBarnes       | WadeBarnes       |
 
-For ordinary questions, we suggest you contact [active contributors](../../graphs/contributors)
-generically, on rocket.chat `#indy-sdk`. If that doesn't get someone's attention,
-feel free to contact the contributors individually.
+## Becoming a Maintainer
 
-Maintainers are busy and delegate many decisions to other trusted
-contributors. However, it is appropriate to contact them if you have a
-complex design decision or a controversial PR.
+AnonCreds welcomes community contribution.
+Each community member may progress to become a maintainer.
+
+How to become a maintainer:
+
+- Contribute significantly to the code in this repository.
+  
+### Maintainers contribution requirement
+
+The requirement to be able to be proposed as a maintainer is:
+
+- 5 significant changes on code have been authored in this repos by the proposed maintainer and accepted (merged PRs).
+  
+### Maintainers approval process
+
+The following steps must occur for a contributor to be "upgraded" as a maintainer:
+
+- The proposed maintainer has the sponsorship of at least one other maintainer.
+  - This sponsoring maintainer will create a proposal PR modifying the list of
+    maintainers. (see [proposal PR template](#proposal-pr-template).)
+  - The proposed maintainer accepts the nomination and expresses a willingness
+    to be a long-term (more than 6 month) committer by adding a comment in the proposal PR.
+  - The PR will be communicated in all appropriate communication channels
+    including at least [anoncreds-maintainers channel on Hyperledger Discord](https://discord.gg/hyperledger),
+    the [mailing list](https://lists.hyperledger.org/g/anoncreds)
+    and any maintainer/community call.
+- Approval by at least 3 current maintainers within two weeks of the proposal or
+  an absolute majority (half the total + 1) of current maintainers.
+  - Maintainers will vote by approving the proposal PR.
+- No veto raised by another maintainer within the voting timeframe.
+  - All vetoes must be accompanied by a public explanation as a comment in the
+    proposal PR.
+  - A veto can be retracted, in that case the voting timeframe is reset and all approvals are removed.
+  - It is bad form to veto, retract, and veto again.
+  
+The proposed maintainer becomes a maintainer either:
+
+  - when two weeks have passed without veto since the third approval of the proposal PR,
+  - or an absolute majority of maintainers approved the proposal PR.
+
+In either case, no maintainer raised and stood by a veto.
+
+## Removing Maintainers
+
+Being a maintainer is not a status symbol or a title to be maintained indefinitely.
+
+It will occasionally be necessary and appropriate to move a maintainer to emeritus status.
+
+This can occur in the following situations:
+
+- Resignation of a maintainer.
+- Violation of the Code of Conduct warranting removal.
+- Inactivity.
+  - A general measure of inactivity will be no commits or code review comments
+    for two reporting quarters, although this will not be strictly enforced if
+    the maintainer expresses a reasonable intent to continue contributing.
+  - Reasonable exceptions to inactivity will be granted for known long term
+    leave such as parental leave and medical leave.
+- Other unspecified circumstances.
+
+As for adding a maintainer, the record and governance process for moving a
+maintainer to emeritus status is recorded using review approval in the PR making that change.
+
+Returning to active status from emeritus status uses the same steps as adding a
+new maintainer.
+
+Note that the emeritus maintainer always already has the required significant contributions.
+There is no contribution prescription delay.
+
+## Proposal PR template
+
+```markdown
+I propose to add [maintainer github handle] as a AnonCreds project maintainer.
+
+[maintainer github handle] contributed with many high quality commits:
+
+- [list significant achievements]
+
+Here are [their past contributions on AnonCreds project](https://github.com/hyperledger/anoncreds-rs/commits?author=[user github handle]).
+
+Voting ends two weeks from today.
+
+For more information on this process see the Becoming a Maintainer section in the MAINTAINERS.md file.
+```
