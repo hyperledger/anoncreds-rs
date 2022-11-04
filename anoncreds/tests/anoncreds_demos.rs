@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use indy_credx::{
+use anoncreds::{
     issuer, prover,
     types::{CredentialDefinitionConfig, MakeCredentialValues, PresentCredentials, SignatureType},
     verifier,
