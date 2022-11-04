@@ -1,5 +1,5 @@
 [package]
-name = "indy-credx"
+name = "anoncreds"
 version = "0.3.1"
 authors = ["Hyperledger Indy Contributors <indy@lists.hyperledger.org>"]
 description = "Verifiable credential issuance and presentation for Hyperledger Indy (https://www.hyperledger.org/projects), which provides a distributed-ledger-based foundation for self-sovereign identity (https://sovrin.org)."
@@ -11,7 +11,7 @@ categories = ["authentication", "cryptography"]
 keywords = ["hyperledger", "indy", "ssi", "verifiable", "credentials"]
 
 [lib]
-name = "indy_credx"
+name = "anoncreds"
 path = "src/lib.rs"
 crate-type = ["staticlib", "rlib", "cdylib"]
 
