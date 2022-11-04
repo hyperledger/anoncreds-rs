@@ -1,9 +1,9 @@
 [package]
 name = "anoncreds"
 version = "0.3.1"
-authors = ["Hyperledger Indy Contributors <indy@lists.hyperledger.org>"]
-description = "Verifiable credential issuance and presentation for Hyperledger Indy (https://www.hyperledger.org/projects), which provides a distributed-ledger-based foundation for self-sovereign identity (https://sovrin.org)."
-edition = "2018"
+authors = ["Hyperledger AnonCreds Contributors <anoncreds@lists.hyperledger.org>"]
+description = "Verifiable credential issuance and presentation for Hyperledger AnonCreds (https://www.hyperledger.org/projects), which provides a foundation for self-sovereign identity."
+edition = "2022"
 license = "Apache-2.0"
 readme = "../README.md"
 repository = "https://github.com/hyperledger/anoncreds-rs/"
