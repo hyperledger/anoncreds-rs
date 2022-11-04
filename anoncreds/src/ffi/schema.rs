@@ -4,7 +4,7 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use indy_utils::Qualifiable;
 
 use super::error::{catch_error, ErrorCode};
-use super::object::{IndyObjectId, ObjectHandle};
+use super::object::{AnonCredsObjectId, ObjectHandle};
 use super::util::FfiStrList;
 use crate::services::{
     issuer::create_schema,
@@ -12,7 +12,7 @@ use crate::services::{
 };
 
 #[no_mangle]
-pub extern "C" fn credx_create_schema(
+pub extern "C" fn anoncreds_create_schema(
     origin_did: FfiStr,
     schema_name: FfiStr,
     schema_version: FfiStr,
@@ -52,7 +52,7 @@ pub extern "C" fn credx_create_schema(
 }
 
 #[no_mangle]
-pub extern "C" fn credx_schema_get_attribute(
+pub extern "C" fn anoncreds_schema_get_attribute(
     handle: ObjectHandle,
     name: FfiStr,
     result_p: *mut *const c_char,
@@ -70,10 +70,10 @@ pub extern "C" fn credx_schema_get_attribute(
     })
 }
 
-impl_indy_object!(Schema, "Schema");
-impl_indy_object_from_json!(Schema, credx_schema_from_json);
+impl_anoncreds_object!(Schema, "Schema");
+impl_anoncreds_object_from_json!(Schema, anoncreds_schema_from_json);
 
-impl IndyObjectId for Schema {
+impl AnonCredsObjectId for Schema {
     type Id = SchemaId;
 
     fn get_id(&self) -> Self::Id {

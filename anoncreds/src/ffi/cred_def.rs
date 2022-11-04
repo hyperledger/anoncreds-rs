@@ -4,7 +4,7 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use indy_utils::Qualifiable;
 
 use super::error::{catch_error, ErrorCode};
-use super::object::{IndyObjectId, ObjectHandle};
+use super::object::{AnonCredsObjectId, ObjectHandle};
 use crate::services::{
     issuer::create_credential_definition,
     types::{
@@ -15,7 +15,7 @@ use crate::services::{
 };
 
 #[no_mangle]
-pub extern "C" fn credx_create_credential_definition(
+pub extern "C" fn anoncreds_create_credential_definition(
     origin_did: FfiStr,
     schema: ObjectHandle,
     tag: FfiStr,
@@ -63,10 +63,10 @@ pub extern "C" fn credx_create_credential_definition(
     })
 }
 
-impl_indy_object!(CredentialDefinition, "CredentialDefinition");
-impl_indy_object_from_json!(CredentialDefinition, credx_credential_definition_from_json);
+impl_anoncreds_object!(CredentialDefinition, "CredentialDefinition");
+impl_anoncreds_object_from_json!(CredentialDefinition, anoncreds_credential_definition_from_json);
 
-impl IndyObjectId for CredentialDefinition {
+impl AnonCredsObjectId for CredentialDefinition {
     type Id = CredentialDefinitionId;
 
     fn get_id(&self) -> Self::Id {
@@ -77,7 +77,7 @@ impl IndyObjectId for CredentialDefinition {
 }
 
 #[no_mangle]
-pub extern "C" fn credx_credential_definition_get_attribute(
+pub extern "C" fn anoncreds_credential_definition_get_attribute(
     handle: ObjectHandle,
     name: FfiStr,
     result_p: *mut *const c_char,
@@ -100,11 +100,11 @@ pub extern "C" fn credx_credential_definition_get_attribute(
     })
 }
 
-impl_indy_object!(CredentialDefinitionPrivate, "CredentialDefinitionPrivate");
-impl_indy_object_from_json!(
+impl_anoncreds_object!(CredentialDefinitionPrivate, "CredentialDefinitionPrivate");
+impl_anoncreds_object_from_json!(
     CredentialDefinitionPrivate,
-    credx_credential_definition_private_from_json
+    anoncreds_credential_definition_private_from_json
 );
 
-impl_indy_object!(KeyCorrectnessProof, "KeyCorrectnessProof");
-impl_indy_object_from_json!(KeyCorrectnessProof, credx_key_correctness_proof_from_json);
+impl_anoncreds_object!(KeyCorrectnessProof, "KeyCorrectnessProof");
+impl_anoncreds_object_from_json!(KeyCorrectnessProof, anoncreds_key_correctness_proof_from_json);

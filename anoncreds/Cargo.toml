@@ -6,9 +6,9 @@ description = "Verifiable credential issuance and presentation for Hyperledger I
 edition = "2018"
 license = "Apache-2.0"
 readme = "../README.md"
-repository = "https://github.com/hyperledger/indy-shared-rs/"
+repository = "https://github.com/hyperledger/anoncreds-rs/"
 categories = ["authentication", "cryptography"]
-keywords = ["hyperledger", "indy", "ssi", "verifiable", "credentials"]
+keywords = ["hyperledger", "ssi", "verifiable", "credentials"]
 
 [lib]
 name = "anoncreds"

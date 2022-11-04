@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "indy-credx",
+    "anoncreds",
     "indy-data-types",
     "indy-test-utils",
     "indy-utils",

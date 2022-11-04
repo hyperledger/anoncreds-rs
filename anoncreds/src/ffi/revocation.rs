@@ -6,7 +6,7 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use indy_utils::Qualifiable;
 
 use super::error::{catch_error, ErrorCode};
-use super::object::{IndyObject, IndyObjectId, ObjectHandle};
+use super::object::{AnonCredsObject, AnonCredsObjectId, ObjectHandle};
 use super::util::FfiList;
 use crate::error::Result;
 use crate::services::{
@@ -24,7 +24,7 @@ use crate::services::{
 };
 
 #[no_mangle]
-pub extern "C" fn credx_create_revocation_registry(
+pub extern "C" fn anoncreds_create_revocation_registry(
     origin_did: FfiStr,
     cred_def: ObjectHandle,
     tag: FfiStr,
@@ -86,7 +86,7 @@ pub extern "C" fn credx_create_revocation_registry(
 }
 
 #[no_mangle]
-pub extern "C" fn credx_update_revocation_registry(
+pub extern "C" fn anoncreds_update_revocation_registry(
     rev_reg_def: ObjectHandle,
     rev_reg: ObjectHandle,
     issued: FfiList<i64>,
@@ -123,7 +123,7 @@ pub extern "C" fn credx_update_revocation_registry(
 }
 
 #[no_mangle]
-pub extern "C" fn credx_revoke_credential(
+pub extern "C" fn anoncreds_revoke_credential(
     rev_reg_def: ObjectHandle,
     rev_reg: ObjectHandle,
     cred_rev_idx: i64,
@@ -167,13 +167,13 @@ fn registry_indices_to_set(indices: impl Iterator<Item = i64>) -> Result<BTreeSe
     })
 }
 
-impl_indy_object!(RevocationRegistryDefinition, "RevocationRegistryDefinition");
-impl_indy_object_from_json!(
+impl_anoncreds_object!(RevocationRegistryDefinition, "RevocationRegistryDefinition");
+impl_anoncreds_object_from_json!(
     RevocationRegistryDefinition,
-    credx_revocation_registry_definition_from_json
+    anoncreds_revocation_registry_definition_from_json
 );
 
-impl IndyObjectId for RevocationRegistryDefinition {
+impl AnonCredsObjectId for RevocationRegistryDefinition {
     type Id = RevocationRegistryId;
 
     fn get_id(&self) -> Self::Id {
@@ -184,7 +184,7 @@ impl IndyObjectId for RevocationRegistryDefinition {
 }
 
 #[no_mangle]
-pub extern "C" fn credx_revocation_registry_definition_get_attribute(
+pub extern "C" fn anoncreds_revocation_registry_definition_get_attribute(
     handle: ObjectHandle,
     name: FfiStr,
     result_p: *mut *const c_char,
@@ -217,20 +217,20 @@ pub extern "C" fn credx_revocation_registry_definition_get_attribute(
     })
 }
 
-impl_indy_object!(
+impl_anoncreds_object!(
     RevocationRegistryDefinitionPrivate,
     "RevocationRegistryDefinitionPrivate"
 );
-impl_indy_object_from_json!(
+impl_anoncreds_object_from_json!(
     RevocationRegistryDefinitionPrivate,
-    credx_revocation_registry_definition_private_from_json
+    anoncreds_revocation_registry_definition_private_from_json
 );
 
-impl_indy_object!(RevocationRegistry, "RevocationRegistry");
-impl_indy_object_from_json!(RevocationRegistry, credx_revocation_registry_from_json);
+impl_anoncreds_object!(RevocationRegistry, "RevocationRegistry");
+impl_anoncreds_object_from_json!(RevocationRegistry, anoncreds_revocation_registry_from_json);
 
 #[no_mangle]
-pub extern "C" fn credx_merge_revocation_registry_deltas(
+pub extern "C" fn anoncreds_merge_revocation_registry_deltas(
     rev_reg_delta_1: ObjectHandle,
     rev_reg_delta_2: ObjectHandle,
     rev_reg_delta_p: *mut ObjectHandle,
@@ -249,14 +249,14 @@ pub extern "C" fn credx_merge_revocation_registry_deltas(
     })
 }
 
-impl_indy_object!(RevocationRegistryDelta, "RevocationRegistryDelta");
-impl_indy_object_from_json!(
+impl_anoncreds_object!(RevocationRegistryDelta, "RevocationRegistryDelta");
+impl_anoncreds_object_from_json!(
     RevocationRegistryDelta,
-    credx_revocation_registry_delta_from_json
+    anoncreds_revocation_registry_delta_from_json
 );
 
 #[no_mangle]
-pub extern "C" fn credx_create_or_update_revocation_state(
+pub extern "C" fn anoncreds_create_or_update_revocation_state(
     rev_reg_def: ObjectHandle,
     rev_reg_delta: ObjectHandle,
     rev_reg_index: i64,
@@ -285,7 +285,7 @@ pub extern "C" fn credx_create_or_update_revocation_state(
                 .map_err(|_| err_msg!("Invalid timestamp"))?,
             prev_rev_state
                 .as_ref()
-                .map(IndyObject::cast_ref)
+                .map(AnonCredsObject::cast_ref)
                 .transpose()?,
         )?;
         let rev_state = ObjectHandle::create(rev_state)?;
@@ -294,5 +294,5 @@ pub extern "C" fn credx_create_or_update_revocation_state(
     })
 }
 
-impl_indy_object!(CredentialRevocationState, "CredentialRevocationState");
-impl_indy_object_from_json!(CredentialRevocationState, credx_revocation_state_from_json);
+impl_anoncreds_object!(CredentialRevocationState, "CredentialRevocationState");
+impl_anoncreds_object_from_json!(CredentialRevocationState, anoncreds_revocation_state_from_json);

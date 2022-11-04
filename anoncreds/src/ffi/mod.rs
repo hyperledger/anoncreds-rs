@@ -5,10 +5,10 @@ use zeroize::Zeroize;
 
 pub static LIB_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-ffi_support::define_string_destructor!(credx_string_free);
+ffi_support::define_string_destructor!(anoncreds_string_free);
 
 #[no_mangle]
-pub extern "C" fn credx_buffer_free(buffer: ByteBuffer) {
+pub extern "C" fn anoncreds_buffer_free(buffer: ByteBuffer) {
     ffi_support::abort_on_panic::with_abort_on_panic(|| {
         drop(buffer.destroy_into_vec().zeroize());
     })
@@ -36,7 +36,7 @@ mod revocation;
 mod schema;
 
 #[no_mangle]
-pub extern "C" fn credx_set_default_logger() -> ErrorCode {
+pub extern "C" fn anoncreds_set_default_logger() -> ErrorCode {
     catch_error(|| {
         env_logger::init();
         debug!("Initialized default logger");
@@ -45,6 +45,6 @@ pub extern "C" fn credx_set_default_logger() -> ErrorCode {
 }
 
 #[no_mangle]
-pub extern "C" fn credx_version() -> *mut c_char {
+pub extern "C" fn anoncreds_version() -> *mut c_char {
     rust_string_to_c(LIB_VERSION.to_owned())
 }
