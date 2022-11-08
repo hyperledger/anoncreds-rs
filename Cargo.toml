@@ -3,7 +3,6 @@
 members = [
     "anoncreds",
     "indy-data-types",
-    "indy-test-utils",
     "indy-utils",
     "indy-wql"
 ]
