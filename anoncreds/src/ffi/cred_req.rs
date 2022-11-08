@@ -9,7 +9,7 @@ use crate::services::{
 };
 
 #[no_mangle]
-pub extern "C" fn credx_create_credential_request(
+pub extern "C" fn anoncreds_create_credential_request(
     prover_did: FfiStr,
     cred_def: ObjectHandle,
     master_secret: ObjectHandle,
@@ -47,11 +47,11 @@ pub extern "C" fn credx_create_credential_request(
     })
 }
 
-impl_indy_object!(CredentialRequest, "CredentialRequest");
-impl_indy_object_from_json!(CredentialRequest, credx_credential_request_from_json);
+impl_anoncreds_object!(CredentialRequest, "CredentialRequest");
+impl_anoncreds_object_from_json!(CredentialRequest, anoncreds_credential_request_from_json);
 
-impl_indy_object!(CredentialRequestMetadata, "CredentialRequestMetadata");
-impl_indy_object_from_json!(
+impl_anoncreds_object!(CredentialRequestMetadata, "CredentialRequestMetadata");
+impl_anoncreds_object_from_json!(
     CredentialRequestMetadata,
-    credx_credential_request_metadata_from_json
+    anoncreds_credential_request_metadata_from_json
 );

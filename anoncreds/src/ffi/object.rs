@@ -13,22 +13,22 @@ use serde::Serialize;
 use super::error::{catch_error, ErrorCode};
 use crate::error::Result;
 
-pub(crate) static FFI_OBJECTS: Lazy<Mutex<BTreeMap<ObjectHandle, IndyObject>>> =
+pub(crate) static FFI_OBJECTS: Lazy<Mutex<BTreeMap<ObjectHandle, AnonCredsObject>>> =
     Lazy::new(|| Mutex::new(BTreeMap::new()));
 
 indy_utils::new_handle_type!(ObjectHandle, FFI_OBJECT_COUNTER);
 
 impl ObjectHandle {
-    pub(crate) fn create<O: AnyIndyObject + 'static>(value: O) -> Result<Self> {
+    pub(crate) fn create<O: AnyAnonCredsObject + 'static>(value: O) -> Result<Self> {
         let handle = Self::next();
         FFI_OBJECTS
             .lock()
             .map_err(|_| err_msg!("Error locking object store"))?
-            .insert(handle, IndyObject::new(value));
+            .insert(handle, AnonCredsObject::new(value));
         Ok(handle)
     }
 
-    pub(crate) fn load(&self) -> Result<IndyObject> {
+    pub(crate) fn load(&self) -> Result<AnonCredsObject> {
         FFI_OBJECTS
             .lock()
             .map_err(|_| err_msg!("Error locking object store"))?
@@ -37,7 +37,7 @@ impl ObjectHandle {
             .ok_or_else(|| err_msg!("Invalid object handle"))
     }
 
-    pub(crate) fn opt_load(&self) -> Result<Option<IndyObject>> {
+    pub(crate) fn opt_load(&self) -> Result<Option<AnonCredsObject>> {
         if self.0 != 0 {
             Some(
                 FFI_OBJECTS
@@ -53,7 +53,7 @@ impl ObjectHandle {
         }
     }
 
-    pub(crate) fn remove(&self) -> Result<IndyObject> {
+    pub(crate) fn remove(&self) -> Result<AnonCredsObject> {
         FFI_OBJECTS
             .lock()
             .map_err(|_| err_msg!("Error locking object store"))?
@@ -70,14 +70,14 @@ impl Default for ObjectHandle {
 
 #[derive(Clone, Debug)]
 #[repr(transparent)]
-pub(crate) struct IndyObject(Arc<dyn AnyIndyObject>);
+pub(crate) struct AnonCredsObject(Arc<dyn AnyAnonCredsObject>);
 
-impl IndyObject {
-    pub fn new<O: AnyIndyObject + 'static>(value: O) -> Self {
+impl AnonCredsObject {
+    pub fn new<O: AnyAnonCredsObject + 'static>(value: O) -> Self {
         Self(Arc::new(value))
     }
 
-    pub fn cast_ref<O: AnyIndyObject + 'static>(&self) -> Result<&O> {
+    pub fn cast_ref<O: AnyAnonCredsObject + 'static>(&self) -> Result<&O> {
         let result = unsafe { &*(&*self.0 as *const _ as *const O) };
         if self.0.type_id() == TypeId::of::<O>() {
             Ok(result)
@@ -95,15 +95,15 @@ impl IndyObject {
     }
 }
 
-impl PartialEq for IndyObject {
-    fn eq(&self, other: &IndyObject) -> bool {
+impl PartialEq for AnonCredsObject {
+    fn eq(&self, other: &AnonCredsObject) -> bool {
         Arc::ptr_eq(&self.0, &other.0)
     }
 }
 
-impl Eq for IndyObject {}
+impl Eq for AnonCredsObject {}
 
-impl Hash for IndyObject {
+impl Hash for AnonCredsObject {
     fn hash<H: Hasher>(&self, state: &mut H) {
         std::ptr::hash(&*self.0, state);
     }
@@ -113,7 +113,7 @@ pub(crate) trait ToJson {
     fn to_json(&self) -> Result<Vec<u8>>;
 }
 
-impl ToJson for IndyObject {
+impl ToJson for AnonCredsObject {
     #[inline]
     fn to_json(&self) -> Result<Vec<u8>> {
         self.0.to_json()
@@ -129,7 +129,7 @@ where
     }
 }
 
-pub(crate) trait AnyIndyObject: Debug + ToJson + Send + Sync {
+pub(crate) trait AnyAnonCredsObject: Debug + ToJson + Send + Sync {
     fn type_name(&self) -> &'static str;
 
     #[doc(hidden)]
@@ -141,9 +141,9 @@ pub(crate) trait AnyIndyObject: Debug + ToJson + Send + Sync {
     }
 }
 
-macro_rules! impl_indy_object {
+macro_rules! impl_anoncreds_object {
     ($ident:path, $name:expr) => {
-        impl $crate::ffi::object::AnyIndyObject for $ident {
+        impl $crate::ffi::object::AnyAnonCredsObject for $ident {
             fn type_name(&self) -> &'static str {
                 $name
             }
@@ -151,7 +151,7 @@ macro_rules! impl_indy_object {
     };
 }
 
-macro_rules! impl_indy_object_from_json {
+macro_rules! impl_anoncreds_object_from_json {
     ($ident:path, $method:ident) => {
         #[no_mangle]
         pub extern "C" fn $method(
@@ -170,7 +170,7 @@ macro_rules! impl_indy_object_from_json {
 }
 
 #[no_mangle]
-pub extern "C" fn credx_object_get_json(
+pub extern "C" fn anoncreds_object_get_json(
     handle: ObjectHandle,
     result_p: *mut ByteBuffer,
 ) -> ErrorCode {
@@ -184,7 +184,7 @@ pub extern "C" fn credx_object_get_json(
 }
 
 #[no_mangle]
-pub extern "C" fn credx_object_get_type_name(
+pub extern "C" fn anoncreds_object_get_type_name(
     handle: ObjectHandle,
     result_p: *mut *const c_char,
 ) -> ErrorCode {
@@ -198,20 +198,20 @@ pub extern "C" fn credx_object_get_type_name(
 }
 
 #[no_mangle]
-pub extern "C" fn credx_object_free(handle: ObjectHandle) {
+pub extern "C" fn anoncreds_object_free(handle: ObjectHandle) {
     handle.remove().ok();
 }
 
-pub(crate) trait IndyObjectId: AnyIndyObject {
+pub(crate) trait AnonCredsObjectId: AnyAnonCredsObject {
     type Id: Eq + Hash;
 
     fn get_id(&self) -> Self::Id;
 }
 
 #[repr(transparent)]
-pub(crate) struct IndyObjectList(Vec<IndyObject>);
+pub(crate) struct AnonCredsObjectList(Vec<AnonCredsObject>);
 
-impl IndyObjectList {
+impl AnonCredsObjectList {
     pub fn load(handles: &[ObjectHandle]) -> Result<Self> {
         let loaded = handles
             .into_iter()
@@ -223,7 +223,7 @@ impl IndyObjectList {
     #[allow(unused)]
     pub fn refs<T>(&self) -> Result<Vec<&T>>
     where
-        T: AnyIndyObject + 'static,
+        T: AnyAnonCredsObject + 'static,
     {
         let mut refs = Vec::with_capacity(self.0.len());
         for inst in self.0.iter() {
@@ -233,9 +233,9 @@ impl IndyObjectList {
         Ok(refs)
     }
 
-    pub fn refs_map<T>(&self) -> Result<HashMap<<T as IndyObjectId>::Id, &T>>
+    pub fn refs_map<T>(&self) -> Result<HashMap<<T as AnonCredsObjectId>::Id, &T>>
     where
-        T: AnyIndyObject + IndyObjectId + 'static,
+        T: AnyAnonCredsObject + AnonCredsObjectId + 'static,
     {
         let mut refs = HashMap::with_capacity(self.0.len());
         for inst in self.0.iter() {
@@ -247,15 +247,15 @@ impl IndyObjectList {
     }
 }
 
-impl Deref for IndyObjectList {
-    type Target = Vec<IndyObject>;
+impl Deref for AnonCredsObjectList {
+    type Target = Vec<AnonCredsObject>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for IndyObjectList {
+impl DerefMut for AnonCredsObjectList {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

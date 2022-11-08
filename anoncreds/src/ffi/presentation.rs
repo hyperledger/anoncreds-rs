@@ -4,7 +4,7 @@ use std::convert::TryInto;
 use ffi_support::FfiStr;
 
 use super::error::{catch_error, ErrorCode};
-use super::object::{IndyObject, IndyObjectId, IndyObjectList, ObjectHandle};
+use super::object::{AnonCredsObject, AnonCredsObjectId, AnonCredsObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
 use crate::error::Result;
 use crate::services::{
@@ -13,8 +13,8 @@ use crate::services::{
     verifier::verify_presentation,
 };
 
-impl_indy_object!(Presentation, "Presentation");
-impl_indy_object_from_json!(Presentation, credx_presentation_from_json);
+impl_anoncreds_object!(Presentation, "Presentation");
+impl_anoncreds_object_from_json!(Presentation, anoncreds_presentation_from_json);
 
 #[derive(Debug)]
 #[repr(C)]
@@ -51,13 +51,13 @@ pub struct FfiCredentialProve<'a> {
 }
 
 struct CredentialEntry {
-    credential: IndyObject,
+    credential: AnonCredsObject,
     timestamp: Option<u64>,
-    rev_state: Option<IndyObject>,
+    rev_state: Option<AnonCredsObject>,
 }
 
 #[no_mangle]
-pub extern "C" fn credx_create_presentation(
+pub extern "C" fn anoncreds_create_presentation(
     pres_req: ObjectHandle,
     credentials: FfiList<FfiCredentialEntry>,
     credentials_prove: FfiList<FfiCredentialProve>,
@@ -87,8 +87,8 @@ pub extern "C" fn credx_create_presentation(
             )?
         };
 
-        let schemas = IndyObjectList::load(schemas.as_slice())?;
-        let cred_defs = IndyObjectList::load(cred_defs.as_slice())?;
+        let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
+        let cred_defs = AnonCredsObjectList::load(cred_defs.as_slice())?;
 
         let self_attested = if !self_attest_names.is_empty() {
             let mut self_attested = HashMap::new();
@@ -121,7 +121,7 @@ pub extern "C" fn credx_create_presentation(
                 entry
                     .rev_state
                     .as_ref()
-                    .map(IndyObject::cast_ref)
+                    .map(AnonCredsObject::cast_ref)
                     .transpose()?,
             );
 
@@ -170,7 +170,7 @@ pub struct FfiRevocationEntry {
 }
 
 impl FfiRevocationEntry {
-    fn load(&self) -> Result<(usize, IndyObject, u64)> {
+    fn load(&self) -> Result<(usize, AnonCredsObject, u64)> {
         let def_entry_idx = self
             .def_entry_idx
             .try_into()
@@ -185,7 +185,7 @@ impl FfiRevocationEntry {
 }
 
 #[no_mangle]
-pub extern "C" fn credx_verify_presentation(
+pub extern "C" fn anoncreds_verify_presentation(
     presentation: ObjectHandle,
     pres_req: ObjectHandle,
     schemas: FfiList<ObjectHandle>,
@@ -195,9 +195,9 @@ pub extern "C" fn credx_verify_presentation(
     result_p: *mut i8,
 ) -> ErrorCode {
     catch_error(|| {
-        let schemas = IndyObjectList::load(schemas.as_slice())?;
-        let cred_defs = IndyObjectList::load(cred_defs.as_slice())?;
-        let rev_reg_defs = IndyObjectList::load(rev_reg_defs.as_slice())?;
+        let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
+        let cred_defs = AnonCredsObjectList::load(cred_defs.as_slice())?;
+        let rev_reg_defs = AnonCredsObjectList::load(rev_reg_defs.as_slice())?;
         let rev_reg_entries = {
             let entries = rev_reg_entries.as_slice();
             entries.into_iter().try_fold(

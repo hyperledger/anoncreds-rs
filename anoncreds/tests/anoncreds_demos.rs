@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use indy_credx::{
+use anoncreds::{
     issuer, prover,
     types::{CredentialDefinitionConfig, MakeCredentialValues, PresentCredentials, SignatureType},
     verifier,
@@ -87,7 +87,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         &cred_offer,
         &cred_request,
         cred_values.into(),
-        None,
+        None
     )
     .expect("Error creating credential");
 

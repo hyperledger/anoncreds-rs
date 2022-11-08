@@ -6,7 +6,7 @@ use std::ptr;
 use ffi_support::{rust_string_to_c, FfiStr};
 
 use super::error::{catch_error, ErrorCode};
-use super::object::{IndyObject, ObjectHandle};
+use super::object::{AnonCredsObject, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
 use crate::error::Result;
 use crate::services::{
@@ -29,9 +29,9 @@ pub struct FfiCredRevInfo<'a> {
 }
 
 struct RevocationConfig {
-    reg_def: IndyObject,
-    reg_def_private: IndyObject,
-    registry: IndyObject,
+    reg_def: AnonCredsObject,
+    reg_def_private: AnonCredsObject,
+    registry: AnonCredsObject,
     reg_idx: u32,
     reg_used: HashSet<u32>,
     tails_path: String,
@@ -51,7 +51,7 @@ impl RevocationConfig {
 }
 
 #[no_mangle]
-pub extern "C" fn credx_create_credential(
+pub extern "C" fn anoncreds_create_credential(
     cred_def: ObjectHandle,
     cred_def_private: ObjectHandle,
     cred_offer: ObjectHandle,
@@ -161,7 +161,7 @@ pub extern "C" fn credx_create_credential(
 }
 
 #[no_mangle]
-pub extern "C" fn credx_encode_credential_attributes(
+pub extern "C" fn anoncreds_encode_credential_attributes(
     attr_raw_values: FfiStrList,
     result_p: *mut *const c_char,
 ) -> ErrorCode {
@@ -184,7 +184,7 @@ pub extern "C" fn credx_encode_credential_attributes(
 }
 
 #[no_mangle]
-pub extern "C" fn credx_process_credential(
+pub extern "C" fn anoncreds_process_credential(
     cred: ObjectHandle,
     cred_req_metadata: ObjectHandle,
     master_secret: ObjectHandle,
@@ -207,7 +207,7 @@ pub extern "C" fn credx_process_credential(
             rev_reg_def
                 .opt_load()?
                 .as_ref()
-                .map(IndyObject::cast_ref)
+                .map(AnonCredsObject::cast_ref)
                 .transpose()?,
         )?;
         let cred = ObjectHandle::create(cred)?;
@@ -216,11 +216,11 @@ pub extern "C" fn credx_process_credential(
     })
 }
 
-impl_indy_object!(Credential, "Credential");
-impl_indy_object_from_json!(Credential, credx_credential_from_json);
+impl_anoncreds_object!(Credential, "Credential");
+impl_anoncreds_object_from_json!(Credential, anoncreds_credential_from_json);
 
 #[no_mangle]
-pub extern "C" fn credx_credential_get_attribute(
+pub extern "C" fn anoncreds_credential_get_attribute(
     handle: ObjectHandle,
     name: FfiStr,
     result_p: *mut *const c_char,

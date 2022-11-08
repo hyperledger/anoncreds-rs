@@ -9,7 +9,7 @@ use crate::services::{
 };
 
 #[no_mangle]
-pub extern "C" fn credx_create_credential_offer(
+pub extern "C" fn anoncreds_create_credential_offer(
     schema_id: FfiStr,
     cred_def: ObjectHandle,
     key_proof: ObjectHandle,
@@ -34,5 +34,5 @@ pub extern "C" fn credx_create_credential_offer(
     })
 }
 
-impl_indy_object!(CredentialOffer, "CredentialOffer");
-impl_indy_object_from_json!(CredentialOffer, credx_credential_offer_from_json);
+impl_anoncreds_object!(CredentialOffer, "CredentialOffer");
+impl_anoncreds_object_from_json!(CredentialOffer, anoncreds_credential_offer_from_json);

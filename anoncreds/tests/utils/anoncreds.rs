@@ -1,4 +1,4 @@
-use indy_credx::types::{CredentialDefinitionPrivate, CredentialKeyCorrectnessProof};
+use anoncreds::types::{CredentialDefinitionPrivate, CredentialKeyCorrectnessProof};
 
 use indy_data_types::anoncreds::cred_def::CredentialDefinition;
 use indy_data_types::anoncreds::credential::Credential;
