@@ -16,12 +16,12 @@ path = "src/lib.rs"
 crate-type = ["rlib"]
 
 [features]
-default = ["ed25519", "hash", "txn_signature", "wql"]
+default = ["ed25519", "hash", "txn_signature", "query"]
 base64 = ["base64_rs"]
 ed25519 = ["curve25519-dalek", "ed25519-dalek", "rand", "sha2", "x25519-dalek"]
 hash = ["sha2"]
 txn_signature = ["hex", "sha2", "serde", "serde_json"]
-wql = ["indy-wql", "serde", "serde_json"]
+query = ["serde", "serde_json"]
 
 [dependencies]
 base64_rs = { package = "base64", version = "0.13", optional = true }
@@ -29,16 +29,15 @@ bs58 = "0.4"
 curve25519-dalek = { version = "3.1", default-features = false, features = ["u64_backend"], optional = true }
 ed25519-dalek = { version = "1.0", default-features = false, features = ["u64_backend"], optional = true }
 hex = { version = "0.4", optional = true }
-indy-wql = { version = "0.4", optional = true, path = "../indy-wql" }
 once_cell = "1.9"
 rand = { version = "0.8", optional = true }
 regex = "1.3"
-serde = { version = "1.0", optional = true, features = ["derive"] }
-serde_json = { version = "1.0", optional = true }
 sha2 = { version = "0.10", optional = true }
 thiserror = "1.0"
 x25519-dalek = { version = "=1.2", default-features = false, features = ["u64_backend"], optional = true }
 zeroize = { version = "1.3" }
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = {version = "1.0", optional = true }
 
 [dev-dependencies]
 async-global-executor = "1.2"

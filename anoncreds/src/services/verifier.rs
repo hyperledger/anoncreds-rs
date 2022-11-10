@@ -12,7 +12,7 @@ use indy_data_types::anoncreds::{
     pres_request::{AttributeInfo, NonRevocedInterval, PredicateInfo, PresentationRequestPayload},
     presentation::{Identifier, RequestedProof, RevealedAttributeInfo},
 };
-use indy_utils::wql::Query;
+use indy_utils::query::Query;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Filter {

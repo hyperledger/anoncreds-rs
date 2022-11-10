@@ -295,4 +295,7 @@ pub extern "C" fn anoncreds_create_or_update_revocation_state(
 }
 
 impl_anoncreds_object!(CredentialRevocationState, "CredentialRevocationState");
-impl_anoncreds_object_from_json!(CredentialRevocationState, anoncreds_revocation_state_from_json);
+impl_anoncreds_object_from_json!(
+    CredentialRevocationState,
+    anoncreds_revocation_state_from_json
+);
