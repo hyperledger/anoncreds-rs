@@ -9,8 +9,7 @@ use crate::ValidationError;
 
 /// A Merkle tree is a binary tree, with values of type `T` at the leafs,
 /// and where every internal node holds the hash of the concatenation of the hashes of its children nodes.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MerkleTree {
     /// The root of the inner binary tree
     pub root: Tree,

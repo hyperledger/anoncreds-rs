@@ -1,10 +1,3 @@
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde;
-
-#[cfg(all(feature = "serde", test))]
-#[macro_use]
-extern crate serde_json;
 
 #[macro_use]
 mod macros;
@@ -18,7 +11,6 @@ pub use indy_utils::did;
 pub use indy_utils::keys;
 pub use indy_utils::{invalid, ConversionError, Validatable, ValidationError};
 
-#[cfg(any(feature = "cl", feature = "cl_native"))]
 pub use ursa;
 
 /// Type definitions related Indy credential issuance and verification

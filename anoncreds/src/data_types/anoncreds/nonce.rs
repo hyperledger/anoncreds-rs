@@ -2,21 +2,17 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-#[cfg(any(feature = "cl", feature = "cl_native"))]
 use crate::ursa::cl::{new_nonce, Nonce as UrsaNonce};
-#[cfg(feature = "serde")]
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::ConversionError;
+use crate::data_types::ConversionError;
 
 pub struct Nonce {
     strval: String,
-    #[cfg(any(feature = "cl", feature = "cl_native"))]
     native: UrsaNonce,
 }
 
 impl Nonce {
-    #[cfg(any(feature = "cl", feature = "cl_native"))]
     #[inline]
     pub fn new() -> Result<Self, ConversionError> {
         let native = new_nonce()
@@ -24,20 +20,17 @@ impl Nonce {
         Self::from_native(native)
     }
 
-    #[cfg(any(feature = "cl", feature = "cl_native"))]
     #[inline]
     pub fn from_native(native: UrsaNonce) -> Result<Self, ConversionError> {
         let strval = native.to_dec().map_err(|e| e.to_string())?;
         Ok(Self { strval, native })
     }
 
-    #[cfg(any(feature = "cl", feature = "cl_native"))]
     #[inline]
     pub fn as_native(&self) -> &UrsaNonce {
         &self.native
     }
 
-    #[cfg(any(feature = "cl", feature = "cl_native"))]
     #[inline]
     pub fn into_native(self) -> UrsaNonce {
         self.native
@@ -53,13 +46,9 @@ impl Nonce {
                 return Err("Invalid bignum value".into());
             }
         }
-        #[cfg(any(feature = "cl", feature = "cl_native"))]
-        {
-            let native = UrsaNonce::from_dec(&strval).map_err(|e| e.to_string())?;
-            Ok(Self { strval, native })
-        }
-        #[cfg(not(any(feature = "cl", feature = "cl_native")))]
-        Ok(Self { strval })
+
+        let native = UrsaNonce::from_dec(&strval).map_err(|e| e.to_string())?;
+        Ok(Self { strval, native })
     }
 
     pub fn try_clone(&self) -> Result<Self, ConversionError> {
@@ -147,7 +136,6 @@ impl std::ops::Deref for Nonce {
     }
 }
 
-#[cfg(feature = "serde")]
 impl Serialize for Nonce {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -157,7 +145,6 @@ impl Serialize for Nonce {
     }
 }
 
-#[cfg(feature = "serde")]
 impl<'a> Deserialize<'a> for Nonce {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -231,7 +218,6 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "serde")]
     #[test]
     fn nonce_serialize() {
         let val = Nonce::try_from("10000").unwrap();
@@ -241,7 +227,6 @@ mod tests {
         assert_eq!(val, des);
     }
 
-    #[cfg(all(feature = "serde", any(feature = "cl", feature = "cl_native")))]
     #[test]
     fn nonce_convert() {
         let nonce = UrsaNonce::new().expect("Error creating nonce");

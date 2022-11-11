@@ -1,16 +1,15 @@
 use super::nonce::Nonce;
-use crate::identifiers::cred_def::CredentialDefinitionId;
-use crate::utils::Qualifiable;
-use crate::{Validatable, ValidationError};
+use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
+use crate::data_types::utils::Qualifiable;
+use crate::data_types::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialRequest {
     pub prover_did: DidValue,
     pub cred_def_id: CredentialDefinitionId,
-    pub blinded_ms: ursa_cl!(BlindedCredentialSecrets),
-    pub blinded_ms_correctness_proof: ursa_cl!(BlindedCredentialSecretsCorrectnessProof),
+    pub blinded_ms: crate::ursa::cl::BlindedCredentialSecrets,
+    pub blinded_ms_correctness_proof: crate::ursa::cl::BlindedCredentialSecretsCorrectnessProof,
     pub nonce: Nonce,
 }
 
@@ -35,10 +34,9 @@ impl Validatable for CredentialRequest {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialRequestMetadata {
-    pub master_secret_blinding_data: ursa_cl!(CredentialSecretsBlindingFactors),
+    pub master_secret_blinding_data: crate::ursa::cl::CredentialSecretsBlindingFactors,
     pub nonce: Nonce,
     pub master_secret_name: String,
 }

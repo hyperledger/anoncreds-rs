@@ -3,7 +3,7 @@ use std::fmt;
 use crate::ursa::cl::{prover::Prover as UrsaProver, MasterSecret as UrsaMasterSecret};
 use serde::{Deserialize, Serialize};
 
-use crate::ConversionError;
+use crate::data_types::ConversionError;
 
 #[derive(Serialize, Deserialize)]
 pub struct MasterSecret {
@@ -11,7 +11,6 @@ pub struct MasterSecret {
 }
 
 impl MasterSecret {
-    #[cfg(any(feature = "cl", feature = "cl_native"))]
     #[inline]
     pub fn new() -> Result<Self, ConversionError> {
         let value = UrsaProver::new_master_secret().map_err(|err| {

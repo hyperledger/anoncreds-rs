@@ -7,8 +7,12 @@ extern crate log;
 #[macro_use]
 extern crate serde;
 
+#[cfg(test)]
+#[macro_use]
+extern crate serde_json;
+
 #[doc(hidden)]
-pub use indy_data_types::ursa;
+pub use ursa;
 
 #[macro_use]
 mod error;
@@ -21,3 +25,5 @@ pub use services::*;
 
 #[cfg(feature = "ffi")]
 mod ffi;
+
+pub mod data_types;

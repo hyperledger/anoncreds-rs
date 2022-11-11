@@ -1,31 +1,28 @@
 use std::collections::HashMap;
 use std::fmt;
 
-#[cfg(feature = "serde")]
 use serde::{de, ser, Deserialize, Deserializer, Serialize, Serializer};
-#[cfg(feature = "serde")]
 use serde_json::Value;
 
 use super::credential::Credential;
 use super::nonce::Nonce;
-use crate::identifiers::cred_def::CredentialDefinitionId;
-use crate::identifiers::rev_reg::RevocationRegistryId;
-use crate::identifiers::schema::SchemaId;
-use crate::utils::{qualifiable, Qualifiable};
-use crate::{Validatable, ValidationError};
+use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
+use crate::data_types::identifiers::rev_reg::RevocationRegistryId;
+use crate::data_types::identifiers::schema::SchemaId;
+use crate::data_types::utils::{qualifiable, Qualifiable};
+use crate::data_types::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 use indy_utils::invalid;
 use indy_utils::query::Query;
 
-#[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct PresentationRequestPayload {
     pub nonce: Nonce,
     pub name: String,
     pub version: String,
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub requested_attributes: HashMap<String, AttributeInfo>,
-    #[cfg_attr(feature = "serde", serde(default))]
+    #[serde(default)]
     pub requested_predicates: HashMap<String, PredicateInfo>,
     pub non_revoked: Option<NonRevocedInterval>,
 }
@@ -58,7 +55,6 @@ impl PresentationRequest {
     }
 }
 
-#[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for PresentationRequest {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -97,7 +93,6 @@ impl<'de> Deserialize<'de> for PresentationRequest {
     }
 }
 
-#[cfg(feature = "serde")]
 impl Serialize for PresentationRequest {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -129,26 +124,23 @@ impl Serialize for PresentationRequest {
 #[allow(unused)]
 pub type PresentationRequestExtraQuery = HashMap<String, Query>;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct NonRevocedInterval {
     pub from: Option<u64>,
     pub to: Option<u64>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct AttributeInfo {
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub names: Option<Vec<String>>,
     pub restrictions: Option<Query>,
     pub non_revoked: Option<NonRevocedInterval>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct PredicateInfo {
     pub name: String,
     pub p_type: PredicateTypes,
@@ -157,16 +149,15 @@ pub struct PredicateInfo {
     pub non_revoked: Option<NonRevocedInterval>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum PredicateTypes {
-    #[cfg_attr(feature = "serde", serde(rename = ">="))]
+    #[serde(rename = ">=")]
     GE,
-    #[cfg_attr(feature = "serde", serde(rename = "<="))]
+    #[serde(rename = "<=")]
     LE,
-    #[cfg_attr(feature = "serde", serde(rename = ">"))]
+    #[serde(rename = ">")]
     GT,
-    #[cfg_attr(feature = "serde", serde(rename = "<"))]
+    #[serde(rename = "<")]
     LT,
 }
 
@@ -181,16 +172,14 @@ impl fmt::Display for PredicateTypes {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct RequestedAttributeInfo {
     pub attr_referent: String,
     pub attr_info: AttributeInfo,
     pub revealed: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct RequestedPredicateInfo {
     pub predicate_referent: String,
     pub predicate_info: PredicateInfo,
@@ -389,7 +378,6 @@ fn _check_restriction(
 mod tests {
     use super::*;
 
-    #[cfg(feature = "serde")]
     mod invalid_nonce {
         use super::*;
 

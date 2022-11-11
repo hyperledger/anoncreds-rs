@@ -8,7 +8,7 @@ use crate::ursa::cl::{
     issuer::Issuer as CryptoIssuer, RevocationRegistryDelta as CryptoRevocationRegistryDelta,
     Witness,
 };
-use indy_data_types::anoncreds::{
+use crate::data_types::anoncreds::{
     cred_def::{CredentialDefinitionData, CredentialDefinitionV1},
     nonce::Nonce,
     rev_reg::{RevocationRegistryDeltaV1, RevocationRegistryV1},

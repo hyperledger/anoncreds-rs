@@ -1,8 +1,8 @@
 use anoncreds::types::{CredentialDefinitionPrivate, CredentialKeyCorrectnessProof};
 
-use indy_data_types::anoncreds::cred_def::CredentialDefinition;
-use indy_data_types::anoncreds::credential::Credential;
-use indy_data_types::anoncreds::master_secret::MasterSecret;
+use anoncreds::data_types::anoncreds::cred_def::CredentialDefinition;
+use anoncreds::data_types::anoncreds::credential::Credential;
+use anoncreds::data_types::anoncreds::master_secret::MasterSecret;
 use indy_utils::did::DidValue;
 
 pub const ISSUER_DID: &'static str = "NcYxiDXkpYi6ov5FcYDi1e";

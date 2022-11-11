@@ -7,8 +7,7 @@ use crate::ValidationError;
 pub type TreeLeafData = Vec<u8>;
 
 /// Binary Tree where leaves hold a stand-alone value.
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub enum Tree {
     Empty {
         hash: Vec<u8>,

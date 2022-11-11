@@ -1,18 +1,15 @@
-#[cfg(any(feature = "cl", feature = "cl_native"))]
 use std::collections::HashSet;
 
-use crate::Validatable;
+use crate::data_types::Validatable;
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(tag = "ver"))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "ver")]
 pub enum RevocationRegistry {
-    #[cfg_attr(feature = "serde", serde(rename = "1.0"))]
+    #[serde(rename = "1.0")]
     RevocationRegistryV1(RevocationRegistryV1),
 }
 
 impl RevocationRegistry {
-    #[cfg(any(feature = "cl", feature = "cl_native"))]
     pub fn initial_delta(&self) -> RevocationRegistryDelta {
         match self {
             Self::RevocationRegistryV1(v1) => {
@@ -29,25 +26,22 @@ impl RevocationRegistry {
     }
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RevocationRegistryV1 {
-    pub value: ursa_cl!(RevocationRegistry),
+    pub value: crate::ursa::cl::RevocationRegistry,
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(tag = "ver"))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "ver")]
 pub enum RevocationRegistryDelta {
-    #[cfg_attr(feature = "serde", serde(rename = "1.0"))]
+    #[serde(rename = "1.0")]
     RevocationRegistryDeltaV1(RevocationRegistryDeltaV1),
 }
 
 impl Validatable for RevocationRegistryDelta {}
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDeltaV1 {
-    pub value: ursa_cl!(RevocationRegistryDelta),
+    pub value: crate::ursa::cl::RevocationRegistryDelta,
 }

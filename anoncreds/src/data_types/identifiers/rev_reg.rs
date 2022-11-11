@@ -4,8 +4,8 @@ use regex::Regex;
 
 use super::cred_def::CredentialDefinitionId;
 use super::DELIMITER;
-use crate::utils::{qualifiable, Qualifiable};
-use crate::{Validatable, ValidationError};
+use crate::data_types::utils::{qualifiable, Qualifiable};
+use crate::data_types::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 use indy_utils::qualifiable_type;
 
