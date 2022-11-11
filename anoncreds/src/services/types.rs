@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use super::tails::TailsReader;
-pub use indy_data_types::{
+pub use crate::data_types::{
     anoncreds::{
         cred_def::{
             CredentialDefinition, CredentialDefinitionPrivate, CredentialKeyCorrectnessProof,

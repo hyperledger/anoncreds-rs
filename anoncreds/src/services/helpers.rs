@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use indy_data_types::anoncreds::{
+use crate::data_types::anoncreds::{
     credential::AttributeValues,
     nonce::Nonce,
     pres_request::{AttributeInfo, NonRevocedInterval, PredicateInfo},

@@ -1,5 +1,5 @@
-use crate::identifiers::rich_schema::RichSchemaId;
-use crate::{Validatable, ValidationError};
+use crate::data_types::identifiers::rich_schema::RichSchemaId;
+use crate::data_types::{Validatable, ValidationError};
 
 #[macro_export]
 macro_rules! build_rs_operation {

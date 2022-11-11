@@ -14,7 +14,6 @@ pub mod cred_request;
 pub mod credential;
 
 /// Identity master secret
-#[cfg(any(feature = "cl", feature = "cl_native"))]
 pub mod master_secret;
 
 /// Nonce used in presentation requests

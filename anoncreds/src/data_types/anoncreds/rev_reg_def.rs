@@ -1,7 +1,7 @@
-use crate::identifiers::cred_def::CredentialDefinitionId;
-use crate::identifiers::rev_reg::RevocationRegistryId;
-use crate::utils::Qualifiable;
-use crate::{invalid, ConversionError, Validatable, ValidationError};
+use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
+use crate::data_types::identifiers::rev_reg::RevocationRegistryId;
+use crate::data_types::utils::Qualifiable;
+use crate::data_types::{invalid, ConversionError, Validatable, ValidationError};
 
 pub const CL_ACCUM: &str = "CL_ACCUM";
 
@@ -9,8 +9,7 @@ pub const ISSUANCE_BY_DEFAULT: &str = "ISSUANCE_BY_DEFAULT";
 pub const ISSUANCE_ON_DEMAND: &str = "ISSUANCE_ON_DEMAND";
 
 #[allow(non_camel_case_types)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub enum IssuanceType {
     ISSUANCE_BY_DEFAULT,
     ISSUANCE_ON_DEMAND,
@@ -44,8 +43,7 @@ impl Default for IssuanceType {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub enum RegistryType {
     CL_ACCUM,
 }
@@ -65,9 +63,8 @@ impl RegistryType {
     }
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDefinitionValue {
     pub issuance_type: IssuanceType,
     pub max_cred_num: u32,
@@ -76,18 +73,16 @@ pub struct RevocationRegistryDefinitionValue {
     pub tails_location: String,
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDefinitionValuePublicKeys {
     pub accum_key: ursa_cl!(RevocationKeyPublic),
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-#[cfg_attr(feature = "serde", serde(tag = "ver"))]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(tag = "ver")]
 pub enum RevocationRegistryDefinition {
-    #[cfg_attr(feature = "serde", serde(rename = "1.0"))]
+    #[serde(rename = "1.0")]
     RevocationRegistryDefinitionV1(RevocationRegistryDefinitionV1),
 }
 
@@ -126,12 +121,8 @@ impl Validatable for RevocationRegistryDefinition {
     }
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(
-    feature = "serde",
-    derive(Deserialize, Serialize),
-    serde(rename_all = "camelCase")
-)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDefinitionV1 {
     pub id: RevocationRegistryId,
     pub revoc_def_type: RegistryType,
@@ -140,8 +131,7 @@ pub struct RevocationRegistryDefinitionV1 {
     pub value: RevocationRegistryDefinitionValue,
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RevocationRegistryDefinitionPrivate {
     pub value: ursa_cl!(RevocationKeyPrivate),
 }

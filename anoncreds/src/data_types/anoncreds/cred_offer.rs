@@ -1,17 +1,16 @@
 use super::nonce::Nonce;
-use crate::identifiers::cred_def::CredentialDefinitionId;
-use crate::identifiers::schema::SchemaId;
-use crate::utils::Qualifiable;
-use crate::{Validatable, ValidationError};
+use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
+use crate::data_types::identifiers::schema::SchemaId;
+use crate::data_types::utils::Qualifiable;
+use crate::data_types::{Validatable, ValidationError};
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialOffer {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
     pub key_correctness_proof: ursa_cl!(CredentialKeyCorrectnessProof),
     pub nonce: Nonce,
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub method_name: Option<String>,
 }
 

@@ -1,11 +1,10 @@
 use super::nonce::Nonce;
-use crate::identifiers::cred_def::CredentialDefinitionId;
-use crate::utils::Qualifiable;
-use crate::{Validatable, ValidationError};
+use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
+use crate::data_types::utils::Qualifiable;
+use crate::data_types::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialRequest {
     pub prover_did: DidValue,
     pub cred_def_id: CredentialDefinitionId,
@@ -35,8 +34,7 @@ impl Validatable for CredentialRequest {
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialRequestMetadata {
     pub master_secret_blinding_data: ursa_cl!(CredentialSecretsBlindingFactors),
     pub nonce: Nonce,

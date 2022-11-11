@@ -1,17 +1,16 @@
-use crate::identifiers::schema::SchemaId;
-use crate::utils::Qualifiable;
-use crate::{Validatable, ValidationError};
+use crate::data_types::identifiers::schema::SchemaId;
+use crate::data_types::utils::Qualifiable;
+use crate::data_types::{Validatable, ValidationError};
 
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
 pub const MAX_ATTRIBUTES_COUNT: usize = 125;
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(tag = "ver"))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "ver")]
 pub enum Schema {
-    #[cfg_attr(feature = "serde", serde(rename = "1.0"))]
+    #[serde(rename = "1.0")]
     SchemaV1(SchemaV1),
 }
 
@@ -43,20 +42,18 @@ impl Validatable for Schema {
     }
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SchemaV1 {
     pub id: SchemaId,
     pub name: String,
     pub version: String,
-    #[cfg_attr(feature = "serde", serde(rename = "attrNames"))]
+    #[serde(rename = "attrNames")]
     pub attr_names: AttributeNames,
     pub seq_no: Option<u32>,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttributeNames(pub HashSet<String>);
 
 impl AttributeNames {
@@ -143,7 +140,6 @@ mod test_schema_validation {
         SchemaId("schema:sov:did:sov:NcYxiDXkpYi6ov5FcYDi1e:2:gvt:1.0".to_string())
     }
 
-    #[cfg(feature = "serde")]
     #[test]
     fn test_valid_schema() {
         let schema_json = json!({
@@ -161,7 +157,6 @@ mod test_schema_validation {
         assert_eq!(schema.version, "1.0");
     }
 
-    #[cfg(feature = "serde")]
     #[test]
     fn test_invalid_name_schema() {
         let schema_json = json!({
@@ -177,7 +172,6 @@ mod test_schema_validation {
         schema.validate().unwrap_err();
     }
 
-    #[cfg(feature = "serde")]
     #[test]
     fn test_invalid_version_schema() {
         let schema_json = json!({

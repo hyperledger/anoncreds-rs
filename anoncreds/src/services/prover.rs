@@ -8,7 +8,7 @@ use crate::ursa::cl::{
     verifier::Verifier as CryptoVerifier, CredentialPublicKey,
     RevocationRegistry as CryptoRevocationRegistry, SubProofRequest, Witness,
 };
-use indy_data_types::anoncreds::{
+use crate::data_types::anoncreds::{
     credential::AttributeValues,
     pres_request::{PresentationRequestPayload, RequestedAttributeInfo, RequestedPredicateInfo},
     presentation::{
@@ -507,7 +507,7 @@ fn build_sub_proof_request(
 mod tests {
     use super::*;
 
-    use indy_data_types::anoncreds::pres_request::PredicateTypes;
+    use crate::data_types::anoncreds::pres_request::PredicateTypes;
 
     macro_rules! hashmap {
         ($( $key: expr => $val: expr ),*) => {
@@ -534,7 +534,7 @@ mod tests {
     }
 
     mod prepare_credentials_for_proving {
-        use indy_data_types::anoncreds::pres_request::{AttributeInfo, PredicateInfo};
+        use crate::data_types::anoncreds::pres_request::{AttributeInfo, PredicateInfo};
 
         use super::*;
 

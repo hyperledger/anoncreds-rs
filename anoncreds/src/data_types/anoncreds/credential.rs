@@ -2,13 +2,12 @@ use std::collections::HashMap;
 
 use zeroize::Zeroize;
 
-use crate::identifiers::cred_def::CredentialDefinitionId;
-use crate::identifiers::rev_reg::RevocationRegistryId;
-use crate::identifiers::schema::SchemaId;
-use crate::{Validatable, ValidationError};
+use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
+use crate::data_types::identifiers::rev_reg::RevocationRegistryId;
+use crate::data_types::identifiers::schema::SchemaId;
+use crate::data_types::{Validatable, ValidationError};
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Credential {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
@@ -20,9 +19,8 @@ pub struct Credential {
     pub witness: Option<ursa_cl!(Witness)>,
 }
 
-#[cfg(any(feature = "cl", feature = "cl_native"))]
 impl Credential {
-    pub fn try_clone(&self) -> Result<Self, crate::ConversionError> {
+    pub fn try_clone(&self) -> Result<Self, crate::data_types::ConversionError> {
         Ok(Self {
             schema_id: self.schema_id.clone(),
             cred_def_id: self.cred_def_id.clone(),
@@ -67,8 +65,7 @@ impl Validatable for Credential {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct CredentialInfo {
     pub referent: String,
     pub attrs: ShortCredentialValues,
@@ -80,8 +77,7 @@ pub struct CredentialInfo {
 
 pub type ShortCredentialValues = HashMap<String, String>;
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct CredentialValues(pub HashMap<String, AttributeValues>);
 
 impl Drop for CredentialValues {
@@ -108,8 +104,7 @@ impl Zeroize for CredentialValues {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Zeroize)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, PartialEq, Eq, Zeroize, Deserialize, Serialize)]
 pub struct AttributeValues {
     pub raw: String,
     pub encoded: String,
