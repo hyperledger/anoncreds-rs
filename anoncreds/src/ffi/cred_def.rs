@@ -64,7 +64,10 @@ pub extern "C" fn anoncreds_create_credential_definition(
 }
 
 impl_anoncreds_object!(CredentialDefinition, "CredentialDefinition");
-impl_anoncreds_object_from_json!(CredentialDefinition, anoncreds_credential_definition_from_json);
+impl_anoncreds_object_from_json!(
+    CredentialDefinition,
+    anoncreds_credential_definition_from_json
+);
 
 impl AnonCredsObjectId for CredentialDefinition {
     type Id = CredentialDefinitionId;
@@ -107,4 +110,7 @@ impl_anoncreds_object_from_json!(
 );
 
 impl_anoncreds_object!(KeyCorrectnessProof, "KeyCorrectnessProof");
-impl_anoncreds_object_from_json!(KeyCorrectnessProof, anoncreds_key_correctness_proof_from_json);
+impl_anoncreds_object_from_json!(
+    KeyCorrectnessProof,
+    anoncreds_key_correctness_proof_from_json
+);

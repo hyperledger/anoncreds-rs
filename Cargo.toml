@@ -3,7 +3,6 @@
 members = [
     "anoncreds",
     "indy-utils",
-    "indy-wql"
 ]
 
 [profile.release]

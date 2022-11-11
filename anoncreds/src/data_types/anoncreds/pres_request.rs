@@ -13,7 +13,7 @@ use crate::data_types::utils::{qualifiable, Qualifiable};
 use crate::data_types::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 use indy_utils::invalid;
-use indy_utils::wql::Query;
+use indy_utils::query::Query;
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct PresentationRequestPayload {
