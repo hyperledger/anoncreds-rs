@@ -4,7 +4,6 @@ members = [
     "anoncreds",
     "indy-data-types",
     "indy-utils",
-    "indy-wql"
 ]
 
 [profile.release]

@@ -38,7 +38,7 @@ zeroize = { version = "1.1", features = ["zeroize_derive"] }
 version = "0.5"
 path = "../indy-utils"
 default-features = false
-features = ["wql"]
+features = ["query"]
 
 [dev-dependencies]
 hex = "0.4"
