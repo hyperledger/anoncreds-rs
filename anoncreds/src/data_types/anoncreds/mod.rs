@@ -1,6 +1,3 @@
-#[macro_use]
-mod macros;
-
 /// Credential definitions
 pub mod cred_def;
 

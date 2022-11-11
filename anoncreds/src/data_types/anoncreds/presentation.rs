@@ -7,7 +7,7 @@ use crate::data_types::Validatable;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Presentation {
-    pub proof: ursa_cl!(Proof),
+    pub proof: crate::ursa::cl::Proof,
     pub requested_proof: RequestedProof,
     pub identifiers: Vec<Identifier>,
 }

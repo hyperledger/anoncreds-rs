@@ -28,7 +28,7 @@ impl RevocationRegistry {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RevocationRegistryV1 {
-    pub value: ursa_cl!(RevocationRegistry),
+    pub value: crate::ursa::cl::RevocationRegistry,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -43,5 +43,5 @@ impl Validatable for RevocationRegistryDelta {}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDeltaV1 {
-    pub value: ursa_cl!(RevocationRegistryDelta),
+    pub value: crate::ursa::cl::RevocationRegistryDelta,
 }

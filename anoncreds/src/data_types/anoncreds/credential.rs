@@ -13,10 +13,10 @@ pub struct Credential {
     pub cred_def_id: CredentialDefinitionId,
     pub rev_reg_id: Option<RevocationRegistryId>,
     pub values: CredentialValues,
-    pub signature: ursa_cl!(CredentialSignature),
-    pub signature_correctness_proof: ursa_cl!(SignatureCorrectnessProof),
-    pub rev_reg: Option<ursa_cl!(RevocationRegistry)>,
-    pub witness: Option<ursa_cl!(Witness)>,
+    pub signature: crate::ursa::cl::CredentialSignature,
+    pub signature_correctness_proof: crate::ursa::cl::SignatureCorrectnessProof,
+    pub rev_reg: Option<crate::ursa::cl::RevocationRegistry>,
+    pub witness: Option<crate::ursa::cl::Witness>,
 }
 
 impl Credential {
