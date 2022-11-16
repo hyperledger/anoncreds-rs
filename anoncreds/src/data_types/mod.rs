@@ -26,7 +26,4 @@ pub use identifiers::cred_def::*;
 pub use identifiers::rev_reg::*;
 pub use identifiers::schema::*;
 
-#[cfg(any(feature = "rich_schema", test))]
-pub use identifiers::rich_schema::*;
-
 pub use identifiers::DELIMITER as IDENT_DELIMITER;

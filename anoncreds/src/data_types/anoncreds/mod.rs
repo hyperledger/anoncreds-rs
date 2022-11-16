@@ -28,9 +28,5 @@ pub mod rev_reg;
 /// Revocation registry definitions
 pub mod rev_reg_def;
 
-#[cfg(any(feature = "rich_schema", test))]
-/// Rich schemas
-pub mod rich_schema;
-
 /// V1 credential schemas
 pub mod schema;
