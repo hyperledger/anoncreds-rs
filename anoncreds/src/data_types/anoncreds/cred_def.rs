@@ -27,9 +27,9 @@ impl SignatureType {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CredentialDefinitionData {
-    pub primary: crate::ursa::cl::CredentialPrimaryPublicKey,
+    pub primary: ursa::cl::CredentialPrimaryPublicKey,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub revocation: Option<crate::ursa::cl::CredentialRevocationPublicKey>,
+    pub revocation: Option<ursa::cl::CredentialRevocationPublicKey>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -81,8 +81,8 @@ pub struct CredentialDefinitionV1 {
 }
 
 impl CredentialDefinitionV1 {
-    pub fn get_public_key(&self) -> Result<crate::ursa::cl::CredentialPublicKey, ConversionError> {
-        let key = crate::ursa::cl::CredentialPublicKey::build_from_parts(
+    pub fn get_public_key(&self) -> Result<ursa::cl::CredentialPublicKey, ConversionError> {
+        let key = ursa::cl::CredentialPublicKey::build_from_parts(
             &self.value.primary,
             self.value.revocation.as_ref(),
         )
@@ -100,13 +100,13 @@ impl Validatable for CredentialDefinitionV1 {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialDefinitionPrivate {
-    pub value: crate::ursa::cl::CredentialPrivateKey,
+    pub value: ursa::cl::CredentialPrivateKey,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(transparent)]
 pub struct CredentialKeyCorrectnessProof {
-    pub value: crate::ursa::cl::CredentialKeyCorrectnessProof,
+    pub value: ursa::cl::CredentialKeyCorrectnessProof,
 }
 
 impl CredentialKeyCorrectnessProof {
