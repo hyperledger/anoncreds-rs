@@ -16,7 +16,7 @@ impl RevocationRegistry {
                 RevocationRegistryDelta::RevocationRegistryDeltaV1(RevocationRegistryDeltaV1 {
                     value: {
                         let empty = HashSet::new();
-                        crate::ursa::cl::RevocationRegistryDelta::from_parts(
+                        ursa::cl::RevocationRegistryDelta::from_parts(
                             None, &v1.value, &empty, &empty,
                         )
                     },
@@ -28,7 +28,7 @@ impl RevocationRegistry {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RevocationRegistryV1 {
-    pub value: crate::ursa::cl::RevocationRegistry,
+    pub value: ursa::cl::RevocationRegistry,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -43,5 +43,5 @@ impl Validatable for RevocationRegistryDelta {}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDeltaV1 {
-    pub value: crate::ursa::cl::RevocationRegistryDelta,
+    pub value: ursa::cl::RevocationRegistryDelta,
 }
