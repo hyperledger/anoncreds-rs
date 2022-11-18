@@ -1,13 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
 use super::types::*;
-use crate::error::Result;
-use crate::services::helpers::*;
-use crate::ursa::cl::{
-    issuer::Issuer as CryptoIssuer, prover::Prover as CryptoProver,
-    verifier::Verifier as CryptoVerifier, CredentialPublicKey,
-    RevocationRegistry as CryptoRevocationRegistry, SubProofRequest, Witness,
-};
 use crate::data_types::anoncreds::{
     credential::AttributeValues,
     pres_request::{PresentationRequestPayload, RequestedAttributeInfo, RequestedPredicateInfo},
@@ -15,6 +8,13 @@ use crate::data_types::anoncreds::{
         AttributeValue, Identifier, RequestedProof, RevealedAttributeGroupInfo,
         RevealedAttributeInfo, SubProofReferent,
     },
+};
+use crate::error::Result;
+use crate::services::helpers::*;
+use crate::ursa::cl::{
+    issuer::Issuer as CryptoIssuer, prover::Prover as CryptoProver,
+    verifier::Verifier as CryptoVerifier, CredentialPublicKey,
+    RevocationRegistry as CryptoRevocationRegistry, SubProofRequest, Witness,
 };
 use indy_utils::{Qualifiable, Validatable};
 

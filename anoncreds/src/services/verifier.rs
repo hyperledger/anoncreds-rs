@@ -5,13 +5,13 @@ use regex::Regex;
 
 use super::helpers::*;
 use super::types::*;
-use crate::error::Result;
-use crate::ursa::cl::{verifier::Verifier as CryptoVerifier, CredentialPublicKey};
 use crate::data_types::anoncreds::{
     nonce::Nonce,
     pres_request::{AttributeInfo, NonRevocedInterval, PredicateInfo, PresentationRequestPayload},
     presentation::{Identifier, RequestedProof, RevealedAttributeInfo},
 };
+use crate::error::Result;
+use crate::ursa::cl::{verifier::Verifier as CryptoVerifier, CredentialPublicKey};
 use indy_utils::query::Query;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
