@@ -45,20 +45,6 @@ impl CredentialDefinition {
             CredentialDefinition::CredentialDefinitionV1(c) => &c.id,
         }
     }
-
-    pub fn to_unqualified(self) -> CredentialDefinition {
-        match self {
-            CredentialDefinition::CredentialDefinitionV1(cred_def) => {
-                CredentialDefinition::CredentialDefinitionV1(CredentialDefinitionV1 {
-                    id: cred_def.id.to_unqualified(),
-                    schema_id: cred_def.schema_id.to_unqualified(),
-                    signature_type: cred_def.signature_type,
-                    tag: cred_def.tag,
-                    value: cred_def.value,
-                })
-            }
-        }
-    }
 }
 
 impl Validatable for CredentialDefinition {
