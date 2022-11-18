@@ -71,18 +71,6 @@ jobs:
           command: test
           args: --manifest-path indy-utils/Cargo.toml
 
-      - name: Test indy-data-types (CL)
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --manifest-path indy-data-types/Cargo.toml --features cl
-
-      - name: Test indy-data-types (CL-native)
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --manifest-path indy-data-types/Cargo.toml --features cl_native,vendored
-
       - name: Test anoncreds (vendored)
         uses: actions-rs/cargo@v1
         with:
