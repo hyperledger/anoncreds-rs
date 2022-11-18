@@ -63,7 +63,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --manifest-path indy-credx/Cargo.toml --features vendored
+          args: --manifest-path anoncreds/Cargo.toml --features vendored
 
       - name: Test indy-utils
         uses: actions-rs/cargo@v1
@@ -83,8 +83,8 @@ jobs:
           command: test
           args: --manifest-path indy-data-types/Cargo.toml --features cl_native,vendored
 
-      - name: Test indy-credx (vendored)
+      - name: Test anoncreds (vendored)
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --manifest-path indy-credx/Cargo.toml --features vendored
+          args: --manifest-path anoncreds/Cargo.toml --features vendored
