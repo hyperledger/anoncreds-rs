@@ -1,6 +1,5 @@
 use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
 use crate::data_types::identifiers::schema::SchemaId;
-use crate::data_types::utils::Qualifiable;
 use crate::data_types::{ConversionError, Validatable, ValidationError};
 
 pub const CL_SIGNATURE_TYPE: &str = "CL";
