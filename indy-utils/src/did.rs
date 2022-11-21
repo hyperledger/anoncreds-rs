@@ -1,6 +1,7 @@
 use once_cell::sync::Lazy;
 
 use regex::Regex;
+#[cfg(feature = "ed25519")]
 use sha2::{Digest, Sha256};
 
 use crate::base58;

@@ -188,6 +188,7 @@ impl<'a, 'p> AddCredential<'a, 'p> {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) struct RequestedAttribute<'a> {
     pub cred_id: String,
@@ -196,6 +197,7 @@ pub(crate) struct RequestedAttribute<'a> {
     pub rev_state: Option<&'a CredentialRevocationState>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) struct RequestedPredicate<'a> {
     pub cred_id: String,
