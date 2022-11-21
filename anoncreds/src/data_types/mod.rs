@@ -1,7 +1,3 @@
-
-#[macro_use]
-mod macros;
-
 mod utils {
     pub use indy_utils::base58;
     pub use indy_utils::{qualifiable, Qualifiable};

@@ -2,12 +2,6 @@ use std::collections::{BTreeSet, HashSet};
 use std::iter::FromIterator;
 
 use super::types::*;
-use crate::error::Result;
-use crate::services::helpers::*;
-use crate::ursa::cl::{
-    issuer::Issuer as CryptoIssuer, RevocationRegistryDelta as CryptoRevocationRegistryDelta,
-    Witness,
-};
 use crate::data_types::anoncreds::{
     cred_def::{CredentialDefinitionData, CredentialDefinitionV1},
     nonce::Nonce,
@@ -17,6 +11,12 @@ use crate::data_types::anoncreds::{
         RevocationRegistryDefinitionValuePublicKeys,
     },
     schema::SchemaV1,
+};
+use crate::error::Result;
+use crate::services::helpers::*;
+use crate::ursa::cl::{
+    issuer::Issuer as CryptoIssuer, RevocationRegistryDelta as CryptoRevocationRegistryDelta,
+    Witness,
 };
 use indy_utils::{Qualifiable, Validatable};
 

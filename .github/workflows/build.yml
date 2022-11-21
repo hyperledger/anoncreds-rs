@@ -18,7 +18,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            lib: libindy_credx.so
+            lib: libanoncreds.so
             container: andrewwhitehead/manylinux2014-base
 
     container: ${{ matrix.container }}
@@ -56,11 +56,11 @@ jobs:
       matrix:
         include:
           - os: macos-11
-            lib: libindy_credx.dylib
+            lib: libanoncreds.dylib
             target: apple-darwin
             toolchain: beta # beta required for Darwin build
           - os: windows-latest
-            lib: indy_credx.dll
+            lib: anoncreds.dll
             toolchain: stable
 
     runs-on: ${{ matrix.os }}
@@ -87,7 +87,7 @@ jobs:
           OPENSSL_STATIC: 1
         with:
           command: build
-          args: --release --manifest-path indy-credx/Cargo.toml --features vendored
+          args: --release --manifest-path anoncreds/Cargo.toml --features vendored
 
       - name: Build library
         env:

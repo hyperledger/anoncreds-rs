@@ -1,6 +1,5 @@
 use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
 use crate::data_types::identifiers::schema::SchemaId;
-use crate::data_types::utils::Qualifiable;
 use crate::data_types::{ConversionError, Validatable, ValidationError};
 
 pub const CL_SIGNATURE_TYPE: &str = "CL";
@@ -43,20 +42,6 @@ impl CredentialDefinition {
     pub fn id(&self) -> &CredentialDefinitionId {
         match self {
             CredentialDefinition::CredentialDefinitionV1(c) => &c.id,
-        }
-    }
-
-    pub fn to_unqualified(self) -> CredentialDefinition {
-        match self {
-            CredentialDefinition::CredentialDefinitionV1(cred_def) => {
-                CredentialDefinition::CredentialDefinitionV1(CredentialDefinitionV1 {
-                    id: cred_def.id.to_unqualified(),
-                    schema_id: cred_def.schema_id.to_unqualified(),
-                    signature_type: cred_def.signature_type,
-                    tag: cred_def.tag,
-                    value: cred_def.value,
-                })
-            }
         }
     }
 }
