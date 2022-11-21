@@ -18,7 +18,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            lib: anoncreds.so
+            lib: libanoncreds.so
             container: andrewwhitehead/manylinux2014-base
 
     container: ${{ matrix.container }}
@@ -56,7 +56,7 @@ jobs:
       matrix:
         include:
           - os: macos-11
-            lib: anoncreds.dylib
+            lib: libanoncreds.dylib
             target: apple-darwin
             toolchain: beta # beta required for Darwin build
           - os: windows-latest
