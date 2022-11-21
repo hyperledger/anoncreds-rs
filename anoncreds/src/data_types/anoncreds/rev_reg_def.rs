@@ -76,7 +76,7 @@ pub struct RevocationRegistryDefinitionValue {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDefinitionValuePublicKeys {
-    pub accum_key: crate::ursa::cl::RevocationKeyPublic,
+    pub accum_key: ursa::cl::RevocationKeyPublic,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -133,7 +133,7 @@ pub struct RevocationRegistryDefinitionV1 {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RevocationRegistryDefinitionPrivate {
-    pub value: crate::ursa::cl::RevocationKeyPrivate,
+    pub value: ursa::cl::RevocationKeyPrivate,
 }
 
 #[derive(Deserialize, Debug, Serialize)]
