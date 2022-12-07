@@ -1,34 +1,18 @@
 use super::nonce::Nonce;
-use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
-use crate::data_types::utils::Qualifiable;
 use crate::data_types::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialRequest {
     pub prover_did: DidValue,
-    pub cred_def_id: CredentialDefinitionId,
+    pub cred_def_id: String,
     pub blinded_ms: ursa::cl::BlindedCredentialSecrets,
     pub blinded_ms_correctness_proof: ursa::cl::BlindedCredentialSecretsCorrectnessProof,
     pub nonce: Nonce,
 }
 
-impl CredentialRequest {
-    #[allow(unused)]
-    pub fn to_unqualified(self) -> CredentialRequest {
-        CredentialRequest {
-            prover_did: self.prover_did.to_unqualified(),
-            cred_def_id: self.cred_def_id.to_unqualified(),
-            blinded_ms: self.blinded_ms,
-            blinded_ms_correctness_proof: self.blinded_ms_correctness_proof,
-            nonce: self.nonce,
-        }
-    }
-}
-
 impl Validatable for CredentialRequest {
     fn validate(&self) -> Result<(), ValidationError> {
-        self.cred_def_id.validate()?;
         self.prover_did.validate()?;
         Ok(())
     }

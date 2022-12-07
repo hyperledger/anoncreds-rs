@@ -3,10 +3,9 @@ use std::convert::TryInto;
 use std::os::raw::c_char;
 
 use ffi_support::{rust_string_to_c, FfiStr};
-use indy_utils::Qualifiable;
 
 use super::error::{catch_error, ErrorCode};
-use super::object::{AnonCredsObject, AnonCredsObjectId, ObjectHandle};
+use super::object::{AnonCredsObject, ObjectHandle};
 use super::util::FfiList;
 use crate::error::Result;
 use crate::services::{
@@ -17,16 +16,15 @@ use crate::services::{
     prover::create_or_update_revocation_state,
     tails::{TailsFileReader, TailsFileWriter},
     types::{
-        CredentialRevocationState, DidValue, IssuanceType, RegistryType, RevocationRegistry,
+        CredentialRevocationState, IssuanceType, RegistryType, RevocationRegistry,
         RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate, RevocationRegistryDelta,
-        RevocationRegistryId,
     },
 };
 
 #[no_mangle]
 pub extern "C" fn anoncreds_create_revocation_registry(
-    origin_did: FfiStr,
     cred_def: ObjectHandle,
+    cred_def_id: FfiStr,
     tag: FfiStr,
     rev_reg_type: FfiStr,
     issuance_type: FfiStr,
@@ -42,13 +40,10 @@ pub extern "C" fn anoncreds_create_revocation_registry(
         check_useful_c_ptr!(reg_def_private_p);
         check_useful_c_ptr!(reg_entry_p);
         check_useful_c_ptr!(reg_init_delta_p);
-        let origin_did = {
-            let did = origin_did
-                .as_opt_str()
-                .ok_or_else(|| err_msg!("Missing origin DID"))?;
-            DidValue::from_str(did)?
-        };
         let tag = tag.as_opt_str().ok_or_else(|| err_msg!("Missing tag"))?;
+        let cred_def_id = cred_def_id
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing cred def id"))?;
         let rev_reg_type = {
             let rtype = rev_reg_type
                 .as_opt_str()
@@ -61,8 +56,8 @@ pub extern "C" fn anoncreds_create_revocation_registry(
         };
         let mut tails_writer = TailsFileWriter::new(tails_dir_path.into_opt_string());
         let (reg_def, reg_def_private, reg_entry, reg_init_delta) = create_revocation_registry(
-            &origin_did,
             cred_def.load()?.cast_ref()?,
+            cred_def_id,
             tag,
             rev_reg_type,
             issuance_type,
@@ -173,16 +168,6 @@ impl_anoncreds_object_from_json!(
     anoncreds_revocation_registry_definition_from_json
 );
 
-impl AnonCredsObjectId for RevocationRegistryDefinition {
-    type Id = RevocationRegistryId;
-
-    fn get_id(&self) -> Self::Id {
-        match self {
-            RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => r.id.clone(),
-        }
-    }
-}
-
 #[no_mangle]
 pub extern "C" fn anoncreds_revocation_registry_definition_get_attribute(
     handle: ObjectHandle,
@@ -194,7 +179,6 @@ pub extern "C" fn anoncreds_revocation_registry_definition_get_attribute(
         let reg_def = handle.load()?;
         let reg_def = reg_def.cast_ref::<RevocationRegistryDefinition>()?;
         let val = match name.as_opt_str().unwrap_or_default() {
-            "id" => reg_def.get_id().to_string(),
             "max_cred_num" => match reg_def {
                 RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => {
                     r.value.max_cred_num.to_string()

@@ -1,6 +1,4 @@
-use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
-use crate::data_types::identifiers::schema::SchemaId;
-use crate::data_types::{ConversionError, Validatable, ValidationError};
+use crate::data_types::ConversionError;
 
 pub const CL_SIGNATURE_TYPE: &str = "CL";
 
@@ -38,27 +36,10 @@ pub enum CredentialDefinition {
     CredentialDefinitionV1(CredentialDefinitionV1),
 }
 
-impl CredentialDefinition {
-    pub fn id(&self) -> &CredentialDefinitionId {
-        match self {
-            CredentialDefinition::CredentialDefinitionV1(c) => &c.id,
-        }
-    }
-}
-
-impl Validatable for CredentialDefinition {
-    fn validate(&self) -> Result<(), ValidationError> {
-        match self {
-            CredentialDefinition::CredentialDefinitionV1(cred_def) => cred_def.validate(),
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CredentialDefinitionV1 {
-    pub id: CredentialDefinitionId,
-    pub schema_id: SchemaId,
+    pub schema_id: String,
     #[serde(rename = "type")]
     pub signature_type: SignatureType,
     pub tag: String,
@@ -73,13 +54,6 @@ impl CredentialDefinitionV1 {
         )
         .map_err(|e| e.to_string())?;
         Ok(key)
-    }
-}
-
-impl Validatable for CredentialDefinitionV1 {
-    fn validate(&self) -> Result<(), ValidationError> {
-        self.id.validate()?;
-        self.schema_id.validate()
     }
 }
 

@@ -4,12 +4,12 @@ use std::convert::TryInto;
 use ffi_support::FfiStr;
 
 use super::error::{catch_error, ErrorCode};
-use super::object::{AnonCredsObject, AnonCredsObjectId, AnonCredsObjectList, ObjectHandle};
+use super::object::{AnonCredsObject, AnonCredsObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
 use crate::error::Result;
 use crate::services::{
     prover::create_presentation,
-    types::{PresentCredentials, Presentation, RevocationRegistryDefinition},
+    types::{PresentCredentials, Presentation},
     verifier::verify_presentation,
 };
 
@@ -65,14 +65,31 @@ pub extern "C" fn anoncreds_create_presentation(
     self_attest_values: FfiStrList,
     master_secret: ObjectHandle,
     schemas: FfiList<ObjectHandle>,
+    // TODO: this is index-matched with schemas. Is there a better solution?
+    // since we have an objecthandle list for the schemas we can not add Ids to them
+    // Otherwise they all would need ids and we would like to seperate that
+    // Also, we kind of do the same with `self_attested_names` and `self_attested_values`
+    schema_ids: FfiStrList,
     cred_defs: FfiList<ObjectHandle>,
+    cred_def_ids: FfiStrList,
     presentation_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(presentation_p);
+
         if self_attest_names.len() != self_attest_values.len() {
             return Err(err_msg!(
                 "Inconsistent lengths for self-attested value parameters"
+            ));
+        }
+
+        if schemas.len() != schema_ids.len() {
+            return Err(err_msg!("Inconsistent lengths for schemas and schemas ids"));
+        }
+
+        if cred_defs.len() != cred_def_ids.len() {
+            return Err(err_msg!(
+                "Inconsistent lengths for cred defs and cred def ids"
             ));
         }
 
@@ -86,9 +103,6 @@ pub extern "C" fn anoncreds_create_presentation(
                 },
             )?
         };
-
-        let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
-        let cred_defs = AnonCredsObjectList::load(cred_defs.as_slice())?;
 
         let self_attested = if !self_attest_names.is_empty() {
             let mut self_attested = HashMap::new();
@@ -147,13 +161,29 @@ pub extern "C" fn anoncreds_create_presentation(
             }
         }
 
+        let schema_ids: Vec<String> = schema_ids
+            .as_slice()
+            .iter()
+            .map(|s| s.as_str().to_owned())
+            .collect();
+        let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
+        let schemas = schemas.refs_map(&schema_ids)?;
+
+        let cred_def_ids: Vec<String> = cred_def_ids
+            .as_slice()
+            .iter()
+            .map(|s| s.as_str().to_owned())
+            .collect();
+        let cred_defs = AnonCredsObjectList::load(cred_defs.as_slice())?;
+        let cred_defs = cred_defs.refs_map(&cred_def_ids)?;
+
         let presentation = create_presentation(
             pres_req.load()?.cast_ref()?,
             present_creds,
             self_attested,
             master_secret.load()?.cast_ref()?,
-            &schemas.refs_map()?,
-            &cred_defs.refs_map()?,
+            &schemas,
+            &cred_defs,
         )?;
         let presentation = ObjectHandle::create(presentation)?;
         unsafe { *presentation_p = presentation };
@@ -189,15 +219,31 @@ pub extern "C" fn anoncreds_verify_presentation(
     presentation: ObjectHandle,
     pres_req: ObjectHandle,
     schemas: FfiList<ObjectHandle>,
+    schema_ids: FfiStrList,
     cred_defs: FfiList<ObjectHandle>,
+    cred_def_ids: FfiStrList,
     rev_reg_defs: FfiList<ObjectHandle>,
+    rev_reg_def_ids: FfiStrList,
     rev_reg_entries: FfiList<FfiRevocationEntry>,
     result_p: *mut i8,
 ) -> ErrorCode {
     catch_error(|| {
-        let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
-        let cred_defs = AnonCredsObjectList::load(cred_defs.as_slice())?;
-        let rev_reg_defs = AnonCredsObjectList::load(rev_reg_defs.as_slice())?;
+        if schemas.len() != schema_ids.len() {
+            return Err(err_msg!("Inconsistent lengths for schemas and schemas ids"));
+        }
+
+        if cred_defs.len() != cred_def_ids.len() {
+            return Err(err_msg!(
+                "Inconsistent lengths for cred defs and cred def ids"
+            ));
+        }
+
+        if rev_reg_defs.len() != rev_reg_def_ids.len() {
+            return Err(err_msg!(
+                "Inconsistent lengths for rev reg defs and rev reg def ids"
+            ));
+        }
+
         let rev_reg_entries = {
             let entries = rev_reg_entries.as_slice();
             entries.into_iter().try_fold(
@@ -213,20 +259,43 @@ pub extern "C" fn anoncreds_verify_presentation(
             if *idx > rev_reg_defs.len() {
                 return Err(err_msg!("Invalid revocation registry entry index"));
             }
-            let id = rev_reg_defs[*idx]
-                .cast_ref::<RevocationRegistryDefinition>()?
-                .get_id();
+            let id = rev_reg_def_ids.as_slice()[*idx].as_str().to_owned();
             rev_regs
                 .entry(id)
                 .or_insert_with(HashMap::new)
                 .insert(*timestamp, entry.cast_ref()?);
         }
+
+        let schema_ids: Vec<String> = schema_ids
+            .as_slice()
+            .iter()
+            .map(|s| s.as_str().to_owned())
+            .collect();
+        let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
+        let schemas = schemas.refs_map(&schema_ids)?;
+
+        let cred_def_ids: Vec<String> = cred_def_ids
+            .as_slice()
+            .iter()
+            .map(|s| s.as_str().to_owned())
+            .collect();
+        let cred_defs = AnonCredsObjectList::load(cred_defs.as_slice())?;
+        let cred_defs = cred_defs.refs_map(&cred_def_ids)?;
+
+        let rev_reg_def_ids: Vec<String> = rev_reg_def_ids
+            .as_slice()
+            .iter()
+            .map(|s| s.as_str().to_owned())
+            .collect();
+        let rev_reg_defs = AnonCredsObjectList::load(rev_reg_defs.as_slice())?;
+        let rev_reg_defs = rev_reg_defs.refs_map(&rev_reg_def_ids)?;
+
         let verify = verify_presentation(
             presentation.load()?.cast_ref()?,
             pres_req.load()?.cast_ref()?,
-            &schemas.refs_map()?,
-            &cred_defs.refs_map()?,
-            Some(&rev_reg_defs.refs_map()?),
+            &schemas,
+            &cred_defs,
+            Some(&rev_reg_defs),
             Some(&rev_regs),
         )?;
         unsafe { *result_p = verify as i8 };

@@ -2,16 +2,13 @@ use std::collections::HashMap;
 
 use zeroize::Zeroize;
 
-use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
-use crate::data_types::identifiers::rev_reg::RevocationRegistryId;
-use crate::data_types::identifiers::schema::SchemaId;
 use crate::data_types::{Validatable, ValidationError};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Credential {
-    pub schema_id: SchemaId,
-    pub cred_def_id: CredentialDefinitionId,
-    pub rev_reg_id: Option<RevocationRegistryId>,
+    pub schema_id: String,
+    pub cred_def_id: String,
+    pub rev_reg_id: Option<String>,
     pub values: CredentialValues,
     pub signature: ursa::cl::CredentialSignature,
     pub signature_correctness_proof: ursa::cl::SignatureCorrectnessProof,
@@ -49,8 +46,6 @@ impl Credential {
 
 impl Validatable for Credential {
     fn validate(&self) -> Result<(), ValidationError> {
-        self.schema_id.validate()?;
-        self.cred_def_id.validate()?;
         self.values.validate()?;
 
         if self.rev_reg_id.is_some() && (self.witness.is_none() || self.rev_reg.is_none()) {
@@ -69,9 +64,9 @@ impl Validatable for Credential {
 pub struct CredentialInfo {
     pub referent: String,
     pub attrs: ShortCredentialValues,
-    pub schema_id: SchemaId,
-    pub cred_def_id: CredentialDefinitionId,
-    pub rev_reg_id: Option<RevocationRegistryId>,
+    pub schema_id: String,
+    pub cred_def_id: String,
+    pub rev_reg_id: Option<String>,
     pub cred_rev_id: Option<String>,
 }
 

@@ -59,6 +59,7 @@ pub extern "C" fn anoncreds_create_credential(
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
     attr_enc_values: FfiStrList,
+    rev_reg_id: FfiStr,
     revocation: *const FfiCredRevInfo,
     cred_p: *mut ObjectHandle,
     rev_reg_p: *mut ObjectHandle,
@@ -74,6 +75,7 @@ pub extern "C" fn anoncreds_create_credential(
                 "Mismatch between length of attribute names and raw values"
             ));
         }
+        let rev_reg_id = rev_reg_id.as_opt_str();
         let enc_values = attr_enc_values.as_slice();
         let mut cred_values = MakeCredentialValues::default();
         let mut attr_idx = 0;
@@ -137,6 +139,7 @@ pub extern "C" fn anoncreds_create_credential(
             cred_offer.load()?.cast_ref()?,
             cred_request.load()?.cast_ref()?,
             cred_values.into(),
+            rev_reg_id.map(String::from),
             revocation_config
                 .as_ref()
                 .map(RevocationConfig::as_ref_config)

@@ -16,7 +16,7 @@ use crate::ursa::cl::{
     verifier::Verifier as CryptoVerifier, CredentialPublicKey,
     RevocationRegistry as CryptoRevocationRegistry, SubProofRequest, Witness,
 };
-use indy_utils::{Qualifiable, Validatable};
+use indy_utils::Validatable;
 
 use super::tails::TailsReader;
 
@@ -131,8 +131,8 @@ pub fn create_presentation(
     credentials: PresentCredentials,
     self_attested: Option<HashMap<String, String>>,
     master_secret: &MasterSecret,
-    schemas: &HashMap<SchemaId, &Schema>,
-    cred_defs: &HashMap<CredentialDefinitionId, &CredentialDefinition>,
+    schemas: &HashMap<String, &Schema>,
+    cred_defs: &HashMap<String, &CredentialDefinition>,
 ) -> Result<Presentation> {
     trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, master_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
             credentials, pres_req, credentials, &self_attested, secret!(&master_secret), schemas, cred_defs);
@@ -213,9 +213,9 @@ pub fn create_presentation(
 
         let identifier = match pres_req {
             PresentationRequest::PresentationRequestV1(_) => Identifier {
-                schema_id: credential.schema_id.to_unqualified(),
-                cred_def_id: credential.cred_def_id.to_unqualified(),
-                rev_reg_id: credential.rev_reg_id.as_ref().map(|id| id.to_unqualified()),
+                schema_id: credential.schema_id.clone(),
+                cred_def_id: credential.cred_def_id.clone(),
+                rev_reg_id: credential.rev_reg_id.clone(),
                 timestamp: present.timestamp,
             },
             PresentationRequest::PresentationRequestV2(_) => Identifier {

@@ -1,8 +1,5 @@
 use std::collections::HashMap;
 
-use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
-use crate::data_types::identifiers::rev_reg::RevocationRegistryId;
-use crate::data_types::identifiers::schema::SchemaId;
 use crate::data_types::Validatable;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -64,9 +61,9 @@ pub struct AttributeValue {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct Identifier {
-    pub schema_id: SchemaId,
-    pub cred_def_id: CredentialDefinitionId,
-    pub rev_reg_id: Option<RevocationRegistryId>,
+    pub schema_id: String,
+    pub cred_def_id: String,
+    pub rev_reg_id: Option<String>,
     pub timestamp: Option<u64>,
 }
 

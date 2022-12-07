@@ -30,10 +30,10 @@ static INTERNAL_TAG_MATCHER: Lazy<Regex> =
 pub fn verify_presentation(
     presentation: &Presentation,
     pres_req: &PresentationRequest,
-    schemas: &HashMap<SchemaId, &Schema>,
-    cred_defs: &HashMap<CredentialDefinitionId, &CredentialDefinition>,
-    rev_reg_defs: Option<&HashMap<RevocationRegistryId, &RevocationRegistryDefinition>>,
-    rev_regs: Option<&HashMap<RevocationRegistryId, HashMap<u64, &RevocationRegistry>>>,
+    schemas: &HashMap<String, &Schema>,
+    cred_defs: &HashMap<String, &CredentialDefinition>,
+    rev_reg_defs: Option<&HashMap<String, &RevocationRegistryDefinition>>,
+    rev_regs: Option<&HashMap<String, HashMap<u64, &RevocationRegistry>>>,
 ) -> Result<bool> {
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_regs: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_regs);
@@ -675,28 +675,26 @@ fn gather_filter_info(referent: &str, identifiers: &HashMap<String, Identifier>)
         )
     })?;
 
-    let (_, schema_issuer_did, schema_name, schema_version) =
-        identifier.schema_id.parts().ok_or_else(|| {
-            err_msg!(
-                "Invalid Schema ID `{}`: wrong number of parts",
-                identifier.schema_id.0
-            )
-        })?;
+    // TODO: how can we get these as as we can not extract them from the ID anymore
+    let schema_name = String::from("");
+    let schema_version = String::from("");
+    let schema_issuer_did = String::from("");
+    let cred_def_issuer_did = Some(String::from(""));
 
-    let issuer_did = identifier.cred_def_id.issuer_did().ok_or_else(|| {
+    let issuer_did = cred_def_issuer_did.ok_or_else(|| {
         err_msg!(
             "Invalid Credential Definition ID `{}`: wrong number of parts",
-            identifier.cred_def_id.0
+            identifier.cred_def_id
         )
     })?;
 
     Ok(Filter {
-        schema_id: identifier.schema_id.0.to_string(),
+        schema_id: identifier.schema_id.clone(),
         schema_name,
-        schema_issuer_did: schema_issuer_did.0,
+        schema_issuer_did,
         schema_version,
-        cred_def_id: identifier.cred_def_id.0.to_string(),
-        issuer_did: issuer_did.0,
+        cred_def_id: identifier.cred_def_id.clone(),
+        issuer_did,
     })
 }
 
@@ -1166,20 +1164,21 @@ mod tests {
         let mut res: HashMap<String, Identifier> = HashMap::new();
         res.insert(
             "referent_1".to_string(),
+            // TODO: what does this do
             Identifier {
                 timestamp: Some(1234),
-                schema_id: SchemaId(String::new()),
-                cred_def_id: CredentialDefinitionId(String::new()),
-                rev_reg_id: Some(RevocationRegistryId(String::new())),
+                schema_id: String::new(),
+                cred_def_id: String::new(),
+                rev_reg_id: Some(String::new()),
             },
         );
         res.insert(
             "referent_2".to_string(),
             Identifier {
                 timestamp: None,
-                schema_id: SchemaId(String::new()),
-                cred_def_id: CredentialDefinitionId(String::new()),
-                rev_reg_id: Some(RevocationRegistryId(String::new())),
+                schema_id: String::new(),
+                cred_def_id: String::new(),
+                rev_reg_id: Some(String::new()),
             },
         );
         res
