@@ -25,7 +25,6 @@ fn anoncreds_works_for_single_issuer_single_prover() {
 
     // Issuer creates Schema - would be published to the ledger
     let gvt_schema = issuer::create_schema(
-        &issuer_wallet.did,
         GVT_SCHEMA_NAME,
         "1.0",
         GVT_SCHEMA_ATTRIBUTES[..].into(),
@@ -35,7 +34,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
 
     // Issuer creates Credential Definition
     let cred_def_parts = issuer::create_credential_definition(
-        &issuer_wallet.did,
+        "SAMPLE_ID".to_owned(),
         &gvt_schema,
         "tag",
         SignatureType::CL,
@@ -51,8 +50,8 @@ fn anoncreds_works_for_single_issuer_single_prover() {
 
     // Issuer creates a Credential Offer
     let cred_offer = issuer::create_credential_offer(
-        gvt_schema.id(),
-        &gvt_cred_def,
+        "SCHEMA_ID",
+        "CRED_DEF_ID",
         &issuer_wallet.cred_defs[0].key_proof,
     )
     .expect("Error creating credential offer");
@@ -87,6 +86,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         &cred_offer,
         &cred_request,
         cred_values.into(),
+        None,
         None,
     )
     .expect("Error creating credential");
@@ -147,10 +147,10 @@ fn anoncreds_works_for_single_issuer_single_prover() {
     );
 
     let mut schemas = HashMap::new();
-    schemas.insert(gvt_schema.id().clone(), &gvt_schema);
+    schemas.insert(String::from("SCHEMA_ID"), &gvt_schema);
 
     let mut cred_defs = HashMap::new();
-    cred_defs.insert(gvt_cred_def.id().clone(), &*gvt_cred_def);
+    cred_defs.insert(String::from("CRED_DEF_ID"), &*gvt_cred_def);
 
     let presentation = prover::create_presentation(
         &pres_request,

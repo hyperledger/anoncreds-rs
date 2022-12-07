@@ -106,7 +106,7 @@ mod test_schema_validation {
         })
         .to_string();
 
-        let schema: SchemaV1 = serde_json::from_str(&schema_json).unwrap();
+         let _: SchemaV1 = serde_json::from_str(&schema_json).unwrap();
     }
 
     #[test]
@@ -119,6 +119,6 @@ mod test_schema_validation {
         })
         .to_string();
 
-        let schema: SchemaV1 = serde_json::from_str(&schema_json).unwrap();
+        let _: SchemaV1 = serde_json::from_str(&schema_json).unwrap();
     }
 }

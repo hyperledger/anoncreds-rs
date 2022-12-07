@@ -83,23 +83,6 @@ pub enum RevocationRegistryDefinition {
     RevocationRegistryDefinitionV1(RevocationRegistryDefinitionV1),
 }
 
-impl RevocationRegistryDefinition {
-    pub fn to_unqualified(self) -> RevocationRegistryDefinition {
-        match self {
-            RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => {
-                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(
-                    RevocationRegistryDefinitionV1 {
-                        revoc_def_type: v1.revoc_def_type,
-                        tag: v1.tag,
-                        cred_def_id: v1.cred_def_id,
-                        value: v1.value,
-                    },
-                )
-            }
-        }
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDefinitionV1 {
