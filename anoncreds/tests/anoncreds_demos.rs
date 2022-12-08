@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
 use anoncreds::{
+    data_types::anoncreds::{cred_def::CredentialDefinitionId, schema::SchemaId},
     issuer, prover,
     types::{CredentialDefinitionConfig, MakeCredentialValues, PresentCredentials, SignatureType},
-    verifier, data_types::anoncreds::{schema::SchemaId, cred_def::CredentialDefinitionId},
+    verifier,
 };
 
 use serde_json::json;

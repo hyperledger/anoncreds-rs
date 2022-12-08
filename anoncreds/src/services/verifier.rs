@@ -115,14 +115,18 @@ pub fn verify_presentation(
             }
 
             let rev_reg_def_id = RevocationRegistryDefinitionId::new(rev_reg_id.clone());
-            let rev_reg_def = Some(rev_reg_defs.as_ref().unwrap().get(&rev_reg_def_id).ok_or_else(
-                || {
-                    err_msg!(
-                        "Revocation Registry Definition not provided for ID: {:?}",
-                        rev_reg_def_id
-                    )
-                },
-            )?);
+            let rev_reg_def = Some(
+                rev_reg_defs
+                    .as_ref()
+                    .unwrap()
+                    .get(&rev_reg_def_id)
+                    .ok_or_else(|| {
+                        err_msg!(
+                            "Revocation Registry Definition not provided for ID: {:?}",
+                            rev_reg_def_id
+                        )
+                    })?,
+            );
 
             let rev_reg = Some(
                 rev_regs

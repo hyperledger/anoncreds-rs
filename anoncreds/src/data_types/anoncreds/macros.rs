@@ -1,6 +1,5 @@
 #[macro_export]
 macro_rules! impl_anoncreds_object_identifier {
-
     ($i:ident) => {
         #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Default)]
         pub struct $i(pub String);
@@ -34,5 +33,5 @@ macro_rules! impl_anoncreds_object_identifier {
                 write!(f, "{}", self.0)
             }
         }
-    }
+    };
 }

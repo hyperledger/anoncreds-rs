@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use super::types::*;
 use crate::data_types::anoncreds::{
+    cred_def::CredentialDefinitionId,
     credential::AttributeValues,
     pres_request::{PresentationRequestPayload, RequestedAttributeInfo, RequestedPredicateInfo},
     presentation::{
@@ -9,7 +10,6 @@ use crate::data_types::anoncreds::{
         RevealedAttributeInfo, SubProofReferent,
     },
     schema::SchemaId,
-    cred_def::CredentialDefinitionId,
 };
 use crate::error::Result;
 use crate::services::helpers::*;

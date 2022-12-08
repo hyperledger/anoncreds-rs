@@ -6,9 +6,11 @@ use ffi_support::FfiStr;
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, AnonCredsObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
-use crate::data_types::anoncreds::rev_reg_def::{RevocationRegistryDefinitionId, RevocationRegistryDefinition};
-use crate::data_types::anoncreds::schema::{Schema, SchemaId};
 use crate::data_types::anoncreds::cred_def::{CredentialDefinition, CredentialDefinitionId};
+use crate::data_types::anoncreds::rev_reg_def::{
+    RevocationRegistryDefinition, RevocationRegistryDefinitionId,
+};
+use crate::data_types::anoncreds::schema::{Schema, SchemaId};
 use crate::error::Result;
 use crate::services::{
     prover::create_presentation,
@@ -178,7 +180,8 @@ pub extern "C" fn anoncreds_create_presentation(
             .map(|s| CredentialDefinitionId::new(s.as_str().to_owned()))
             .collect();
         let cred_defs = AnonCredsObjectList::load(cred_defs.as_slice())?;
-        let cred_defs = cred_defs.refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_ids)?;
+        let cred_defs =
+            cred_defs.refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_ids)?;
 
         let presentation = create_presentation(
             pres_req.load()?.cast_ref()?,
@@ -283,7 +286,8 @@ pub extern "C" fn anoncreds_verify_presentation(
             .map(|s| CredentialDefinitionId::new(s.as_str().to_owned()))
             .collect();
         let cred_defs = AnonCredsObjectList::load(cred_defs.as_slice())?;
-        let cred_defs = cred_defs.refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_ids)?;
+        let cred_defs =
+            cred_defs.refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_ids)?;
 
         let rev_reg_def_ids: Vec<RevocationRegistryDefinitionId> = rev_reg_def_ids
             .as_slice()
@@ -291,7 +295,10 @@ pub extern "C" fn anoncreds_verify_presentation(
             .map(|s| RevocationRegistryDefinitionId::new(s.as_str().to_owned()))
             .collect();
         let rev_reg_defs = AnonCredsObjectList::load(rev_reg_defs.as_slice())?;
-        let rev_reg_defs = rev_reg_defs.refs_map::<RevocationRegistryDefinitionId, RevocationRegistryDefinition>(&rev_reg_def_ids)?;
+        let rev_reg_defs = rev_reg_defs
+            .refs_map::<RevocationRegistryDefinitionId, RevocationRegistryDefinition>(
+                &rev_reg_def_ids,
+            )?;
 
         let verify = verify_presentation(
             presentation.load()?.cast_ref()?,

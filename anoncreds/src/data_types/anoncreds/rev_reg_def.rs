@@ -1,4 +1,7 @@
-use crate::{data_types::{invalid, ConversionError, Validatable, ValidationError}, impl_anoncreds_object_identifier};
+use crate::{
+    data_types::{invalid, ConversionError, Validatable, ValidationError},
+    impl_anoncreds_object_identifier,
+};
 
 pub const CL_ACCUM: &str = "CL_ACCUM";
 
