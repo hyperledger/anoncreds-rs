@@ -6,7 +6,7 @@ use ffi_support::FfiStr;
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, AnonCredsObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
-use crate::data_types::anoncreds::schema::{SchemaId, Schema};
+use crate::data_types::anoncreds::schema::{Schema, SchemaId};
 use crate::error::Result;
 use crate::services::{
     prover::create_presentation,

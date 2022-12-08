@@ -236,7 +236,8 @@ impl AnonCredsObjectList {
 
     pub fn refs_map<I, T>(&self, ids: &[I]) -> Result<HashMap<&I, &T>>
     where
-        T: AnyAnonCredsObject + 'static, I: Eq + Hash,
+        T: AnyAnonCredsObject + 'static,
+        I: Eq + Hash,
     {
         let mut refs = HashMap::with_capacity(self.0.len());
         for (inst, id) in self.0.iter().zip(ids) {

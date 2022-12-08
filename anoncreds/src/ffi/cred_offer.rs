@@ -16,8 +16,8 @@ pub extern "C" fn anoncreds_create_credential_offer(
         check_useful_c_ptr!(cred_offer_p);
         let schema_id = {
             let schema_id = schema_id
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing schema ID"))?;
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing schema ID"))?;
             SchemaId::new(schema_id.to_string())
         };
         let cred_def_id = cred_def_id

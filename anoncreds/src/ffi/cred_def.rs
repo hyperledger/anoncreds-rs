@@ -31,8 +31,8 @@ pub extern "C" fn anoncreds_create_credential_definition(
         let tag = tag.as_opt_str().ok_or_else(|| err_msg!("Missing tag"))?;
         let schema_id = {
             let schema_id = schema_id
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing schema id"))?;
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing schema id"))?;
             SchemaId::new(schema_id.to_owned())
         };
         let signature_type = {

@@ -7,7 +7,8 @@ use crate::data_types::anoncreds::{
     presentation::{
         AttributeValue, Identifier, RequestedProof, RevealedAttributeGroupInfo,
         RevealedAttributeInfo, SubProofReferent,
-    }, schema::SchemaId,
+    },
+    schema::SchemaId,
 };
 use crate::error::Result;
 use crate::services::helpers::*;
