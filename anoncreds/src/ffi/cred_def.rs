@@ -75,7 +75,7 @@ pub extern "C" fn anoncreds_credential_definition_get_attribute(
         let val = match name.as_opt_str().unwrap_or_default() {
             "schema_id" => match cred_def {
                 CredentialDefinition::CredentialDefinitionV1(cred_def) => {
-                    cred_def.schema_id.to_string()
+                    cred_def.schema_id.to_owned()
                 }
             },
             s => return Err(err_msg!("Unsupported attribute: {}", s)),

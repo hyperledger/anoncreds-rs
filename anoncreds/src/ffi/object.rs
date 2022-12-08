@@ -234,7 +234,7 @@ impl AnonCredsObjectList {
         Ok(refs)
     }
 
-    pub fn refs_map<I, T>(&self, ids: &[I]) -> Result<HashMap<&I, &T>>
+    pub fn refs_map<'a, I, T>(&'a self, ids: &'a [I]) -> Result<HashMap<&I, &T>>
     where
         T: AnyAnonCredsObject + 'static,
         I: Eq + Hash,

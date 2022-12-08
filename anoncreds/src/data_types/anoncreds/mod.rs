@@ -30,3 +30,6 @@ pub mod rev_reg_def;
 
 /// V1 credential schemas
 pub mod schema;
+
+/// Macros for the data types
+pub mod macros;

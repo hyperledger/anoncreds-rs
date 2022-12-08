@@ -1,8 +1,10 @@
-use crate::data_types::ConversionError;
+use crate::{data_types::ConversionError, impl_anoncreds_object_identifier};
 
 use super::schema::SchemaId;
 
 pub const CL_SIGNATURE_TYPE: &str = "CL";
+
+impl_anoncreds_object_identifier!(CredentialDefinitionId);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignatureType {

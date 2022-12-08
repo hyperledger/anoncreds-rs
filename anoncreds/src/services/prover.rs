@@ -9,6 +9,7 @@ use crate::data_types::anoncreds::{
         RevealedAttributeInfo, SubProofReferent,
     },
     schema::SchemaId,
+    cred_def::CredentialDefinitionId,
 };
 use crate::error::Result;
 use crate::services::helpers::*;
@@ -133,7 +134,7 @@ pub fn create_presentation(
     self_attested: Option<HashMap<String, String>>,
     master_secret: &MasterSecret,
     schemas: &HashMap<&SchemaId, &Schema>,
-    cred_defs: &HashMap<String, &CredentialDefinition>,
+    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
 ) -> Result<Presentation> {
     trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, master_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
             credentials, pres_req, credentials, &self_attested, secret!(&master_secret), schemas, cred_defs);
@@ -176,7 +177,8 @@ pub fn create_presentation(
             Schema::SchemaV1(schema) => schema,
         };
 
-        let cred_def = *cred_defs.get(&credential.cred_def_id).ok_or_else(|| {
+        let cred_def_id = CredentialDefinitionId::new(credential.cred_def_id.clone());
+        let cred_def = *cred_defs.get(&cred_def_id).ok_or_else(|| {
             err_msg!(
                 "Credential Definition not provided for ID: {}",
                 credential.cred_def_id

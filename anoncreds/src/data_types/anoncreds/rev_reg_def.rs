@@ -1,9 +1,11 @@
-use crate::data_types::{invalid, ConversionError, Validatable, ValidationError};
+use crate::{data_types::{invalid, ConversionError, Validatable, ValidationError}, impl_anoncreds_object_identifier};
 
 pub const CL_ACCUM: &str = "CL_ACCUM";
 
 pub const ISSUANCE_BY_DEFAULT: &str = "ISSUANCE_BY_DEFAULT";
 pub const ISSUANCE_ON_DEMAND: &str = "ISSUANCE_ON_DEMAND";
+
+impl_anoncreds_object_identifier!(RevocationRegistryDefinitionId);
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]

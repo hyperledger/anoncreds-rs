@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anoncreds::{
     issuer, prover,
     types::{CredentialDefinitionConfig, MakeCredentialValues, PresentCredentials, SignatureType},
-    verifier,
+    verifier, data_types::anoncreds::{schema::SchemaId, cred_def::CredentialDefinitionId},
 };
 
 use serde_json::json;
@@ -147,10 +147,12 @@ fn anoncreds_works_for_single_issuer_single_prover() {
     );
 
     let mut schemas = HashMap::new();
-    schemas.insert(String::from("SCHEMA_ID"), &gvt_schema);
+    let schema_id = SchemaId::new("SCHEMA_ID");
+    schemas.insert(&schema_id, &gvt_schema);
 
     let mut cred_defs = HashMap::new();
-    cred_defs.insert(String::from("CRED_DEF_ID"), &*gvt_cred_def);
+    let cred_def_id = CredentialDefinitionId::new("CRED_DEF_ID");
+    cred_defs.insert(&cred_def_id, &*gvt_cred_def);
 
     let presentation = prover::create_presentation(
         &pres_request,

@@ -5,6 +5,8 @@ use regex::Regex;
 
 use super::helpers::*;
 use super::types::*;
+use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
+use crate::data_types::anoncreds::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
     nonce::Nonce,
@@ -32,8 +34,8 @@ pub fn verify_presentation(
     presentation: &Presentation,
     pres_req: &PresentationRequest,
     schemas: &HashMap<&SchemaId, &Schema>,
-    cred_defs: &HashMap<String, &CredentialDefinition>,
-    rev_reg_defs: Option<&HashMap<String, &RevocationRegistryDefinition>>,
+    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
+    rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
     rev_regs: Option<&HashMap<String, HashMap<u64, &RevocationRegistry>>>,
 ) -> Result<bool> {
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_regs: {:?}",
@@ -87,7 +89,8 @@ pub fn verify_presentation(
             Schema::SchemaV1(schema) => schema,
         };
 
-        let cred_def = match cred_defs.get(&identifier.cred_def_id).ok_or_else(|| {
+        let cred_def_id = CredentialDefinitionId::new(identifier.cred_def_id.clone());
+        let cred_def = match cred_defs.get(&cred_def_id).ok_or_else(|| {
             err_msg!(
                 "Credential Definition not provided for ID: {:?}",
                 identifier.cred_def_id
@@ -111,11 +114,12 @@ pub fn verify_presentation(
                 ));
             }
 
-            let rev_reg_def = Some(rev_reg_defs.as_ref().unwrap().get(&rev_reg_id).ok_or_else(
+            let rev_reg_def_id = RevocationRegistryDefinitionId::new(rev_reg_id.clone());
+            let rev_reg_def = Some(rev_reg_defs.as_ref().unwrap().get(&rev_reg_def_id).ok_or_else(
                 || {
                     err_msg!(
                         "Revocation Registry Definition not provided for ID: {:?}",
-                        rev_reg_id
+                        rev_reg_def_id
                     )
                 },
             )?);
@@ -782,7 +786,7 @@ fn process_filter(
         filter
     );
     match tag {
-        tag_ @ "schema_id" => precess_filed(tag_, filter.schema_id.into(), tag_value),
+        tag_ @ "schema_id" => precess_filed(tag_, filter.schema_id.to_string(), tag_value),
         tag_ @ "schema_issuer_did" => precess_filed(tag_, &filter.schema_issuer_did, tag_value),
         tag_ @ "schema_name" => precess_filed(tag_, &filter.schema_name, tag_value),
         tag_ @ "schema_version" => precess_filed(tag_, &filter.schema_version, tag_value),
@@ -796,7 +800,8 @@ fn process_filter(
     }
 }
 
-fn precess_filed(filed: &str, filter_value: &str, tag_value: &str) -> Result<()> {
+fn precess_filed(filed: &str, filter_value: impl Into<String>, tag_value: &str) -> Result<()> {
+    let filter_value = filter_value.into();
     if filter_value == tag_value {
         Ok(())
     } else {
@@ -852,8 +857,6 @@ fn is_attr_operator(key: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::data_types::anoncreds::schema::SchemaV1;
-
     use super::*;
 
     pub const SCHEMA_ID: &str = "123";
@@ -901,7 +904,7 @@ mod tests {
 
     fn filter() -> Filter {
         Filter {
-            schema_id: SCHEMA_ID.to_string(),
+            schema_id: SchemaId::new(SCHEMA_ID.to_string()),
             schema_name: SCHEMA_NAME.to_string(),
             schema_issuer_did: SCHEMA_ISSUER_DID.to_string(),
             schema_version: SCHEMA_VERSION.to_string(),

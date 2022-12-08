@@ -45,7 +45,7 @@ pub fn create_schema(
 }
 
 pub fn create_credential_definition(
-    schema_id: SchemaId,
+    schema_id: impl Into<SchemaId>,
     schema: &Schema,
     tag: &str,
     signature_type: SignatureType,
@@ -76,7 +76,7 @@ pub fn create_credential_definition(
         )?;
 
     let cred_def = CredentialDefinition::CredentialDefinitionV1(CredentialDefinitionV1 {
-        schema_id: schema_id.to_owned(),
+        schema_id: schema_id.into().to_owned(),
         signature_type,
         tag: tag.to_owned(),
         value: CredentialDefinitionData {
@@ -221,7 +221,7 @@ pub fn update_revocation_registry(
 }
 
 pub fn create_credential_offer(
-    schema_id: SchemaId,
+    schema_id: impl Into<SchemaId>,
     cred_def_id: &str,
     correctness_proof: &CredentialKeyCorrectnessProof,
 ) -> Result<CredentialOffer> {
@@ -233,7 +233,7 @@ pub fn create_credential_offer(
         .try_clone()
         .map_err(err_map!(Unexpected))?;
     let credential_offer = CredentialOffer {
-        schema_id: schema_id.to_owned(),
+        schema_id: schema_id.into().to_owned(),
         cred_def_id: cred_def_id.to_owned(),
         key_correctness_proof: key_correctness_proof.value,
         nonce,
