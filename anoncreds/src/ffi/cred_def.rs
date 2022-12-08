@@ -4,6 +4,7 @@ use ffi_support::{rust_string_to_c, FfiStr};
 
 use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
+use crate::data_types::anoncreds::schema::SchemaId;
 use crate::services::{
     issuer::create_credential_definition,
     types::{
@@ -28,9 +29,12 @@ pub extern "C" fn anoncreds_create_credential_definition(
         check_useful_c_ptr!(cred_def_pvt_p);
         check_useful_c_ptr!(key_proof_p);
         let tag = tag.as_opt_str().ok_or_else(|| err_msg!("Missing tag"))?;
-        let schema_id = schema_id
+        let schema_id = {
+            let schema_id = schema_id
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing schema id"))?;
+            SchemaId::new(schema_id.to_owned())
+        };
         let signature_type = {
             let stype = signature_type
                 .as_opt_str()

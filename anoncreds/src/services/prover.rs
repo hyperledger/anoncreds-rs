@@ -7,7 +7,7 @@ use crate::data_types::anoncreds::{
     presentation::{
         AttributeValue, Identifier, RequestedProof, RevealedAttributeGroupInfo,
         RevealedAttributeInfo, SubProofReferent,
-    },
+    }, schema::SchemaId,
 };
 use crate::error::Result;
 use crate::services::helpers::*;
@@ -131,7 +131,7 @@ pub fn create_presentation(
     credentials: PresentCredentials,
     self_attested: Option<HashMap<String, String>>,
     master_secret: &MasterSecret,
-    schemas: &HashMap<String, &Schema>,
+    schemas: &HashMap<&SchemaId, &Schema>,
     cred_defs: &HashMap<String, &CredentialDefinition>,
 ) -> Result<Presentation> {
     trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, master_secret: {:?}, schemas: {:?}, cred_defs: {:?}",

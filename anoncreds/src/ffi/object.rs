@@ -1,4 +1,5 @@
 use std::any::TypeId;
+use std::cmp::Eq;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
@@ -233,14 +234,14 @@ impl AnonCredsObjectList {
         Ok(refs)
     }
 
-    pub fn refs_map<T>(&self, ids: &[String]) -> Result<HashMap<String, &T>>
+    pub fn refs_map<I, T>(&self, ids: &[I]) -> Result<HashMap<&I, &T>>
     where
-        T: AnyAnonCredsObject + 'static,
+        T: AnyAnonCredsObject + 'static, I: Eq + Hash,
     {
         let mut refs = HashMap::with_capacity(self.0.len());
         for (inst, id) in self.0.iter().zip(ids) {
             let inst = inst.cast_ref::<T>()?;
-            refs.insert(id.to_owned(), inst);
+            refs.insert(id, inst);
         }
         Ok(refs)
     }

@@ -6,6 +6,7 @@ use ffi_support::FfiStr;
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, AnonCredsObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
+use crate::data_types::anoncreds::schema::{SchemaId, Schema};
 use crate::error::Result;
 use crate::services::{
     prover::create_presentation,
@@ -161,13 +162,13 @@ pub extern "C" fn anoncreds_create_presentation(
             }
         }
 
-        let schema_ids: Vec<String> = schema_ids
+        let schema_ids: Vec<SchemaId> = schema_ids
             .as_slice()
             .iter()
-            .map(|s| s.as_str().to_owned())
+            .map(|s| SchemaId::new(s.as_str().to_owned()))
             .collect();
         let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
-        let schemas = schemas.refs_map(&schema_ids)?;
+        let schemas = schemas.refs_map::<SchemaId, Schema>(&schema_ids)?;
 
         let cred_def_ids: Vec<String> = cred_def_ids
             .as_slice()
@@ -266,13 +267,13 @@ pub extern "C" fn anoncreds_verify_presentation(
                 .insert(*timestamp, entry.cast_ref()?);
         }
 
-        let schema_ids: Vec<String> = schema_ids
+        let schema_ids: Vec<SchemaId> = schema_ids
             .as_slice()
             .iter()
-            .map(|s| s.as_str().to_owned())
+            .map(|s| SchemaId::new(s.as_str().to_owned()))
             .collect();
         let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
-        let schemas = schemas.refs_map(&schema_ids)?;
+        let schemas = schemas.refs_map::<SchemaId, Schema>(&schema_ids)?;
 
         let cred_def_ids: Vec<String> = cred_def_ids
             .as_slice()

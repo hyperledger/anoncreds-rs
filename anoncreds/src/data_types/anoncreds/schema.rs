@@ -1,9 +1,37 @@
 use crate::data_types::{Validatable, ValidationError};
 
 use std::collections::HashSet;
+use std::fmt::Display;
 use std::iter::FromIterator;
 
 pub const MAX_ATTRIBUTES_COUNT: usize = 125;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Default)]
+pub struct SchemaId(String);
+
+impl SchemaId {
+    pub fn new(schema_id: String) -> Self {
+        SchemaId(schema_id)
+    }
+}
+
+impl Into<String> for SchemaId {
+    fn into(self) -> String {
+        self.0
+    }
+}
+
+impl<'a> Into<&'a str> for SchemaId {
+    fn into(self) -> &'a str {
+        self.0.as_str()
+    }
+}
+
+impl Display for SchemaId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "ver")]

@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use crate::data_types::Validatable;
 
+use super::schema::SchemaId;
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Presentation {
     pub proof: ursa::cl::Proof,
@@ -61,7 +63,7 @@ pub struct AttributeValue {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct Identifier {
-    pub schema_id: String,
+    pub schema_id: SchemaId,
     pub cred_def_id: String,
     pub rev_reg_id: Option<String>,
     pub timestamp: Option<u64>,

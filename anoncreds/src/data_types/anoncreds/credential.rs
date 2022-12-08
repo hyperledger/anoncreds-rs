@@ -4,9 +4,11 @@ use zeroize::Zeroize;
 
 use crate::data_types::{Validatable, ValidationError};
 
+use super::schema::SchemaId;
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Credential {
-    pub schema_id: String,
+    pub schema_id: SchemaId,
     pub cred_def_id: String,
     pub rev_reg_id: Option<String>,
     pub values: CredentialValues,
@@ -64,7 +66,7 @@ impl Validatable for Credential {
 pub struct CredentialInfo {
     pub referent: String,
     pub attrs: ShortCredentialValues,
-    pub schema_id: String,
+    pub schema_id: SchemaId,
     pub cred_def_id: String,
     pub rev_reg_id: Option<String>,
     pub cred_rev_id: Option<String>,

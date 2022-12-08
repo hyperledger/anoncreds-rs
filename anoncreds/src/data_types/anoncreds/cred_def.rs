@@ -1,5 +1,7 @@
 use crate::data_types::ConversionError;
 
+use super::schema::SchemaId;
+
 pub const CL_SIGNATURE_TYPE: &str = "CL";
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -39,7 +41,7 @@ pub enum CredentialDefinition {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CredentialDefinitionV1 {
-    pub schema_id: String,
+    pub schema_id: SchemaId,
     #[serde(rename = "type")]
     pub signature_type: SignatureType,
     pub tag: String,

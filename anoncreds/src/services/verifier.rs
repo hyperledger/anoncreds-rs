@@ -5,6 +5,7 @@ use regex::Regex;
 
 use super::helpers::*;
 use super::types::*;
+use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
     nonce::Nonce,
     pres_request::{AttributeInfo, NonRevocedInterval, PredicateInfo, PresentationRequestPayload},
@@ -16,7 +17,7 @@ use indy_utils::query::Query;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Filter {
-    schema_id: String,
+    schema_id: SchemaId,
     schema_issuer_did: String,
     schema_name: String,
     schema_version: String,
@@ -30,7 +31,7 @@ static INTERNAL_TAG_MATCHER: Lazy<Regex> =
 pub fn verify_presentation(
     presentation: &Presentation,
     pres_req: &PresentationRequest,
-    schemas: &HashMap<String, &Schema>,
+    schemas: &HashMap<&SchemaId, &Schema>,
     cred_defs: &HashMap<String, &CredentialDefinition>,
     rev_reg_defs: Option<&HashMap<String, &RevocationRegistryDefinition>>,
     rev_regs: Option<&HashMap<String, HashMap<u64, &RevocationRegistry>>>,
@@ -781,7 +782,7 @@ fn process_filter(
         filter
     );
     match tag {
-        tag_ @ "schema_id" => precess_filed(tag_, &filter.schema_id, tag_value),
+        tag_ @ "schema_id" => precess_filed(tag_, filter.schema_id.into(), tag_value),
         tag_ @ "schema_issuer_did" => precess_filed(tag_, &filter.schema_issuer_did, tag_value),
         tag_ @ "schema_name" => precess_filed(tag_, &filter.schema_name, tag_value),
         tag_ @ "schema_version" => precess_filed(tag_, &filter.schema_version, tag_value),
@@ -851,6 +852,8 @@ fn is_attr_operator(key: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use crate::data_types::anoncreds::schema::SchemaV1;
+
     use super::*;
 
     pub const SCHEMA_ID: &str = "123";
@@ -1167,7 +1170,7 @@ mod tests {
             // TODO: what does this do
             Identifier {
                 timestamp: Some(1234),
-                schema_id: String::new(),
+                schema_id: SchemaId::default(),
                 cred_def_id: String::new(),
                 rev_reg_id: Some(String::new()),
             },
@@ -1176,7 +1179,7 @@ mod tests {
             "referent_2".to_string(),
             Identifier {
                 timestamp: None,
-                schema_id: String::new(),
+                schema_id: SchemaId::default(),
                 cred_def_id: String::new(),
                 rev_reg_id: Some(String::new()),
             },

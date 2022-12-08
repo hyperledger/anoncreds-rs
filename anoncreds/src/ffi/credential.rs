@@ -233,7 +233,7 @@ pub extern "C" fn anoncreds_credential_get_attribute(
         let cred = handle.load()?;
         let cred = cred.cast_ref::<Credential>()?;
         let val = match name.as_opt_str().unwrap_or_default() {
-            "schema_id" => rust_string_to_c(cred.schema_id.to_string()),
+            "schema_id" => rust_string_to_c(cred.schema_id.to_owned()),
             "cred_def_id" => rust_string_to_c(cred.cred_def_id.to_string()),
             "rev_reg_id" => cred
                 .rev_reg_id

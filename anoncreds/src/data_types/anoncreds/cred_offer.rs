@@ -1,8 +1,8 @@
-use super::nonce::Nonce;
+use super::{nonce::Nonce, schema::SchemaId};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialOffer {
-    pub schema_id: String,
+    pub schema_id: SchemaId,
     pub cred_def_id: String,
     pub key_correctness_proof: ursa::cl::CredentialKeyCorrectnessProof,
     pub nonce: Nonce,

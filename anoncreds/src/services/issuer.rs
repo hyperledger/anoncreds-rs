@@ -2,6 +2,7 @@ use std::collections::{BTreeSet, HashSet};
 use std::iter::FromIterator;
 
 use super::types::*;
+use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
     cred_def::{CredentialDefinitionData, CredentialDefinitionV1},
     nonce::Nonce,
@@ -44,7 +45,7 @@ pub fn create_schema(
 }
 
 pub fn create_credential_definition(
-    schema_id: String,
+    schema_id: SchemaId,
     schema: &Schema,
     tag: &str,
     signature_type: SignatureType,
@@ -220,7 +221,7 @@ pub fn update_revocation_registry(
 }
 
 pub fn create_credential_offer(
-    schema_id: &str,
+    schema_id: SchemaId,
     cred_def_id: &str,
     correctness_proof: &CredentialKeyCorrectnessProof,
 ) -> Result<CredentialOffer> {
