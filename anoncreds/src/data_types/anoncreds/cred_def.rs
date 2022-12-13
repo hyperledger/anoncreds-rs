@@ -1,3 +1,5 @@
+use indy_utils::{Validatable, ValidationError};
+
 use crate::{data_types::ConversionError, impl_anoncreds_object_identifier};
 
 use super::schema::SchemaId;
@@ -58,6 +60,12 @@ impl CredentialDefinitionV1 {
         )
         .map_err(|e| e.to_string())?;
         Ok(key)
+    }
+}
+
+impl Validatable for CredentialDefinitionV1 {
+    fn validate(&self) -> Result<(), ValidationError> {
+        self.schema_id.validate()
     }
 }
 

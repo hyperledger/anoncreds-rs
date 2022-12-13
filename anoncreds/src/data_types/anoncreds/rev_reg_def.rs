@@ -3,6 +3,8 @@ use crate::{
     impl_anoncreds_object_identifier,
 };
 
+use super::cred_def::CredentialDefinitionId;
+
 pub const CL_ACCUM: &str = "CL_ACCUM";
 
 pub const ISSUANCE_BY_DEFAULT: &str = "ISSUANCE_BY_DEFAULT";
@@ -93,8 +95,14 @@ pub enum RevocationRegistryDefinition {
 pub struct RevocationRegistryDefinitionV1 {
     pub revoc_def_type: RegistryType,
     pub tag: String,
-    pub cred_def_id: String,
+    pub cred_def_id: CredentialDefinitionId,
     pub value: RevocationRegistryDefinitionValue,
+}
+
+impl Validatable for RevocationRegistryDefinitionV1 {
+    fn validate(&self) -> Result<(), ValidationError> {
+        self.cred_def_id.validate()
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

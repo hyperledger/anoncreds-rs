@@ -62,6 +62,12 @@ impl Into<HashSet<String>> for AttributeNames {
     }
 }
 
+impl Validatable for SchemaV1 {
+    fn validate(&self) -> Result<(), ValidationError> {
+        self.attr_names.validate()
+    }
+}
+
 impl Validatable for AttributeNames {
     fn validate(&self) -> Result<(), ValidationError> {
         if self.0.is_empty() {

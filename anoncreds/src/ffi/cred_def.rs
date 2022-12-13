@@ -33,7 +33,7 @@ pub extern "C" fn anoncreds_create_credential_definition(
             let schema_id = schema_id
                 .as_opt_str()
                 .ok_or_else(|| err_msg!("Missing schema id"))?;
-            SchemaId::new(schema_id.to_owned())
+            SchemaId::validated_new(schema_id)?
         };
         let signature_type = {
             let stype = signature_type

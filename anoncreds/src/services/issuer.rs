@@ -1,7 +1,10 @@
 use std::collections::{BTreeSet, HashSet};
 use std::iter::FromIterator;
 
+use indy_utils::Validatable;
+
 use super::types::*;
+use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
 use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
     cred_def::{CredentialDefinitionData, CredentialDefinitionV1},
@@ -152,7 +155,7 @@ where
         RevocationRegistryDefinitionV1 {
             revoc_def_type: rev_reg_type,
             tag: tag.to_string(),
-            cred_def_id: cred_def_id.to_owned(),
+            cred_def_id: CredentialDefinitionId::new(cred_def_id),
             value: revoc_reg_def_value,
         },
     );
@@ -221,11 +224,13 @@ pub fn update_revocation_registry(
 }
 
 pub fn create_credential_offer(
-    schema_id: impl Into<SchemaId>,
-    cred_def_id: &str,
+    schema_id: SchemaId,
+    cred_def_id: CredentialDefinitionId,
     correctness_proof: &CredentialKeyCorrectnessProof,
 ) -> Result<CredentialOffer> {
     trace!("create_credential_offer >>> cred_def_id: {:?}", cred_def_id);
+    schema_id.validate()?;
+    cred_def_id.validate()?;
 
     let nonce = Nonce::new().map_err(err_map!(Unexpected, "Error creating nonce"))?;
 
@@ -233,8 +238,8 @@ pub fn create_credential_offer(
         .try_clone()
         .map_err(err_map!(Unexpected))?;
     let credential_offer = CredentialOffer {
-        schema_id: schema_id.into().to_owned(),
-        cred_def_id: cred_def_id.to_owned(),
+        schema_id,
+        cred_def_id,
         key_correctness_proof: key_correctness_proof.value,
         nonce,
         method_name: None,
@@ -344,8 +349,8 @@ pub fn create_credential(
         };
 
     let credential = Credential {
-        schema_id: cred_offer.schema_id.clone(),
-        cred_def_id: cred_offer.cred_def_id.clone(),
+        schema_id: cred_offer.schema_id.to_owned(),
+        cred_def_id: cred_offer.cred_def_id.to_owned(),
         rev_reg_id,
         values: cred_values,
         signature: credential_signature,

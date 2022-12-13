@@ -4,12 +4,12 @@ use zeroize::Zeroize;
 
 use crate::data_types::{Validatable, ValidationError};
 
-use super::schema::SchemaId;
+use super::{cred_def::CredentialDefinitionId, schema::SchemaId};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Credential {
     pub schema_id: SchemaId,
-    pub cred_def_id: String,
+    pub cred_def_id: CredentialDefinitionId,
     pub rev_reg_id: Option<String>,
     pub values: CredentialValues,
     pub signature: ursa::cl::CredentialSignature,

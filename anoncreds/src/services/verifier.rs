@@ -24,7 +24,7 @@ pub struct Filter {
     schema_name: String,
     schema_version: String,
     issuer_did: String,
-    cred_def_id: String,
+    cred_def_id: CredentialDefinitionId,
 }
 
 static INTERNAL_TAG_MATCHER: Lazy<Regex> =
@@ -698,11 +698,11 @@ fn gather_filter_info(referent: &str, identifiers: &HashMap<String, Identifier>)
     })?;
 
     Ok(Filter {
-        schema_id: identifier.schema_id.clone(),
+        schema_id: identifier.schema_id.to_owned(),
         schema_name,
         schema_issuer_did,
         schema_version,
-        cred_def_id: identifier.cred_def_id.clone(),
+        cred_def_id: identifier.cred_def_id.to_owned(),
         issuer_did,
     })
 }
@@ -794,7 +794,7 @@ fn process_filter(
         tag_ @ "schema_issuer_did" => precess_filed(tag_, &filter.schema_issuer_did, tag_value),
         tag_ @ "schema_name" => precess_filed(tag_, &filter.schema_name, tag_value),
         tag_ @ "schema_version" => precess_filed(tag_, &filter.schema_version, tag_value),
-        tag_ @ "cred_def_id" => precess_filed(tag_, &filter.cred_def_id, tag_value),
+        tag_ @ "cred_def_id" => precess_filed(tag_, &filter.cred_def_id.to_string(), tag_value),
         tag_ @ "issuer_did" => precess_filed(tag_, &filter.issuer_did, tag_value),
         x if is_attr_internal_tag(x, attr_value_map) => {
             check_internal_tag_revealed_value(x, tag_value, attr_value_map)
@@ -908,11 +908,11 @@ mod tests {
 
     fn filter() -> Filter {
         Filter {
-            schema_id: SchemaId::new(SCHEMA_ID.to_string()),
+            schema_id: SchemaId::new(SCHEMA_ID),
             schema_name: SCHEMA_NAME.to_string(),
             schema_issuer_did: SCHEMA_ISSUER_DID.to_string(),
             schema_version: SCHEMA_VERSION.to_string(),
-            cred_def_id: CRED_DEF_ID.to_string(),
+            cred_def_id: CredentialDefinitionId::new(CRED_DEF_ID),
             issuer_did: ISSUER_DID.to_string(),
         }
     }
@@ -1178,7 +1178,7 @@ mod tests {
             Identifier {
                 timestamp: Some(1234),
                 schema_id: SchemaId::default(),
-                cred_def_id: String::new(),
+                cred_def_id: CredentialDefinitionId::default(),
                 rev_reg_id: Some(String::new()),
             },
         );
@@ -1187,7 +1187,7 @@ mod tests {
             Identifier {
                 timestamp: None,
                 schema_id: SchemaId::default(),
-                cred_def_id: String::new(),
+                cred_def_id: CredentialDefinitionId::default(),
                 rev_reg_id: Some(String::new()),
             },
         );

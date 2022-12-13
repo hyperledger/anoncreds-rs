@@ -166,22 +166,24 @@ pub extern "C" fn anoncreds_create_presentation(
             }
         }
 
-        let schema_ids: Vec<SchemaId> = schema_ids
-            .as_slice()
-            .iter()
-            .map(|s| SchemaId::new(s.as_str().to_owned()))
-            .collect();
-        let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
-        let schemas = schemas.refs_map::<SchemaId, Schema>(&schema_ids)?;
+        let mut schema_identifiers: Vec<SchemaId> = vec![];
+        for schema_id in schema_ids.as_slice().iter() {
+            let s = SchemaId::validated_new(schema_id.as_str())?;
+            schema_identifiers.push(s);
+        }
 
-        let cred_def_ids: Vec<CredentialDefinitionId> = cred_def_ids
-            .as_slice()
-            .iter()
-            .map(|s| CredentialDefinitionId::new(s.as_str().to_owned()))
-            .collect();
+        let mut cred_def_identifiers: Vec<CredentialDefinitionId> = vec![];
+        for cred_def_id in cred_def_ids.as_slice().iter() {
+            let cred_def_id = CredentialDefinitionId::validated_new(cred_def_id.as_str())?;
+            cred_def_identifiers.push(cred_def_id);
+        }
+
+        let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
+        let schemas = schemas.refs_map::<SchemaId, Schema>(&schema_identifiers)?;
+
         let cred_defs = AnonCredsObjectList::load(cred_defs.as_slice())?;
-        let cred_defs =
-            cred_defs.refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_ids)?;
+        let cred_defs = cred_defs
+            .refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?;
 
         let presentation = create_presentation(
             pres_req.load()?.cast_ref()?,

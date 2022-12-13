@@ -1,11 +1,11 @@
-use super::nonce::Nonce;
+use super::{cred_def::CredentialDefinitionId, nonce::Nonce};
 use crate::data_types::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialRequest {
     pub prover_did: DidValue,
-    pub cred_def_id: String,
+    pub cred_def_id: CredentialDefinitionId,
     pub blinded_ms: ursa::cl::BlindedCredentialSecrets,
     pub blinded_ms_correctness_proof: ursa::cl::BlindedCredentialSecretsCorrectnessProof,
     pub nonce: Nonce,

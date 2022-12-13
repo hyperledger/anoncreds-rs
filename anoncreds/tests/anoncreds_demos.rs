@@ -15,6 +15,8 @@ mod utils;
 
 pub static GVT_SCHEMA_NAME: &'static str = "gvt";
 pub static GVT_SCHEMA_ATTRIBUTES: &[&'static str; 4] = &["name", "age", "sex", "height"];
+pub static SCHEMA_ID: &str = "mock:uri";
+pub static CRED_DEF_ID: &str = "mock:uri";
 
 #[test]
 fn anoncreds_works_for_single_issuer_single_prover() {
@@ -51,8 +53,8 @@ fn anoncreds_works_for_single_issuer_single_prover() {
 
     // Issuer creates a Credential Offer
     let cred_offer = issuer::create_credential_offer(
-        "SCHEMA_ID",
-        "CRED_DEF_ID",
+        SchemaId::new(SCHEMA_ID),
+        CredentialDefinitionId::new(CRED_DEF_ID),
         &issuer_wallet.cred_defs[0].key_proof,
     )
     .expect("Error creating credential offer");
@@ -148,11 +150,11 @@ fn anoncreds_works_for_single_issuer_single_prover() {
     );
 
     let mut schemas = HashMap::new();
-    let schema_id = SchemaId::new("SCHEMA_ID");
+    let schema_id = SchemaId::new(SCHEMA_ID);
     schemas.insert(&schema_id, &gvt_schema);
 
     let mut cred_defs = HashMap::new();
-    let cred_def_id = CredentialDefinitionId::new("CRED_DEF_ID");
+    let cred_def_id = CredentialDefinitionId::new(CRED_DEF_ID);
     cred_defs.insert(&cred_def_id, &*gvt_cred_def);
 
     let presentation = prover::create_presentation(

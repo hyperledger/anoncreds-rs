@@ -2,6 +2,7 @@ use ffi_support::FfiStr;
 
 use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
+use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
 use crate::data_types::anoncreds::schema::SchemaId;
 use crate::services::{issuer::create_credential_offer, types::CredentialOffer};
 
@@ -18,11 +19,14 @@ pub extern "C" fn anoncreds_create_credential_offer(
             let schema_id = schema_id
                 .as_opt_str()
                 .ok_or_else(|| err_msg!("Missing schema ID"))?;
-            SchemaId::new(schema_id.to_string())
+            SchemaId::validated_new(schema_id)?
         };
-        let cred_def_id = cred_def_id
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing cred def ID"))?;
+        let cred_def_id = {
+            cred_def_id
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing cred def ID"))?;
+            CredentialDefinitionId::validated_new(cred_def_id)?
+        };
         let cred_offer =
             create_credential_offer(schema_id, cred_def_id, key_proof.load()?.cast_ref()?)?;
         let cred_offer = ObjectHandle::create(cred_offer)?;

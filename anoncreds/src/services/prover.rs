@@ -64,7 +64,7 @@ pub fn create_credential_request(
 
     let credential_request = CredentialRequest {
         prover_did: prover_did.clone(),
-        cred_def_id: credential_offer.cred_def_id.clone(),
+        cred_def_id: credential_offer.cred_def_id.to_owned(),
         blinded_ms,
         blinded_ms_correctness_proof,
         nonce,
@@ -216,14 +216,14 @@ pub fn create_presentation(
 
         let identifier = match pres_req {
             PresentationRequest::PresentationRequestV1(_) => Identifier {
-                schema_id: credential.schema_id.clone(),
-                cred_def_id: credential.cred_def_id.clone(),
+                schema_id: credential.schema_id.to_owned(),
+                cred_def_id: credential.cred_def_id.to_owned(),
                 rev_reg_id: credential.rev_reg_id.clone(),
                 timestamp: present.timestamp,
             },
             PresentationRequest::PresentationRequestV2(_) => Identifier {
-                schema_id: credential.schema_id.clone(),
-                cred_def_id: credential.cred_def_id.clone(),
+                schema_id: credential.schema_id.to_owned(),
+                cred_def_id: credential.cred_def_id.to_owned(),
                 rev_reg_id: credential.rev_reg_id.clone(),
                 timestamp: present.timestamp,
             },

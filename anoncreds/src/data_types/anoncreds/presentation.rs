@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::data_types::Validatable;
 
-use super::schema::SchemaId;
+use super::{cred_def::CredentialDefinitionId, schema::SchemaId};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Presentation {
@@ -64,7 +64,7 @@ pub struct AttributeValue {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct Identifier {
     pub schema_id: SchemaId,
-    pub cred_def_id: String,
+    pub cred_def_id: CredentialDefinitionId,
     pub rev_reg_id: Option<String>,
     pub timestamp: Option<u64>,
 }

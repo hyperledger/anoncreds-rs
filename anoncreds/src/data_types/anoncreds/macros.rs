@@ -8,12 +8,20 @@ macro_rules! impl_anoncreds_object_identifier {
             pub fn new(s: impl Into<String>) -> Self {
                 Self(s.into())
             }
+
+            pub fn validated_new(
+                s: impl Into<String>,
+            ) -> Result<Self, crate::data_types::ValidationError> {
+                let s = Self(s.into());
+                s.validate()?;
+                Ok(s)
+            }
         }
 
         impl crate::data_types::Validatable for $i {
             fn validate(&self) -> Result<(), crate::data_types::ValidationError> {
-                // taken from: https://www.regextester.com/94092
-                let uri_regex = regex::Regex::new(r"\w+:(\/?\/?)[^\s]+").unwrap();
+                // TODO: better URI regex
+                let uri_regex = regex::Regex::new(r".*").unwrap();
                 uri_regex
                     .captures(&self.0)
                     .ok_or_else(|| {
