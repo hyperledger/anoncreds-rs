@@ -10,6 +10,23 @@ macro_rules! impl_anoncreds_object_identifier {
             }
         }
 
+        impl crate::data_types::Validatable for $i {
+            fn validate(&self) -> Result<(), crate::data_types::ValidationError> {
+                // taken from: https://www.regextester.com/94092
+                let uri_regex = regex::Regex::new(r"\w+:(\/?\/?)[^\s]+").unwrap();
+                uri_regex
+                    .captures(&self.0)
+                    .ok_or_else(|| {
+                        indy_utils::invalid!(
+                            "type: {}, identifier: {} is invalid. It MUST be a URI.",
+                            stringify!($i),
+                            self.0
+                        )
+                    })
+                    .map(|_| ())
+            }
+        }
+
         impl Into<String> for $i {
             fn into(self) -> String {
                 self.0
