@@ -4,13 +4,13 @@ use zeroize::Zeroize;
 
 use crate::data_types::{Validatable, ValidationError};
 
-use super::{cred_def::CredentialDefinitionId, schema::SchemaId};
+use super::{cred_def::CredentialDefinitionId, schema::SchemaId, rev_reg::RevocationRegistryId};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Credential {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
-    pub rev_reg_id: Option<String>,
+    pub rev_reg_id: Option<RevocationRegistryId>,
     pub values: CredentialValues,
     pub signature: ursa::cl::CredentialSignature,
     pub signature_correctness_proof: ursa::cl::SignatureCorrectnessProof,
@@ -49,6 +49,9 @@ impl Credential {
 impl Validatable for Credential {
     fn validate(&self) -> Result<(), ValidationError> {
         self.values.validate()?;
+        self.schema_id.validate()?;
+        self.cred_def_id.validate()?;
+        self.rev_reg_id.as_ref().map(|i| i.validate()).transpose()?;
 
         if self.rev_reg_id.is_some() && (self.witness.is_none() || self.rev_reg.is_none()) {
             return Err("Credential validation failed: `witness` and `rev_reg` must be passed for revocable Credential".into());
@@ -68,7 +71,7 @@ pub struct CredentialInfo {
     pub attrs: ShortCredentialValues,
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
-    pub rev_reg_id: Option<String>,
+    pub rev_reg_id: Option<RevocationRegistryId>,
     pub cred_rev_id: Option<String>,
 }
 

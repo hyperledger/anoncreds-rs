@@ -64,7 +64,8 @@ impl Into<HashSet<String>> for AttributeNames {
 
 impl Validatable for SchemaV1 {
     fn validate(&self) -> Result<(), ValidationError> {
-        self.attr_names.validate()
+        self.attr_names.validate()?;
+        Ok(())
     }
 }
 
@@ -115,7 +116,7 @@ mod test_schema_validation {
         })
         .to_string();
 
-        let _: SchemaV1 = serde_json::from_str(&schema_json).unwrap();
+        serde_json::from_str::<SchemaV1>(&schema_json).unwrap();
     }
 
     #[test]
@@ -128,6 +129,6 @@ mod test_schema_validation {
         })
         .to_string();
 
-        let _: SchemaV1 = serde_json::from_str(&schema_json).unwrap();
+        serde_json::from_str::<SchemaV1>(&schema_json).unwrap();
     }
 }

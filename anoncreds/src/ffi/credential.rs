@@ -8,6 +8,7 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
+use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
 use crate::error::Result;
 use crate::services::{
     issuer::create_credential,
@@ -75,7 +76,7 @@ pub extern "C" fn anoncreds_create_credential(
                 "Mismatch between length of attribute names and raw values"
             ));
         }
-        let rev_reg_id = rev_reg_id.as_opt_str();
+        let rev_reg_id = rev_reg_id.as_opt_str().map(RevocationRegistryId::new).transpose()?;
         let enc_values = attr_enc_values.as_slice();
         let mut cred_values = MakeCredentialValues::default();
         let mut attr_idx = 0;
@@ -139,7 +140,7 @@ pub extern "C" fn anoncreds_create_credential(
             cred_offer.load()?.cast_ref()?,
             cred_request.load()?.cast_ref()?,
             cred_values.into(),
-            rev_reg_id.map(String::from),
+            rev_reg_id,
             revocation_config
                 .as_ref()
                 .map(RevocationConfig::as_ref_config)

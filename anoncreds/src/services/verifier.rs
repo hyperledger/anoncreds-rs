@@ -6,6 +6,7 @@ use regex::Regex;
 use super::helpers::*;
 use super::types::*;
 use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
+use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
 use crate::data_types::anoncreds::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
@@ -36,7 +37,7 @@ pub fn verify_presentation(
     schemas: &HashMap<&SchemaId, &Schema>,
     cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
     rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
-    rev_regs: Option<&HashMap<String, HashMap<u64, &RevocationRegistry>>>,
+    rev_regs: Option<&HashMap<RevocationRegistryId, HashMap<u64, &RevocationRegistry>>>,
 ) -> Result<bool> {
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_regs: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_regs);
@@ -1178,7 +1179,7 @@ mod tests {
                 timestamp: Some(1234),
                 schema_id: SchemaId::default(),
                 cred_def_id: CredentialDefinitionId::default(),
-                rev_reg_id: Some(String::new()),
+                rev_reg_id: Some(RevocationRegistryId::default()),
             },
         );
         res.insert(
@@ -1187,7 +1188,7 @@ mod tests {
                 timestamp: None,
                 schema_id: SchemaId::default(),
                 cred_def_id: CredentialDefinitionId::default(),
-                rev_reg_id: Some(String::new()),
+                rev_reg_id: Some(RevocationRegistryId::default()),
             },
         );
         res

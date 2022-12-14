@@ -5,6 +5,7 @@ use indy_utils::Validatable;
 
 use super::types::*;
 use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
+use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
 use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
     cred_def::{CredentialDefinitionData, CredentialDefinitionV1},
@@ -262,7 +263,7 @@ pub fn create_credential(
     cred_offer: &CredentialOffer,
     cred_request: &CredentialRequest,
     cred_values: CredentialValues,
-    rev_reg_id: Option<String>,
+    rev_reg_id: Option<RevocationRegistryId>,
     revocation_config: Option<CredentialRevocationConfig>,
 ) -> Result<(
     Credential,
@@ -273,6 +274,13 @@ pub fn create_credential(
             cred_values: {:?}, revocation_config: {:?}",
             cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&cred_values), revocation_config,
             );
+    let rev_reg_id = match rev_reg_id {
+        Some(id) => {
+            id.validate()?;
+            Some(id)
+        },
+        None => None
+    };
 
     let cred_public_key = match cred_def {
         CredentialDefinition::CredentialDefinitionV1(cd) => {

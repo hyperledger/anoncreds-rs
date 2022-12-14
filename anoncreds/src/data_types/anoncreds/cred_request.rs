@@ -14,6 +14,7 @@ pub struct CredentialRequest {
 impl Validatable for CredentialRequest {
     fn validate(&self) -> Result<(), ValidationError> {
         self.prover_did.validate()?;
+        self.cred_def_id.validate()?;
         Ok(())
     }
 }

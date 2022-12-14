@@ -7,6 +7,7 @@ use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, AnonCredsObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
 use crate::data_types::anoncreds::cred_def::{CredentialDefinition, CredentialDefinitionId};
+use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
 use crate::data_types::anoncreds::rev_reg_def::{
     RevocationRegistryDefinition, RevocationRegistryDefinitionId,
 };
@@ -264,6 +265,7 @@ pub extern "C" fn anoncreds_verify_presentation(
                 return Err(err_msg!("Invalid revocation registry entry index"));
             }
             let id = rev_reg_def_ids.as_slice()[*idx].as_str().to_owned();
+            let id = RevocationRegistryId::new(id)?;
             rev_regs
                 .entry(id)
                 .or_insert_with(HashMap::new)
