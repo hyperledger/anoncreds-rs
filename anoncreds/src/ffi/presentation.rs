@@ -286,8 +286,8 @@ pub extern "C" fn anoncreds_verify_presentation(
         let schemas = schemas.refs_map::<SchemaId, Schema>(&schema_identifiers)?;
 
         let cred_defs = AnonCredsObjectList::load(cred_defs.as_slice())?;
-        let cred_defs =
-            cred_defs.refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?;
+        let cred_defs = cred_defs
+            .refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?;
 
         let rev_reg_def_ids: Vec<RevocationRegistryDefinitionId> = rev_reg_def_ids
             .as_slice()
