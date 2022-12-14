@@ -106,7 +106,7 @@ pub fn create_credential_definition(
 
 pub fn create_revocation_registry<TW>(
     cred_def: &CredentialDefinition,
-    cred_def_id: &str,
+    cred_def_id: impl Into<CredentialDefinitionId>,
     tag: &str,
     rev_reg_type: RegistryType,
     issuance_type: IssuanceType,
@@ -121,8 +121,12 @@ pub fn create_revocation_registry<TW>(
 where
     TW: TailsWriter,
 {
+    let cred_def_id = cred_def_id.into();
+
     trace!("create_revocation_registry >>> cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}, issuance_type: {:?}",
              cred_def, tag, max_cred_num, rev_reg_type, issuance_type);
+
+    cred_def_id.validate()?;
 
     let cred_def = match cred_def {
         CredentialDefinition::CredentialDefinitionV1(c) => c,
@@ -155,7 +159,7 @@ where
         RevocationRegistryDefinitionV1 {
             revoc_def_type: rev_reg_type,
             tag: tag.to_string(),
-            cred_def_id: CredentialDefinitionId::new(cred_def_id),
+            cred_def_id,
             value: revoc_reg_def_value,
         },
     );
@@ -224,10 +228,12 @@ pub fn update_revocation_registry(
 }
 
 pub fn create_credential_offer(
-    schema_id: SchemaId,
-    cred_def_id: CredentialDefinitionId,
+    schema_id: impl Into<SchemaId>,
+    cred_def_id: impl Into<CredentialDefinitionId>,
     correctness_proof: &CredentialKeyCorrectnessProof,
 ) -> Result<CredentialOffer> {
+    let schema_id = schema_id.into();
+    let cred_def_id = cred_def_id.into();
     trace!("create_credential_offer >>> cred_def_id: {:?}", cred_def_id);
     schema_id.validate()?;
     cred_def_id.validate()?;
