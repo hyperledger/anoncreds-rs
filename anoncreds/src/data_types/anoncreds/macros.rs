@@ -5,13 +5,11 @@ macro_rules! impl_anoncreds_object_identifier {
         pub struct $i(pub String);
 
         impl $i {
-            pub fn new(s: impl Into<String>) -> Self {
+            pub fn new_unchecked(s: impl Into<String>) -> Self {
                 Self(s.into())
             }
 
-            pub fn validated_new(
-                s: impl Into<String>,
-            ) -> Result<Self, crate::data_types::ValidationError> {
+            pub fn new(s: impl Into<String>) -> Result<Self, crate::data_types::ValidationError> {
                 let s = Self(s.into());
                 s.validate()?;
                 Ok(s)
@@ -43,15 +41,17 @@ macro_rules! impl_anoncreds_object_identifier {
             }
         }
 
+        // TODO: replace these with TryInto
         impl From<String> for $i {
             fn from(value: String) -> Self {
-                $i::new(value)
+                $i::new_unchecked(value)
             }
         }
 
+        // TODO: replace these with TryInto
         impl From<&str> for $i {
             fn from(value: &str) -> Self {
-                $i::new(value.to_owned())
+                $i::new_unchecked(value.to_owned())
             }
         }
 

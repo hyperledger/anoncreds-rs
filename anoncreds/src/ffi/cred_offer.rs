@@ -19,13 +19,13 @@ pub extern "C" fn anoncreds_create_credential_offer(
             let schema_id = schema_id
                 .as_opt_str()
                 .ok_or_else(|| err_msg!("Missing schema ID"))?;
-            SchemaId::validated_new(schema_id)?
+            SchemaId::new(schema_id)?
         };
         let cred_def_id = {
             cred_def_id
                 .as_opt_str()
                 .ok_or_else(|| err_msg!("Missing cred def ID"))?;
-            CredentialDefinitionId::validated_new(cred_def_id)?
+            CredentialDefinitionId::new(cred_def_id)?
         };
         let cred_offer =
             create_credential_offer(schema_id, cred_def_id, key_proof.load()?.cast_ref()?)?;

@@ -164,13 +164,13 @@ pub extern "C" fn anoncreds_create_presentation(
 
         let mut schema_identifiers: Vec<SchemaId> = vec![];
         for schema_id in schema_ids.as_slice().iter() {
-            let s = SchemaId::validated_new(schema_id.as_str())?;
+            let s = SchemaId::new(schema_id.as_str())?;
             schema_identifiers.push(s);
         }
 
         let mut cred_def_identifiers: Vec<CredentialDefinitionId> = vec![];
         for cred_def_id in cred_def_ids.as_slice().iter() {
-            let cred_def_id = CredentialDefinitionId::validated_new(cred_def_id.as_str())?;
+            let cred_def_id = CredentialDefinitionId::new(cred_def_id.as_str())?;
             cred_def_identifiers.push(cred_def_id);
         }
 
@@ -272,14 +272,20 @@ pub extern "C" fn anoncreds_verify_presentation(
 
         let mut schema_identifiers: Vec<SchemaId> = vec![];
         for schema_id in schema_ids.as_slice().iter() {
-            let s = SchemaId::validated_new(schema_id.as_str())?;
+            let s = SchemaId::new(schema_id.as_str())?;
             schema_identifiers.push(s);
         }
 
         let mut cred_def_identifiers: Vec<CredentialDefinitionId> = vec![];
         for cred_def_id in cred_def_ids.as_slice().iter() {
-            let cred_def_id = CredentialDefinitionId::validated_new(cred_def_id.as_str())?;
+            let cred_def_id = CredentialDefinitionId::new(cred_def_id.as_str())?;
             cred_def_identifiers.push(cred_def_id);
+        }
+
+        let mut rev_reg_def_identifiers: Vec<RevocationRegistryDefinitionId> = vec![];
+        for rev_reg_def_id in rev_reg_def_ids.as_slice().iter() {
+            let rev_reg_def_id = RevocationRegistryDefinitionId::new(rev_reg_def_id.as_str())?;
+            rev_reg_def_identifiers.push(rev_reg_def_id);
         }
 
         let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
@@ -289,15 +295,10 @@ pub extern "C" fn anoncreds_verify_presentation(
         let cred_defs = cred_defs
             .refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?;
 
-        let rev_reg_def_ids: Vec<RevocationRegistryDefinitionId> = rev_reg_def_ids
-            .as_slice()
-            .iter()
-            .map(|s| RevocationRegistryDefinitionId::new(s.as_str().to_owned()))
-            .collect();
         let rev_reg_defs = AnonCredsObjectList::load(rev_reg_defs.as_slice())?;
         let rev_reg_defs = rev_reg_defs
             .refs_map::<RevocationRegistryDefinitionId, RevocationRegistryDefinition>(
-                &rev_reg_def_ids,
+                &rev_reg_def_identifiers,
             )?;
 
         let verify = verify_presentation(

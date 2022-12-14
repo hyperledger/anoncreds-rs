@@ -89,7 +89,7 @@ pub fn verify_presentation(
             Schema::SchemaV1(schema) => schema,
         };
 
-        let cred_def_id = CredentialDefinitionId::new(identifier.cred_def_id.clone());
+        let cred_def_id = CredentialDefinitionId::new(identifier.cred_def_id.clone())?;
         let cred_def = match cred_defs.get(&cred_def_id).ok_or_else(|| {
             err_msg!(
                 "Credential Definition not provided for ID: {:?}",
@@ -114,7 +114,7 @@ pub fn verify_presentation(
                 ));
             }
 
-            let rev_reg_def_id = RevocationRegistryDefinitionId::new(rev_reg_id.clone());
+            let rev_reg_def_id = RevocationRegistryDefinitionId::new(rev_reg_id.clone())?;
             let rev_reg_def = Some(
                 rev_reg_defs
                     .as_ref()
@@ -908,11 +908,11 @@ mod tests {
 
     fn filter() -> Filter {
         Filter {
-            schema_id: SchemaId::new(SCHEMA_ID),
+            schema_id: SchemaId::new_unchecked(SCHEMA_ID),
             schema_name: SCHEMA_NAME.to_string(),
             schema_issuer_did: SCHEMA_ISSUER_DID.to_string(),
             schema_version: SCHEMA_VERSION.to_string(),
-            cred_def_id: CredentialDefinitionId::new(CRED_DEF_ID),
+            cred_def_id: CredentialDefinitionId::new_unchecked(CRED_DEF_ID),
             issuer_did: ISSUER_DID.to_string(),
         }
     }

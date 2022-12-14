@@ -177,7 +177,7 @@ pub fn create_presentation(
             Schema::SchemaV1(schema) => schema,
         };
 
-        let cred_def_id = CredentialDefinitionId::new(credential.cred_def_id.clone());
+        let cred_def_id = CredentialDefinitionId::new(credential.cred_def_id.clone())?;
         let cred_def = *cred_defs.get(&cred_def_id).ok_or_else(|| {
             err_msg!(
                 "Credential Definition not provided for ID: {}",

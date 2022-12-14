@@ -150,11 +150,11 @@ fn anoncreds_works_for_single_issuer_single_prover() {
     );
 
     let mut schemas = HashMap::new();
-    let schema_id = SchemaId::new(SCHEMA_ID);
+    let schema_id = SchemaId::new_unchecked(SCHEMA_ID);
     schemas.insert(&schema_id, &gvt_schema);
 
     let mut cred_defs = HashMap::new();
-    let cred_def_id = CredentialDefinitionId::new(CRED_DEF_ID);
+    let cred_def_id = CredentialDefinitionId::new_unchecked(CRED_DEF_ID);
     cred_defs.insert(&cred_def_id, &*gvt_cred_def);
 
     let presentation = prover::create_presentation(
