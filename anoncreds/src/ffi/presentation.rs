@@ -70,10 +70,6 @@ pub extern "C" fn anoncreds_create_presentation(
     self_attest_values: FfiStrList,
     master_secret: ObjectHandle,
     schemas: FfiList<ObjectHandle>,
-    // TODO: this is index-matched with schemas. Is there a better solution?
-    // since we have an objecthandle list for the schemas we can not add Ids to them
-    // Otherwise they all would need ids and we would like to seperate that
-    // Also, we kind of do the same with `self_attested_names` and `self_attested_values`
     schema_ids: FfiStrList,
     cred_defs: FfiList<ObjectHandle>,
     cred_def_ids: FfiStrList,
