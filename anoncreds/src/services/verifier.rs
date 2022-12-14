@@ -1174,7 +1174,6 @@ mod tests {
         let mut res: HashMap<String, Identifier> = HashMap::new();
         res.insert(
             "referent_1".to_string(),
-            // TODO: what does this do
             Identifier {
                 timestamp: Some(1234),
                 schema_id: SchemaId::default(),

@@ -67,7 +67,7 @@ pub struct CredentialInfo {
     pub referent: String,
     pub attrs: ShortCredentialValues,
     pub schema_id: SchemaId,
-    pub cred_def_id: String,
+    pub cred_def_id: CredentialDefinitionId,
     pub rev_reg_id: Option<String>,
     pub cred_rev_id: Option<String>,
 }

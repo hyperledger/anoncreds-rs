@@ -20,8 +20,10 @@ macro_rules! impl_anoncreds_object_identifier {
 
         impl crate::data_types::Validatable for $i {
             fn validate(&self) -> Result<(), crate::data_types::ValidationError> {
-                // TODO: better URI regex
-                let uri_regex = regex::Regex::new(r".*").unwrap();
+                // TODO: stricten the URI regex.
+                // Right now everything after the first colon is allowed, we might want to restrict
+                // this
+                let uri_regex = regex::Regex::new(r"^[a-zA-Z0-9\+\-\.]+:.+$").unwrap();
                 uri_regex
                     .captures(&self.0)
                     .ok_or_else(|| {

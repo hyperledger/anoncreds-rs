@@ -58,11 +58,14 @@ pub fn create_credential_definition(
     CredentialDefinitionPrivate,
     CredentialKeyCorrectnessProof,
 )> {
+    let schema_id = schema_id.into();
     trace!(
         "create_credential_definition >>> schema: {:?}, config: {:?}",
         schema,
         config
     );
+
+    schema_id.validate()?;
 
     let schema = match schema {
         Schema::SchemaV1(s) => s,
@@ -79,7 +82,7 @@ pub fn create_credential_definition(
         )?;
 
     let cred_def = CredentialDefinition::CredentialDefinitionV1(CredentialDefinitionV1 {
-        schema_id: schema_id.into().to_owned(),
+        schema_id,
         signature_type,
         tag: tag.to_owned(),
         value: CredentialDefinitionData {
@@ -122,10 +125,8 @@ where
     TW: TailsWriter,
 {
     let cred_def_id = cred_def_id.into();
-
     trace!("create_revocation_registry >>> cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}, issuance_type: {:?}",
              cred_def, tag, max_cred_num, rev_reg_type, issuance_type);
-
     cred_def_id.validate()?;
 
     let cred_def = match cred_def {

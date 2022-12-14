@@ -37,7 +37,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
 
     // Issuer creates Credential Definition
     let cred_def_parts = issuer::create_credential_definition(
-        "SAMPLE_ID".to_owned(),
+        SCHEMA_ID,
         &gvt_schema,
         "tag",
         SignatureType::CL,
@@ -53,8 +53,8 @@ fn anoncreds_works_for_single_issuer_single_prover() {
 
     // Issuer creates a Credential Offer
     let cred_offer = issuer::create_credential_offer(
-        SchemaId::new(SCHEMA_ID),
-        CredentialDefinitionId::new(CRED_DEF_ID),
+        SCHEMA_ID,
+        CRED_DEF_ID,
         &issuer_wallet.cred_defs[0].key_proof,
     )
     .expect("Error creating credential offer");
