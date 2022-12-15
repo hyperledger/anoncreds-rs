@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::data_types::Validatable;
 
-use super::{cred_def::CredentialDefinitionId, schema::SchemaId, rev_reg::RevocationRegistryId};
+use super::{cred_def::CredentialDefinitionId, rev_reg::RevocationRegistryId, schema::SchemaId};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Presentation {

@@ -4,7 +4,7 @@ use zeroize::Zeroize;
 
 use crate::data_types::{Validatable, ValidationError};
 
-use super::{cred_def::CredentialDefinitionId, schema::SchemaId, rev_reg::RevocationRegistryId};
+use super::{cred_def::CredentialDefinitionId, rev_reg::RevocationRegistryId, schema::SchemaId};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Credential {

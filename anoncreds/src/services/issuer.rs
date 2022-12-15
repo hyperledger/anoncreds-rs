@@ -278,8 +278,8 @@ pub fn create_credential(
         Some(id) => {
             id.validate()?;
             Some(id)
-        },
-        None => None
+        }
+        None => None,
     };
 
     let cred_public_key = match cred_def {

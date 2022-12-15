@@ -76,7 +76,10 @@ pub extern "C" fn anoncreds_create_credential(
                 "Mismatch between length of attribute names and raw values"
             ));
         }
-        let rev_reg_id = rev_reg_id.as_opt_str().map(RevocationRegistryId::new).transpose()?;
+        let rev_reg_id = rev_reg_id
+            .as_opt_str()
+            .map(RevocationRegistryId::new)
+            .transpose()?;
         let enc_values = attr_enc_values.as_slice();
         let mut cred_values = MakeCredentialValues::default();
         let mut attr_idx = 0;
