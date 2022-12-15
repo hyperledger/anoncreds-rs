@@ -1,27 +1,25 @@
 use std::collections::HashSet;
 
 use super::tails::TailsReader;
-pub use crate::data_types::{
-    anoncreds::{
-        cred_def::{
-            CredentialDefinition, CredentialDefinitionPrivate, CredentialKeyCorrectnessProof,
-            SignatureType,
-        },
-        cred_offer::CredentialOffer,
-        cred_request::{CredentialRequest, CredentialRequestMetadata},
-        credential::{AttributeValues, Credential, CredentialValues},
-        master_secret::MasterSecret,
-        pres_request::PresentationRequest,
-        presentation::Presentation,
-        rev_reg::{RevocationRegistry, RevocationRegistryDelta},
-        rev_reg_def::{
-            IssuanceType, RegistryType, RevocationRegistryDefinition,
-            RevocationRegistryDefinitionPrivate,
-        },
-        schema::{AttributeNames, Schema},
+pub use crate::data_types::anoncreds::{
+    cred_def::{
+        CredentialDefinition, CredentialDefinitionPrivate, CredentialKeyCorrectnessProof,
+        SignatureType,
     },
-    CredentialDefinitionId, RevocationRegistryId, SchemaId,
+    cred_offer::CredentialOffer,
+    cred_request::{CredentialRequest, CredentialRequestMetadata},
+    credential::{AttributeValues, Credential, CredentialValues},
+    master_secret::MasterSecret,
+    pres_request::PresentationRequest,
+    presentation::Presentation,
+    rev_reg::{RevocationRegistry, RevocationRegistryDelta},
+    rev_reg_def::{
+        IssuanceType, RegistryType, RevocationRegistryDefinition,
+        RevocationRegistryDefinitionPrivate,
+    },
+    schema::{AttributeNames, Schema},
 };
+
 pub use indy_utils::did::DidValue;
 use indy_utils::{invalid, Validatable, ValidationError};
 

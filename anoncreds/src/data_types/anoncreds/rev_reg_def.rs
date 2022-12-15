@@ -1,12 +1,16 @@
-use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
-use crate::data_types::identifiers::rev_reg::RevocationRegistryId;
-use crate::data_types::utils::Qualifiable;
-use crate::data_types::{invalid, ConversionError, Validatable, ValidationError};
+use crate::{
+    data_types::{invalid, ConversionError, Validatable, ValidationError},
+    impl_anoncreds_object_identifier,
+};
+
+use super::cred_def::CredentialDefinitionId;
 
 pub const CL_ACCUM: &str = "CL_ACCUM";
 
 pub const ISSUANCE_BY_DEFAULT: &str = "ISSUANCE_BY_DEFAULT";
 pub const ISSUANCE_ON_DEMAND: &str = "ISSUANCE_ON_DEMAND";
+
+impl_anoncreds_object_identifier!(RevocationRegistryDefinitionId);
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -86,49 +90,19 @@ pub enum RevocationRegistryDefinition {
     RevocationRegistryDefinitionV1(RevocationRegistryDefinitionV1),
 }
 
-impl RevocationRegistryDefinition {
-    pub fn id(&self) -> &RevocationRegistryId {
-        match self {
-            RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => &r.id,
-        }
-    }
-
-    pub fn to_unqualified(self) -> RevocationRegistryDefinition {
-        match self {
-            RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => {
-                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(
-                    RevocationRegistryDefinitionV1 {
-                        id: v1.id.to_unqualified(),
-                        revoc_def_type: v1.revoc_def_type,
-                        tag: v1.tag,
-                        cred_def_id: v1.cred_def_id.to_unqualified(),
-                        value: v1.value,
-                    },
-                )
-            }
-        }
-    }
-}
-
-impl Validatable for RevocationRegistryDefinition {
-    fn validate(&self) -> Result<(), ValidationError> {
-        match self {
-            RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => {
-                v1.id.validate()?;
-            }
-        }
-        Ok(())
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDefinitionV1 {
-    pub id: RevocationRegistryId,
     pub revoc_def_type: RegistryType,
     pub tag: String,
     pub cred_def_id: CredentialDefinitionId,
     pub value: RevocationRegistryDefinitionValue,
+}
+
+impl Validatable for RevocationRegistryDefinitionV1 {
+    fn validate(&self) -> Result<(), ValidationError> {
+        self.cred_def_id.validate()
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

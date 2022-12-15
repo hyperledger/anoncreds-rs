@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
-use crate::data_types::identifiers::rev_reg::RevocationRegistryId;
-use crate::data_types::identifiers::schema::SchemaId;
 use crate::data_types::Validatable;
+
+use super::{cred_def::CredentialDefinitionId, rev_reg::RevocationRegistryId, schema::SchemaId};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Presentation {

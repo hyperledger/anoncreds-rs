@@ -1,6 +1,4 @@
-use super::nonce::Nonce;
-use crate::data_types::identifiers::cred_def::CredentialDefinitionId;
-use crate::data_types::utils::Qualifiable;
+use super::{cred_def::CredentialDefinitionId, nonce::Nonce};
 use crate::data_types::{Validatable, ValidationError};
 use indy_utils::did::DidValue;
 
@@ -13,23 +11,10 @@ pub struct CredentialRequest {
     pub nonce: Nonce,
 }
 
-impl CredentialRequest {
-    #[allow(unused)]
-    pub fn to_unqualified(self) -> CredentialRequest {
-        CredentialRequest {
-            prover_did: self.prover_did.to_unqualified(),
-            cred_def_id: self.cred_def_id.to_unqualified(),
-            blinded_ms: self.blinded_ms,
-            blinded_ms_correctness_proof: self.blinded_ms_correctness_proof,
-            nonce: self.nonce,
-        }
-    }
-}
-
 impl Validatable for CredentialRequest {
     fn validate(&self) -> Result<(), ValidationError> {
-        self.cred_def_id.validate()?;
         self.prover_did.validate()?;
+        self.cred_def_id.validate()?;
         Ok(())
     }
 }

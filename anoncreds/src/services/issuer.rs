@@ -1,7 +1,12 @@
 use std::collections::{BTreeSet, HashSet};
 use std::iter::FromIterator;
 
+use indy_utils::Validatable;
+
 use super::types::*;
+use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
+use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
+use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
     cred_def::{CredentialDefinitionData, CredentialDefinitionV1},
     nonce::Nonce,
@@ -18,24 +23,23 @@ use crate::ursa::cl::{
     issuer::Issuer as CryptoIssuer, RevocationRegistryDelta as CryptoRevocationRegistryDelta,
     Witness,
 };
-use indy_utils::{Qualifiable, Validatable};
 
 use super::tails::{TailsFileReader, TailsReader, TailsWriter};
 
 pub fn create_schema(
-    origin_did: &DidValue,
     schema_name: &str,
     schema_version: &str,
     attr_names: AttributeNames,
     seq_no: Option<u32>,
 ) -> Result<Schema> {
-    trace!("create_schema >>> origin_did: {:?}, schema_name: {:?}, schema_version: {:?}, attr_names: {:?}",
-        origin_did, schema_name, schema_version, attr_names);
+    trace!(
+        "create_schema >>> schema_name: {:?}, schema_version: {:?}, attr_names: {:?}",
+        schema_name,
+        schema_version,
+        attr_names
+    );
 
-    origin_did.validate()?;
-    let schema_id = SchemaId::new(&origin_did, schema_name, schema_version);
     let schema = SchemaV1 {
-        id: schema_id,
         name: schema_name.to_string(),
         version: schema_version.to_string(),
         attr_names,
@@ -44,35 +48,8 @@ pub fn create_schema(
     Ok(Schema::SchemaV1(schema))
 }
 
-pub fn make_credential_definition_id(
-    origin_did: &DidValue,
-    schema_id: &SchemaId,
-    schema_seq_no: Option<u32>,
-    tag: &str,
-    signature_type: SignatureType,
-) -> Result<CredentialDefinitionId> {
-    let schema_id = match (origin_did.get_method(), schema_id.get_method()) {
-        (None, Some(_)) => {
-            return Err(err_msg!(
-                "Cannot use an unqualified Origin DID with fully qualified Schema ID",
-            ));
-        }
-        (method, _) => schema_id.default_method(method),
-    };
-    let schema_infix_id = schema_seq_no
-        .map(|n| SchemaId(n.to_string()))
-        .unwrap_or(schema_id.clone());
-
-    Ok(CredentialDefinitionId::new(
-        origin_did,
-        &schema_infix_id,
-        &signature_type.to_str(),
-        tag,
-    ))
-}
-
 pub fn create_credential_definition(
-    origin_did: &DidValue,
+    schema_id: impl Into<SchemaId>,
     schema: &Schema,
     tag: &str,
     signature_type: SignatureType,
@@ -82,26 +59,18 @@ pub fn create_credential_definition(
     CredentialDefinitionPrivate,
     CredentialKeyCorrectnessProof,
 )> {
+    let schema_id = schema_id.into();
     trace!(
         "create_credential_definition >>> schema: {:?}, config: {:?}",
         schema,
         config
     );
 
+    schema_id.validate()?;
+
     let schema = match schema {
         Schema::SchemaV1(s) => s,
     };
-    let cred_def_id =
-        make_credential_definition_id(origin_did, &schema.id, schema.seq_no, tag, signature_type)?;
-
-    // Indy-Node requires the published schema ID field is the schema sequence number
-    let schema_id = SchemaId(
-        schema
-            .seq_no
-            .as_ref()
-            .map(|s| s.to_string())
-            .unwrap_or(schema.id.0.clone()),
-    );
 
     let credential_schema = build_credential_schema(&schema.attr_names.0)?;
     let non_credential_schema = build_non_credential_schema()?;
@@ -114,7 +83,6 @@ pub fn create_credential_definition(
         )?;
 
     let cred_def = CredentialDefinition::CredentialDefinitionV1(CredentialDefinitionV1 {
-        id: cred_def_id,
         schema_id,
         signature_type,
         tag: tag.to_owned(),
@@ -140,37 +108,9 @@ pub fn create_credential_definition(
     Ok((cred_def, cred_def_private, cred_key_proof))
 }
 
-pub fn make_revocation_registry_id(
-    origin_did: &DidValue,
-    cred_def: &CredentialDefinition,
-    tag: &str,
-    rev_reg_type: RegistryType,
-) -> Result<RevocationRegistryId> {
-    let cred_def = match cred_def {
-        CredentialDefinition::CredentialDefinitionV1(c) => c,
-    };
-
-    let origin_did = match (origin_did.get_method(), cred_def.id.get_method()) {
-        (None, Some(_)) => {
-            return Err(err_msg!("Cannot use an unqualified Origin DID with a fully qualified Credential Definition ID"));
-        }
-        (Some(_), None) => {
-            return Err(err_msg!("Cannot use a fully qualified Origin DID with an unqualified Credential Definition ID"));
-        }
-        _ => origin_did,
-    };
-
-    Ok(RevocationRegistryId::new(
-        &origin_did,
-        &cred_def.id,
-        &rev_reg_type.to_str(),
-        tag,
-    ))
-}
-
 pub fn create_revocation_registry<TW>(
-    origin_did: &DidValue,
     cred_def: &CredentialDefinition,
+    cred_def_id: impl Into<CredentialDefinitionId>,
     tag: &str,
     rev_reg_type: RegistryType,
     issuance_type: IssuanceType,
@@ -185,10 +125,10 @@ pub fn create_revocation_registry<TW>(
 where
     TW: TailsWriter,
 {
-    trace!("create_revocation_registry >>> origin_did: {:?}, cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}, issuance_type: {:?}",
-            origin_did, cred_def, tag, max_cred_num, rev_reg_type, issuance_type);
-
-    let rev_reg_id = make_revocation_registry_id(origin_did, cred_def, tag, rev_reg_type)?;
+    let cred_def_id = cred_def_id.into();
+    trace!("create_revocation_registry >>> cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}, issuance_type: {:?}",
+             cred_def, tag, max_cred_num, rev_reg_type, issuance_type);
+    cred_def_id.validate()?;
 
     let cred_def = match cred_def {
         CredentialDefinition::CredentialDefinitionV1(c) => c,
@@ -219,10 +159,9 @@ where
 
     let revoc_reg_def = RevocationRegistryDefinition::RevocationRegistryDefinitionV1(
         RevocationRegistryDefinitionV1 {
-            id: rev_reg_id.clone(),
             revoc_def_type: rev_reg_type,
             tag: tag.to_string(),
-            cred_def_id: cred_def.id.clone(),
+            cred_def_id,
             value: revoc_reg_def_value,
         },
     );
@@ -291,24 +230,24 @@ pub fn update_revocation_registry(
 }
 
 pub fn create_credential_offer(
-    schema_id: &SchemaId,
-    cred_def: &CredentialDefinition,
+    schema_id: impl Into<SchemaId>,
+    cred_def_id: impl Into<CredentialDefinitionId>,
     correctness_proof: &CredentialKeyCorrectnessProof,
 ) -> Result<CredentialOffer> {
-    trace!("create_credential_offer >>> cred_def: {:?}", cred_def);
+    let schema_id = schema_id.into();
+    let cred_def_id = cred_def_id.into();
+    trace!("create_credential_offer >>> cred_def_id: {:?}", cred_def_id);
+    schema_id.validate()?;
+    cred_def_id.validate()?;
 
     let nonce = Nonce::new().map_err(err_map!(Unexpected, "Error creating nonce"))?;
-
-    let cred_def = match cred_def {
-        CredentialDefinition::CredentialDefinitionV1(c) => c,
-    };
 
     let key_correctness_proof = correctness_proof
         .try_clone()
         .map_err(err_map!(Unexpected))?;
     let credential_offer = CredentialOffer {
-        schema_id: schema_id.clone(),
-        cred_def_id: cred_def.id.clone(),
+        schema_id,
+        cred_def_id,
         key_correctness_proof: key_correctness_proof.value,
         nonce,
         method_name: None,
@@ -324,6 +263,7 @@ pub fn create_credential(
     cred_offer: &CredentialOffer,
     cred_request: &CredentialRequest,
     cred_values: CredentialValues,
+    rev_reg_id: Option<RevocationRegistryId>,
     revocation_config: Option<CredentialRevocationConfig>,
 ) -> Result<(
     Credential,
@@ -334,6 +274,13 @@ pub fn create_credential(
             cred_values: {:?}, revocation_config: {:?}",
             cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&cred_values), revocation_config,
             );
+    let rev_reg_id = match rev_reg_id {
+        Some(id) => {
+            id.validate()?;
+            Some(id)
+        }
+        None => None,
+    };
 
     let cred_public_key = match cred_def {
         CredentialDefinition::CredentialDefinitionV1(cd) => {
@@ -345,25 +292,64 @@ pub fn create_credential(
     };
     let credential_values = build_credential_values(&cred_values.0, None)?;
 
-    let (
-        credential_signature,
-        signature_correctness_proof,
-        rev_reg_id,
-        rev_reg,
-        rev_reg_delta,
-        witness,
-    ) = match revocation_config {
-        Some(revocation) => {
-            let (rev_reg_def, reg_reg_id) = match revocation.reg_def {
-                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => {
-                    (&v1.value, v1.id.clone())
-                }
-            };
-            let mut rev_reg = match revocation.registry {
-                RevocationRegistry::RevocationRegistryV1(v1) => v1.value.clone(),
-            };
-            let (credential_signature, signature_correctness_proof, delta) =
-                CryptoIssuer::sign_credential_with_revoc(
+    let (credential_signature, signature_correctness_proof, rev_reg, rev_reg_delta, witness) =
+        match revocation_config {
+            Some(revocation) => {
+                let rev_reg_def = match revocation.reg_def {
+                    RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => &v1.value,
+                };
+                let mut rev_reg = match revocation.registry {
+                    RevocationRegistry::RevocationRegistryV1(v1) => v1.value.clone(),
+                };
+                let (credential_signature, signature_correctness_proof, delta) =
+                    CryptoIssuer::sign_credential_with_revoc(
+                        &cred_request.prover_did.0,
+                        &cred_request.blinded_ms,
+                        &cred_request.blinded_ms_correctness_proof,
+                        cred_offer.nonce.as_native(),
+                        cred_request.nonce.as_native(),
+                        &credential_values,
+                        &cred_public_key,
+                        &cred_def_private.value,
+                        revocation.registry_idx,
+                        rev_reg_def.max_cred_num,
+                        rev_reg_def.issuance_type.to_bool(),
+                        &mut rev_reg,
+                        &revocation.reg_def_private.value,
+                        &revocation.tails_reader,
+                    )?;
+
+                let witness = {
+                    let empty = HashSet::new();
+                    let (by_default, issued, revoked) = match rev_reg_def.issuance_type {
+                        IssuanceType::ISSUANCE_ON_DEMAND => {
+                            (false, revocation.registry_used, &empty)
+                        }
+                        IssuanceType::ISSUANCE_BY_DEFAULT => {
+                            (true, &empty, revocation.registry_used)
+                        }
+                    };
+
+                    let rev_reg_delta =
+                        CryptoRevocationRegistryDelta::from_parts(None, &rev_reg, issued, revoked);
+                    Witness::new(
+                        revocation.registry_idx,
+                        rev_reg_def.max_cred_num,
+                        by_default,
+                        &rev_reg_delta,
+                        &revocation.tails_reader,
+                    )?
+                };
+                (
+                    credential_signature,
+                    signature_correctness_proof,
+                    Some(rev_reg),
+                    delta,
+                    Some(witness),
+                )
+            }
+            None => {
+                let (signature, correctness_proof) = CryptoIssuer::sign_credential(
                     &cred_request.prover_did.0,
                     &cred_request.blinded_ms,
                     &cred_request.blinded_ms_correctness_proof,
@@ -372,62 +358,14 @@ pub fn create_credential(
                     &credential_values,
                     &cred_public_key,
                     &cred_def_private.value,
-                    revocation.registry_idx,
-                    rev_reg_def.max_cred_num,
-                    rev_reg_def.issuance_type.to_bool(),
-                    &mut rev_reg,
-                    &revocation.reg_def_private.value,
-                    &revocation.tails_reader,
                 )?;
-
-            let cred_rev_reg_id = match cred_offer.method_name.as_ref() {
-                Some(ref _method_name) => Some(reg_reg_id.to_unqualified()),
-                _ => Some(reg_reg_id.clone()),
-            };
-            let witness = {
-                let empty = HashSet::new();
-                let (by_default, issued, revoked) = match rev_reg_def.issuance_type {
-                    IssuanceType::ISSUANCE_ON_DEMAND => (false, revocation.registry_used, &empty),
-                    IssuanceType::ISSUANCE_BY_DEFAULT => (true, &empty, revocation.registry_used),
-                };
-
-                let rev_reg_delta =
-                    CryptoRevocationRegistryDelta::from_parts(None, &rev_reg, issued, revoked);
-                Witness::new(
-                    revocation.registry_idx,
-                    rev_reg_def.max_cred_num,
-                    by_default,
-                    &rev_reg_delta,
-                    &revocation.tails_reader,
-                )?
-            };
-            (
-                credential_signature,
-                signature_correctness_proof,
-                cred_rev_reg_id,
-                Some(rev_reg),
-                delta,
-                Some(witness),
-            )
-        }
-        None => {
-            let (signature, correctness_proof) = CryptoIssuer::sign_credential(
-                &cred_request.prover_did.0,
-                &cred_request.blinded_ms,
-                &cred_request.blinded_ms_correctness_proof,
-                cred_offer.nonce.as_native(),
-                cred_request.nonce.as_native(),
-                &credential_values,
-                &cred_public_key,
-                &cred_def_private.value,
-            )?;
-            (signature, correctness_proof, None, None, None, None)
-        }
-    };
+                (signature, correctness_proof, None, None, None)
+            }
+        };
 
     let credential = Credential {
-        schema_id: cred_offer.schema_id.clone(),
-        cred_def_id: cred_offer.cred_def_id.clone(),
+        schema_id: cred_offer.schema_id.to_owned(),
+        cred_def_id: cred_offer.cred_def_id.to_owned(),
         rev_reg_id,
         values: cred_values,
         signature: credential_signature,

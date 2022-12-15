@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 
-use crate::data_types::Validatable;
+use crate::{data_types::Validatable, impl_anoncreds_object_identifier};
+
+impl_anoncreds_object_identifier!(RevocationRegistryId);
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "ver")]

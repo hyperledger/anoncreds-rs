@@ -5,6 +5,10 @@ use regex::Regex;
 
 use super::helpers::*;
 use super::types::*;
+use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
+use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
+use crate::data_types::anoncreds::rev_reg_def::RevocationRegistryDefinitionId;
+use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
     nonce::Nonce,
     pres_request::{AttributeInfo, NonRevocedInterval, PredicateInfo, PresentationRequestPayload},
@@ -16,12 +20,12 @@ use indy_utils::query::Query;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Filter {
-    schema_id: String,
+    schema_id: SchemaId,
     schema_issuer_did: String,
     schema_name: String,
     schema_version: String,
     issuer_did: String,
-    cred_def_id: String,
+    cred_def_id: CredentialDefinitionId,
 }
 
 static INTERNAL_TAG_MATCHER: Lazy<Regex> =
@@ -30,9 +34,9 @@ static INTERNAL_TAG_MATCHER: Lazy<Regex> =
 pub fn verify_presentation(
     presentation: &Presentation,
     pres_req: &PresentationRequest,
-    schemas: &HashMap<SchemaId, &Schema>,
-    cred_defs: &HashMap<CredentialDefinitionId, &CredentialDefinition>,
-    rev_reg_defs: Option<&HashMap<RevocationRegistryId, &RevocationRegistryDefinition>>,
+    schemas: &HashMap<&SchemaId, &Schema>,
+    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
+    rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
     rev_regs: Option<&HashMap<RevocationRegistryId, HashMap<u64, &RevocationRegistry>>>,
 ) -> Result<bool> {
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_regs: {:?}",
@@ -86,7 +90,8 @@ pub fn verify_presentation(
             Schema::SchemaV1(schema) => schema,
         };
 
-        let cred_def = match cred_defs.get(&identifier.cred_def_id).ok_or_else(|| {
+        let cred_def_id = CredentialDefinitionId::new(identifier.cred_def_id.clone())?;
+        let cred_def = match cred_defs.get(&cred_def_id).ok_or_else(|| {
             err_msg!(
                 "Credential Definition not provided for ID: {:?}",
                 identifier.cred_def_id
@@ -110,14 +115,19 @@ pub fn verify_presentation(
                 ));
             }
 
-            let rev_reg_def = Some(rev_reg_defs.as_ref().unwrap().get(&rev_reg_id).ok_or_else(
-                || {
-                    err_msg!(
-                        "Revocation Registry Definition not provided for ID: {:?}",
-                        rev_reg_id
-                    )
-                },
-            )?);
+            let rev_reg_def_id = RevocationRegistryDefinitionId::new(rev_reg_id.clone())?;
+            let rev_reg_def = Some(
+                rev_reg_defs
+                    .as_ref()
+                    .unwrap()
+                    .get(&rev_reg_def_id)
+                    .ok_or_else(|| {
+                        err_msg!(
+                            "Revocation Registry Definition not provided for ID: {:?}",
+                            rev_reg_def_id
+                        )
+                    })?,
+            );
 
             let rev_reg = Some(
                 rev_regs
@@ -675,28 +685,26 @@ fn gather_filter_info(referent: &str, identifiers: &HashMap<String, Identifier>)
         )
     })?;
 
-    let (_, schema_issuer_did, schema_name, schema_version) =
-        identifier.schema_id.parts().ok_or_else(|| {
-            err_msg!(
-                "Invalid Schema ID `{}`: wrong number of parts",
-                identifier.schema_id.0
-            )
-        })?;
+    // TODO: how can we get these as as we can not extract them from the ID anymore
+    let schema_name = String::from("");
+    let schema_version = String::from("");
+    let schema_issuer_did = String::from("");
+    let cred_def_issuer_did = Some(String::from(""));
 
-    let issuer_did = identifier.cred_def_id.issuer_did().ok_or_else(|| {
+    let issuer_did = cred_def_issuer_did.ok_or_else(|| {
         err_msg!(
             "Invalid Credential Definition ID `{}`: wrong number of parts",
-            identifier.cred_def_id.0
+            identifier.cred_def_id
         )
     })?;
 
     Ok(Filter {
-        schema_id: identifier.schema_id.0.to_string(),
+        schema_id: identifier.schema_id.to_owned(),
         schema_name,
-        schema_issuer_did: schema_issuer_did.0,
+        schema_issuer_did,
         schema_version,
-        cred_def_id: identifier.cred_def_id.0.to_string(),
-        issuer_did: issuer_did.0,
+        cred_def_id: identifier.cred_def_id.to_owned(),
+        issuer_did,
     })
 }
 
@@ -783,11 +791,11 @@ fn process_filter(
         filter
     );
     match tag {
-        tag_ @ "schema_id" => precess_filed(tag_, &filter.schema_id, tag_value),
+        tag_ @ "schema_id" => precess_filed(tag_, filter.schema_id.to_string(), tag_value),
         tag_ @ "schema_issuer_did" => precess_filed(tag_, &filter.schema_issuer_did, tag_value),
         tag_ @ "schema_name" => precess_filed(tag_, &filter.schema_name, tag_value),
         tag_ @ "schema_version" => precess_filed(tag_, &filter.schema_version, tag_value),
-        tag_ @ "cred_def_id" => precess_filed(tag_, &filter.cred_def_id, tag_value),
+        tag_ @ "cred_def_id" => precess_filed(tag_, &filter.cred_def_id.to_string(), tag_value),
         tag_ @ "issuer_did" => precess_filed(tag_, &filter.issuer_did, tag_value),
         x if is_attr_internal_tag(x, attr_value_map) => {
             check_internal_tag_revealed_value(x, tag_value, attr_value_map)
@@ -797,7 +805,8 @@ fn process_filter(
     }
 }
 
-fn precess_filed(filed: &str, filter_value: &str, tag_value: &str) -> Result<()> {
+fn precess_filed(filed: &str, filter_value: impl Into<String>, tag_value: &str) -> Result<()> {
+    let filter_value = filter_value.into();
     if filter_value == tag_value {
         Ok(())
     } else {
@@ -900,11 +909,11 @@ mod tests {
 
     fn filter() -> Filter {
         Filter {
-            schema_id: SCHEMA_ID.to_string(),
+            schema_id: SchemaId::new_unchecked(SCHEMA_ID),
             schema_name: SCHEMA_NAME.to_string(),
             schema_issuer_did: SCHEMA_ISSUER_DID.to_string(),
             schema_version: SCHEMA_VERSION.to_string(),
-            cred_def_id: CRED_DEF_ID.to_string(),
+            cred_def_id: CredentialDefinitionId::new_unchecked(CRED_DEF_ID),
             issuer_did: ISSUER_DID.to_string(),
         }
     }
@@ -1168,18 +1177,18 @@ mod tests {
             "referent_1".to_string(),
             Identifier {
                 timestamp: Some(1234),
-                schema_id: SchemaId(String::new()),
-                cred_def_id: CredentialDefinitionId(String::new()),
-                rev_reg_id: Some(RevocationRegistryId(String::new())),
+                schema_id: SchemaId::default(),
+                cred_def_id: CredentialDefinitionId::default(),
+                rev_reg_id: Some(RevocationRegistryId::default()),
             },
         );
         res.insert(
             "referent_2".to_string(),
             Identifier {
                 timestamp: None,
-                schema_id: SchemaId(String::new()),
-                cred_def_id: CredentialDefinitionId(String::new()),
-                rev_reg_id: Some(RevocationRegistryId(String::new())),
+                schema_id: SchemaId::default(),
+                cred_def_id: CredentialDefinitionId::default(),
+                rev_reg_id: Some(RevocationRegistryId::default()),
             },
         );
         res

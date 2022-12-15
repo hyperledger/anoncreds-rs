@@ -2,12 +2,14 @@ use std::collections::{HashMap, HashSet};
 
 use super::types::*;
 use crate::data_types::anoncreds::{
+    cred_def::CredentialDefinitionId,
     credential::AttributeValues,
     pres_request::{PresentationRequestPayload, RequestedAttributeInfo, RequestedPredicateInfo},
     presentation::{
         AttributeValue, Identifier, RequestedProof, RevealedAttributeGroupInfo,
         RevealedAttributeInfo, SubProofReferent,
     },
+    schema::SchemaId,
 };
 use crate::error::Result;
 use crate::services::helpers::*;
@@ -16,7 +18,7 @@ use crate::ursa::cl::{
     verifier::Verifier as CryptoVerifier, CredentialPublicKey,
     RevocationRegistry as CryptoRevocationRegistry, SubProofRequest, Witness,
 };
-use indy_utils::{Qualifiable, Validatable};
+use indy_utils::Validatable;
 
 use super::tails::TailsReader;
 
@@ -62,7 +64,7 @@ pub fn create_credential_request(
 
     let credential_request = CredentialRequest {
         prover_did: prover_did.clone(),
-        cred_def_id: credential_offer.cred_def_id.clone(),
+        cred_def_id: credential_offer.cred_def_id.to_owned(),
         blinded_ms,
         blinded_ms_correctness_proof,
         nonce,
@@ -131,8 +133,8 @@ pub fn create_presentation(
     credentials: PresentCredentials,
     self_attested: Option<HashMap<String, String>>,
     master_secret: &MasterSecret,
-    schemas: &HashMap<SchemaId, &Schema>,
-    cred_defs: &HashMap<CredentialDefinitionId, &CredentialDefinition>,
+    schemas: &HashMap<&SchemaId, &Schema>,
+    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
 ) -> Result<Presentation> {
     trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, master_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
             credentials, pres_req, credentials, &self_attested, secret!(&master_secret), schemas, cred_defs);
@@ -175,7 +177,8 @@ pub fn create_presentation(
             Schema::SchemaV1(schema) => schema,
         };
 
-        let cred_def = *cred_defs.get(&credential.cred_def_id).ok_or_else(|| {
+        let cred_def_id = CredentialDefinitionId::new(credential.cred_def_id.clone())?;
+        let cred_def = *cred_defs.get(&cred_def_id).ok_or_else(|| {
             err_msg!(
                 "Credential Definition not provided for ID: {}",
                 credential.cred_def_id
@@ -213,14 +216,14 @@ pub fn create_presentation(
 
         let identifier = match pres_req {
             PresentationRequest::PresentationRequestV1(_) => Identifier {
-                schema_id: credential.schema_id.to_unqualified(),
-                cred_def_id: credential.cred_def_id.to_unqualified(),
-                rev_reg_id: credential.rev_reg_id.as_ref().map(|id| id.to_unqualified()),
+                schema_id: credential.schema_id.to_owned(),
+                cred_def_id: credential.cred_def_id.to_owned(),
+                rev_reg_id: credential.rev_reg_id.clone(),
                 timestamp: present.timestamp,
             },
             PresentationRequest::PresentationRequestV2(_) => Identifier {
-                schema_id: credential.schema_id.clone(),
-                cred_def_id: credential.cred_def_id.clone(),
+                schema_id: credential.schema_id.to_owned(),
+                cred_def_id: credential.cred_def_id.to_owned(),
                 rev_reg_id: credential.rev_reg_id.clone(),
                 timestamp: present.timestamp,
             },

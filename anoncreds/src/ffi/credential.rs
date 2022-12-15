@@ -8,6 +8,7 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
+use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
 use crate::error::Result;
 use crate::services::{
     issuer::create_credential,
@@ -59,6 +60,7 @@ pub extern "C" fn anoncreds_create_credential(
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
     attr_enc_values: FfiStrList,
+    rev_reg_id: FfiStr,
     revocation: *const FfiCredRevInfo,
     cred_p: *mut ObjectHandle,
     rev_reg_p: *mut ObjectHandle,
@@ -74,6 +76,10 @@ pub extern "C" fn anoncreds_create_credential(
                 "Mismatch between length of attribute names and raw values"
             ));
         }
+        let rev_reg_id = rev_reg_id
+            .as_opt_str()
+            .map(RevocationRegistryId::new)
+            .transpose()?;
         let enc_values = attr_enc_values.as_slice();
         let mut cred_values = MakeCredentialValues::default();
         let mut attr_idx = 0;
@@ -137,6 +143,7 @@ pub extern "C" fn anoncreds_create_credential(
             cred_offer.load()?.cast_ref()?,
             cred_request.load()?.cast_ref()?,
             cred_values.into(),
+            rev_reg_id,
             revocation_config
                 .as_ref()
                 .map(RevocationConfig::as_ref_config)
@@ -230,7 +237,7 @@ pub extern "C" fn anoncreds_credential_get_attribute(
         let cred = handle.load()?;
         let cred = cred.cast_ref::<Credential>()?;
         let val = match name.as_opt_str().unwrap_or_default() {
-            "schema_id" => rust_string_to_c(cred.schema_id.to_string()),
+            "schema_id" => rust_string_to_c(cred.schema_id.to_owned()),
             "cred_def_id" => rust_string_to_c(cred.cred_def_id.to_string()),
             "rev_reg_id" => cred
                 .rev_reg_id

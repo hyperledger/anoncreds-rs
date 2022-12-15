@@ -10,6 +10,7 @@ macro_rules! invalid {
 }
 
 /// Trait for data types which need validation after being loaded from external sources
+/// TODO: this should not default to Ok(())
 pub trait Validatable {
     fn validate(&self) -> Result<(), ValidationError> {
         Ok(())
