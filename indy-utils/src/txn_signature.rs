@@ -26,7 +26,7 @@ fn _serialize_signature(
         SJsonValue::Number(value) => Ok(value.to_string()),
         SJsonValue::String(value) => Ok(value.to_string()),
         SJsonValue::Array(array) => array
-            .into_iter()
+            .iter()
             .map(|element| _serialize_signature(element, false, _type))
             .collect::<Result<Vec<String>, ValidationError>>()
             .map(|res| res.join(",")),
@@ -49,7 +49,7 @@ fn _serialize_signature(
                 {
                     // do it only for attribute related request
                     let hash = SHA256::digest(
-                        &value
+                        value
                             .as_str()
                             .ok_or_else(|| invalid!("Cannot update hash context"))?
                             .as_bytes(),

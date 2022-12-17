@@ -72,7 +72,7 @@ pub struct TailsFileReader {
 }
 
 impl TailsFileReader {
-    pub fn new(path: &str) -> TailsReader {
+    pub fn new_tails_reader(path: &str) -> TailsReader {
         TailsReader::new(Self {
             path: path.to_owned(),
             file: None,
@@ -103,7 +103,7 @@ impl TailsReaderImpl for TailsFileReader {
 
         self.open()?;
         let file = self.file.as_mut().unwrap();
-        file.seek(SeekFrom::Start(0))?;
+        file.rewind()?;
         let mut hasher = Sha256::default();
         let mut buf = [0u8; 1024];
 
@@ -143,7 +143,7 @@ impl TailsFileWriter {
         Self {
             root_path: root_path
                 .map(PathBuf::from)
-                .unwrap_or_else(|| std::env::temp_dir()),
+                .unwrap_or_else(std::env::temp_dir),
         }
     }
 }
@@ -154,14 +154,14 @@ impl TailsWriter for TailsFileWriter {
         let file = tempf.as_file_mut();
         let mut hasher = Sha256::default();
         let version = &[0u8, 2u8];
-        file.write(version)?;
+        file.write_all(version)?;
         hasher.update(version);
         while let Some(tail) = generator.try_next()? {
             let tail_bytes = tail.to_bytes()?;
-            file.write(tail_bytes.as_slice())?;
+            file.write_all(tail_bytes.as_slice())?;
             hasher.update(tail_bytes);
         }
-        let tails_size = &file.seek(SeekFrom::Current(0))?;
+        let tails_size = file.stream_position()?;
         let hash = base58::encode(hasher.finalize());
         let path = tempf.path().with_file_name(hash.clone());
         let _outf = match tempf.persist_noclobber(&path) {

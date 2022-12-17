@@ -9,15 +9,15 @@ macro_rules! impl_anoncreds_object_identifier {
                 Self(s.into())
             }
 
-            pub fn new(s: impl Into<String>) -> Result<Self, crate::data_types::ValidationError> {
+            pub fn new(s: impl Into<String>) -> Result<Self, $crate::data_types::ValidationError> {
                 let s = Self(s.into());
                 s.validate()?;
                 Ok(s)
             }
         }
 
-        impl crate::data_types::Validatable for $i {
-            fn validate(&self) -> Result<(), crate::data_types::ValidationError> {
+        impl $crate::data_types::Validatable for $i {
+            fn validate(&self) -> Result<(), $crate::data_types::ValidationError> {
                 // TODO: stricten the URI regex.
                 // Right now everything after the first colon is allowed, we might want to restrict
                 // this
@@ -35,23 +35,25 @@ macro_rules! impl_anoncreds_object_identifier {
             }
         }
 
-        impl Into<String> for $i {
-            fn into(self) -> String {
-                self.0
+        impl From<$i> for String {
+            fn from(i: $i) -> Self {
+                i.0
             }
         }
 
-        // TODO: replace these with TryInto
-        impl From<String> for $i {
-            fn from(value: String) -> Self {
-                $i::new_unchecked(value)
+        impl TryFrom<String> for $i {
+            type Error = indy_utils::ValidationError;
+
+            fn try_from(value: String) -> Result<Self, Self::Error> {
+                $i::new(value)
             }
         }
 
-        // TODO: replace these with TryInto
-        impl From<&str> for $i {
-            fn from(value: &str) -> Self {
-                $i::new_unchecked(value.to_owned())
+        impl TryFrom<&str> for $i {
+            type Error = indy_utils::ValidationError;
+
+            fn try_from(value: &str) -> Result<Self, Self::Error> {
+                $i::new(value.to_owned())
             }
         }
 

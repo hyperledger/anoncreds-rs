@@ -55,7 +55,7 @@ impl PrivateKey {
     #[cfg(feature = "ed25519")]
     pub fn from_seed(seed: &[u8]) -> Result<Self, ConversionError> {
         let sk = SecretKey::from_bytes(seed)
-            .map_err(|err| format!("Error creating signing key: {}", err))?;
+            .map_err(|err| format!("Error creating signing key: {err}"))?;
         let mut esk = [0u8; 64];
         esk[..32].copy_from_slice(sk.as_bytes());
         esk[32..].copy_from_slice(PublicKey::from(&sk).as_bytes());
@@ -81,7 +81,7 @@ impl PrivateKey {
                 let x_sk =
                     x25519_dalek::StaticSecret::from(<[u8; 32]>::try_from(&hash[..32]).unwrap());
                 hash.zeroize();
-                Ok(Self::new(&x_sk.to_bytes(), Some(KeyType::X25519)))
+                Ok(Self::new(x_sk.to_bytes(), Some(KeyType::X25519)))
             }
             _ => Err("Unsupported key format for key exchange".into()),
         }
@@ -179,7 +179,7 @@ impl VerKey {
                 let vky = CompressedEdwardsY::from_slice(&self.key[..]);
                 if let Some(x_vk) = vky.decompress() {
                     Ok(Self::new(
-                        x_vk.to_montgomery().as_bytes().to_vec(),
+                        x_vk.to_montgomery().as_bytes(),
                         Some(KeyType::X25519),
                     ))
                 } else {
@@ -220,7 +220,7 @@ impl std::fmt::Display for VerKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.as_base58() {
             Ok(k) => k.fmt(f),
-            Err(err) => write!(f, "<Error encoding key: {}>", err),
+            Err(err) => write!(f, "<Error encoding key: {err}>"),
         }
     }
 }
@@ -273,8 +273,8 @@ impl EncodedVerKey {
     }
 
     pub fn from_did_and_verkey(did: &str, key: &str) -> Result<Self, ConversionError> {
-        if key.chars().next() == Some('~') {
-            let mut vk_bytes = base58::decode(&key[1..])?;
+        if let Some(stripped) = key.strip_prefix('~') {
+            let mut vk_bytes = base58::decode(stripped)?;
             if vk_bytes.len() != 16 {
                 return Err("Expected 16-byte abbreviated verkey".into());
             }
@@ -284,7 +284,7 @@ impl EncodedVerKey {
             }
             did_bytes.append(&mut vk_bytes);
             Ok(Self::new(
-                &base58::encode(did_bytes),
+                base58::encode(did_bytes),
                 Some(KeyType::ED25519),
                 Some(KeyEncoding::BASE58),
             ))
@@ -327,8 +327,8 @@ impl EncodedVerKey {
         Self::from_str_qualified(key, None, None, None)
     }
 
-    pub fn from_str(key: &str) -> Result<Self, ConversionError> {
-        Self::from_str_qualified(key, None, None, None)
+    pub fn from_string(key: impl Into<String>) -> Result<Self, ConversionError> {
+        Self::from_str_qualified(key.into().as_str(), None, None, None)
     }
 
     pub fn from_str_qualified(
@@ -348,13 +348,13 @@ impl EncodedVerKey {
             (key, alg)
         };
 
-        if key.starts_with('~') {
+        if let Some(stripped) = key.strip_prefix('~') {
             let dest =
                 unwrap_opt_or_return!(dest, Err("Destination required for short verkey".into()));
             let mut result = base58::decode(dest)?;
-            let mut end = base58::decode(&key[1..])?;
+            let mut end = base58::decode(stripped)?;
             result.append(&mut end);
-            Ok(Self::new(&base58::encode(result), alg, enc))
+            Ok(Self::new(base58::encode(result), alg, enc))
         } else {
             Ok(Self::new(key, alg, enc))
         }
@@ -454,7 +454,7 @@ mod tests {
     #[test]
     fn from_str_empty() {
         assert_eq!(
-            EncodedVerKey::from_str("").unwrap(),
+            EncodedVerKey::from_string("").unwrap(),
             EncodedVerKey::new("", Some(KeyType::default()), Some(KeyEncoding::default()))
         )
     }
@@ -462,7 +462,7 @@ mod tests {
     #[test]
     fn from_str_single_colon() {
         assert_eq!(
-            EncodedVerKey::from_str(":").unwrap(),
+            EncodedVerKey::from_string(":").unwrap(),
             EncodedVerKey::new("", Some(KeyType::default()), Some(KeyEncoding::default()))
         )
     }
@@ -470,7 +470,7 @@ mod tests {
     #[test]
     fn from_str_ends_with_colon() {
         assert_eq!(
-            EncodedVerKey::from_str("foo:").unwrap(),
+            EncodedVerKey::from_string("foo:").unwrap(),
             EncodedVerKey::new(
                 "foo",
                 Some(KeyType::default()),
@@ -482,7 +482,7 @@ mod tests {
     #[test]
     fn from_key_starts_with_colon() {
         assert_eq!(
-            EncodedVerKey::from_str(":bar").unwrap(),
+            EncodedVerKey::from_string(":bar").unwrap(),
             EncodedVerKey::new("", Some("bar".into()), Some(KeyEncoding::default()))
         )
     }
@@ -490,7 +490,7 @@ mod tests {
     #[test]
     fn from_key_works() {
         assert_eq!(
-            EncodedVerKey::from_str("foo:bar:baz").unwrap(),
+            EncodedVerKey::from_string("foo:bar:baz").unwrap(),
             EncodedVerKey::new("foo", Some("bar:baz".into()), Some(KeyEncoding::default()))
         )
     }
@@ -498,7 +498,9 @@ mod tests {
     #[test]
     fn round_trip_verkey() {
         assert_eq!(
-            EncodedVerKey::from_str("foo:bar:baz").unwrap().long_form(),
+            EncodedVerKey::from_string("foo:bar:baz")
+                .unwrap()
+                .long_form(),
             "foo:bar:baz"
         )
     }

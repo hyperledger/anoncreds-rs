@@ -82,11 +82,11 @@ impl fmt::Display for Error {
         match (self.kind, &self.message) {
             (ErrorKind::Input, None) => write!(f, "{}", self.kind),
             (ErrorKind::Input, Some(msg)) => f.write_str(msg),
-            (kind, None) => write!(f, "{}", kind),
-            (kind, Some(msg)) => write!(f, "{}: {}", kind, msg),
+            (kind, None) => write!(f, "{kind}"),
+            (kind, Some(msg)) => write!(f, "{kind}: {msg}"),
         }?;
         if let Some(ref source) = self.cause {
-            write!(f, " [{}]", source)?;
+            write!(f, " [{source}]")?;
         }
         Ok(())
     }

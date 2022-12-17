@@ -32,7 +32,7 @@ pub fn generate_did(
         Some(1) | None => Ok(base58::encode(&pk.as_ref()[..16])),
         Some(2) => {
             let mut hasher = Sha256::new();
-            Digest::update(&mut hasher, &pk.as_ref());
+            Digest::update(&mut hasher, pk.as_ref());
             let hash = hasher.finalize();
             Ok(base58::encode(&hash[..16]))
         }
@@ -79,7 +79,7 @@ impl DidValue {
 
     pub fn is_abbreviatable(&self) -> bool {
         match self.get_method() {
-            Some(ref method) if method.starts_with("sov") => true,
+            Some(method) if method.starts_with("sov") => true,
             Some(_) => false,
             None => true,
         }
@@ -124,7 +124,7 @@ impl std::ops::Deref for ShortDidValue {
 impl ShortDidValue {
     /// Convert a short DID value to a qualified DID
     pub fn qualify(&self, method: Option<String>) -> DidValue {
-        DidValue::combine(method.as_ref().map(String::as_str), &self)
+        DidValue::combine(method.as_deref(), self)
     }
 }
 

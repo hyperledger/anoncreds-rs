@@ -27,7 +27,7 @@ use crate::error::Error;
 use crate::services::helpers::encode_credential_attribute;
 use crate::ursa::cl::{RevocationRegistry as CryptoRevocationRegistry, Witness};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CredentialDefinitionConfig {
     pub support_revocation: bool,
 }
@@ -35,14 +35,6 @@ pub struct CredentialDefinitionConfig {
 impl CredentialDefinitionConfig {
     pub fn new(support_revocation: bool) -> Self {
         Self { support_revocation }
-    }
-}
-
-impl Default for CredentialDefinitionConfig {
-    fn default() -> Self {
-        Self {
-            support_revocation: false,
-        }
     }
 }
 
@@ -81,9 +73,9 @@ impl MakeCredentialValues {
     }
 }
 
-impl Into<CredentialValues> for MakeCredentialValues {
-    fn into(self) -> CredentialValues {
-        self.0
+impl From<MakeCredentialValues> for CredentialValues {
+    fn from(m: MakeCredentialValues) -> Self {
+        m.0
     }
 }
 

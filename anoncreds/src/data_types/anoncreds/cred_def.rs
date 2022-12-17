@@ -1,4 +1,5 @@
 use indy_utils::{Validatable, ValidationError};
+use std::str::FromStr;
 
 use crate::{data_types::ConversionError, impl_anoncreds_object_identifier};
 
@@ -13,17 +14,13 @@ pub enum SignatureType {
     CL,
 }
 
-impl SignatureType {
-    pub fn from_str(value: &str) -> Result<Self, ConversionError> {
-        match value {
+impl FromStr for SignatureType {
+    type Err = ConversionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
             CL_SIGNATURE_TYPE => Ok(Self::CL),
             _ => Err(ConversionError::from_msg("Invalid signature type")),
-        }
-    }
-
-    pub fn to_str(&self) -> &'static str {
-        match *self {
-            SignatureType::CL => CL_SIGNATURE_TYPE,
         }
     }
 }

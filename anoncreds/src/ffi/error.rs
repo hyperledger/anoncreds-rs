@@ -10,7 +10,7 @@ use once_cell::sync::Lazy;
 
 static LAST_ERROR: Lazy<RwLock<Option<Error>>> = Lazy::new(|| RwLock::new(None));
 
-#[derive(Debug, PartialEq, Copy, Clone, Serialize)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Serialize)]
 #[repr(usize)]
 pub enum ErrorCode {
     Success = 0,

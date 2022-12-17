@@ -1,7 +1,7 @@
 use std::collections::{BTreeSet, HashSet};
 use std::iter::FromIterator;
 
-use indy_utils::Validatable;
+use indy_utils::ValidationError;
 
 use super::types::*;
 use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
@@ -48,8 +48,8 @@ pub fn create_schema(
     Ok(Schema::SchemaV1(schema))
 }
 
-pub fn create_credential_definition(
-    schema_id: impl Into<SchemaId>,
+pub fn create_credential_definition<SI>(
+    schema_id: SI,
     schema: &Schema,
     tag: &str,
     signature_type: SignatureType,
@@ -58,19 +58,18 @@ pub fn create_credential_definition(
     CredentialDefinition,
     CredentialDefinitionPrivate,
     CredentialKeyCorrectnessProof,
-)> {
-    let schema_id = schema_id.into();
+)>
+where
+    SI: TryInto<SchemaId, Error = ValidationError>,
+{
     trace!(
         "create_credential_definition >>> schema: {:?}, config: {:?}",
         schema,
         config
     );
+    let schema_id = schema_id.try_into()?;
 
-    schema_id.validate()?;
-
-    let schema = match schema {
-        Schema::SchemaV1(s) => s,
-    };
+    let Schema::SchemaV1(schema) = schema;
 
     let credential_schema = build_credential_schema(&schema.attr_names.0)?;
     let non_credential_schema = build_non_credential_schema()?;
@@ -88,7 +87,7 @@ pub fn create_credential_definition(
         tag: tag.to_owned(),
         value: CredentialDefinitionData {
             primary: credential_public_key.get_primary_key()?.try_clone()?,
-            revocation: credential_public_key.get_revocation_key()?.clone(),
+            revocation: credential_public_key.get_revocation_key()?,
         },
     });
 
@@ -110,7 +109,7 @@ pub fn create_credential_definition(
 
 pub fn create_revocation_registry<TW>(
     cred_def: &CredentialDefinition,
-    cred_def_id: impl Into<CredentialDefinitionId>,
+    cred_def_id: impl TryInto<CredentialDefinitionId, Error = ValidationError>,
     tag: &str,
     rev_reg_type: RegistryType,
     issuance_type: IssuanceType,
@@ -125,14 +124,11 @@ pub fn create_revocation_registry<TW>(
 where
     TW: TailsWriter,
 {
-    let cred_def_id = cred_def_id.into();
     trace!("create_revocation_registry >>> cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}, issuance_type: {:?}",
              cred_def, tag, max_cred_num, rev_reg_type, issuance_type);
-    cred_def_id.validate()?;
+    let cred_def_id = cred_def_id.try_into()?;
 
-    let cred_def = match cred_def {
-        CredentialDefinition::CredentialDefinitionV1(c) => c,
-    };
+    let CredentialDefinition::CredentialDefinitionV1(cred_def) = cred_def;
     let credential_pub_key = cred_def.get_public_key().map_err(err_map!(
         Unexpected,
         "Error fetching public key from credential definition"
@@ -172,8 +168,8 @@ where
 
     // now update registry to reflect issuance-by-default
     let (revoc_reg, revoc_init_delta) = if issuance_type == IssuanceType::ISSUANCE_BY_DEFAULT {
-        let tails_reader = TailsFileReader::new(&tails_location);
-        let issued = BTreeSet::from_iter((1..=max_cred_num).into_iter());
+        let tails_reader = TailsFileReader::new_tails_reader(&tails_location);
+        let issued = BTreeSet::from_iter(1..=max_cred_num);
         update_revocation_registry(
             &revoc_reg_def,
             &revoc_reg,
@@ -207,9 +203,7 @@ pub fn update_revocation_registry(
     revoked: BTreeSet<u32>,
     tails_reader: &TailsReader,
 ) -> Result<(RevocationRegistry, RevocationRegistryDelta)> {
-    let rev_reg_def = match rev_reg_def {
-        RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => v1,
-    };
+    let RevocationRegistryDefinition::RevocationRegistryDefinitionV1(rev_reg_def) = rev_reg_def;
     let mut rev_reg = match rev_reg {
         RevocationRegistry::RevocationRegistryV1(v1) => v1.value.clone(),
     };
@@ -230,15 +224,13 @@ pub fn update_revocation_registry(
 }
 
 pub fn create_credential_offer(
-    schema_id: impl Into<SchemaId>,
-    cred_def_id: impl Into<CredentialDefinitionId>,
+    schema_id: impl TryInto<SchemaId, Error = ValidationError>,
+    cred_def_id: impl TryInto<CredentialDefinitionId, Error = ValidationError>,
     correctness_proof: &CredentialKeyCorrectnessProof,
 ) -> Result<CredentialOffer> {
-    let schema_id = schema_id.into();
-    let cred_def_id = cred_def_id.into();
+    let schema_id = schema_id.try_into()?;
+    let cred_def_id = cred_def_id.try_into()?;
     trace!("create_credential_offer >>> cred_def_id: {:?}", cred_def_id);
-    schema_id.validate()?;
-    cred_def_id.validate()?;
 
     let nonce = Nonce::new().map_err(err_map!(Unexpected, "Error creating nonce"))?;
 
@@ -274,13 +266,6 @@ pub fn create_credential(
             cred_values: {:?}, revocation_config: {:?}",
             cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&cred_values), revocation_config,
             );
-    let rev_reg_id = match rev_reg_id {
-        Some(id) => {
-            id.validate()?;
-            Some(id)
-        }
-        None => None,
-    };
 
     let cred_public_key = match cred_def {
         CredentialDefinition::CredentialDefinitionV1(cd) => {

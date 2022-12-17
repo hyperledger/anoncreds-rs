@@ -63,12 +63,6 @@ impl ObjectHandle {
     }
 }
 
-impl Default for ObjectHandle {
-    fn default() -> Self {
-        Self(0)
-    }
-}
-
 #[derive(Clone, Debug)]
 #[repr(transparent)]
 pub(crate) struct AnonCredsObject(Arc<dyn AnyAnonCredsObject>);
@@ -95,14 +89,6 @@ impl AnonCredsObject {
         self.0.type_name()
     }
 }
-
-impl PartialEq for AnonCredsObject {
-    fn eq(&self, other: &AnonCredsObject) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
-    }
-}
-
-impl Eq for AnonCredsObject {}
 
 impl Hash for AnonCredsObject {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -215,7 +201,7 @@ pub(crate) struct AnonCredsObjectList(Vec<AnonCredsObject>);
 impl AnonCredsObjectList {
     pub fn load(handles: &[ObjectHandle]) -> Result<Self> {
         let loaded = handles
-            .into_iter()
+            .iter()
             .map(ObjectHandle::load)
             .collect::<Result<_>>()?;
         Ok(Self(loaded))

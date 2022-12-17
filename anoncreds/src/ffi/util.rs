@@ -26,7 +26,7 @@ impl<'a, T> FfiList<'a, T> {
     #[inline]
     pub fn try_collect<R>(&self, mut f: impl FnMut(&T) -> Result<R>) -> Result<Vec<R>> {
         self.as_slice()
-            .into_iter()
+            .iter()
             .try_fold(Vec::with_capacity(self.len()), |mut rs, v| {
                 rs.push(f(v)?);
                 Ok(rs)

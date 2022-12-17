@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
-use std::convert::TryInto;
 use std::os::raw::c_char;
+use std::str::FromStr;
 
 use ffi_support::{rust_string_to_c, FfiStr};
 
@@ -93,9 +93,9 @@ pub extern "C" fn anoncreds_update_revocation_registry(
     catch_error(|| {
         check_useful_c_ptr!(rev_reg_p);
         check_useful_c_ptr!(rev_reg_delta_p);
-        let issued = registry_indices_to_set(issued.as_slice().into_iter().cloned())?;
-        let revoked = registry_indices_to_set(revoked.as_slice().into_iter().cloned())?;
-        let tails_reader = TailsFileReader::new(
+        let issued = registry_indices_to_set(issued.as_slice().iter().cloned())?;
+        let revoked = registry_indices_to_set(revoked.as_slice().iter().cloned())?;
+        let tails_reader = TailsFileReader::new_tails_reader(
             tails_path
                 .as_opt_str()
                 .ok_or_else(|| err_msg!("Missing tails file path"))?,
@@ -129,7 +129,7 @@ pub extern "C" fn anoncreds_revoke_credential(
     catch_error(|| {
         check_useful_c_ptr!(rev_reg_p);
         check_useful_c_ptr!(rev_reg_delta_p);
-        let tails_reader = TailsFileReader::new(
+        let tails_reader = TailsFileReader::new_tails_reader(
             tails_path
                 .as_opt_str()
                 .ok_or_else(|| err_msg!("Missing tails file path"))?,
@@ -252,7 +252,7 @@ pub extern "C" fn anoncreds_create_or_update_revocation_state(
     catch_error(|| {
         check_useful_c_ptr!(rev_state_p);
         let prev_rev_state = rev_state.opt_load()?;
-        let tails_reader = TailsFileReader::new(
+        let tails_reader = TailsFileReader::new_tails_reader(
             tails_path
                 .as_opt_str()
                 .ok_or_else(|| err_msg!("Missing tails file path"))?,

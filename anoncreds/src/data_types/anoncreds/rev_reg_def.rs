@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{
     data_types::{invalid, ConversionError, Validatable, ValidationError},
     impl_anoncreds_object_identifier,
@@ -13,36 +15,28 @@ pub const ISSUANCE_ON_DEMAND: &str = "ISSUANCE_ON_DEMAND";
 impl_anoncreds_object_identifier!(RevocationRegistryDefinitionId);
 
 #[allow(non_camel_case_types)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Serialize, Default)]
 pub enum IssuanceType {
+    #[default]
     ISSUANCE_BY_DEFAULT,
     ISSUANCE_ON_DEMAND,
 }
 
-impl IssuanceType {
-    pub fn from_str(value: &str) -> Result<Self, ConversionError> {
-        match value {
+impl FromStr for IssuanceType {
+    type Err = ConversionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
             ISSUANCE_BY_DEFAULT => Ok(Self::ISSUANCE_BY_DEFAULT),
             ISSUANCE_ON_DEMAND => Ok(Self::ISSUANCE_ON_DEMAND),
             _ => Err(ConversionError::from_msg("Invalid issuance type")),
         }
     }
-
-    pub fn to_bool(&self) -> bool {
-        self.clone() == IssuanceType::ISSUANCE_BY_DEFAULT
-    }
-
-    pub fn to_str(&self) -> &'static str {
-        match *self {
-            Self::ISSUANCE_BY_DEFAULT => ISSUANCE_BY_DEFAULT,
-            Self::ISSUANCE_ON_DEMAND => ISSUANCE_ON_DEMAND,
-        }
-    }
 }
 
-impl Default for IssuanceType {
-    fn default() -> Self {
-        Self::ISSUANCE_BY_DEFAULT
+impl IssuanceType {
+    pub fn to_bool(&self) -> bool {
+        *self == IssuanceType::ISSUANCE_BY_DEFAULT
     }
 }
 
@@ -52,17 +46,13 @@ pub enum RegistryType {
     CL_ACCUM,
 }
 
-impl RegistryType {
-    pub fn from_str(value: &str) -> Result<Self, ConversionError> {
-        match value {
+impl FromStr for RegistryType {
+    type Err = ConversionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
             CL_ACCUM => Ok(Self::CL_ACCUM),
             _ => Err(ConversionError::from_msg("Invalid registry type")),
-        }
-    }
-
-    pub fn to_str(&self) -> &'static str {
-        match *self {
-            Self::CL_ACCUM => CL_ACCUM,
         }
     }
 }
