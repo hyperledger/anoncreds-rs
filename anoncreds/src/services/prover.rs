@@ -1,4 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use bitvec::bitvec;
+use std::{
+    collections::{HashMap, HashSet},
+    convert::TryFrom,
+    ops::BitXor,
+};
 
 use super::types::*;
 use crate::data_types::anoncreds::{
@@ -9,14 +14,15 @@ use crate::data_types::anoncreds::{
         AttributeValue, Identifier, RequestedProof, RevealedAttributeGroupInfo,
         RevealedAttributeInfo, SubProofReferent,
     },
+    rev_reg::RevocationList,
     schema::{Schema, SchemaId},
 };
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::services::helpers::*;
 use crate::ursa::cl::{
     issuer::Issuer as CryptoIssuer, prover::Prover as CryptoProver,
-    verifier::Verifier as CryptoVerifier, CredentialPublicKey,
-    RevocationRegistry as CryptoRevocationRegistry, SubProofRequest, Witness,
+    verifier::Verifier as CryptoVerifier, CredentialPublicKey, RevocationRegistryDelta,
+    SubProofRequest, Witness,
 };
 use indy_utils::Validatable;
 
@@ -248,50 +254,99 @@ pub fn create_presentation(
 pub fn create_or_update_revocation_state(
     tails_reader: TailsReader,
     revoc_reg_def: &RevocationRegistryDefinition,
-    rev_reg_delta: &RevocationRegistryDelta,
+    rev_reg_list: &RevocationList,
     rev_reg_idx: u32,
-    timestamp: u64,
-    rev_state: Option<&CredentialRevocationState>,
+    rev_state: Option<&CredentialRevocationState>, // for witness update
+    old_rev_reg_list: Option<&RevocationList>,     // for witness update
 ) -> Result<CredentialRevocationState> {
     trace!(
         "create_or_update_revocation_state >>> , tails_reader: {:?}, revoc_reg_def: {:?}, \
-rev_reg_delta: {:?}, rev_reg_idx: {}, timestamp: {:?}, rev_state: {:?}",
+    rev_reg_list: {:?}, rev_reg_idx: {},  rev_state: {:?}, old_rev_reg_list {:?}",
         tails_reader,
         revoc_reg_def,
-        rev_reg_delta,
+        rev_reg_list,
         rev_reg_idx,
-        timestamp,
-        rev_state
+        rev_state,
+        old_rev_reg_list,
     );
 
     let RevocationRegistryDefinition::RevocationRegistryDefinitionV1(revoc_reg_def) = revoc_reg_def;
-    let RevocationRegistryDelta::RevocationRegistryDeltaV1(rev_reg_delta) = rev_reg_delta;
+    let mut issued = HashSet::<u32>::new();
+    let mut revoked = HashSet::<u32>::new();
+    let witness =
+        if let (Some(source_rev_state), Some(source_rev_list)) = (rev_state, old_rev_reg_list) {
+            _create_index_deltas(
+                rev_reg_list.state_owned().bitxor(source_rev_list.state()),
+                rev_reg_list.state(),
+                &mut issued,
+                &mut revoked,
+            );
 
-    let witness = match rev_state {
-        None => Witness::new(
-            rev_reg_idx,
-            revoc_reg_def.value.max_cred_num,
-            revoc_reg_def.value.issuance_type.to_bool(),
-            &rev_reg_delta.value,
-            &tails_reader,
-        )?,
-        Some(source_rev_state) => {
+            let rev_reg_delta = RevocationRegistryDelta::from_parts(
+                Some(&source_rev_list.into()),
+                &rev_reg_list.into(),
+                &issued,
+                &revoked,
+            );
             let mut witness = source_rev_state.witness.clone();
             witness.update(
                 rev_reg_idx,
                 revoc_reg_def.value.max_cred_num,
-                &rev_reg_delta.value,
+                &rev_reg_delta,
                 &tails_reader,
             )?;
             witness
-        }
-    };
+        } else {
+            let list_size = usize::try_from(revoc_reg_def.value.max_cred_num)
+                .map_err(|e| Error::from_msg(crate::ErrorKind::InvalidState, e.to_string()))?;
+            let list = match revoc_reg_def.value.issuance_type {
+                // All cred are revoked by default
+                IssuanceType::ISSUANCE_ON_DEMAND => {
+                    bitvec![1; list_size]
+                }
+                IssuanceType::ISSUANCE_BY_DEFAULT => {
+                    bitvec![0; list_size]
+                }
+            };
+            _create_index_deltas(
+                rev_reg_list.state_owned().bitxor(list),
+                rev_reg_list.state(),
+                &mut issued,
+                &mut revoked,
+            );
+            let rev_reg_delta =
+                RevocationRegistryDelta::from_parts(None, &rev_reg_list.into(), &issued, &revoked);
+            Witness::new(
+                rev_reg_idx,
+                revoc_reg_def.value.max_cred_num,
+                revoc_reg_def.value.issuance_type.to_bool(),
+                &rev_reg_delta,
+                &tails_reader,
+            )?
+        };
 
     Ok(CredentialRevocationState {
         witness,
-        rev_reg: CryptoRevocationRegistry::from(rev_reg_delta.value.clone()),
-        timestamp,
+        rev_reg: rev_reg_list.into(),
+        timestamp: rev_reg_list.timestamp(),
     })
+}
+
+fn _create_index_deltas(
+    delta: bitvec::vec::BitVec,
+    list: &bitvec::vec::BitVec,
+    issued: &mut HashSet<u32>,
+    revoked: &mut HashSet<u32>,
+) {
+    for i in delta.iter_ones() {
+        if list[i] == true {
+            // true means cred has been revoked
+            revoked.insert(i as u32);
+        } else {
+            // false means cred has not been
+            issued.insert(i as u32);
+        }
+    }
 }
 
 fn prepare_credential_for_proving(

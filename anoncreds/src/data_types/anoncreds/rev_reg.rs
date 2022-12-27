@@ -1,6 +1,12 @@
+use bitvec::vec::BitVec;
+use serde::{
+    de::{Deserializer, Error as DeError, SeqAccess, Visitor},
+    ser::{SerializeSeq, Serializer},
+};
 use std::collections::HashSet;
 
-use crate::{data_types::Validatable, impl_anoncreds_object_identifier};
+use crate::{data_types::Validatable, error, impl_anoncreds_object_identifier};
+use ursa::cl::Accumulator;
 
 impl_anoncreds_object_identifier!(RevocationRegistryId);
 
@@ -46,4 +52,129 @@ impl Validatable for RevocationRegistryDelta {}
 #[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDeltaV1 {
     pub value: ursa::cl::RevocationRegistryDelta,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RevocationList {
+    rev_reg_id: RevocationRegistryId,
+    #[serde(with = "serde_revocation_list")]
+    revocation_list: bitvec::vec::BitVec,
+    current_accum: Accumulator,
+    timestamp: u64,
+}
+
+impl From<&RevocationList> for ursa::cl::RevocationRegistry {
+    fn from(rev_reg_list: &RevocationList) -> ursa::cl::RevocationRegistry {
+        ursa::cl::RevocationRegistry::from(rev_reg_list.current_accum)
+    }
+}
+
+impl RevocationList {
+    pub(crate) fn timestamp(&self) -> u64 {
+        self.timestamp
+    }
+
+    pub(crate) fn state(&self) -> &bitvec::vec::BitVec {
+        &self.revocation_list
+    }
+
+    pub(crate) fn state_owned(&self) -> bitvec::vec::BitVec {
+        self.revocation_list.clone()
+    }
+
+    pub fn new(
+        rev_reg_id: &str,
+        revocation_list: bitvec::vec::BitVec,
+        current_reg: ursa::cl::RevocationRegistry,
+        timestamp: u64,
+    ) -> Result<Self, error::Error> {
+        Ok(Self {
+            rev_reg_id: RevocationRegistryId::new(rev_reg_id)?,
+            revocation_list,
+            current_accum: current_reg.into(),
+            timestamp,
+        })
+    }
+}
+
+pub mod serde_revocation_list {
+    use super::*;
+    pub fn serialize<S>(state: &bitvec::vec::BitVec, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = s.serialize_seq(Some(state.len()))?;
+        for element in state {
+            let e = match element.as_ref() {
+                &true => 1,
+                &false => 0,
+            };
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<bitvec::vec::BitVec, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct JsonBitStringVisitor;
+
+        impl<'de> Visitor<'de> for JsonBitStringVisitor {
+            type Value = bitvec::vec::BitVec;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a seq containing revoation state, i.e. [1, 0, 1]")
+            }
+
+            fn visit_seq<S>(self, mut v: S) -> Result<Self::Value, S::Error>
+            where
+                S: SeqAccess<'de>,
+            {
+                // TODO: do we have a min size for this?
+                let mut bv = BitVec::with_capacity(v.size_hint().unwrap_or_default());
+                while let Some(ele) = v.next_element()? {
+                    match ele {
+                        0 => bv.push(false),
+                        1 => bv.push(true),
+                        _ => {
+                            return Err(S::Error::custom("invalid revocation state"));
+                        }
+                    }
+                }
+                Ok(bv)
+            }
+        }
+        deserializer.deserialize_seq(JsonBitStringVisitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bitvec::prelude::*;
+
+    const REVOCATION_LIST: &str = "{\"revRegId\":\"reg\",\"revocationList\":[1,1,1,1],\"currentAccum\":\"1 1379509F4D411630D308A5ABB4F422FCE6737B330B1C5FD286AA5C26F2061E60 1 235535CC45D4816C7686C5A402A230B35A62DDE82B4A652E384FD31912C4E4BB 1 0C94B61595FCAEFC892BB98A27D524C97ED0B7ED1CC49AD6F178A59D4199C9A4 1 172482285606DEE8500FC8A13E6A35EC071F8B84F0EB4CD3DD091C0B4CD30E5E 2 095E45DDF417D05FB10933FFC63D474548B7FFFF7888802F07FFFFFF7D07A8A8 1 0000000000000000000000000000000000000000000000000000000000000000\",\"timestamp\":1234}";
+
+    #[test]
+    fn json_rev_list_can_be_deserialized() {
+        let des = serde_json::from_str::<RevocationList>(REVOCATION_LIST).unwrap();
+        let expected_state = bitvec![1;4];
+        println!("des state {:?}", des.state());
+        println!("exp state {:?}", expected_state);
+        assert_eq!(des.state(), &expected_state);
+    }
+
+    #[test]
+    fn test_revocation_list_roundtrip_serde() {
+        let state = bitvec![1;4];
+        let accum = Accumulator::new().expect("Should be able to create Accumulator");
+        let list = RevocationList::new("MOCK:uri: reg", state, accum.into(), 1234u64).unwrap();
+        let ser = serde_json::to_string(&list).unwrap();
+        let des = serde_json::from_str::<RevocationList>(&ser).unwrap();
+        let ser2 = serde_json::to_string(&des).unwrap();
+        let list_des = serde_json::from_str::<RevocationList>(&ser2).unwrap();
+        assert_eq!(list, list_des)
+    }
 }
