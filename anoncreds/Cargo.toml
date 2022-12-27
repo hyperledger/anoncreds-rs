@@ -29,11 +29,12 @@ once_cell = "1.9"
 rand = "0.8.5"
 regex = "1.2.1"
 serde = { version = "1.0", features = ["derive"] }
+bitvec = { version = "1.0.1", features = ["serde"] }
 serde_json = { version = "1.0", features = ["raw_value"]}
 sha2 = "0.10"
 tempfile = "3.1.0"
 thiserror = "1.0"
-ursa = { version = "=0.3.6", default-features = false, features = ["cl_native", "serde"] }
+ursa = { path = "../../../ursa/libursa", default-features = false, features = ["cl_native", "serde"] }
 zeroize = { version = "1.3", optional = true, features = ["zeroize_derive"] }
 # We add the openssl dependency here because ursa does not expose a vendored openssl feature
 # Since we use "cl_native" as a feature, which uses openssl, we can add a vendored build with 

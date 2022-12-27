@@ -71,6 +71,8 @@ pub fn verify_presentation(
         &received_self_attested_attrs,
     )?;
 
+    // makes sure the for revocable request or attribute,
+    // there is a timestamp in the `Identifier`
     compare_timestamps_from_proof_and_request(
         pres_req,
         &received_revealed_attrs,
@@ -112,6 +114,7 @@ pub fn verify_presentation(
                 ));
             }
 
+            // Revocation registry definition id is the same as the rev reg id
             let rev_reg_def_id = RevocationRegistryDefinitionId::new(rev_reg_id.clone())?;
             let rev_reg_def = Some(
                 rev_reg_defs
@@ -303,6 +306,8 @@ fn compare_attr_from_proof_and_request(
     Ok(())
 }
 
+// This does not actually compare the non_revoke interval
+// see `validate_timestamp` function comments
 fn compare_timestamps_from_proof_and_request(
     pres_req: &PresentationRequestPayload,
     received_revealed_attrs: &HashMap<String, Identifier>,
@@ -353,6 +358,19 @@ fn compare_timestamps_from_proof_and_request(
     Ok(())
 }
 
+// This validates that a timestamp is given if either:
+// - the `global_interval` rev requirement
+// - the `local_interval` rev requirement
+// from the PresentationRequest are satisfied.
+//
+// If either the attribute nor the request has a revocation internal
+// i.e. they are non-revocable, then `OK` is returned directly.
+//
+// Otherwise the Identifier for the referent (attribute) has to have a timestamp,
+// which was added by the prover when creating `PresentCredentials`,
+// an arg for `create_presentation`. 
+// 
+// TODO: this timestamp should be compared with the provided interval
 fn validate_timestamp(
     received_: &HashMap<String, Identifier>,
     referent: &str,

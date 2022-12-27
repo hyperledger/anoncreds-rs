@@ -9,7 +9,7 @@ pub use crate::data_types::anoncreds::{
     master_secret::MasterSecret,
     pres_request::PresentationRequest,
     presentation::Presentation,
-    rev_reg::{RevocationRegistry, RevocationRegistryDelta},
+    rev_reg::{RevocationList, RevocationRegistry, RevocationRegistryDelta},
     rev_reg_def::{
         IssuanceType, RegistryType, RevocationRegistryDefinition,
         RevocationRegistryDefinitionPrivate,
@@ -200,9 +200,9 @@ pub(crate) struct ProvingCredentialKey {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRevocationState {
-    pub(crate) witness: Witness,
-    pub(crate) rev_reg: CryptoRevocationRegistry,
-    pub(crate) timestamp: u64,
+    pub witness: Witness,
+    pub rev_reg: CryptoRevocationRegistry,
+    pub timestamp: u64,
 }
 
 impl Validatable for CredentialRevocationState {

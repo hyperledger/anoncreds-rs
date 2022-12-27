@@ -1,11 +1,22 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use anoncreds::{
-    data_types::anoncreds::{cred_def::CredentialDefinitionId, schema::SchemaId},
+    data_types::anoncreds::{
+        cred_def::CredentialDefinitionId, presentation::Presentation,
+        rev_reg::RevocationRegistryId, rev_reg_def::RevocationRegistryDefinitionId,
+        schema::SchemaId,
+    },
     issuer, prover,
-    types::{CredentialDefinitionConfig, MakeCredentialValues, PresentCredentials, SignatureType},
+    tails::{TailsFileReader, TailsFileWriter},
+    types::{
+        CredentialDefinition, CredentialDefinitionConfig, CredentialRevocationConfig,
+        CredentialRevocationState, IssuanceType, MakeCredentialValues, PresentCredentials,
+        PresentationRequest, RegistryType, RevocationList, RevocationRegistry,
+        RevocationRegistryDefinition, Schema, SignatureType,
+    },
     verifier,
 };
+use bitvec::bitvec;
 
 use serde_json::json;
 
@@ -17,6 +28,9 @@ pub static SCHEMA_ID: &str = "mock:uri";
 pub static CRED_DEF_ID: &str = "mock:uri";
 pub const GVT_SCHEMA_NAME: &str = "gvt";
 pub const GVT_SCHEMA_ATTRIBUTES: &[&str; 4] = &["name", "age", "sex", "height"];
+pub static REV_REG_ID: &str = "mock:uri:revregid";
+pub static REV_IDX: u32 = 89;
+pub static MAX_CRED_NUM: u32 = 150;
 
 #[test]
 fn anoncreds_works_for_single_issuer_single_prover() {
@@ -210,6 +224,318 @@ fn anoncreds_works_for_single_issuer_single_prover() {
     )
     .expect("Error verifying presentation");
     assert!(valid);
+}
+
+#[test]
+fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
+    env_logger::init();
+    // Create Issuer pseudo wallet
+    let mut issuer_wallet = IssuerWallet::default();
+
+    // Create Prover pseudo wallet and master secret
+    let mut prover_wallet = ProverWallet::default();
+
+    // Issuer creates Schema - would be published to the ledger
+    let gvt_schema =
+        issuer::create_schema(GVT_SCHEMA_NAME, "1.0", GVT_SCHEMA_ATTRIBUTES[..].into())
+            .expect("Error creating gvt schema for issuer");
+
+    // Issuer creates Credential Definition
+    let (cred_def_pub, cred_def_priv, cred_def_correctness) = issuer::create_credential_definition(
+        SCHEMA_ID,
+        &gvt_schema,
+        "tag",
+        SignatureType::CL,
+        CredentialDefinitionConfig {
+            support_revocation: true,
+        },
+    )
+    .expect("Error creating gvt credential definition");
+
+    // This will create a tails file locally in the .tmp dir
+    let tf_path = "../.tmp";
+    let mut tf = TailsFileWriter::new(Some(tf_path.to_owned()));
+    let (rev_reg_def_pub, rev_reg_def_priv, rev_reg, _) = issuer::create_revocation_registry(
+        &cred_def_pub,
+        CRED_DEF_ID,
+        "some_tag",
+        RegistryType::CL_ACCUM,
+        IssuanceType::ISSUANCE_BY_DEFAULT,
+        MAX_CRED_NUM,
+        &mut tf,
+    )
+    .unwrap();
+
+    issuer_wallet
+        .cred_defs
+        .push(utils::anoncreds::StoredCredDef {
+            public: cred_def_pub,
+            private: cred_def_priv,
+            key_proof: cred_def_correctness,
+        });
+
+    // Public part would be published to the ledger
+    let gvt_cred_def = &issuer_wallet.cred_defs[0].public;
+
+    // Issuer creates a Credential Offer
+    let cred_offer = issuer::create_credential_offer(
+        SCHEMA_ID,
+        CRED_DEF_ID,
+        &issuer_wallet.cred_defs[0].key_proof,
+    )
+    .expect("Error creating credential offer");
+
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) = prover::create_credential_request(
+        &prover_wallet.did,
+        &*gvt_cred_def,
+        &prover_wallet.master_secret,
+        "default",
+        &cred_offer,
+    )
+    .expect("Error creating credential request");
+
+    // Issuer creates a credential
+    let mut cred_values = MakeCredentialValues::default();
+    cred_values
+        .add_raw("sex", "male")
+        .expect("Error encoding attribute");
+    cred_values
+        .add_raw("name", "Alex")
+        .expect("Error encoding attribute");
+    cred_values
+        .add_raw("height", "175")
+        .expect("Error encoding attribute");
+    cred_values
+        .add_raw("age", "28")
+        .expect("Error encoding attribute");
+
+    let rev_reg_id = RevocationRegistryId::new_unchecked(REV_REG_ID);
+
+    // Get the location of the tails_file so it can be read
+    let location = match rev_reg_def_pub.clone() {
+        RevocationRegistryDefinition::RevocationRegistryDefinitionV1(value) => {
+            value.value.tails_location
+        }
+    };
+    let tr = TailsFileReader::new_tails_reader(location.as_str());
+
+    // The Prover's index in the revocation list is REV_IDX
+    let registry_used = HashSet::from([REV_IDX]);
+
+    // TODO: Here Delta is not needed but is it used elsewhere?
+    let (issue_cred, cred_rev_reg, _) = issuer::create_credential(
+        &*gvt_cred_def,
+        &issuer_wallet.cred_defs[0].private,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
+        Some(rev_reg_id.clone()),
+        Some(CredentialRevocationConfig {
+            reg_def: &rev_reg_def_pub,
+            reg_def_private: &rev_reg_def_priv,
+            registry: &rev_reg,
+            registry_idx: REV_IDX,
+            registry_used: &registry_used,
+            tails_reader: tr,
+        }),
+    )
+    .expect("Error creating credential");
+    let cred_rev_reg = cred_rev_reg.unwrap();
+
+    // Prover receives the credential and processes it
+    let mut recv_cred = issue_cred;
+    prover::process_credential(
+        &mut recv_cred,
+        &cred_request_metadata,
+        &prover_wallet.master_secret,
+        &*gvt_cred_def,
+        Some(&rev_reg_def_pub),
+    )
+    .expect("Error processing credential");
+    prover_wallet.credentials.push(recv_cred);
+
+    // Verifier creates a presentation request
+    let nonce = verifier::generate_nonce().expect("Error generating presentation request nonce");
+
+    // There are fields for
+    // - global non_revoked - i.e. the PresentationRequest level
+    // - local non_revoked - i.e. Each Request Attributes (AttributeInfo) and Request Predicate (PredicateInfo) has a field for NonRevoked.
+    let pres_request = serde_json::from_value(json!({
+        "nonce": nonce,
+        "name":"pres_req_1",
+        "version":"0.1",
+        "requested_attributes":{
+            "attr1_referent":{
+                "name":"name"
+            },
+            "attr2_referent":{
+                "name":"sex"
+            },
+            "attr3_referent":{"name":"phone"},
+            "attr4_referent":{
+                "names": ["name", "height"]
+            }
+        },
+        "requested_predicates":{
+            "predicate1_referent":{"name":"age","p_type":">=","p_value":18}
+        },
+        "non_revoked": {"from": 10, "to": 200}
+    }))
+    .expect("Error creating proof request");
+
+    // Prover: here we deliberately do not put in the same timestamp as the global non_revoked time interval,
+    // this shows that it is not used
+    let prover_timestamp = 1234u64;
+    let rev_reg = match cred_rev_reg.clone() {
+        RevocationRegistry::RevocationRegistryV1(r) => r.value,
+    };
+    let rev_state = CredentialRevocationState {
+        timestamp: prover_timestamp,
+        rev_reg: rev_reg.clone(),
+        witness: prover_wallet.credentials[0]
+            .try_clone()
+            .unwrap()
+            .witness
+            .unwrap(),
+    };
+
+    let mut schemas = HashMap::new();
+    let schema_id = SchemaId::new_unchecked(SCHEMA_ID);
+    schemas.insert(&schema_id, &gvt_schema);
+
+    let mut cred_defs = HashMap::new();
+    let cred_def_id = CredentialDefinitionId::new_unchecked(CRED_DEF_ID);
+    cred_defs.insert(&cred_def_id, &*gvt_cred_def);
+
+    // Prover creates presentation
+    let presentation = _create_presentation(
+        &schemas,
+        &cred_defs,
+        &pres_request,
+        &prover_wallet,
+        Some(prover_timestamp),
+        Some(&rev_state),
+    );
+
+    // Verifier verifies presentation of not Revoked rev_state
+    // TODO: rev reg def id is the same as the rev reg id?
+    let rev_reg_def_id = RevocationRegistryDefinitionId::new_unchecked(REV_REG_ID);
+    let rev_reg_def_map = HashMap::from([(&rev_reg_def_id, &rev_reg_def_pub)]);
+
+    // Create the map that contines the registries
+    let rev_timestamp_map = HashMap::from([(prover_timestamp, &cred_rev_reg)]);
+    let mut rev_reg_map = HashMap::from([(rev_reg_id.clone(), rev_timestamp_map.clone())]);
+
+    let valid = verifier::verify_presentation(
+        &presentation,
+        &pres_request,
+        &schemas,
+        &cred_defs,
+        Some(&rev_reg_def_map),
+        Some(&rev_reg_map),
+    )
+    .expect("Error verifying presentation");
+    assert!(valid);
+
+    // Issuer Revoke the holder's credentail
+    let tr = TailsFileReader::new_tails_reader(location.as_str());
+    let (revoked_rev_reg, _) =
+        issuer::revoke_credential(&rev_reg_def_pub, &cred_rev_reg, REV_IDX, &tr).unwrap();
+
+    // Prover using the revoked list to update witness and create rev state,
+    let mut list = bitvec![0; MAX_CRED_NUM as usize ];
+    let mut revoked_bit = list.get_mut(REV_IDX as usize).unwrap();
+    *revoked_bit = true;
+    // revoked_bit is not a reference so can drop
+    drop(revoked_bit);
+
+    let revoked_accum = match revoked_rev_reg.clone() {
+        RevocationRegistry::RevocationRegistryV1(v) => v.value,
+    };
+
+    let revocation_list =
+        RevocationList::new(REV_REG_ID, list, revoked_accum.into(), prover_timestamp).unwrap();
+    let new_rev_state = prover::create_or_update_revocation_state(
+        tr,
+        &rev_reg_def_pub,
+        &revocation_list,
+        REV_IDX,
+        None,
+        None,
+    )
+    .unwrap();
+
+    // lets say the proof is for a later time
+    // TODO: this has nothing to do with pres_request time at the moment
+    let new_prover_timestamp = prover_timestamp + 100;
+
+    let presentation = _create_presentation(
+        &schemas,
+        &cred_defs,
+        &pres_request,
+        &prover_wallet,
+        Some(new_prover_timestamp),
+        Some(&new_rev_state),
+    );
+
+    // Add the updated revocation registyr to the map that contines the new registry of revoked state
+    let r = rev_reg_map.get_mut(&rev_reg_id).unwrap();
+    r.insert(new_prover_timestamp, &revoked_rev_reg);
+
+    let valid = verifier::verify_presentation(
+        &presentation,
+        &pres_request,
+        &schemas,
+        &cred_defs,
+        Some(&rev_reg_def_map),
+        Some(&rev_reg_map),
+    )
+    .expect("Error verifying presentation");
+    assert!(!valid);
+}
+
+fn _create_presentation(
+    schemas: &HashMap<&SchemaId, &Schema>,
+    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
+    pres_request: &PresentationRequest,
+    prover_wallet: &ProverWallet,
+    rev_state_timestamp: Option<u64>,
+    rev_state: Option<&CredentialRevocationState>,
+) -> Presentation {
+    let mut present = PresentCredentials::default();
+    {
+        // Here we add credential with the timestamp of which the rev_state is updated to,
+        // also the rev_reg has to be provided for such a time.
+        // TODO: this timestamp is not verified by the `NonRevokedInterval`?
+        let mut cred1 = present.add_credential(
+            &prover_wallet.credentials[0],
+            rev_state_timestamp,
+            rev_state,
+        );
+        cred1.add_requested_attribute("attr1_referent", true);
+        cred1.add_requested_attribute("attr2_referent", false);
+        cred1.add_requested_attribute("attr4_referent", true);
+        cred1.add_requested_predicate("predicate1_referent");
+    }
+
+    let mut self_attested = HashMap::new();
+    let self_attested_phone = "8-800-300";
+    self_attested.insert(
+        "attr3_referent".to_string(),
+        self_attested_phone.to_string(),
+    );
+
+    let presentation = prover::create_presentation(
+        pres_request,
+        present,
+        Some(self_attested),
+        &prover_wallet.master_secret,
+        schemas,
+        cred_defs,
+    )
+    .expect("Error creating presentation");
+    presentation
 }
 
 /*

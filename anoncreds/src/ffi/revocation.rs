@@ -16,7 +16,7 @@ use crate::services::{
     prover::create_or_update_revocation_state,
     tails::{TailsFileReader, TailsFileWriter},
     types::{
-        CredentialRevocationState, IssuanceType, RegistryType, RevocationRegistry,
+        CredentialRevocationState, IssuanceType, RegistryType, RevocationList, RevocationRegistry,
         RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate, RevocationRegistryDelta,
     },
 };
@@ -239,19 +239,23 @@ impl_anoncreds_object_from_json!(
     anoncreds_revocation_registry_delta_from_json
 );
 
+impl_anoncreds_object!(RevocationList, "RevocationList");
+impl_anoncreds_object_from_json!(RevocationList, anoncreds_revocation_list_from_json);
+
 #[no_mangle]
 pub extern "C" fn anoncreds_create_or_update_revocation_state(
     rev_reg_def: ObjectHandle,
-    rev_reg_delta: ObjectHandle,
+    rev_reg_list: ObjectHandle,
     rev_reg_index: i64,
-    timestamp: i64,
     tails_path: FfiStr,
     rev_state: ObjectHandle,
+    old_rev_reg_list: ObjectHandle,
     rev_state_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(rev_state_p);
         let prev_rev_state = rev_state.opt_load()?;
+        let prev_rev_reg_list = old_rev_reg_list.opt_load()?;
         let tails_reader = TailsFileReader::new_tails_reader(
             tails_path
                 .as_opt_str()
@@ -260,14 +264,15 @@ pub extern "C" fn anoncreds_create_or_update_revocation_state(
         let rev_state = create_or_update_revocation_state(
             tails_reader,
             rev_reg_def.load()?.cast_ref()?,
-            rev_reg_delta.load()?.cast_ref()?,
+            rev_reg_list.load()?.cast_ref()?,
             rev_reg_index
                 .try_into()
                 .map_err(|_| err_msg!("Invalid credential revocation index"))?,
-            timestamp
-                .try_into()
-                .map_err(|_| err_msg!("Invalid timestamp"))?,
             prev_rev_state
+                .as_ref()
+                .map(AnonCredsObject::cast_ref)
+                .transpose()?,
+            prev_rev_reg_list
                 .as_ref()
                 .map(AnonCredsObject::cast_ref)
                 .transpose()?,
