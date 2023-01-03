@@ -33,15 +33,7 @@ pub struct CredentialDefinitionData {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "ver")]
-pub enum CredentialDefinition {
-    #[serde(rename = "1.0")]
-    CredentialDefinitionV1(CredentialDefinitionV1),
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CredentialDefinitionV1 {
+pub struct CredentialDefinition {
     pub schema_id: SchemaId,
     #[serde(rename = "type")]
     pub signature_type: SignatureType,
@@ -49,7 +41,7 @@ pub struct CredentialDefinitionV1 {
     pub value: CredentialDefinitionData,
 }
 
-impl CredentialDefinitionV1 {
+impl CredentialDefinition {
     pub fn get_public_key(&self) -> Result<ursa::cl::CredentialPublicKey, ConversionError> {
         let key = ursa::cl::CredentialPublicKey::build_from_parts(
             &self.value.primary,
@@ -60,7 +52,7 @@ impl CredentialDefinitionV1 {
     }
 }
 
-impl Validatable for CredentialDefinitionV1 {
+impl Validatable for CredentialDefinition {
     fn validate(&self) -> Result<(), ValidationError> {
         self.schema_id.validate()
     }
