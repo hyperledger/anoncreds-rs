@@ -39,7 +39,6 @@ impl IssuanceType {
         *self == IssuanceType::ISSUANCE_BY_DEFAULT
     }
 }
-
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub enum RegistryType {

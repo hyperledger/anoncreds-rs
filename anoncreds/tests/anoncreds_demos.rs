@@ -13,10 +13,10 @@ use self::utils::anoncreds::{IssuerWallet, ProverWallet};
 
 mod utils;
 
-pub static GVT_SCHEMA_NAME: &'static str = "gvt";
-pub static GVT_SCHEMA_ATTRIBUTES: &[&'static str; 4] = &["name", "age", "sex", "height"];
 pub static SCHEMA_ID: &str = "mock:uri";
 pub static CRED_DEF_ID: &str = "mock:uri";
+pub const GVT_SCHEMA_NAME: &str = "gvt";
+pub const GVT_SCHEMA_ATTRIBUTES: &[&str; 4] = &["name", "age", "sex", "height"];
 
 #[test]
 fn anoncreds_works_for_single_issuer_single_prover() {
@@ -27,13 +27,9 @@ fn anoncreds_works_for_single_issuer_single_prover() {
     let mut prover_wallet = ProverWallet::default();
 
     // Issuer creates Schema - would be published to the ledger
-    let gvt_schema = issuer::create_schema(
-        GVT_SCHEMA_NAME,
-        "1.0",
-        GVT_SCHEMA_ATTRIBUTES[..].into(),
-        None,
-    )
-    .expect("Error creating gvt schema for issuer");
+    let gvt_schema =
+        issuer::create_schema(GVT_SCHEMA_NAME, "1.0", GVT_SCHEMA_ATTRIBUTES[..].into())
+            .expect("Error creating gvt schema for issuer");
 
     // Issuer creates Credential Definition
     let cred_def_parts = issuer::create_credential_definition(
