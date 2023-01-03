@@ -10,14 +10,14 @@ pub(crate) static REGEX: Lazy<Regex> =
 /// Combine a prefix, method, and value into a qualified identifier
 pub fn combine(prefix: &str, method: Option<&str>, entity: &str) -> String {
     match method {
-        Some(method) => format!("{}:{}:{}", prefix, method, entity),
+        Some(method) => format!("{prefix}:{method}:{entity}"),
         _ => entity.to_owned(),
     }
 }
 
 /// Split a qualifiable identifier into its method and value components
 pub fn split<'a>(prefix: &str, val: &'a str) -> (Option<&'a str>, &'a str) {
-    match REGEX.captures(&val) {
+    match REGEX.captures(val) {
         None => (None, val),
         Some(caps) => {
             if caps.get(1).map(|m| m.as_str()) == Some(prefix) {
@@ -45,11 +45,11 @@ pub trait Qualifiable: From<String> + std::ops::Deref<Target = str> + Validatabl
         Self::from(combine(Self::prefix(), method, entity))
     }
 
-    fn split<'a>(&'a self) -> (Option<&'a str>, &'a str) {
+    fn split(&self) -> (Option<&str>, &str) {
         split(Self::prefix(), self.deref())
     }
 
-    fn get_method<'a>(&'a self) -> Option<&'a str> {
+    fn get_method(&self) -> Option<&str> {
         let (method, _rest) = self.split();
         method
     }

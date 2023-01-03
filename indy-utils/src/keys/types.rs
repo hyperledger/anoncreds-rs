@@ -1,7 +1,7 @@
-pub const KEY_ENC_BASE58: &'static str = "base58";
+pub const KEY_ENC_BASE58: &str = "base58";
 
-pub const KEY_TYPE_ED25519: &'static str = "ed25519";
-pub const KEY_TYPE_X25519: &'static str = "x25519";
+pub const KEY_TYPE_ED25519: &str = "ed25519";
+pub const KEY_TYPE_X25519: &str = "x25519";
 
 /// Enum of known and unknown key types
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -12,19 +12,17 @@ pub enum KeyType {
 }
 
 impl KeyType {
-    pub fn from_str(keytype: &str) -> KeyType {
-        match keytype.to_ascii_lowercase().as_str() {
+    pub fn from_string(key_type: impl Into<String>) -> KeyType {
+        let key_type = key_type.into();
+        match key_type.to_ascii_lowercase().as_str() {
             KEY_TYPE_ED25519 => KeyType::ED25519,
             KEY_TYPE_X25519 => KeyType::X25519,
-            _ => KeyType::Other(keytype.to_owned()),
+            _ => KeyType::Other(key_type.to_owned()),
         }
     }
 
     pub fn is_known(&self) -> bool {
-        match self {
-            Self::Other(_) => false,
-            _ => true,
-        }
+        !matches!(self, Self::Other(_))
     }
 
     pub fn as_str(&self) -> &str {
@@ -57,13 +55,13 @@ impl std::ops::Deref for KeyType {
 
 impl From<&str> for KeyType {
     fn from(value: &str) -> Self {
-        Self::from_str(value)
+        Self::from_string(value)
     }
 }
 
 impl From<String> for KeyType {
     fn from(value: String) -> Self {
-        Self::from_str(&value)
+        Self::from_string(value)
     }
 }
 
@@ -75,10 +73,11 @@ pub enum KeyEncoding {
 }
 
 impl KeyEncoding {
-    pub fn from_str(keyenc: &str) -> KeyEncoding {
-        match keyenc.to_ascii_lowercase().as_str() {
+    pub fn from_string(key_encoding: impl Into<String>) -> KeyEncoding {
+        let key_encoding = key_encoding.into();
+        match key_encoding.to_ascii_lowercase().as_str() {
             KEY_ENC_BASE58 => KeyEncoding::BASE58,
-            _ => KeyEncoding::Other(keyenc.to_owned()),
+            _ => KeyEncoding::Other(key_encoding),
         }
     }
 
@@ -111,12 +110,12 @@ impl std::ops::Deref for KeyEncoding {
 
 impl From<&str> for KeyEncoding {
     fn from(value: &str) -> Self {
-        Self::from_str(value)
+        Self::from_string(value)
     }
 }
 
 impl From<String> for KeyEncoding {
     fn from(value: String) -> Self {
-        Self::from_str(&value)
+        Self::from_string(value)
     }
 }

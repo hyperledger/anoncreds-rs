@@ -40,9 +40,7 @@ pub fn create_credential_request(
         credential_offer
     );
 
-    let cred_def = match cred_def {
-        CredentialDefinition::CredentialDefinitionV1(cd) => cd,
-    };
+    let CredentialDefinition::CredentialDefinitionV1(cred_def) = cred_def;
     let credential_pub_key = CredentialPublicKey::build_from_parts(
         &cred_def.value.primary,
         cred_def.value.revocation.as_ref(),
@@ -95,9 +93,7 @@ pub fn process_credential(
     trace!("process_credential >>> credential: {:?}, cred_request_metadata: {:?}, master_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
             credential, cred_request_metadata, secret!(&master_secret), cred_def, rev_reg_def);
 
-    let cred_def = match cred_def {
-        CredentialDefinition::CredentialDefinitionV1(cd) => cd,
-    };
+    let CredentialDefinition::CredentialDefinitionV1(cred_def) = cred_def;
     let credential_pub_key = CredentialPublicKey::build_from_parts(
         &cred_def.value.primary,
         cred_def.value.revocation.as_ref(),
@@ -156,9 +152,10 @@ pub fn create_presentation(
     let mut proof_builder = CryptoProver::new_proof_builder()?;
     proof_builder.add_common_attribute("master_secret")?;
 
-    let mut requested_proof = RequestedProof::default();
-
-    requested_proof.self_attested_attrs = self_attested.unwrap_or_default();
+    let mut requested_proof = RequestedProof {
+        self_attested_attrs: self_attested.unwrap_or_default(),
+        ..Default::default()
+    };
 
     let mut sub_proof_index = 0;
     let non_credential_schema = build_non_credential_schema()?;
@@ -173,9 +170,7 @@ pub fn create_presentation(
         let schema = *schemas
             .get(&credential.schema_id)
             .ok_or_else(|| err_msg!("Schema not provided for ID: {}", credential.schema_id))?;
-        let schema = match schema {
-            Schema::SchemaV1(schema) => schema,
-        };
+        let Schema::SchemaV1(schema) = schema;
 
         let cred_def_id = CredentialDefinitionId::new(credential.cred_def_id.clone())?;
         let cred_def = *cred_defs.get(&cred_def_id).ok_or_else(|| {
@@ -184,10 +179,8 @@ pub fn create_presentation(
                 credential.cred_def_id
             )
         })?;
-        let cred_def = match cred_def {
-            CredentialDefinition::CredentialDefinitionV1(cd) => cd,
-        };
 
+        let CredentialDefinition::CredentialDefinitionV1(cred_def) = cred_def;
         let credential_pub_key = CredentialPublicKey::build_from_parts(
             &cred_def.value.primary,
             cred_def.value.revocation.as_ref(),
@@ -275,12 +268,8 @@ rev_reg_delta: {:?}, rev_reg_idx: {}, timestamp: {:?}, rev_state: {:?}",
         rev_state
     );
 
-    let revoc_reg_def = match revoc_reg_def {
-        RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => v1,
-    };
-    let rev_reg_delta = match rev_reg_delta {
-        RevocationRegistryDelta::RevocationRegistryDeltaV1(v1) => v1,
-    };
+    let RevocationRegistryDefinition::RevocationRegistryDefinitionV1(revoc_reg_def) = revoc_reg_def;
+    let RevocationRegistryDelta::RevocationRegistryDeltaV1(rev_reg_delta) = rev_reg_delta;
 
     let witness = match rev_state {
         None => Witness::new(
@@ -380,7 +369,7 @@ fn get_credential_values_for_attribute(
 
     let res = credential_attrs
         .iter()
-        .find(|&(ref key, _)| attr_common_view(key) == attr_common_view(&requested_attr))
+        .find(|(key, _)| attr_common_view(key) == attr_common_view(requested_attr))
         .map(|(_, values)| values.clone());
 
     trace!(
@@ -409,7 +398,7 @@ fn update_requested_proof(
 
             if let Some(name) = &attribute.name {
                 let attribute_values =
-                    get_credential_values_for_attribute(&credential.values.0, &name).ok_or_else(
+                    get_credential_values_for_attribute(&credential.values.0, name).ok_or_else(
                         || err_msg!("Credential value not found for attribute {:?}", name),
                     )?;
 
@@ -425,7 +414,7 @@ fn update_requested_proof(
                 let mut value_map: HashMap<String, AttributeValue> = HashMap::new();
                 for name in names {
                     let attr_value =
-                        get_credential_values_for_attribute(&credential.values.0, &name)
+                        get_credential_values_for_attribute(&credential.values.0, name)
                             .ok_or_else(|| {
                                 err_msg!("Credential value not found for attribute {:?}", name)
                             })?;

@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::convert::TryInto;
 use std::os::raw::c_char;
 use std::ptr;
 
@@ -46,7 +45,7 @@ impl RevocationConfig {
             registry: self.registry.cast_ref()?,
             registry_idx: self.reg_idx,
             registry_used: &self.reg_used,
-            tails_reader: TailsFileReader::new(self.tails_path.as_str()),
+            tails_reader: TailsFileReader::new_tails_reader(self.tails_path.as_str()),
         })
     }
 }
@@ -78,15 +77,15 @@ pub extern "C" fn anoncreds_create_credential(
         }
         let rev_reg_id = rev_reg_id
             .as_opt_str()
-            .map(RevocationRegistryId::new)
+            .map(|i| RevocationRegistryId::new(i))
             .transpose()?;
         let enc_values = attr_enc_values.as_slice();
         let mut cred_values = MakeCredentialValues::default();
-        let mut attr_idx = 0;
-        for (name, raw) in attr_names
+        for (attr_idx, (name, raw)) in attr_names
             .as_slice()
-            .into_iter()
+            .iter()
             .zip(attr_raw_values.as_slice())
+            .enumerate()
         {
             let name = name
                 .as_opt_str()
@@ -106,7 +105,6 @@ pub extern "C" fn anoncreds_create_credential(
             } else {
                 cred_values.add_raw(name, raw)?;
             }
-            attr_idx += 1;
         }
         let revocation_config = if !revocation.is_null() {
             let revocation = unsafe { &*revocation };

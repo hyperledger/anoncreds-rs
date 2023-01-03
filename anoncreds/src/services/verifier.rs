@@ -18,7 +18,7 @@ use crate::error::Result;
 use crate::ursa::cl::{verifier::Verifier as CryptoVerifier, CredentialPublicKey};
 use indy_utils::query::Query;
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Filter {
     schema_id: SchemaId,
     schema_issuer_did: String,
@@ -44,11 +44,11 @@ pub fn verify_presentation(
 
     let pres_req = pres_req.value();
     let received_revealed_attrs: HashMap<String, Identifier> =
-        received_revealed_attrs(&presentation)?;
+        received_revealed_attrs(presentation)?;
     let received_unrevealed_attrs: HashMap<String, Identifier> =
-        received_unrevealed_attrs(&presentation)?;
-    let received_predicates: HashMap<String, Identifier> = received_predicates(&presentation)?;
-    let received_self_attested_attrs: HashSet<String> = received_self_attested_attrs(&presentation);
+        received_unrevealed_attrs(presentation)?;
+    let received_predicates: HashMap<String, Identifier> = received_predicates(presentation)?;
+    let received_self_attested_attrs: HashSet<String> = received_self_attested_attrs(presentation);
 
     compare_attr_from_proof_and_request(
         pres_req,
@@ -58,10 +58,10 @@ pub fn verify_presentation(
         &received_predicates,
     )?;
 
-    verify_revealed_attribute_values(&pres_req, &presentation)?;
+    verify_revealed_attribute_values(pres_req, presentation)?;
 
     verify_requested_restrictions(
-        &pres_req,
+        pres_req,
         &presentation.requested_proof,
         &received_revealed_attrs,
         &received_unrevealed_attrs,
@@ -83,22 +83,18 @@ pub fn verify_presentation(
     for sub_proof_index in 0..presentation.identifiers.len() {
         let identifier = presentation.identifiers[sub_proof_index].clone();
 
-        let schema = match schemas
+        let Schema::SchemaV1(schema) = schemas
             .get(&identifier.schema_id)
-            .ok_or_else(|| err_msg!("Schema not provided for ID: {:?}", identifier.schema_id))?
-        {
-            Schema::SchemaV1(schema) => schema,
-        };
+            .ok_or_else(|| err_msg!("Schema not provided for ID: {:?}", identifier.schema_id))?;
 
         let cred_def_id = CredentialDefinitionId::new(identifier.cred_def_id.clone())?;
-        let cred_def = match cred_defs.get(&cred_def_id).ok_or_else(|| {
-            err_msg!(
-                "Credential Definition not provided for ID: {:?}",
-                identifier.cred_def_id
-            )
-        })? {
-            CredentialDefinition::CredentialDefinitionV1(cred_def) => cred_def,
-        };
+        let CredentialDefinition::CredentialDefinitionV1(cred_def) =
+            cred_defs.get(&cred_def_id).ok_or_else(|| {
+                err_msg!(
+                    "Credential Definition not provided for ID: {:?}",
+                    identifier.cred_def_id
+                )
+            })?;
 
         let (rev_reg_def, rev_reg) = if let Some(timestamp) = identifier.timestamp {
             let rev_reg_id = identifier.rev_reg_id.clone().ok_or_else(|| {
@@ -210,7 +206,7 @@ fn get_revealed_attributes_for_credential(
     let mut revealed_attrs_for_credential = requested_proof
         .revealed_attrs
         .iter()
-        .filter(|&(attr_referent, ref revealed_attr_info)| {
+        .filter(|&(attr_referent, revealed_attr_info)| {
             sub_proof_index == revealed_attr_info.sub_proof_index as usize
                 && pres_req.requested_attributes.contains_key(attr_referent)
         })
@@ -221,7 +217,7 @@ fn get_revealed_attributes_for_credential(
         &mut requested_proof
             .revealed_attr_groups
             .iter()
-            .filter(|&(attr_referent, ref revealed_attr_info)| {
+            .filter(|&(attr_referent, revealed_attr_info)| {
                 sub_proof_index == revealed_attr_info.sub_proof_index as usize
                     && pres_req.requested_attributes.contains_key(attr_referent)
             })
@@ -279,7 +275,7 @@ fn compare_attr_from_proof_and_request(
         .chain(received_unrevealed_attrs)
         .map(|(r, _)| r.to_string())
         .collect::<HashSet<String>>()
-        .union(&received_self_attested_attrs)
+        .union(received_self_attested_attrs)
         .cloned()
         .collect();
 
@@ -318,14 +314,14 @@ fn compare_timestamps_from_proof_and_request(
         .iter()
         .map(|(referent, info)| {
             validate_timestamp(
-                &received_revealed_attrs,
+                received_revealed_attrs,
                 referent,
                 &pres_req.non_revoked,
                 &info.non_revoked,
             )
             .or_else(|_| {
                 validate_timestamp(
-                    &received_unrevealed_attrs,
+                    received_unrevealed_attrs,
                     referent,
                     &pres_req.non_revoked,
                     &info.non_revoked,
@@ -458,7 +454,7 @@ fn verify_revealed_attribute_values(
                     attr_referent,
                 )
             })?;
-        verify_revealed_attribute_value(attr_name.as_str(), proof, &attr_info)?;
+        verify_revealed_attribute_value(attr_name.as_str(), proof, attr_info)?;
     }
 
     for (attr_referent, attr_infos) in proof.requested_proof.revealed_attr_groups.iter() {
@@ -514,8 +510,7 @@ fn verify_revealed_attribute_value(
     let reveal_attr_encoded = attr_info.encoded.to_string();
     let reveal_attr_encoded = Regex::new("^0*")
         .unwrap()
-        .replace_all(&reveal_attr_encoded, "")
-        .to_owned();
+        .replace_all(&reveal_attr_encoded, "");
     let sub_proof_index = attr_info.sub_proof_index as usize;
 
     let crypto_proof_encoded = proof
@@ -531,7 +526,7 @@ fn verify_revealed_attribute_value(
         })?
         .revealed_attrs()?
         .iter()
-        .find(|(key, _)| attr_common_view(attr_name) == attr_common_view(&key))
+        .find(|(key, _)| attr_common_view(attr_name) == attr_common_view(key))
         .map(|(_, val)| val.to_string())
         .ok_or_else(|| {
             err_msg!(
@@ -566,13 +561,13 @@ fn verify_requested_restrictions(
     let requested_attrs: HashMap<String, AttributeInfo> = pres_req
         .requested_attributes
         .iter()
-        .filter(|&(referent, info)| !is_self_attested(&referent, &info, self_attested_attrs))
+        .filter(|&(referent, info)| !is_self_attested(referent, info, self_attested_attrs))
         .map(|(referent, info)| (referent.to_string(), info.clone()))
         .collect();
 
     for (referent, info) in requested_attrs.iter() {
         if let Some(ref query) = info.restrictions {
-            let filter = gather_filter_info(&referent, &proof_attr_identifiers)?;
+            let filter = gather_filter_info(referent, &proof_attr_identifiers)?;
 
             let attr_value_map: HashMap<String, Option<&str>> = if let Some(name) =
                 info.name.as_ref()
@@ -607,7 +602,7 @@ fn verify_requested_restrictions(
                 ));
             };
 
-            process_operator(&attr_value_map, &query, &filter).map_err(err_map!(
+            process_operator(&attr_value_map, query, &filter).map_err(err_map!(
                 "Requested restriction validation failed for \"{:?}\" attributes",
                 &attr_value_map
             ))?;
@@ -616,7 +611,7 @@ fn verify_requested_restrictions(
 
     for (referent, info) in pres_req.requested_predicates.iter() {
         if let Some(ref query) = info.restrictions {
-            let filter = gather_filter_info(&referent, received_predicates)?;
+            let filter = gather_filter_info(referent, received_predicates)?;
 
             // start with the predicate requested attribute, which is un-revealed
             let mut attr_value_map = HashMap::new();
@@ -647,12 +642,12 @@ fn verify_requested_restrictions(
                 if pred_sub_proof_index == attr_sub_proof_index {
                     for name in attr_info.values.keys() {
                         let raw_val = attr_info.values.get(name).unwrap().raw.as_str();
-                        attr_value_map.insert(name.clone(), Some(raw_val.clone()));
+                        attr_value_map.insert(name.to_string(), Some(raw_val));
                     }
                 }
             }
 
-            process_operator(&attr_value_map, &query, &filter).map_err(err_map!(
+            process_operator(&attr_value_map, query, &filter).map_err(err_map!(
                 "Requested restriction validation failed for \"{}\" predicate",
                 &info.name
             ))?;
@@ -715,14 +710,14 @@ fn process_operator(
 ) -> Result<()> {
     match restriction_op {
         Query::Eq(ref tag_name, ref tag_value) => {
-            process_filter(attr_value_map, &tag_name, &tag_value, filter).map_err(err_map!(
+            process_filter(attr_value_map, tag_name, tag_value, filter).map_err(err_map!(
                 "$eq operator validation failed for tag: \"{}\", value: \"{}\"",
                 tag_name,
                 tag_value
             ))
         }
         Query::Neq(ref tag_name, ref tag_value) => {
-            if process_filter(attr_value_map, &tag_name, &tag_value, filter).is_err() {
+            if process_filter(attr_value_map, tag_name, tag_value, filter).is_err() {
                 Ok(())
             } else {
                 Err(err_msg!(ProofRejected,
@@ -732,7 +727,7 @@ fn process_operator(
         Query::In(ref tag_name, ref tag_values) => {
             let res = tag_values
                 .iter()
-                .any(|val| process_filter(attr_value_map, &tag_name, &val, filter).is_ok());
+                .any(|val| process_filter(attr_value_map, tag_name, val, filter).is_ok());
             if res {
                 Ok(())
             } else {
@@ -764,7 +759,7 @@ fn process_operator(
             }
         }
         Query::Not(ref operator) => {
-            if process_operator(attr_value_map, &*operator, filter).is_err() {
+            if process_operator(attr_value_map, operator, filter).is_err() {
                 Ok(())
             } else {
                 Err(err_msg!(

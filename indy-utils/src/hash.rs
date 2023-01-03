@@ -49,7 +49,7 @@ impl<H: Digest> TreeHash for H {
         T: Hashable,
     {
         let mut ctx = Self::new();
-        ctx.update(&[0x00]);
+        ctx.update([0x00]);
         leaf.update_context(&mut ctx)?;
         Ok(ctx.finalize().to_vec())
     }
@@ -59,7 +59,7 @@ impl<H: Digest> TreeHash for H {
         T: Hashable,
     {
         let mut ctx = Self::new();
-        ctx.update(&[0x01]);
+        ctx.update([0x01]);
         left.update_context(&mut ctx)?;
         right.update_context(&mut ctx)?;
         Ok(ctx.finalize().to_vec())
@@ -95,7 +95,8 @@ pub trait Hashable {
 
 impl<T: AsRef<[u8]>> Hashable for T {
     fn update_context<D: Digest>(&self, context: &mut D) -> Result<(), ValidationError> {
-        Ok(context.update(self.as_ref()))
+        context.update(self.as_ref());
+        Ok(())
     }
 }
 

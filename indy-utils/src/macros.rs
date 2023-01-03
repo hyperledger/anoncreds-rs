@@ -30,7 +30,7 @@ macro_rules! serde_derive_impl {
 macro_rules! new_handle_type (($newtype:ident, $counter:ident) => (
     static $counter: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
     #[repr(transparent)]
     pub struct $newtype(pub usize);
 

@@ -16,7 +16,7 @@ impl Nonce {
     #[inline]
     pub fn new() -> Result<Self, ConversionError> {
         let native = new_nonce()
-            .map_err(|err| ConversionError::from_msg(format!("Error creating nonce: {}", err)))?;
+            .map_err(|err| ConversionError::from_msg(format!("Error creating nonce: {err}")))?;
         Self::from_native(native)
     }
 
@@ -42,7 +42,7 @@ impl Nonce {
             return Err("Invalid bignum: empty value".into());
         }
         for c in strval.chars() {
-            if c < '0' || c > '9' {
+            if !matches!(c, '0'..='9') {
                 return Err("Invalid bignum value".into());
             }
         }
@@ -163,28 +163,28 @@ impl<'a> Deserialize<'a> for Nonce {
             where
                 E: serde::de::Error,
             {
-                Ok(Nonce::try_from(value).map_err(E::custom)?)
+                Nonce::try_from(value).map_err(E::custom)
             }
 
             fn visit_u64<E>(self, value: u64) -> Result<Nonce, E>
             where
                 E: serde::de::Error,
             {
-                Ok(Nonce::try_from(value).map_err(E::custom)?)
+                Nonce::try_from(value).map_err(E::custom)
             }
 
             fn visit_u128<E>(self, value: u128) -> Result<Nonce, E>
             where
                 E: serde::de::Error,
             {
-                Ok(Nonce::try_from(value).map_err(E::custom)?)
+                Nonce::try_from(value).map_err(E::custom)
             }
 
             fn visit_str<E>(self, value: &str) -> Result<Nonce, E>
             where
                 E: serde::de::Error,
             {
-                Ok(Nonce::from_dec(value).map_err(E::custom)?)
+                Nonce::from_dec(value).map_err(E::custom)
             }
         }
 

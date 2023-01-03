@@ -25,14 +25,8 @@ pub struct SchemaV1 {
     pub seq_no: Option<u32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AttributeNames(pub HashSet<String>);
-
-impl AttributeNames {
-    pub fn new() -> Self {
-        AttributeNames(HashSet::new())
-    }
-}
 
 impl From<&[&str]> for AttributeNames {
     fn from(attrs: &[&str]) -> Self {
@@ -56,9 +50,9 @@ impl From<HashSet<String>> for AttributeNames {
     }
 }
 
-impl Into<HashSet<String>> for AttributeNames {
-    fn into(self) -> HashSet<String> {
-        self.0
+impl From<AttributeNames> for HashSet<String> {
+    fn from(a: AttributeNames) -> Self {
+        a.0
     }
 }
 

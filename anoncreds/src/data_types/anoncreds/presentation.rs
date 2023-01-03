@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use indy_utils::ValidationError;
+
 use crate::data_types::Validatable;
 
 use super::{cred_def::CredentialDefinitionId, rev_reg::RevocationRegistryId, schema::SchemaId};
@@ -11,7 +13,7 @@ pub struct Presentation {
     pub identifiers: Vec<Identifier>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, Default)]
 pub struct RequestedProof {
     pub revealed_attrs: HashMap<String, RevealedAttributeInfo>,
     #[serde(skip_serializing_if = "HashMap::is_empty")]
@@ -23,18 +25,6 @@ pub struct RequestedProof {
     pub unrevealed_attrs: HashMap<String, SubProofReferent>,
     #[serde(default)]
     pub predicates: HashMap<String, SubProofReferent>,
-}
-
-impl Default for RequestedProof {
-    fn default() -> Self {
-        RequestedProof {
-            revealed_attrs: HashMap::new(),
-            revealed_attr_groups: HashMap::new(),
-            self_attested_attrs: HashMap::new(),
-            unrevealed_attrs: HashMap::new(),
-            predicates: HashMap::new(),
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
@@ -69,7 +59,20 @@ pub struct Identifier {
     pub timestamp: Option<u64>,
 }
 
-impl Validatable for Presentation {}
+impl Validatable for Presentation {
+    fn validate(&self) -> Result<(), ValidationError> {
+        for identifier in self.identifiers.iter() {
+            identifier.schema_id.validate()?;
+            identifier.cred_def_id.validate()?;
+            identifier
+                .rev_reg_id
+                .as_ref()
+                .map(|rri| rri.validate())
+                .transpose()?;
+        }
+        Ok(())
+    }
+}
 
 #[cfg(test)]
 mod tests {

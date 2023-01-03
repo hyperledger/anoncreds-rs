@@ -14,7 +14,7 @@ impl MasterSecret {
     #[inline]
     pub fn new() -> Result<Self, ConversionError> {
         let value = UrsaProver::new_master_secret().map_err(|err| {
-            ConversionError::from_msg(format!("Error creating master secret: {}", err))
+            ConversionError::from_msg(format!("Error creating master secret: {err}"))
         })?;
         Ok(Self { value })
     }
