@@ -3,7 +3,8 @@ use ffi_support::FfiStr;
 use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
 use super::util::FfiStrList;
-use crate::services::{issuer::create_schema, types::Schema};
+use crate::data_types::anoncreds::schema::Schema;
+use crate::services::issuer::create_schema;
 
 #[no_mangle]
 pub extern "C" fn anoncreds_create_schema(

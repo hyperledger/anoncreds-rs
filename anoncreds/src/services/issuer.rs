@@ -15,7 +15,7 @@ use crate::data_types::anoncreds::{
         RevocationRegistryDefinitionV1, RevocationRegistryDefinitionValue,
         RevocationRegistryDefinitionValuePublicKeys,
     },
-    schema::SchemaV1,
+    schema::Schema,
 };
 use crate::error::Result;
 use crate::services::helpers::*;
@@ -38,12 +38,12 @@ pub fn create_schema(
         attr_names
     );
 
-    let schema = SchemaV1 {
+    let schema = Schema {
         name: schema_name.to_string(),
         version: schema_version.to_string(),
         attr_names,
     };
-    Ok(Schema::SchemaV1(schema))
+    Ok(schema)
 }
 
 pub fn create_credential_definition<SI>(
@@ -66,8 +66,6 @@ where
         config
     );
     let schema_id = schema_id.try_into()?;
-
-    let Schema::SchemaV1(schema) = schema;
 
     let credential_schema = build_credential_schema(&schema.attr_names.0)?;
     let non_credential_schema = build_non_credential_schema()?;
