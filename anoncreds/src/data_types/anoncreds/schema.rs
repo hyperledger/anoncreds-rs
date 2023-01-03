@@ -22,7 +22,6 @@ pub struct SchemaV1 {
     pub version: String,
     #[serde(rename = "attrNames")]
     pub attr_names: AttributeNames,
-    pub seq_no: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

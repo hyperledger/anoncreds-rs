@@ -30,7 +30,6 @@ pub fn create_schema(
     schema_name: &str,
     schema_version: &str,
     attr_names: AttributeNames,
-    seq_no: Option<u32>,
 ) -> Result<Schema> {
     trace!(
         "create_schema >>> schema_name: {:?}, schema_version: {:?}, attr_names: {:?}",
@@ -43,7 +42,6 @@ pub fn create_schema(
         name: schema_name.to_string(),
         version: schema_version.to_string(),
         attr_names,
-        seq_no,
     };
     Ok(Schema::SchemaV1(schema))
 }
