@@ -5,17 +5,18 @@ use std::{
 
 use anoncreds::{
     data_types::anoncreds::{
-        cred_def::CredentialDefinitionId, presentation::Presentation,
-        rev_reg::RevocationRegistryId, rev_reg_def::RevocationRegistryDefinitionId,
-        schema::SchemaId,
+        cred_def::{CredentialDefinition, CredentialDefinitionId},
+        presentation::Presentation,
+        rev_reg::RevocationRegistryId,
+        rev_reg_def::RevocationRegistryDefinitionId,
+        schema::{Schema, SchemaId},
     },
     issuer, prover,
     tails::{TailsFileReader, TailsFileWriter},
     types::{
-        CredentialDefinition, CredentialDefinitionConfig, CredentialRevocationConfig,
-        CredentialRevocationState, IssuanceType, MakeCredentialValues, PresentCredentials,
-        PresentationRequest, RegistryType, RevocationList, RevocationRegistry,
-        RevocationRegistryDefinition, Schema, SignatureType,
+        CredentialDefinitionConfig, CredentialRevocationConfig, CredentialRevocationState,
+        IssuanceType, MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType,
+        RevocationList, RevocationRegistry, RevocationRegistryDefinition, SignatureType,
     },
     verifier,
 };
