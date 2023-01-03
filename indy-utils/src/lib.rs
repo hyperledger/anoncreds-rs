@@ -36,10 +36,6 @@ pub mod base64;
 #[cfg(feature = "hash")]
 pub mod hash;
 
-/// Generation of normalized ledger transaction for signing
-#[cfg(feature = "txn_signature")]
-pub mod txn_signature;
-
 // Query
 #[cfg(feature = "query")]
 pub mod query;
