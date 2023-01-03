@@ -8,7 +8,7 @@ use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
 use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
 use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
-    cred_def::{CredentialDefinitionData, CredentialDefinitionV1},
+    cred_def::{CredentialDefinition, CredentialDefinitionData},
     nonce::Nonce,
     rev_reg::{RevocationRegistryDeltaV1, RevocationRegistryV1},
     rev_reg_def::{
@@ -77,7 +77,7 @@ where
             config.support_revocation,
         )?;
 
-    let cred_def = CredentialDefinition::CredentialDefinitionV1(CredentialDefinitionV1 {
+    let cred_def = CredentialDefinition {
         schema_id,
         signature_type,
         tag: tag.to_owned(),
@@ -85,7 +85,7 @@ where
             primary: credential_public_key.get_primary_key()?.try_clone()?,
             revocation: credential_public_key.get_revocation_key()?,
         },
-    });
+    };
 
     let cred_def_private = CredentialDefinitionPrivate {
         value: credential_private_key,
@@ -124,7 +124,6 @@ where
              cred_def, tag, max_cred_num, rev_reg_type, issuance_type);
     let cred_def_id = cred_def_id.try_into()?;
 
-    let CredentialDefinition::CredentialDefinitionV1(cred_def) = cred_def;
     let credential_pub_key = cred_def.get_public_key().map_err(err_map!(
         Unexpected,
         "Error fetching public key from credential definition"
@@ -263,14 +262,10 @@ pub fn create_credential(
             cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&cred_values), revocation_config,
             );
 
-    let cred_public_key = match cred_def {
-        CredentialDefinition::CredentialDefinitionV1(cd) => {
-            cd.get_public_key().map_err(err_map!(
-                Unexpected,
-                "Error fetching public key from credential definition"
-            ))?
-        }
-    };
+    let cred_public_key = cred_def.get_public_key().map_err(err_map!(
+        Unexpected,
+        "Error fetching public key from credential definition"
+    ))?;
     let credential_values = build_credential_values(&cred_values.0, None)?;
 
     let (credential_signature, signature_correctness_proof, rev_reg, rev_reg_delta, witness) =

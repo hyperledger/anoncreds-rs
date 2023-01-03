@@ -2,10 +2,7 @@ use std::collections::HashSet;
 
 use super::tails::TailsReader;
 pub use crate::data_types::anoncreds::{
-    cred_def::{
-        CredentialDefinition, CredentialDefinitionPrivate, CredentialKeyCorrectnessProof,
-        SignatureType,
-    },
+    cred_def::{CredentialDefinitionPrivate, CredentialKeyCorrectnessProof, SignatureType},
     cred_offer::CredentialOffer,
     cred_request::{CredentialRequest, CredentialRequestMetadata},
     credential::{AttributeValues, Credential, CredentialValues},

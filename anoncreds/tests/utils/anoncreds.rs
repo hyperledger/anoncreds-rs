@@ -5,8 +5,8 @@ use anoncreds::data_types::anoncreds::credential::Credential;
 use anoncreds::data_types::anoncreds::master_secret::MasterSecret;
 use indy_utils::did::DidValue;
 
-pub const ISSUER_DID: &'static str = "NcYxiDXkpYi6ov5FcYDi1e";
-pub const PROVER_DID: &'static str = "VsKV7grR1BUE29mG2Fm2kX";
+pub const ISSUER_DID: &str = "NcYxiDXkpYi6ov5FcYDi1e";
+pub const PROVER_DID: &str = "VsKV7grR1BUE29mG2Fm2kX";
 
 pub struct StoredCredDef {
     pub public: CredentialDefinition,

@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use super::types::*;
 use crate::data_types::anoncreds::{
-    cred_def::CredentialDefinitionId,
+    cred_def::{CredentialDefinition, CredentialDefinitionId},
     credential::AttributeValues,
     pres_request::{PresentationRequestPayload, RequestedAttributeInfo, RequestedPredicateInfo},
     presentation::{
@@ -40,7 +40,6 @@ pub fn create_credential_request(
         credential_offer
     );
 
-    let CredentialDefinition::CredentialDefinitionV1(cred_def) = cred_def;
     let credential_pub_key = CredentialPublicKey::build_from_parts(
         &cred_def.value.primary,
         cred_def.value.revocation.as_ref(),
@@ -93,7 +92,6 @@ pub fn process_credential(
     trace!("process_credential >>> credential: {:?}, cred_request_metadata: {:?}, master_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
             credential, cred_request_metadata, secret!(&master_secret), cred_def, rev_reg_def);
 
-    let CredentialDefinition::CredentialDefinitionV1(cred_def) = cred_def;
     let credential_pub_key = CredentialPublicKey::build_from_parts(
         &cred_def.value.primary,
         cred_def.value.revocation.as_ref(),
@@ -179,7 +177,6 @@ pub fn create_presentation(
             )
         })?;
 
-        let CredentialDefinition::CredentialDefinitionV1(cred_def) = cred_def;
         let credential_pub_key = CredentialPublicKey::build_from_parts(
             &cred_def.value.primary,
             cred_def.value.revocation.as_ref(),

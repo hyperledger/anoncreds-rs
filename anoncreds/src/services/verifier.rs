@@ -5,6 +5,7 @@ use regex::Regex;
 
 use super::helpers::*;
 use super::types::*;
+use crate::data_types::anoncreds::cred_def::CredentialDefinition;
 use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
 use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
 use crate::data_types::anoncreds::rev_reg_def::RevocationRegistryDefinitionId;
@@ -89,13 +90,12 @@ pub fn verify_presentation(
             .ok_or_else(|| err_msg!("Schema not provided for ID: {:?}", identifier.schema_id))?;
 
         let cred_def_id = CredentialDefinitionId::new(identifier.cred_def_id.clone())?;
-        let CredentialDefinition::CredentialDefinitionV1(cred_def) =
-            cred_defs.get(&cred_def_id).ok_or_else(|| {
-                err_msg!(
-                    "Credential Definition not provided for ID: {:?}",
-                    identifier.cred_def_id
-                )
-            })?;
+        let cred_def = cred_defs.get(&cred_def_id).ok_or_else(|| {
+            err_msg!(
+                "Credential Definition not provided for ID: {:?}",
+                identifier.cred_def_id
+            )
+        })?;
 
         let (rev_reg_def, rev_reg) = if let Some(timestamp) = identifier.timestamp {
             let rev_reg_id = identifier.rev_reg_id.clone().ok_or_else(|| {

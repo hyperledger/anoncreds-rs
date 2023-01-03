@@ -1,14 +1,14 @@
-use std::ffi::c_char;
 use std::str::FromStr;
 
-use ffi_support::{rust_string_to_c, FfiStr};
+use ffi_support::FfiStr;
 
 use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
+use crate::data_types::anoncreds::cred_def::CredentialDefinition;
 use crate::services::{
     issuer::create_credential_definition,
     types::{
-        CredentialDefinition, CredentialDefinitionConfig, CredentialDefinitionPrivate,
+        CredentialDefinitionConfig, CredentialDefinitionPrivate,
         CredentialKeyCorrectnessProof as KeyCorrectnessProof, SignatureType,
     },
 };
@@ -55,29 +55,6 @@ pub extern "C" fn anoncreds_create_credential_definition(
             *cred_def_pvt_p = cred_def_pvt;
             *key_proof_p = key_proof;
         }
-        Ok(())
-    })
-}
-
-#[no_mangle]
-pub extern "C" fn anoncreds_credential_definition_get_attribute(
-    handle: ObjectHandle,
-    name: FfiStr,
-    result_p: *mut *const c_char,
-) -> ErrorCode {
-    catch_error(|| {
-        check_useful_c_ptr!(result_p);
-        let cred_def = handle.load()?;
-        let cred_def = cred_def.cast_ref::<CredentialDefinition>()?;
-        let val = match name.as_opt_str().unwrap_or_default() {
-            "schema_id" => match cred_def {
-                CredentialDefinition::CredentialDefinitionV1(cred_def) => {
-                    cred_def.schema_id.to_owned()
-                }
-            },
-            s => return Err(err_msg!("Unsupported attribute: {}", s)),
-        };
-        unsafe { *result_p = rust_string_to_c(val) };
         Ok(())
     })
 }
