@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    fs::create_dir,
+};
 
 use anoncreds::{
     data_types::anoncreds::{
@@ -254,6 +257,16 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
 
     // This will create a tails file locally in the .tmp dir
     let tf_path = "../.tmp";
+    create_dir(tf_path)
+        .or_else(|e| -> Result<(), std::io::Error> {
+            println!(
+                "Tail file path creation error but test can still proceed {}",
+                e
+            );
+            Ok(())
+        })
+        .unwrap();
+
     let mut tf = TailsFileWriter::new(Some(tf_path.to_owned()));
     let (rev_reg_def_pub, rev_reg_def_priv, rev_reg, _) = issuer::create_revocation_registry(
         &cred_def_pub,
@@ -450,12 +463,12 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     // revoked_bit is not a reference so can drop
     drop(revoked_bit);
 
-    let revoked_accum = match revoked_rev_reg.clone() {
+    let ursa_rev_reg = match revoked_rev_reg.clone() {
         RevocationRegistry::RevocationRegistryV1(v) => v.value,
     };
 
     let revocation_list =
-        RevocationList::new(REV_REG_ID, list, revoked_accum.into(), prover_timestamp).unwrap();
+        RevocationList::new(REV_REG_ID, list, ursa_rev_reg, prover_timestamp).unwrap();
     let new_rev_state = prover::create_or_update_revocation_state(
         tr,
         &rev_reg_def_pub,
