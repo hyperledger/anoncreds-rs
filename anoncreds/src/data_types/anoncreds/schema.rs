@@ -8,21 +8,13 @@ pub const MAX_ATTRIBUTES_COUNT: usize = 125;
 
 impl_anoncreds_object_identifier!(SchemaId);
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "ver")]
-pub enum Schema {
-    #[serde(rename = "1.0")]
-    SchemaV1(SchemaV1),
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SchemaV1 {
+pub struct Schema {
     pub name: String,
     pub version: String,
     #[serde(rename = "attrNames")]
     pub attr_names: AttributeNames,
-    pub seq_no: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -56,7 +48,7 @@ impl From<AttributeNames> for HashSet<String> {
     }
 }
 
-impl Validatable for SchemaV1 {
+impl Validatable for Schema {
     fn validate(&self) -> Result<(), ValidationError> {
         self.attr_names.validate()?;
         Ok(())
@@ -89,13 +81,12 @@ mod test_schema_validation {
     fn test_valid_schema() {
         let schema_json = json!({
             "name": "gvt",
-            "ver": "1.0",
             "version": "1.0",
             "attrNames": ["aaa", "bbb", "ccc"],
         })
         .to_string();
 
-        let schema: SchemaV1 = serde_json::from_str(&schema_json).unwrap();
+        let schema: Schema = serde_json::from_str(&schema_json).unwrap();
         assert_eq!(schema.name, "gvt");
         assert_eq!(schema.version, "1.0");
     }
@@ -104,25 +95,23 @@ mod test_schema_validation {
     fn test_invalid_name_schema() {
         let schema_json = json!({
             "name": "gvt1",
-            "ver": "1.0",
             "version": "1.0",
             "attrNames": ["aaa", "bbb", "ccc"],
         })
         .to_string();
 
-        serde_json::from_str::<SchemaV1>(&schema_json).unwrap();
+        serde_json::from_str::<Schema>(&schema_json).unwrap();
     }
 
     #[test]
     fn test_invalid_version_schema() {
         let schema_json = json!({
             "name": "gvt",
-            "ver": "1.0",
             "version": "1.1",
             "attrNames": ["aaa", "bbb", "ccc"],
         })
         .to_string();
 
-        serde_json::from_str::<SchemaV1>(&schema_json).unwrap();
+        serde_json::from_str::<Schema>(&schema_json).unwrap();
     }
 }

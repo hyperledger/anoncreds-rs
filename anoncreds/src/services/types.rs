@@ -17,7 +17,7 @@ pub use crate::data_types::anoncreds::{
         IssuanceType, RegistryType, RevocationRegistryDefinition,
         RevocationRegistryDefinitionPrivate,
     },
-    schema::{AttributeNames, Schema},
+    schema::AttributeNames,
 };
 
 pub use indy_utils::did::DidValue;

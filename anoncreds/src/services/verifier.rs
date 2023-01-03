@@ -8,6 +8,7 @@ use super::types::*;
 use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
 use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
 use crate::data_types::anoncreds::rev_reg_def::RevocationRegistryDefinitionId;
+use crate::data_types::anoncreds::schema::Schema;
 use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
     nonce::Nonce,
@@ -83,7 +84,7 @@ pub fn verify_presentation(
     for sub_proof_index in 0..presentation.identifiers.len() {
         let identifier = presentation.identifiers[sub_proof_index].clone();
 
-        let Schema::SchemaV1(schema) = schemas
+        let schema = schemas
             .get(&identifier.schema_id)
             .ok_or_else(|| err_msg!("Schema not provided for ID: {:?}", identifier.schema_id))?;
 

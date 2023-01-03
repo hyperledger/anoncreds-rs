@@ -9,7 +9,7 @@ use crate::data_types::anoncreds::{
         AttributeValue, Identifier, RequestedProof, RevealedAttributeGroupInfo,
         RevealedAttributeInfo, SubProofReferent,
     },
-    schema::SchemaId,
+    schema::{Schema, SchemaId},
 };
 use crate::error::Result;
 use crate::services::helpers::*;
@@ -170,7 +170,6 @@ pub fn create_presentation(
         let schema = *schemas
             .get(&credential.schema_id)
             .ok_or_else(|| err_msg!("Schema not provided for ID: {}", credential.schema_id))?;
-        let Schema::SchemaV1(schema) = schema;
 
         let cred_def_id = CredentialDefinitionId::new(credential.cred_def_id.clone())?;
         let cred_def = *cred_defs.get(&cred_def_id).ok_or_else(|| {
