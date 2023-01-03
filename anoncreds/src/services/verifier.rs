@@ -368,8 +368,8 @@ fn compare_timestamps_from_proof_and_request(
 //
 // Otherwise the Identifier for the referent (attribute) has to have a timestamp,
 // which was added by the prover when creating `PresentCredentials`,
-// an arg for `create_presentation`. 
-// 
+// an arg for `create_presentation`.
+//
 // TODO: this timestamp should be compared with the provided interval
 fn validate_timestamp(
     received_: &HashMap<String, Identifier>,

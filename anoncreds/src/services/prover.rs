@@ -339,7 +339,7 @@ fn _create_index_deltas(
     revoked: &mut HashSet<u32>,
 ) {
     for i in delta.iter_ones() {
-        if list[i] == true {
+        if list[i] {
             // true means cred has been revoked
             revoked.insert(i as u32);
         } else {
