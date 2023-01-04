@@ -1,14 +1,14 @@
-name: "Build Packages"
+name: 'Build Packages'
 
-"on":
+'on':
   release:
     types: [created]
   workflow_dispatch:
     inputs:
       publish:
-        description: "Publish packages"
+        description: 'Publish packages'
         required: true
-        default: "false"
+        default: 'false'
 
 jobs:
   build-manylinux:
@@ -174,3 +174,125 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: |
           twine upload --skip-existing wrappers/python/dist/*
+
+  build-android-libraries:
+    name: Build Android Libraries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture:
+          [
+            aarch64-linux-android,
+            armv7-linux-androideabi,
+            i686-linux-android,
+            x86_64-linux-android,
+          ]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.architecture }}
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target ${{matrix.architecture}} --package=anoncreds --features=vendored
+      - uses: actions/upload-artifact@v2
+        name: Save library
+        with:
+          name: ${{matrix.architecture}}
+          path: target/${{matrix.architecture}}/release/libanoncreds.so
+
+  create-android-library:
+    name: Create android libraries
+    runs-on: ubuntu-latest
+    needs: build-android-libraries
+    if: |
+      (github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.inputs.publish == 'true'))
+    steps:
+      - name: Fetch libraries
+        uses: actions/download-artifact@v3
+      - run: |
+          sudo mkdir ./libs
+          sudo mv aarch64-linux-android   ./libs/arm64-v8a
+          sudo mv armv7-linux-androideabi ./libs/armeabi-v7a
+          sudo mv i686-linux-android      ./libs/x86
+          sudo mv x86_64-linux-android    ./libs/x86_64
+      - name: Save Android library
+        uses: actions/upload-artifact@v2
+        with:
+          name: android-libs
+          path: ./libs
+      - uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+            aarch64-linux-android
+            armv7-linux-androideabi
+            i686-linux-android
+            x86_64-linux-android
+          failOnError: false
+
+  build-ios-libraries:
+    name: Build ios Libraries
+    runs-on: macos-latest
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
+    strategy:
+      matrix:
+        architecture:
+          [aarch64-apple-ios, aarch64-apple-ios-sim, x86_64-apple-ios]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.architecture }}
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target ${{matrix.architecture}} --package=anoncreds --features=vendored
+      - uses: actions/upload-artifact@v2
+        name: Save library
+        with:
+          name: ${{matrix.architecture}}
+          path: target/${{matrix.architecture}}/release/libanoncreds.dylib
+
+  create-ios-xcframework:
+    name: Create ios xcframework
+    runs-on: macos-latest
+    needs: build-ios-libraries
+    if: |
+      (github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.inputs.publish == 'true'))
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Fetch static libraries
+        uses: actions/download-artifact@v3
+      - run: >
+          lipo -create aarch64-apple-ios-sim/libanoncreds.dylib \
+                       x86_64-apple-ios/libanoncreds.dylib \
+               -output libanoncreds.dylib
+      - run: >
+          xcodebuild -create-xcframework \
+            -library aarch64-apple-ios/libanoncreds.dylib -headers include/libanoncreds.h \
+            -library libanoncreds.dylib                   -headers include/libanoncreds.h \
+            -output anoncreds.xcframework
+      - name: Save xcframework
+        uses: actions/upload-artifact@v3
+        with:
+          name: anoncreds.xcframework
+          path: anoncreds.xcframework
+      - uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+            aarch64-apple-ios
+            aarch64-apple-ios-sim
+            x86_64-apple-ios
+          failOnError: false

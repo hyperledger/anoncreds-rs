@@ -8,3 +8,6 @@ members = [
 [profile.release]
 lto = true
 codegen-units = 1
+
+[patch.crates-io]
+openssl-src = { git = "https://github.com/blu3beri/openssl-src-rs", branch = "release/111" }
