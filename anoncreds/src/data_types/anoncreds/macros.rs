@@ -11,7 +11,7 @@ macro_rules! impl_anoncreds_object_identifier {
 
             pub fn new(s: impl Into<String>) -> Result<Self, $crate::data_types::ValidationError> {
                 let s = Self(s.into());
-                s.validate()?;
+                $crate::data_types::Validatable::validate(&s)?;
                 Ok(s)
             }
         }
@@ -63,4 +63,22 @@ macro_rules! impl_anoncreds_object_identifier {
             }
         }
     };
+}
+
+#[test]
+fn regex_validation() {
+    impl_anoncreds_object_identifier!(MockId);
+    assert!(MockId::new("foo:bar").is_ok());
+    assert!(MockId::new("did:sov:NcYxiDXkpYi6ov5FcYDi1e").is_ok());
+    assert!(MockId::new("foo://example.com:8042/over/there?name=ferret#nose").is_ok());
+    assert!(MockId::new("did:key:zUC7H7TxvhWmvfptpu2zSwo5EZ1kr3MPNsjovaD2ipbuzj").is_ok());
+    assert!(MockId::new("did:key:zUC72to2eJiFMrt8a89LoaEPHC76QcfAxQdFys3nFGCmDK").is_ok());
+    assert!(MockId::new("did:key:z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmg").is_ok());
+
+    assert!(MockId::new("foo").is_err());
+    assert!(MockId::new("bar").is_err());
+    assert!(MockId::new("foo:").is_err());
+    assert!(MockId::new("zUC7H7TxvhWmvfptpu2zSwo5EZ1kr3MPNsjovaD2ipbuzj").is_err());
+    assert!(MockId::new("zUC72to2eJiFMrt8a89LoaEPHC76QcfAxQdFys3nFGCmDK").is_err());
+    assert!(MockId::new("z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmg").is_err());
 }
