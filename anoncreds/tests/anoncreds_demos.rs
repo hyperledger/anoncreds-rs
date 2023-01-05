@@ -218,7 +218,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         "175",
         revealed_attr_groups.values.get("height").unwrap().raw
     );
-    let valid = verifier::verify_presentation(
+    let (valid, _) = verifier::verify_presentation(
         &presentation,
         &pres_request,
         &schemas,
@@ -398,14 +398,12 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     }))
     .expect("Error creating proof request");
 
-    // Prover: here we deliberately do not put in the same timestamp as the global non_revoked time interval,
-    // this shows that it is not used
-    let prover_timestamp = 1234u64;
+    let timestamp_within_interval = 23u64;
     let rev_reg = match cred_rev_reg.clone() {
         RevocationRegistry::RevocationRegistryV1(r) => r.value,
     };
     let rev_state = CredentialRevocationState {
-        timestamp: prover_timestamp,
+        timestamp: timestamp_within_interval,
         rev_reg: rev_reg.clone(),
         witness: prover_wallet.credentials[0]
             .try_clone()
@@ -428,7 +426,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         &cred_defs,
         &pres_request,
         &prover_wallet,
-        Some(prover_timestamp),
+        Some(timestamp_within_interval),
         Some(&rev_state),
     );
 
@@ -438,10 +436,10 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let rev_reg_def_map = HashMap::from([(&rev_reg_def_id, &rev_reg_def_pub)]);
 
     // Create the map that contines the registries
-    let rev_timestamp_map = HashMap::from([(prover_timestamp, &cred_rev_reg)]);
+    let rev_timestamp_map = HashMap::from([(timestamp_within_interval, &cred_rev_reg)]);
     let mut rev_reg_map = HashMap::from([(rev_reg_id.clone(), rev_timestamp_map.clone())]);
 
-    let valid = verifier::verify_presentation(
+    let (valid, nrp) = verifier::verify_presentation(
         &presentation,
         &pres_request,
         &schemas,
@@ -451,6 +449,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     )
     .expect("Error verifying presentation");
     assert!(valid);
+    assert!(nrp.timestamps_out_of_range.is_none());
 
     // Issuer Revoke the holder's credentail
     let tr = TailsFileReader::new_tails_reader(location.as_str());
@@ -469,7 +468,8 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     };
 
     let revocation_list =
-        RevocationStatusList::new(REV_REG_ID, list, ursa_rev_reg, prover_timestamp).unwrap();
+        RevocationStatusList::new(REV_REG_ID, list, ursa_rev_reg, timestamp_within_interval)
+            .unwrap();
     let new_rev_state = prover::create_or_update_revocation_state(
         tr,
         &rev_reg_def_pub,
@@ -481,8 +481,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     .unwrap();
 
     // lets say the proof is for a later time
-    // TODO: this has nothing to do with pres_request time at the moment
-    let new_prover_timestamp = prover_timestamp + 100;
+    let new_prover_timestamp = timestamp_within_interval + 1;
 
     let presentation = _create_presentation(
         &schemas,
@@ -497,7 +496,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let r = rev_reg_map.get_mut(&rev_reg_id).unwrap();
     r.insert(new_prover_timestamp, &revoked_rev_reg);
 
-    let valid = verifier::verify_presentation(
+    let (valid, nrp) = verifier::verify_presentation(
         &presentation,
         &pres_request,
         &schemas,
@@ -507,6 +506,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     )
     .expect("Error verifying presentation");
     assert!(!valid);
+    assert!(nrp.timestamps_out_of_range.is_none());
 }
 
 fn _create_presentation(
@@ -521,7 +521,6 @@ fn _create_presentation(
     {
         // Here we add credential with the timestamp of which the rev_state is updated to,
         // also the rev_reg has to be provided for such a time.
-        // TODO: this timestamp is not verified by the `NonRevokedInterval`?
         let mut cred1 = present.add_credential(
             &prover_wallet.credentials[0],
             rev_state_timestamp,
