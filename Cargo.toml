@@ -8,3 +8,11 @@ members = [
 [profile.release]
 lto = true
 codegen-units = 1
+
+# openssl-src does not have a build script for the target `aarch64-apple-ios-sim`, which we need.
+# This fork has that target added and no functional changes. There is a pull request open for
+# the fix but previous pull requests were closed with the same context as they were not security
+# fixes. When this pull request is merged, we can depend on the `upstream` git repo or, when
+# released, we can depend on the latest version of `openssl-src`.
+[patch.crates-io]
+openssl-src = { git = "https://github.com/blu3beri/openssl-src-rs", branch = "release/111" }
