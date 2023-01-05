@@ -8,7 +8,7 @@ use super::types::*;
 use crate::data_types::anoncreds::cred_def::CredentialDefinition;
 use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
 use crate::data_types::anoncreds::issuer_id::IssuerId;
-use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
+use crate::data_types::anoncreds::rev_reg::{NonRevProofWarnings, RevocationRegistryId};
 use crate::data_types::anoncreds::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::anoncreds::schema::Schema;
 use crate::data_types::anoncreds::schema::SchemaId;
@@ -42,7 +42,7 @@ pub fn verify_presentation(
     cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
     rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
     rev_regs: Option<&HashMap<RevocationRegistryId, HashMap<u64, &RevocationRegistry>>>,
-) -> Result<bool> {
+) -> Result<(bool, NonRevProofWarnings)> {
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_regs: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_regs);
 
@@ -53,6 +53,7 @@ pub fn verify_presentation(
         received_unrevealed_attrs(presentation)?;
     let received_predicates: HashMap<String, Identifier> = received_predicates(presentation)?;
     let received_self_attested_attrs: HashSet<String> = received_self_attested_attrs(presentation);
+    let mut nrp_warnings = NonRevProofWarnings::default();
 
     compare_attr_from_proof_and_request(
         pres_req,
@@ -83,6 +84,7 @@ pub fn verify_presentation(
         &received_unrevealed_attrs,
         &received_self_attested_attrs,
         &received_predicates,
+        &mut nrp_warnings,
     )?;
 
     let mut proof_verifier = CryptoVerifier::new_proof_verifier()?;
@@ -189,8 +191,9 @@ pub fn verify_presentation(
     let valid = proof_verifier.verify(&presentation.proof, pres_req.nonce.as_native())?;
 
     trace!("verify <<< valid: {:?}", valid);
+    trace!("non_rev_proof_warnings <<<: {:?}", nrp_warnings);
 
-    Ok(valid)
+    Ok((valid, nrp_warnings))
 }
 
 pub fn generate_nonce() -> Result<Nonce> {
@@ -312,12 +315,15 @@ fn compare_timestamps_from_proof_and_request(
     received_unrevealed_attrs: &HashMap<String, Identifier>,
     received_self_attested_attrs: &HashSet<String>,
     received_predicates: &HashMap<String, Identifier>,
+    nrp_warnings: &mut NonRevProofWarnings,
 ) -> Result<()> {
+    let mut warnings = vec![];
     pres_req
         .requested_attributes
         .iter()
         .map(|(referent, info)| {
             validate_timestamp(
+                &mut warnings,
                 received_revealed_attrs,
                 referent,
                 &pres_req.non_revoked,
@@ -325,6 +331,7 @@ fn compare_timestamps_from_proof_and_request(
             )
             .or_else(|_| {
                 validate_timestamp(
+                    &mut warnings,
                     received_unrevealed_attrs,
                     referent,
                     &pres_req.non_revoked,
@@ -335,7 +342,7 @@ fn compare_timestamps_from_proof_and_request(
                 received_self_attested_attrs
                     .get(referent)
                     .map(|_| ())
-                    .ok_or_else(|| err_msg!("Missing referent: {}", referent))
+                    .ok_or_else(|| err_msg!("Referent validation failed: {}", referent))
             })
         })
         .collect::<Result<Vec<()>>>()?;
@@ -345,6 +352,7 @@ fn compare_timestamps_from_proof_and_request(
         .iter()
         .map(|(referent, info)| {
             validate_timestamp(
+                &mut warnings,
                 received_predicates,
                 referent,
                 &pres_req.non_revoked,
@@ -352,6 +360,10 @@ fn compare_timestamps_from_proof_and_request(
             )
         })
         .collect::<Result<Vec<()>>>()?;
+
+    if !warnings.is_empty() {
+        nrp_warnings.timestamps_out_of_range = Some(warnings);
+    }
 
     Ok(())
 }
@@ -368,26 +380,29 @@ fn compare_timestamps_from_proof_and_request(
 // which was added by the prover when creating `PresentCredentials`,
 // an arg for `create_presentation`.
 //
-// TODO: this timestamp should be compared with the provided interval
+// If the NRP is given at a timestamp outside of the request interval,
+// a wanring is provided for the verifier to decide if they will reject the proof or not
 fn validate_timestamp(
+    warnings: &mut Vec<String>,
     received_: &HashMap<String, Identifier>,
     referent: &str,
     global_interval: &Option<NonRevocedInterval>,
     local_interval: &Option<NonRevocedInterval>,
 ) -> Result<()> {
-    if get_non_revoc_interval(global_interval, local_interval).is_none() {
-        return Ok(());
+    if let Some(interval) = get_non_revoc_interval(global_interval, local_interval) {
+        // If there is global or local interval, we compare the timestamp provided
+        if let Some(Some(ts)) = received_.get(referent).map(|attr| attr.timestamp) {
+            if ts.gt(&interval.to.unwrap_or(u64::MAX)) || ts.lt(&interval.from.unwrap_or(0)) {
+                // We add to NonRevProofWarnings that the referent is out of range
+                warnings.push(referent.to_string());
+            }
+            Ok(())
+        } else {
+            Err(err_msg!("Missing timestamp"))
+        }
+    } else {
+        Ok(())
     }
-
-    if !received_
-        .get(referent)
-        .map(|attr| attr.timestamp.is_some())
-        .unwrap_or(false)
-    {
-        return Err(err_msg!("Missing timestamp"));
-    }
-
-    Ok(())
 }
 
 fn received_revealed_attrs(proof: &Presentation) -> Result<HashMap<String, Identifier>> {
@@ -943,6 +958,8 @@ mod tests {
     pub const SCHEMA_VERSION: &str = "1.2.3";
     pub const CRED_DEF_ID: &str = "345";
     pub const ISSUER_ID: &str = "1111111111111111111111";
+    pub const FROM: u64 = 1000;
+    pub const TO: u64 = 2000;
 
     fn schema_id_tag() -> String {
         "schema_id".to_string()
@@ -1247,7 +1264,7 @@ mod tests {
     fn _received() -> HashMap<String, Identifier> {
         let mut res: HashMap<String, Identifier> = HashMap::new();
         res.insert(
-            "referent_1".to_string(),
+            "referent_within_interval".to_string(),
             Identifier {
                 timestamp: Some(1234),
                 schema_id: SchemaId::default(),
@@ -1256,7 +1273,25 @@ mod tests {
             },
         );
         res.insert(
-            "referent_2".to_string(),
+            "referent_before_from".to_string(),
+            Identifier {
+                timestamp: Some(1),
+                schema_id: SchemaId::default(),
+                cred_def_id: CredentialDefinitionId::default(),
+                rev_reg_id: Some(RevocationRegistryId::default()),
+            },
+        );
+        res.insert(
+            "referent_after_to".to_string(),
+            Identifier {
+                timestamp: Some(4999),
+                schema_id: SchemaId::default(),
+                cred_def_id: CredentialDefinitionId::default(),
+                rev_reg_id: Some(RevocationRegistryId::default()),
+            },
+        );
+        res.insert(
+            "referent_none".to_string(),
             Identifier {
                 timestamp: None,
                 schema_id: SchemaId::default(),
@@ -1267,24 +1302,127 @@ mod tests {
         res
     }
 
-    fn _interval() -> NonRevocedInterval {
-        NonRevocedInterval {
-            from: None,
-            to: Some(1234),
-        }
+    fn _interval(from: Option<u64>, to: Option<u64>) -> NonRevocedInterval {
+        NonRevocedInterval { from, to }
     }
 
     #[test]
-    fn validate_timestamp_works() {
-        validate_timestamp(&_received(), "referent_1", &None, &None).unwrap();
-        validate_timestamp(&_received(), "referent_1", &Some(_interval()), &None).unwrap();
-        validate_timestamp(&_received(), "referent_1", &None, &Some(_interval())).unwrap();
+    fn validate_timestamp_without_interval_works() {
+        let mut warnings: Vec<String> = vec![];
+        validate_timestamp(
+            &mut warnings,
+            &_received(),
+            "referent_within_interval",
+            &None,
+            &None,
+        )
+        .unwrap();
+        assert!(warnings.is_empty());
     }
 
     #[test]
-    fn validate_timestamp_not_work() {
-        validate_timestamp(&_received(), "referent_2", &Some(_interval()), &None).unwrap_err();
-        validate_timestamp(&_received(), "referent_2", &None, &Some(_interval())).unwrap_err();
-        validate_timestamp(&_received(), "referent_3", &None, &Some(_interval())).unwrap_err();
+    fn validate_timestamp_with_global_interval_within_range() {
+        let mut warnings: Vec<String> = vec![];
+        validate_timestamp(
+            &mut warnings,
+            &_received(),
+            "referent_within_interval",
+            &Some(_interval(Some(FROM), Some(TO))),
+            &None,
+        )
+        .unwrap();
+        assert!(warnings.is_empty());
+    }
+
+    #[test]
+    fn validate_timestamp_with_local_interval_within_range() {
+        let mut warnings: Vec<String> = vec![];
+        validate_timestamp(
+            &mut warnings,
+            &_received(),
+            "referent_within_interval",
+            &None,
+            &Some(_interval(Some(FROM), Some(TO))),
+        )
+        .unwrap();
+        assert!(warnings.is_empty());
+    }
+
+    #[test]
+    fn validate_timestamp_with_global_interval_out_of_range_before() {
+        let mut warnings: Vec<String> = vec![];
+        validate_timestamp(
+            &mut warnings,
+            &_received(),
+            "referent_before_from",
+            &Some(_interval(Some(FROM), Some(TO))),
+            &None,
+        )
+        .unwrap();
+        assert_eq!(warnings.pop().unwrap(), "referent_before_from");
+    }
+
+    #[test]
+    fn validate_timestamp_with_global_interval_out_of_range_after() {
+        let mut warnings: Vec<String> = vec![];
+        validate_timestamp(
+            &mut warnings,
+            &_received(),
+            "referent_after_to",
+            &Some(_interval(Some(FROM), Some(TO))),
+            &None,
+        )
+        .unwrap();
+        assert_eq!(warnings.pop().unwrap(), "referent_after_to");
+    }
+
+    #[test]
+    fn validate_timestamp_with_local_interval_requirements_over_global_interval() {
+        let mut warnings: Vec<String> = vec![];
+        validate_timestamp(
+            &mut warnings,
+            &_received(),
+            "referent_within_interval",
+            &Some(_interval(Some(FROM), Some(TO))),
+            &Some(_interval(Some(FROM + 500), Some(TO))),
+        )
+        .unwrap();
+        assert_eq!(warnings.pop().unwrap(), "referent_within_interval");
+    }
+
+    #[test]
+    fn validate_timestamp_not_work_without_timestamp_for_global_interval() {
+        validate_timestamp(
+            &mut vec![],
+            &_received(),
+            "referent_none",
+            &Some(_interval(Some(FROM), Some(TO))),
+            &None,
+        )
+        .unwrap_err();
+    }
+
+    #[test]
+    fn validate_timestamp_fails_without_timestamp_for_local_interval() {
+        validate_timestamp(
+            &mut vec![],
+            &_received(),
+            "referent_none",
+            &None,
+            &Some(_interval(Some(FROM), Some(TO))),
+        )
+        .unwrap_err();
+    }
+
+    #[test]
+    fn validate_timestamp_fails_without_refernt() {
+        validate_timestamp(
+            &mut vec![],
+            &_received(),
+            "referent_not_exist",
+            &None,
+            &Some(_interval(Some(FROM), Some(TO))),
+        )
+        .unwrap_err();
     }
 }
