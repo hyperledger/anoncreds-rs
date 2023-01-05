@@ -34,6 +34,17 @@ impl FromStr for IssuanceType {
     }
 }
 
+impl From<IssuanceType> for usize {
+    fn from(value: IssuanceType) -> usize {
+        match value {
+            // Credentials are by default revoked
+            IssuanceType::ISSUANCE_ON_DEMAND => 1,
+            // Credentials are by default not revoked
+            IssuanceType::ISSUANCE_BY_DEFAULT => 0,
+        }
+    }
+}
+
 impl IssuanceType {
     pub fn to_bool(&self) -> bool {
         *self == IssuanceType::ISSUANCE_BY_DEFAULT

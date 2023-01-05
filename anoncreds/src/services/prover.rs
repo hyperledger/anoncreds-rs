@@ -299,15 +299,8 @@ pub fn create_or_update_revocation_state(
         } else {
             let list_size = usize::try_from(revoc_reg_def.value.max_cred_num)
                 .map_err(|e| Error::from_msg(crate::ErrorKind::InvalidState, e.to_string()))?;
-            let list = match revoc_reg_def.value.issuance_type {
-                // All cred are revoked by default
-                IssuanceType::ISSUANCE_ON_DEMAND => {
-                    bitvec![1; list_size]
-                }
-                IssuanceType::ISSUANCE_BY_DEFAULT => {
-                    bitvec![0; list_size]
-                }
-            };
+            let bit: usize = revoc_reg_def.value.issuance_type.into();
+            let list = bitvec![bit; list_size];
             _create_index_deltas(
                 rev_reg_list.state_owned().bitxor(list),
                 rev_reg_list.state(),

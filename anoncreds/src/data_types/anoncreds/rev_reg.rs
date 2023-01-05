@@ -106,10 +106,7 @@ pub mod serde_revocation_list {
     {
         let mut seq = s.serialize_seq(Some(state.len()))?;
         for element in state {
-            let e = match *element.as_ref() {
-                true => 1,
-                false => 0,
-            };
+            let e = *element as i32;
             seq.serialize_element(&e)?;
         }
         seq.end()
@@ -125,7 +122,10 @@ pub mod serde_revocation_list {
             type Value = bitvec::vec::BitVec;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a seq containing revoation state, i.e. [1, 0, 1]")
+                write!(
+                    formatter,
+                    "a seq containing revoation state, i.e. [1, 0, 1]"
+                )
             }
 
             fn visit_seq<S>(self, mut v: S) -> Result<Self::Value, S::Error>
