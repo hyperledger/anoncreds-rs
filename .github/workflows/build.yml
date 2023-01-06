@@ -51,6 +51,8 @@ jobs:
 
   build-other:
     name: Build Library (MacOS/Win)
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
 
     strategy:
       matrix:
