@@ -15,4 +15,4 @@ codegen-units = 1
 # fixes. When this pull request is merged, we can depend on the `upstream` git repo or, when
 # released, we can depend on the latest version of `openssl-src`.
 [patch.crates-io]
-openssl-src = { git = "https://github.com/blu3beri/openssl-src-rs", branch = "release/111" }
+openssl-src = { git = "https://github.com/alexcrichton/openssl-src-rs", branch = "release/111" }
