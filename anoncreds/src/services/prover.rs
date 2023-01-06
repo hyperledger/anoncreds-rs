@@ -14,7 +14,7 @@ use crate::data_types::anoncreds::{
         AttributeValue, Identifier, RequestedProof, RevealedAttributeGroupInfo,
         RevealedAttributeInfo, SubProofReferent,
     },
-    rev_reg::RevocationList,
+    rev_reg::RevocationStatusList,
     schema::{Schema, SchemaId},
 };
 use crate::error::{Error, Result};
@@ -254,10 +254,10 @@ pub fn create_presentation(
 pub fn create_or_update_revocation_state(
     tails_reader: TailsReader,
     revoc_reg_def: &RevocationRegistryDefinition,
-    rev_reg_list: &RevocationList,
+    rev_reg_list: &RevocationStatusList,
     rev_reg_idx: u32,
     rev_state: Option<&CredentialRevocationState>, // for witness update
-    old_rev_reg_list: Option<&RevocationList>,     // for witness update
+    old_rev_reg_list: Option<&RevocationStatusList>, // for witness update
 ) -> Result<CredentialRevocationState> {
     trace!(
         "create_or_update_revocation_state >>> , tails_reader: {:?}, revoc_reg_def: {:?}, \

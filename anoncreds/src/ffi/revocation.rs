@@ -16,8 +16,9 @@ use crate::services::{
     prover::create_or_update_revocation_state,
     tails::{TailsFileReader, TailsFileWriter},
     types::{
-        CredentialRevocationState, IssuanceType, RegistryType, RevocationList, RevocationRegistry,
+        CredentialRevocationState, IssuanceType, RegistryType, RevocationRegistry,
         RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate, RevocationRegistryDelta,
+        RevocationStatusList,
     },
 };
 
@@ -239,8 +240,8 @@ impl_anoncreds_object_from_json!(
     anoncreds_revocation_registry_delta_from_json
 );
 
-impl_anoncreds_object!(RevocationList, "RevocationList");
-impl_anoncreds_object_from_json!(RevocationList, anoncreds_revocation_list_from_json);
+impl_anoncreds_object!(RevocationStatusList, "RevocationStatusList");
+impl_anoncreds_object_from_json!(RevocationStatusList, anoncreds_revocation_list_from_json);
 
 #[no_mangle]
 pub extern "C" fn anoncreds_create_or_update_revocation_state(

@@ -9,7 +9,7 @@ pub use crate::data_types::anoncreds::{
     master_secret::MasterSecret,
     pres_request::PresentationRequest,
     presentation::Presentation,
-    rev_reg::{RevocationList, RevocationRegistry, RevocationRegistryDelta},
+    rev_reg::{RevocationRegistry, RevocationRegistryDelta, RevocationStatusList},
     rev_reg_def::{
         IssuanceType, RegistryType, RevocationRegistryDefinition,
         RevocationRegistryDefinitionPrivate,

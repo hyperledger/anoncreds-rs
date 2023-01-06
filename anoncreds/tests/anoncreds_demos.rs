@@ -16,7 +16,7 @@ use anoncreds::{
     types::{
         CredentialDefinitionConfig, CredentialRevocationConfig, CredentialRevocationState,
         IssuanceType, MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType,
-        RevocationList, RevocationRegistry, RevocationRegistryDefinition, SignatureType,
+        RevocationRegistry, RevocationRegistryDefinition, RevocationStatusList, SignatureType,
     },
     verifier,
 };
@@ -469,7 +469,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     };
 
     let revocation_list =
-        RevocationList::new(REV_REG_ID, list, ursa_rev_reg, prover_timestamp).unwrap();
+        RevocationStatusList::new(REV_REG_ID, list, ursa_rev_reg, prover_timestamp).unwrap();
     let new_rev_state = prover::create_or_update_revocation_state(
         tr,
         &rev_reg_def_pub,
