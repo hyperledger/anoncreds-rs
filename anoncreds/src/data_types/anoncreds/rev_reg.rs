@@ -55,7 +55,7 @@ pub struct RevocationRegistryDeltaV1 {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RevocationList {
+pub struct RevocationStatusList {
     rev_reg_id: RevocationRegistryId,
     #[serde(with = "serde_revocation_list")]
     revocation_list: bitvec::vec::BitVec,
@@ -64,13 +64,13 @@ pub struct RevocationList {
     timestamp: u64,
 }
 
-impl From<&RevocationList> for ursa::cl::RevocationRegistry {
-    fn from(rev_reg_list: &RevocationList) -> ursa::cl::RevocationRegistry {
+impl From<&RevocationStatusList> for ursa::cl::RevocationRegistry {
+    fn from(rev_reg_list: &RevocationStatusList) -> ursa::cl::RevocationRegistry {
         rev_reg_list.registry.clone()
     }
 }
 
-impl RevocationList {
+impl RevocationStatusList {
     pub(crate) fn timestamp(&self) -> u64 {
         self.timestamp
     }
@@ -89,7 +89,7 @@ impl RevocationList {
         registry: ursa::cl::RevocationRegistry,
         timestamp: u64,
     ) -> Result<Self, error::Error> {
-        Ok(RevocationList {
+        Ok(RevocationStatusList {
             rev_reg_id: RevocationRegistryId::new(rev_reg_id)?,
             revocation_list,
             registry,
@@ -165,16 +165,16 @@ mod tests {
 
     #[test]
     fn json_rev_list_can_be_deserialized() {
-        let des = serde_json::from_str::<RevocationList>(REVOCATION_LIST).unwrap();
+        let des = serde_json::from_str::<RevocationStatusList>(REVOCATION_LIST).unwrap();
         let expected_state = bitvec![1;4];
         assert_eq!(des.state(), &expected_state);
     }
 
     #[test]
     fn test_revocation_list_roundtrip_serde() {
-        let des_from_json = serde_json::from_str::<RevocationList>(REVOCATION_LIST).unwrap();
+        let des_from_json = serde_json::from_str::<RevocationStatusList>(REVOCATION_LIST).unwrap();
         let ser = serde_json::to_string(&des_from_json).unwrap();
-        let des = serde_json::from_str::<RevocationList>(&ser).unwrap();
+        let des = serde_json::from_str::<RevocationStatusList>(&ser).unwrap();
         let ser2 = serde_json::to_string(&des).unwrap();
         assert_eq!(ser, ser2)
     }
