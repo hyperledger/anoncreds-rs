@@ -150,6 +150,28 @@ pub mod serde_revocation_list {
     }
 }
 
+// NonRevocationProof warnings:
+// - timestamps_out_of_range: all timestamps used for rev_state that are o.o.r
+//   this can be for request / attribute / predicate level time intervals
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct NonRevProofWarnings {
+    pub timestamps_out_of_range: Option<Vec<String>>,
+}
+
+impl NonRevProofWarnings {
+    pub fn new(referents: Vec<String>) -> Self {
+        if referents.is_empty() {
+            Self {
+                timestamps_out_of_range: None,
+            }
+        } else {
+            Self {
+                timestamps_out_of_range: Some(referents),
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

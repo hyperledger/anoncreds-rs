@@ -6,7 +6,7 @@ use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, AnonCredsObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
 use crate::data_types::anoncreds::cred_def::{CredentialDefinition, CredentialDefinitionId};
-use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
+use crate::data_types::anoncreds::rev_reg::{NonRevProofWarnings, RevocationRegistryId};
 use crate::data_types::anoncreds::rev_reg_def::{
     RevocationRegistryDefinition, RevocationRegistryDefinitionId,
 };
@@ -20,6 +20,12 @@ use crate::services::{
 
 impl_anoncreds_object!(Presentation, "Presentation");
 impl_anoncreds_object_from_json!(Presentation, anoncreds_presentation_from_json);
+
+impl_anoncreds_object!(NonRevProofWarnings, "NonRevProofWarnings");
+impl_anoncreds_object_from_json!(
+    NonRevProofWarnings,
+    anoncreds_non_rev_proof_warnings_from_json
+);
 
 #[derive(Debug)]
 #[repr(C)]
@@ -230,6 +236,7 @@ pub extern "C" fn anoncreds_verify_presentation(
     rev_reg_def_ids: FfiStrList,
     rev_reg_entries: FfiList<FfiRevocationEntry>,
     result_p: *mut i8,
+    non_rev_proof_warning_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
         if schemas.len() != schema_ids.len() {
@@ -301,7 +308,7 @@ pub extern "C" fn anoncreds_verify_presentation(
                 &rev_reg_def_identifiers,
             )?;
 
-        let verify = verify_presentation(
+        let (verify, nrp) = verify_presentation(
             presentation.load()?.cast_ref()?,
             pres_req.load()?.cast_ref()?,
             &schemas,
@@ -310,6 +317,8 @@ pub extern "C" fn anoncreds_verify_presentation(
             Some(&rev_regs),
         )?;
         unsafe { *result_p = verify as i8 };
+        let nrp = ObjectHandle::create(nrp)?;
+        unsafe { *non_rev_proof_warning_p = nrp };
         Ok(())
     })
 }
