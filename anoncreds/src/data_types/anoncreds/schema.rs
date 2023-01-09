@@ -15,9 +15,7 @@ impl_anoncreds_object_identifier!(SchemaId);
 pub struct Schema {
     pub name: String,
     pub version: String,
-    #[serde(rename = "attrNames")]
     pub attr_names: AttributeNames,
-    #[serde(rename = "issuerId")]
     pub issuer_id: IssuerId,
 }
 

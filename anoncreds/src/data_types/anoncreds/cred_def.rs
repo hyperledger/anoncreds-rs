@@ -40,7 +40,6 @@ pub struct CredentialDefinition {
     pub signature_type: SignatureType,
     pub tag: String,
     pub value: CredentialDefinitionData,
-    #[serde(rename = "issuerId")]
     pub issuer_id: IssuerId,
 }
 
