@@ -11,7 +11,7 @@ macro_rules! impl_anoncreds_object_identifier {
 
             pub fn new(s: impl Into<String>) -> Result<Self, $crate::data_types::ValidationError> {
                 let s = Self(s.into());
-                s.validate()?;
+                $crate::data_types::Validatable::validate(&s)?;
                 Ok(s)
             }
         }

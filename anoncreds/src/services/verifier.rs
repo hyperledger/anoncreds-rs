@@ -935,10 +935,10 @@ mod tests {
         Filter {
             schema_id: SchemaId::new_unchecked(SCHEMA_ID),
             schema_name: SCHEMA_NAME.to_string(),
-            schema_issuer_id: SCHEMA_ISSUER_ID.into(),
+            schema_issuer_id: IssuerId::new_unchecked(SCHEMA_ISSUER_ID),
             schema_version: SCHEMA_VERSION.to_string(),
             cred_def_id: CredentialDefinitionId::new_unchecked(CRED_DEF_ID),
-            issuer_id: ISSUER_ID.into(),
+            issuer_id: IssuerId::new_unchecked(ISSUER_ID),
         }
     }
 

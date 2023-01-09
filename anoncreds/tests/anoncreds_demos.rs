@@ -30,7 +30,7 @@ mod utils;
 
 pub static SCHEMA_ID: &str = "mock:uri";
 pub static CRED_DEF_ID: &str = "mock:uri";
-pub static ISSUER_ID: &str = "issuer_id";
+pub static ISSUER_ID: &str = "mock:issuer_id/path&q=bar";
 pub const GVT_SCHEMA_NAME: &str = "gvt";
 pub const GVT_SCHEMA_ATTRIBUTES: &[&str; 4] = &["name", "age", "sex", "height"];
 pub static REV_REG_ID: &str = "mock:uri:revregid";

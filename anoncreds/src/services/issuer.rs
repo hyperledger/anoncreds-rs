@@ -27,20 +27,23 @@ use crate::ursa::cl::{
 
 use super::tails::{TailsFileReader, TailsReader, TailsWriter};
 
-pub fn create_schema(
+pub fn create_schema<II>(
     schema_name: &str,
     schema_version: &str,
-    issuer_id: impl Into<IssuerId>,
+    issuer_id: II,
     attr_names: AttributeNames,
-) -> Result<Schema> {
-    let issuer_id = issuer_id.into();
+) -> Result<Schema>
+where
+    II: TryInto<IssuerId, Error = ValidationError>,
+{
     trace!(
-        "create_schema >>> schema_name: {}, schema_version: {}, attr_names: {:?} issuer_id: {:?}",
+        "create_schema >>> schema_name: {}, schema_version: {}, attr_names: {:?}",
         schema_name,
         schema_version,
         attr_names,
-        issuer_id
     );
+
+    let issuer_id = issuer_id.try_into()?;
 
     let schema = Schema {
         name: schema_name.to_string(),
@@ -51,10 +54,10 @@ pub fn create_schema(
     Ok(schema)
 }
 
-pub fn create_credential_definition<SI>(
+pub fn create_credential_definition<SI, II>(
     schema_id: SI,
     schema: &Schema,
-    issuer_id: impl Into<IssuerId>,
+    issuer_id: II,
     tag: &str,
     signature_type: SignatureType,
     config: CredentialDefinitionConfig,
@@ -65,13 +68,14 @@ pub fn create_credential_definition<SI>(
 )>
 where
     SI: TryInto<SchemaId, Error = ValidationError>,
+    II: TryInto<IssuerId, Error = ValidationError>,
 {
-    let issuer_id = issuer_id.into();
     trace!(
         "create_credential_definition >>> schema: {:?}, config: {:?}",
         schema,
         config
     );
+    let issuer_id = issuer_id.try_into()?;
     let schema_id = schema_id.try_into()?;
 
     let credential_schema = build_credential_schema(&schema.attr_names.0)?;
