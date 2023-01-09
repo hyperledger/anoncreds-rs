@@ -33,3 +33,6 @@ pub mod schema;
 
 /// Macros for the data types
 pub mod macros;
+
+/// Identifier wrapper for the issuer
+pub mod issuer_id;

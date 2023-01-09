@@ -10,6 +10,7 @@ use crate::services::issuer::create_schema;
 pub extern "C" fn anoncreds_create_schema(
     schema_name: FfiStr,
     schema_version: FfiStr,
+    issuer_id: FfiStr,
     attr_names: FfiStrList,
     result_p: *mut ObjectHandle,
 ) -> ErrorCode {
@@ -21,9 +22,13 @@ pub extern "C" fn anoncreds_create_schema(
         let schema_version = schema_version
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing schema version"))?;
+        let issuer_id = issuer_id
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing issuer_id version"))?;
         let schema = create_schema(
             schema_name,
             schema_version,
+            issuer_id,
             attr_names.to_string_vec()?.into(),
         )?;
         let handle = ObjectHandle::create(schema)?;

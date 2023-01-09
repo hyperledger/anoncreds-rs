@@ -5,6 +5,7 @@ use indy_utils::ValidationError;
 
 use super::types::*;
 use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
+use crate::data_types::anoncreds::issuer_id::IssuerId;
 use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
 use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
@@ -29,18 +30,22 @@ use super::tails::{TailsFileReader, TailsReader, TailsWriter};
 pub fn create_schema(
     schema_name: &str,
     schema_version: &str,
+    issuer_id: impl Into<IssuerId>,
     attr_names: AttributeNames,
 ) -> Result<Schema> {
+    let issuer_id = issuer_id.into();
     trace!(
-        "create_schema >>> schema_name: {:?}, schema_version: {:?}, attr_names: {:?}",
+        "create_schema >>> schema_name: {}, schema_version: {}, attr_names: {:?} issuer_id: {:?}",
         schema_name,
         schema_version,
-        attr_names
+        attr_names,
+        issuer_id
     );
 
     let schema = Schema {
         name: schema_name.to_string(),
         version: schema_version.to_string(),
+        issuer_id,
         attr_names,
     };
     Ok(schema)
@@ -49,6 +54,7 @@ pub fn create_schema(
 pub fn create_credential_definition<SI>(
     schema_id: SI,
     schema: &Schema,
+    issuer_id: impl Into<IssuerId>,
     tag: &str,
     signature_type: SignatureType,
     config: CredentialDefinitionConfig,
@@ -60,6 +66,7 @@ pub fn create_credential_definition<SI>(
 where
     SI: TryInto<SchemaId, Error = ValidationError>,
 {
+    let issuer_id = issuer_id.into();
     trace!(
         "create_credential_definition >>> schema: {:?}, config: {:?}",
         schema,
@@ -80,6 +87,7 @@ where
     let cred_def = CredentialDefinition {
         schema_id,
         signature_type,
+        issuer_id,
         tag: tag.to_owned(),
         value: CredentialDefinitionData {
             primary: credential_public_key.get_primary_key()?.try_clone()?,
