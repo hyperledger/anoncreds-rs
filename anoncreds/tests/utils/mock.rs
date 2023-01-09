@@ -10,7 +10,7 @@ use anoncreds::{
         cred_offer::CredentialOffer,
         credential::Credential,
         presentation::Presentation,
-        rev_reg::{RevocationRegistry, RevocationRegistryId},
+        rev_reg::{NonRevProofWarnings, RevocationRegistry, RevocationRegistryId},
         rev_reg_def::RevocationRegistryDefinitionId,
         schema::{Schema, SchemaId},
     },
@@ -18,7 +18,8 @@ use anoncreds::{
     tails::{TailsFileReader, TailsFileWriter},
     types::{
         CredentialDefinitionConfig, CredentialRequest, CredentialRevocationConfig,
-        MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType, SignatureType,
+        CredentialRevocationState, MakeCredentialValues, PresentCredentials, PresentationRequest,
+        RegistryType, SignatureType,
     },
     verifier,
 };
@@ -71,7 +72,7 @@ impl<'a> Mock<'a> {
         &self,
         presentations: Vec<Presentation>,
         reqs: &[PresentationRequest],
-    ) -> Vec<bool> {
+    ) -> Vec<(bool, NonRevProofWarnings)> {
         let mut results = vec![];
         let schemas: HashMap<&SchemaId, &Schema> = HashMap::from_iter(self.ledger.schemas.iter());
         let cred_defs: HashMap<&CredentialDefinitionId, &CredentialDefinition> =
@@ -89,7 +90,7 @@ impl<'a> Mock<'a> {
         let rev_reg_def_map = HashMap::from_iter(self.ledger.rev_reg_defs.iter());
 
         for (i, presentation) in presentations.iter().enumerate() {
-            let valid = verifier::verify_presentation(
+            let res = verifier::verify_presentation(
                 &presentation,
                 &reqs[i],
                 &schemas,
@@ -103,7 +104,7 @@ impl<'a> Mock<'a> {
                 }))),
             )
             .expect("Error verifying presentation");
-            results.push(valid);
+            results.push(res);
         }
         results
     }

@@ -27,8 +27,8 @@ use self::utils::anoncreds::ProverWallet;
 
 mod utils;
 
-pub static SCHEMA_ID: &str = "mock:uri";
-pub static CRED_DEF_ID: &str = "mock:uri";
+pub static SCHEMA_ID: &str = "mock:uri:schema";
+pub static CRED_DEF_ID: &str = "mock:uri:1";
 pub static ISSUER_ID: &str = "mock:issuer_id/path&q=bar";
 pub const GVT_SCHEMA_NAME: &str = "gvt";
 pub const GVT_SCHEMA_ATTRIBUTES: &[&str; 4] = &["name", "age", "sex", "height"];
@@ -135,7 +135,8 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         },
         "requested_predicates":{
             "predicate1_referent":{"name":"age","p_type":">=","p_value":18}
-        }
+        },
+        "non_revoked": {"from": 10, "to": 200}
     }))
     .expect("Error creating proof request");
 
@@ -254,8 +255,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     .expect("Error creating gvt credential definition");
 
     // This will create a tails file locally in the .tmp dir
-    let tf_path = "../.tmp";
-    create_dir(tf_path)
+    create_dir(TF_PATH)
         .or_else(|e| -> Result<(), std::io::Error> {
             println!(
                 "Tail file path creation error but test can still proceed {}",
@@ -489,49 +489,6 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     )
     .expect("Error verifying presentation");
     assert!(!valid);
-}
-
-fn _create_presentation(
-    schemas: &HashMap<&SchemaId, &Schema>,
-    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
-    pres_request: &PresentationRequest,
-    prover_wallet: &ProverWallet,
-    rev_state_timestamp: Option<u64>,
-    rev_state: Option<&CredentialRevocationState>,
-) -> Presentation {
-    let mut present = PresentCredentials::default();
-    {
-        // Here we add credential with the timestamp of which the rev_state is updated to,
-        // also the rev_reg has to be provided for such a time.
-        // TODO: this timestamp is not verified by the `NonRevokedInterval`?
-        let mut cred1 = present.add_credential(
-            &prover_wallet.credentials[0],
-            rev_state_timestamp,
-            rev_state,
-        );
-        cred1.add_requested_attribute("attr1_referent", true);
-        cred1.add_requested_attribute("attr2_referent", false);
-        cred1.add_requested_attribute("attr4_referent", true);
-        cred1.add_requested_predicate("predicate1_referent");
-    }
-
-    let mut self_attested = HashMap::new();
-    let self_attested_phone = "8-800-300";
-    self_attested.insert(
-        "attr3_referent".to_string(),
-        self_attested_phone.to_string(),
-    );
-
-    let presentation = prover::create_presentation(
-        pres_request,
-        present,
-        Some(self_attested),
-        &prover_wallet.master_secret,
-        schemas,
-        cred_defs,
-    )
-    .expect("Error creating presentation");
-    presentation
 }
 
 /*
@@ -3416,3 +3373,45 @@ fn anoncreds_works_for_restrictions_as_empty_array() {
     wallet::close_and_delete_wallet(prover_wallet_handle, &prover_wallet_config).unwrap();
 }
 */
+
+fn _create_presentation(
+    schemas: &HashMap<&SchemaId, &Schema>,
+    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
+    pres_request: &PresentationRequest,
+    prover_wallet: &ProverWallet,
+    rev_state_timestamp: Option<u64>,
+    rev_state: Option<&CredentialRevocationState>,
+) -> Presentation {
+    let mut present = PresentCredentials::default();
+    {
+        // Here we add credential with the timestamp of which the rev_state is updated to,
+        // also the rev_reg has to be provided for such a time.
+        let mut cred1 = present.add_credential(
+            &prover_wallet.credentials[0],
+            rev_state_timestamp,
+            rev_state,
+        );
+        cred1.add_requested_attribute("attr1_referent", true);
+        cred1.add_requested_attribute("attr2_referent", false);
+        cred1.add_requested_attribute("attr4_referent", true);
+        cred1.add_requested_predicate("predicate1_referent");
+    }
+
+    let mut self_attested = HashMap::new();
+    let self_attested_phone = "8-800-300";
+    self_attested.insert(
+        "attr3_referent".to_string(),
+        self_attested_phone.to_string(),
+    );
+
+    let presentation = prover::create_presentation(
+        pres_request,
+        present,
+        Some(self_attested),
+        &prover_wallet.master_secret,
+        schemas,
+        cred_defs,
+    )
+    .expect("Error creating presentation");
+    presentation
+}

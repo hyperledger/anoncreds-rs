@@ -116,11 +116,9 @@ fn anoncreds_with_multiple_credentials_per_request() {
                     ("house", "Hufflepuff"),
                     ("year", "1990"),
                 ]),
-                // Issue 42 addresses if it is not revocable,
-                // revocation should still pass
-                true,
-                REV_REG_ID_2,
-                REV_IDX_2,
+                false,
+                "",
+                0,
             ),
         ),
     ]);
@@ -197,6 +195,8 @@ fn anoncreds_with_multiple_credentials_per_request() {
     // 5. Verifier verifies one presentation per request
     let results = mock.verifer_verifies_presentations_for_requests(presentations, &reqs);
 
-    assert!(results[0]);
-    assert!(results[1]);
+    assert!(results[0].0);
+    assert!(results[0].1.timestamps_out_of_range.is_some());
+    assert!(results[1].0);
+    assert!(results[1].1.timestamps_out_of_range.is_some());
 }
