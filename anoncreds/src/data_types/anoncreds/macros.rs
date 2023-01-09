@@ -1,6 +1,9 @@
 #[macro_export]
 macro_rules! impl_anoncreds_object_identifier {
     ($i:ident) => {
+        use once_cell::sync::Lazy;
+        use regex::Regex;
+
         #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Default)]
         pub struct $i(pub String);
 
@@ -19,19 +22,32 @@ macro_rules! impl_anoncreds_object_identifier {
         impl $crate::data_types::Validatable for $i {
             fn validate(&self) -> Result<(), $crate::data_types::ValidationError> {
                 // TODO: stricten the URI regex.
-                // Right now everything after the first colon is allowed, we might want to restrict
-                // this
-                let uri_regex = regex::Regex::new(r"^[a-zA-Z0-9\+\-\.]+:.+$").unwrap();
-                uri_regex
-                    .captures(&self.0)
-                    .ok_or_else(|| {
-                        indy_utils::invalid!(
-                            "type: {}, identifier: {} is invalid. It MUST be a URI.",
-                            stringify!($i),
-                            self.0
-                        )
-                    })
-                    .map(|_| ())
+                // Right now everything after the first colon is allowed,
+                // we might want to restrict this
+                static REGEX_URI: Lazy<Regex> =
+                    Lazy::new(|| Regex::new(r"^[a-zA-Z0-9\+\-\.]+:.+$").unwrap());
+
+                /// base58 alpahet as defined in
+                /// https://datatracker.ietf.org/doc/html/draft-msporny-base58#section-2
+                /// This is used for legacy indy identifiers that we will keep supporting for
+                /// backwards compatibility. This might validate invalid identifiers if they happen
+                /// to fall within the base58 alphabet, but there is not much we can do about that.
+                static LEGACY_IDENTIFIER: Lazy<Regex> =
+                    Lazy::new(|| Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}$").unwrap());
+
+                if REGEX_URI.captures(&self.0).is_some() {
+                    return Ok(());
+                }
+
+                if LEGACY_IDENTIFIER.captures(&self.0).is_some() {
+                    return Ok(());
+                }
+
+                Err(indy_utils::invalid!(
+                    "type: {}, identifier: {} is invalid. It MUST be a URI or legacy identifier.",
+                    stringify!($i),
+                    self.0
+                ))
             }
         }
 
