@@ -213,7 +213,6 @@ mod tests {
             "1a",
         ];
         for v in invalid.iter() {
-            println!("try {}", v);
             assert!(Nonce::try_from(*v).is_err())
         }
     }

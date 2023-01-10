@@ -876,6 +876,20 @@ fn process_filter(
 
 fn precess_filed(filed: &str, filter_value: impl Into<String>, tag_value: &str) -> Result<()> {
     let filter_value = filter_value.into();
+    // We explicitly check here with it is one of the two legacy identifier restrictions. This
+    // means that we only allow legacy identifiers which can be detected with a simple regex. If
+    // they are not in the legacy format, we do not support this.
+    if filed == "schema_issuer_did" || filed == "issuer_did" {
+        static LEGACY_IDENTIFIER: Lazy<Regex> =
+            Lazy::new(|| Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}$").unwrap());
+        if LEGACY_IDENTIFIER.captures(&filter_value).is_none() {
+            return Err(err_msg!(
+            ProofRejected,
+            "\"{}\" value is a legacy identifier tag and therefore only legacy identifiers can be used",
+            filed,
+        ));
+        }
+    }
     if filter_value == tag_value {
         Ok(())
     } else {
@@ -935,10 +949,10 @@ mod tests {
 
     pub const SCHEMA_ID: &str = "123";
     pub const SCHEMA_NAME: &str = "Schema Name";
-    pub const SCHEMA_ISSUER_ID: &str = "234";
+    pub const SCHEMA_ISSUER_ID: &str = "1111111111111111111111";
     pub const SCHEMA_VERSION: &str = "1.2.3";
     pub const CRED_DEF_ID: &str = "345";
-    pub const ISSUER_ID: &str = "456";
+    pub const ISSUER_ID: &str = "1111111111111111111111";
 
     fn schema_id_tag() -> String {
         "schema_id".to_string()
