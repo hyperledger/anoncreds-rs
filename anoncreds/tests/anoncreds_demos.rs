@@ -224,6 +224,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         "175",
         revealed_attr_groups.values.get("height").unwrap().raw
     );
+
     let valid = verifier::verify_presentation(
         &presentation,
         &pres_request,
