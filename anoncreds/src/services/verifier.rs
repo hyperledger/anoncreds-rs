@@ -19,6 +19,7 @@ use crate::data_types::anoncreds::{
 };
 use crate::error::Result;
 use crate::ursa::cl::{verifier::Verifier as CryptoVerifier, CredentialPublicKey};
+use crate::utils::validation::LEGACY_IDENTIFIER;
 use indy_utils::query::Query;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -589,21 +590,18 @@ fn verify_requested_restrictions(
         .map(|(referent, info)| (referent.to_string(), info.clone()))
         .collect();
 
-    let requested_attributes_queries: Vec<Query> = pres_req
+    let requested_attributes_queries = pres_req
         .requested_attributes
         .iter()
-        .filter_map(|(_, info)| info.restrictions.to_owned())
-        .collect();
+        .filter_map(|(_, info)| info.restrictions.to_owned());
 
-    let requested_predicates_queries: Vec<Query> = pres_req
+    let requested_predicates_queries = pres_req
         .requested_predicates
         .iter()
-        .filter_map(|(_, info)| info.restrictions.to_owned())
-        .collect();
+        .filter_map(|(_, info)| info.restrictions.to_owned());
 
     let filter_tags: Vec<String> = requested_attributes_queries
-        .iter()
-        .chain(requested_predicates_queries.iter())
+        .chain(requested_predicates_queries)
         .flat_map(|r| {
             r.get_name()
                 .iter()
@@ -880,8 +878,6 @@ fn precess_filed(filed: &str, filter_value: impl Into<String>, tag_value: &str) 
     // means that we only allow legacy identifiers which can be detected with a simple regex. If
     // they are not in the legacy format, we do not support this.
     if filed == "schema_issuer_did" || filed == "issuer_did" {
-        static LEGACY_IDENTIFIER: Lazy<Regex> =
-            Lazy::new(|| Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}$").unwrap());
         if LEGACY_IDENTIFIER.captures(&filter_value).is_none() {
             return Err(err_msg!(
             ProofRejected,
