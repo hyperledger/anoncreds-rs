@@ -1,10 +1,10 @@
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
-export class RevocationRegistryDefinitionPrivate extends IndyObject {
+export class RevocationRegistryDefinitionPrivate extends AnoncredsObject {
   public static load(json: string) {
     return new RevocationRegistryDefinitionPrivate(
-      indyCredx.revocationRegistryDefinitionPrivateFromJson({ json }).handle
+      anoncreds.revocationRegistryDefinitionPrivateFromJson({ json }).handle
     )
   }
 }

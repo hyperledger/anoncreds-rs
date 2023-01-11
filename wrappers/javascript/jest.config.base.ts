@@ -14,7 +14,7 @@ const config: Config.InitialOptions = {
     },
   },
   moduleNameMapper: {
-    'indy-credx-shared': '<rootDir>/../shared/src',
+    'anoncreds-shared': '<rootDir>/../shared/src',
   },
 }
 

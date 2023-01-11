@@ -37,7 +37,7 @@ static def findNodeModules(baseDir, isHermesEnabled) {
     }
     basePath = basePath.getParent()
   }
-  throw new GradleException("indy credx: Failed to find node_modules path!")
+  throw new GradleException("anoncreds: Failed to find node_modules path!")
 }
 
 def isHermesEnabled = "False"
@@ -47,7 +47,6 @@ rootProject.getSubprojects().forEach({project ->
   }
 })
 def nodeModules = findNodeModules(projectDir, isHermesEnabled);
-logger.warn("indy credx: node modules found at: ${nodeModules}");
 
 def reactNative = new File("$nodeModules/react-native")
 

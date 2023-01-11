@@ -1,19 +1,19 @@
-#include <indyCredx.h>
+#include <anoncreds.h>
 
-#include <include/libindy_credx.h>
+#include <include/libanoncreds.h>
 
 using namespace turboModuleUtility;
 
-namespace indyCredx {
+namespace anoncreds {
 
 jsi::Value version(jsi::Runtime &rt, jsi::Object options) {
-  return jsi::String::createFromAscii(rt, credx_version());
+  return jsi::String::createFromAscii(rt, x_version());
 };
 
 jsi::Value getCurrentError(jsi::Runtime &rt, jsi::Object options) {
   const char *errorJsonP;
 
-  credx_get_current_error(&errorJsonP);
+  anoncreds_get_current_error(&errorJsonP);
 
   return jsi::String::createFromAscii(rt, errorJsonP);
 };
@@ -32,7 +32,7 @@ jsi::Value createCredential(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle revRegP;
   ObjectHandle revDeltaP;
 
-  ErrorCode code = credx_create_credential(
+  ErrorCode code = anoncreds_create_credential(
       credDef, credDefPrivate, credOffer, credRequest, attrNames, attributeRawValues,
       attrEncValues, &revocation, &credP, &revRegP, &revDeltaP);
   handleError(rt, code);
@@ -55,7 +55,7 @@ jsi::Value createCredentialDefinition(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle credDefPvtP;
   ObjectHandle keyProofP;
 
-  ErrorCode code = credx_create_credential_definition(
+  ErrorCode code = anoncreds_create_credential_definition(
       originDid.c_str(), schema, tag.c_str(), signatureType.c_str(),
       supportRevocation, &credDefP, &credDefPvtP, &keyProofP);
   handleError(rt, code);
@@ -74,7 +74,7 @@ jsi::Value createCredentialOffer(jsi::Runtime &rt, jsi::Object options) {
 
   ObjectHandle credOfferP;
 
-  ErrorCode code = credx_create_credential_offer(schemaId.c_str(), credDef,
+  ErrorCode code = anoncreds_create_credential_offer(schemaId.c_str(), credDef,
                                                  keyProof, &credOfferP);
   handleError(rt, code);
 
@@ -91,7 +91,7 @@ jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle credReqP;
   ObjectHandle credReqMetaP;
 
-  ErrorCode code = credx_create_credential_request(
+  ErrorCode code = anoncreds_create_credential_request(
       proverDid.c_str(), credDef, masterSecret, masterSecretId.c_str(),
       credOffer, &credReqP, &credReqMetaP);
   handleError(rt, code);
@@ -105,7 +105,7 @@ jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
 jsi::Value createMasterSecret(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle masterSecretP;
 
-  ErrorCode code = credx_create_master_secret(&masterSecretP);
+  ErrorCode code = anoncreds_create_master_secret(&masterSecretP);
   handleError(rt, code);
 
   return jsi::Value(int(masterSecretP));
@@ -122,7 +122,7 @@ jsi::Value createOrUpdateRevocationState(jsi::Runtime &rt,
 
   ObjectHandle revStateP;
 
-  ErrorCode code = credx_create_or_update_revocation_state(
+  ErrorCode code = anoncreds_create_or_update_revocation_state(
       revRegDef, revRegDelta, revRegIndex, timestamp, tailsPath.c_str(),
       revState, &revStateP);
   handleError(rt, code);
@@ -145,7 +145,7 @@ jsi::Value createPresentation(jsi::Runtime &rt, jsi::Object options) {
 
   ObjectHandle presentationP;
 
-  ErrorCode code = credx_create_presentation(
+  ErrorCode code = anoncreds_create_presentation(
       presReq, credentials, credentialsProve, selfAttestNames, selfAttestValues,
       masterSecret, schemas, credDefs, &presentationP);
   handleError(rt, code);
@@ -167,7 +167,7 @@ jsi::Value createRevocationRegistry(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle regEntryP;
   ObjectHandle regInitDeltaP;
 
-  ErrorCode code = credx_create_revocation_registry(
+  ErrorCode code = anoncreds_create_revocation_registry(
       originDid.c_str(), credDef, tag.c_str(), revRegType.c_str(),
       issuanceType.c_str(), maxCredNum, tailsDirPath.c_str(), &regDefP,
       &regDefPrivateP, &regEntryP, &regInitDeltaP);
@@ -191,7 +191,7 @@ jsi::Value createSchema(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle resultP;
 
   ErrorCode code =
-      credx_create_schema(originDid.c_str(), schemaName.c_str(),
+      anoncreds_create_schema(originDid.c_str(), schemaName.c_str(),
                           schemaVersion.c_str(), attrNames, seqNo, &resultP);
   handleError(rt, code);
 
@@ -206,7 +206,7 @@ jsi::Value credentialDefinitionGetAttribute(jsi::Runtime &rt,
   const char *resultP;
 
   ErrorCode code =
-      credx_credential_definition_get_attribute(handle, name.c_str(), &resultP);
+      anoncreds_credential_definition_get_attribute(handle, name.c_str(), &resultP);
   handleError(rt, code);
 
   return jsi::String::createFromAscii(rt, resultP);
@@ -219,7 +219,7 @@ jsi::Value credentialGetAttribute(jsi::Runtime &rt, jsi::Object options) {
   const char *resultP;
 
   ErrorCode code =
-      credx_credential_get_attribute(handle, name.c_str(), &resultP);
+      anoncreds_credential_get_attribute(handle, name.c_str(), &resultP);
   handleError(rt, code);
 
   return jsi::String::createFromAscii(rt, resultP);
@@ -230,7 +230,7 @@ jsi::Value encodeCredentialAttributes(jsi::Runtime &rt, jsi::Object options) {
 
   const char* resultP;
 
-  ErrorCode code = credx_encode_credential_attributes(attributeRawValues, &resultP);
+  ErrorCode code = anoncreds_encode_credential_attributes(attributeRawValues, &resultP);
   handleError(rt, code);
 
   return jsi::String::createFromAscii(rt, resultP);
@@ -239,7 +239,7 @@ jsi::Value encodeCredentialAttributes(jsi::Runtime &rt, jsi::Object options) {
 jsi::Value generateNonce(jsi::Runtime &rt, jsi::Object options) {
   const char *nonceP;
 
-  ErrorCode code = credx_generate_nonce(&nonceP);
+  ErrorCode code = anoncreds_generate_nonce(&nonceP);
   handleError(rt, code);
 
     return jsi::String::createFromAscii(rt, nonceP);
@@ -253,7 +253,7 @@ jsi::Value mergeRevocationRegistryDeltas(jsi::Runtime &rt,
 
   ObjectHandle revRegDeltaP;
 
-  ErrorCode code = credx_merge_revocation_registry_deltas(
+  ErrorCode code = anoncreds_merge_revocation_registry_deltas(
       revRegDelta1, revRegDelta2, &revRegDeltaP);
   handleError(rt, code);
 
@@ -265,7 +265,7 @@ jsi::Value getJson(jsi::Runtime &rt, jsi::Object options) {
 
   ByteBuffer resultP;
 
-  ErrorCode code = credx_object_get_json(handle, &resultP);
+  ErrorCode code = anoncreds_object_get_json(handle, &resultP);
   handleError(rt, code);
 
   return jsi::String::createFromUtf8(rt, resultP.data, resultP.len);
@@ -276,7 +276,7 @@ jsi::Value getTypeName(jsi::Runtime &rt, jsi::Object options) {
 
   const char *resultP;
 
-  ErrorCode code = credx_object_get_type_name(handle, &resultP);
+  ErrorCode code = anoncreds_object_get_type_name(handle, &resultP);
   handleError(rt, code);
 
   return jsi::String::createFromAscii(rt, resultP);
@@ -292,7 +292,7 @@ jsi::Value processCredential(jsi::Runtime &rt, jsi::Object options) {
 
   ObjectHandle credP;
 
-  ErrorCode code = credx_process_credential(cred, credReqMetadata, masterSecret,
+  ErrorCode code = anoncreds_process_credential(cred, credReqMetadata, masterSecret,
                                             credDef, revRegDef, &credP);
   handleError(rt, code);
 
@@ -307,7 +307,7 @@ jsi::Value revocationRegistryDefinitionGetAttribute(jsi::Runtime &rt,
   const char *resultP;
 
   ErrorCode code =
-      credx_revocation_registry_definition_get_attribute(handle, name.c_str(), &resultP);
+      anoncreds_revocation_registry_definition_get_attribute(handle, name.c_str(), &resultP);
   handleError(rt, code);
 
   return jsi::String::createFromAscii(rt, resultP);
@@ -322,7 +322,7 @@ jsi::Value revokeCredential(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle revRegP;
   ObjectHandle revRegDeltaP;
 
-  ErrorCode code = credx_revoke_credential(revRegDef, revReg, credRevIdx,
+  ErrorCode code = anoncreds_revoke_credential(revRegDef, revReg, credRevIdx,
                                            tailsPath.c_str(), &revRegP, &revRegDeltaP);
   handleError(rt, code);
 
@@ -338,14 +338,14 @@ jsi::Value schemaGetAttribute(jsi::Runtime &rt, jsi::Object options) {
 
   const char *resultP;
 
-  ErrorCode code = credx_schema_get_attribute(handle, name.c_str(), &resultP);
+  ErrorCode code = anoncreds_schema_get_attribute(handle, name.c_str(), &resultP);
   handleError(rt, code);
 
   return jsi::String::createFromAscii(rt, resultP);
 };
 
 jsi::Value setDefaultLogger(jsi::Runtime &rt, jsi::Object options) {
-  credx_set_default_logger();
+  anoncreds_set_default_logger();
   return jsi::Value::null();
 };
 
@@ -359,7 +359,7 @@ jsi::Value updateRevocationRegistry(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle revRegP;
   ObjectHandle revRegDeltaP;
 
-  ErrorCode code = credx_update_revocation_registry(
+  ErrorCode code = anoncreds_update_revocation_registry(
       revRegDef, revReg, issued, revoked, tailsPath.c_str(), &revRegP, &revRegDeltaP);
   handleError(rt, code);
 
@@ -381,7 +381,7 @@ jsi::Value verifyPresentation(jsi::Runtime &rt, jsi::Object options) {
   int8_t resultP;
 
   ErrorCode code =
-      credx_verify_presentation(presentation, presReq, schemas, credDefs,
+      anoncreds_verify_presentation(presentation, presReq, schemas, credDefs,
                                 revRegDefs, revRegEntries, &resultP);
   handleError(rt, code);
 
@@ -391,9 +391,9 @@ jsi::Value verifyPresentation(jsi::Runtime &rt, jsi::Object options) {
 jsi::Value objectFree(jsi::Runtime &rt, jsi::Object options) {
   auto handle = jsiToValue<ObjectHandle>(rt, options, "objectHandle");
 
-  credx_object_free(handle);
+  anoncreds_object_free(handle);
 
   return jsi::Value::null();
 };
 
-} // namespace indyCredx
+} // namespace anoncreds

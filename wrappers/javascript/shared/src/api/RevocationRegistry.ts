@@ -1,7 +1,7 @@
 import type { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
 
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
 import { RevocationRegistryDelta } from './RevocationRegistryDelta'
 
@@ -18,13 +18,13 @@ export type UpdateRevocationRegistryOptions = {
   tailsDirectoryPath: string
 }
 
-export class RevocationRegistry extends IndyObject {
+export class RevocationRegistry extends AnoncredsObject {
   public static load(json: string) {
-    return new RevocationRegistry(indyCredx.revocationRegistryFromJson({ json }).handle)
+    return new RevocationRegistry(anoncreds.revocationRegistryFromJson({ json }).handle)
   }
 
   public revokeCredential(options: RevokeCredentialOptions) {
-    const { revocationRegistry, revocationRegistryDelta } = indyCredx.revokeCredential({
+    const { revocationRegistry, revocationRegistryDelta } = anoncreds.revokeCredential({
       revocationRegistryDefinition: options.revocationRegistryDefinition.handle,
       revocationRegistry: this._handle,
       credentialRevocationIndex: options.credentialRevocationIndex,
@@ -37,7 +37,7 @@ export class RevocationRegistry extends IndyObject {
   }
 
   public update(options: UpdateRevocationRegistryOptions) {
-    const { revocationRegistry, revocationRegistryDelta } = indyCredx.updateRevocationRegistry({
+    const { revocationRegistry, revocationRegistryDelta } = anoncreds.updateRevocationRegistry({
       revocationRegistryDefinition: options.revocationRegistryDefinition.handle,
       revocationRegistry: this._handle,
       issued: options.issued,

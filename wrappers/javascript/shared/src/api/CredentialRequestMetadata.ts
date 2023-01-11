@@ -1,8 +1,8 @@
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
-export class CredentialRequestMetadata extends IndyObject {
+export class CredentialRequestMetadata extends AnoncredsObject {
   public static load(json: string) {
-    return new CredentialRequestMetadata(indyCredx.credentialRequestMetadataFromJson({ json }).handle)
+    return new CredentialRequestMetadata(anoncreds.credentialRequestMetadataFromJson({ json }).handle)
   }
 }

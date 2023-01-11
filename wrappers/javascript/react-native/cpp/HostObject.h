@@ -4,7 +4,7 @@
 
 #include <map>
 
-#include <indyCredx.h>
+#include <anoncreds.h>
 #include <turboModuleUtility.h>
 
 using namespace facebook;

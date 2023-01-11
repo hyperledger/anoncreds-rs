@@ -3,9 +3,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "indy-credx-shared": ["shared/src"],
-      "indy-credx-react-native": ["react-native/src"],
-      "indy-credx-nodejs": ["nodejs/src"]
+      "anoncreds-shared": ["shared/src"],
+      "anoncreds-react-native": ["react-native/src"],
+      "anoncreds-nodejs": ["nodejs/src"]
     },
     "types": ["node"]
   },

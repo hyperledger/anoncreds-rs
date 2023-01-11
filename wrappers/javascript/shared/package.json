@@ -1,14 +1,14 @@
 {
-  "name": "indy-credx-shared",
+  "name": "anoncreds-shared",
   "version": "0.0.0",
   "license": "Apache-2.0",
-  "description": "Shared library for using Indy Credx with NodeJS and React Native",
+  "description": "Anoncreds wrapper library with NodeJS and React Native",
   "main": "build/index",
   "source": "src/index",
   "types": "build/index",
-  "homepage": "https://github.com/hyperledger/indy-credx/tree/main/wrappers/javascript/shared",
+  "homepage": "https://github.com/hyperledger/anoncreds/tree/main/wrappers/javascript/shared",
   "repository": {
-    "url": "https://github.com/hyperledger/indy-credx",
+    "url": "https://github.com/hyperledger/anoncreds",
     "type": "git",
     "directory": "wrappers/javascript/shared"
   },

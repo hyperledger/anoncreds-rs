@@ -2,8 +2,6 @@
 
 #include <turboModuleUtility.h>
 
-
-
 namespace turboModuleUtility {
 
 using byteVector = std::vector<uint8_t>;
@@ -19,7 +17,7 @@ void registerTurboModule(jsi::Runtime &rt,
   // Create a JS equivalent object of the instance
   jsi::Object jsInstance = jsi::Object::createFromHostObject(rt, instance);
   // Register the object on global
-  rt.global().setProperty(rt, "_indy_credx", std::move(jsInstance));
+  rt.global().setProperty(rt, "_anoncreds", std::move(jsInstance));
 }
 
 void assertValueIsObject(jsi::Runtime &rt, const jsi::Value *val) {
@@ -29,7 +27,7 @@ void handleError(jsi::Runtime &rt, ErrorCode code) {
   if (code == ErrorCode::Success)
     return;
 
-  jsi::Value errorMessage = indyCredx::getCurrentError(rt, jsi::Object(rt));
+  jsi::Value errorMessage = anoncreds::getCurrentError(rt, jsi::Object(rt));
 
   jsi::Object JSON = rt.global().getPropertyAsObject(rt, "JSON");
   jsi::Function JSONParse = JSON.getPropertyAsFunction(rt, "parse");

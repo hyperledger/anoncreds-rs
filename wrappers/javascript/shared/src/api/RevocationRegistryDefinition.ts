@@ -1,7 +1,7 @@
 import type { CredentialDefinition } from './CredentialDefinition'
 
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
 import { RevocationRegistry } from './RevocationRegistry'
 import { RevocationRegistryDefinitionPrivate } from './RevocationRegistryDefinitionPrivate'
@@ -17,10 +17,10 @@ export type CreateRevocationRegistryDefinitionOptions = {
   tailsDirectoryPath?: string
 }
 
-export class RevocationRegistryDefinition extends IndyObject {
+export class RevocationRegistryDefinition extends AnoncredsObject {
   public static create(options: CreateRevocationRegistryDefinitionOptions) {
     const { registryDefinition, registryDefinitionPrivate, registryEntry, registryInitDelta } =
-      indyCredx.createRevocationRegistry({
+      anoncreds.createRevocationRegistry({
         originDid: options.originDid,
         credentialDefinition: options.credentialDefinition.handle,
         tag: options.tag,
@@ -39,24 +39,24 @@ export class RevocationRegistryDefinition extends IndyObject {
   }
 
   public static load(json: string) {
-    indyCredx.credentialFromJson({ json })
+    anoncreds.credentialFromJson({ json })
   }
 
   public getId() {
-    return indyCredx.revocationRegistryDefinitionGetAttribute({ objectHandle: this.handle, name: 'id' })
+    return anoncreds.revocationRegistryDefinitionGetAttribute({ objectHandle: this.handle, name: 'id' })
   }
 
   public getMaximumCredentialNumber() {
     return Number(
-      indyCredx.revocationRegistryDefinitionGetAttribute({ objectHandle: this.handle, name: 'max_cred_num' })
+      anoncreds.revocationRegistryDefinitionGetAttribute({ objectHandle: this.handle, name: 'max_cred_num' })
     )
   }
 
   public getTailsHash() {
-    return indyCredx.revocationRegistryDefinitionGetAttribute({ objectHandle: this.handle, name: 'tails_hash' })
+    return anoncreds.revocationRegistryDefinitionGetAttribute({ objectHandle: this.handle, name: 'tails_hash' })
   }
 
   public getTailsLocation() {
-    return indyCredx.revocationRegistryDefinitionGetAttribute({ objectHandle: this.handle, name: 'tails_location' })
+    return anoncreds.revocationRegistryDefinitionGetAttribute({ objectHandle: this.handle, name: 'tails_location' })
   }
 }

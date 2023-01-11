@@ -7,14 +7,14 @@
 
 using namespace facebook;
 
-struct IndyCredxModule: jni::JavaClass<IndyCredxModule> {
+struct AnoncredsModule: jni::JavaClass<AnoncredsModule> {
 public:
-  __unused static constexpr auto kJavaDescriptor = "Lorg/hyperledger/indycredx/IndyCredxModule;";
+  __unused static constexpr auto kJavaDescriptor = "Lorg/hyperledger/anoncreds/AnoncredsModule;";
 
-  static constexpr auto TAG = "IndyCredx";
+  static constexpr auto TAG = "Anoncreds";
 
   static void registerNatives() {
-    javaClassStatic()->registerNatives({ makeNativeMethod("installNative", IndyCredxModule::installNative) });
+    javaClassStatic()->registerNatives({ makeNativeMethod("installNative", AnoncredsModule::installNative) });
   }
 
 private:
@@ -31,6 +31,6 @@ private:
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *) {
   return facebook::jni::initialize(vm, [] {
-    IndyCredxModule::registerNatives();
+    AnoncredsModule::registerNatives();
   });
 }

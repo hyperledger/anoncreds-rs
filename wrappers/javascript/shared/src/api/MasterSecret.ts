@@ -1,12 +1,12 @@
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
-export class MasterSecret extends IndyObject {
+export class MasterSecret extends AnoncredsObject {
   public static create() {
-    return new MasterSecret(indyCredx.createMasterSecret().handle)
+    return new MasterSecret(anoncreds.createMasterSecret().handle)
   }
 
   public static load(json: string) {
-    return new MasterSecret(indyCredx.masterSecretFromJson({ json }).handle)
+    return new MasterSecret(anoncreds.masterSecretFromJson({ json }).handle)
   }
 }

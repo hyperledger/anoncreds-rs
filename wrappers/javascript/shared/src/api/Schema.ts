@@ -1,5 +1,5 @@
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
 export type CreateSchemaOptions = {
   originDid: string
@@ -9,16 +9,16 @@ export type CreateSchemaOptions = {
   sequenceNumber?: number
 }
 
-export class Schema extends IndyObject {
+export class Schema extends AnoncredsObject {
   public static create(options: CreateSchemaOptions) {
-    return new Schema(indyCredx.createSchema(options).handle)
+    return new Schema(anoncreds.createSchema(options).handle)
   }
 
   public static load(json: string) {
-    return new Schema(indyCredx.schemaFromJson({ json }).handle)
+    return new Schema(anoncreds.schemaFromJson({ json }).handle)
   }
 
   public getId() {
-    return indyCredx.schemaGetAttribute({ objectHandle: this.handle, name: 'id' })
+    return anoncreds.schemaGetAttribute({ objectHandle: this.handle, name: 'id' })
   }
 }

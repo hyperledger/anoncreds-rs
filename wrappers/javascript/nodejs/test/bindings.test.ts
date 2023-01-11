@@ -1,4 +1,4 @@
-import { indyCredx } from 'indy-credx-shared'
+import { anoncreds } from 'anoncreds-shared'
 
 import { setup } from './utils'
 
@@ -10,24 +10,24 @@ describe('bindings', () => {
   beforeAll(() => setup())
 
   test('version', () => {
-    const version = indyCredx.version()
+    const version = anoncreds.version()
 
     expect(version).toEqual('0.3.1')
   })
 
   test('current error', () => {
-    const error = indyCredx.getCurrentError()
+    const error = anoncreds.getCurrentError()
 
     expect(JSON.parse(error)).toEqual({ code: 0, message: null })
   })
 
   test('generate nonce', () => {
-    const nonce = indyCredx.generateNonce()
+    const nonce = anoncreds.generateNonce()
     expect(nonce).toMatch(/^\d*$/)
   })
 
   test('create schema', () => {
-    const schemaObj = indyCredx.createSchema({
+    const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
       originDid: TEST_DID,
       version: '1',
@@ -35,14 +35,14 @@ describe('bindings', () => {
       attributeNames: ['attr-1'],
     })
 
-    const schemaId = indyCredx.schemaGetAttribute({
+    const schemaId = anoncreds.schemaGetAttribute({
       objectHandle: schemaObj,
       name: 'id',
     })
 
     expect(schemaId).toEqual(TEST_SCHEMA)
 
-    const json = indyCredx.getJson({ objectHandle: schemaObj })
+    const json = anoncreds.getJson({ objectHandle: schemaObj })
     expect(JSON.parse(json)).toEqual({
       id: TEST_SCHEMA,
       name: 'schema-1',
@@ -54,7 +54,7 @@ describe('bindings', () => {
   })
 
   test('create credential definition', () => {
-    const schemaObj = indyCredx.createSchema({
+    const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
       originDid: TEST_DID,
       version: '1',
@@ -62,7 +62,7 @@ describe('bindings', () => {
       attributeNames: ['attr-1'],
     })
 
-    const { keyProof, credentialDefinition, credentialDefinitionPrivate } = indyCredx.createCredentialDefinition({
+    const { keyProof, credentialDefinition, credentialDefinitionPrivate } = anoncreds.createCredentialDefinition({
       originDid: TEST_DID,
       schema: schemaObj,
       signatureType: 'CL',
@@ -70,7 +70,7 @@ describe('bindings', () => {
       tag: 'TAG',
     })
 
-    const credDefJson = indyCredx.getJson({ objectHandle: credentialDefinition })
+    const credDefJson = anoncreds.getJson({ objectHandle: credentialDefinition })
     expect(JSON.parse(credDefJson)).toEqual(
       expect.objectContaining({
         id: '55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG',
@@ -81,16 +81,16 @@ describe('bindings', () => {
       })
     )
 
-    const credDefPvtJson = indyCredx.getJson({ objectHandle: credentialDefinitionPrivate })
+    const credDefPvtJson = anoncreds.getJson({ objectHandle: credentialDefinitionPrivate })
     expect(JSON.parse(credDefPvtJson)).toHaveProperty('value')
 
-    const keyProofJson = indyCredx.getJson({ objectHandle: keyProof })
+    const keyProofJson = anoncreds.getJson({ objectHandle: keyProof })
     expect(JSON.parse(keyProofJson)).toHaveProperty('c')
     expect(JSON.parse(keyProofJson)).toHaveProperty('xr_cap')
   })
 
   test('encode credential attributes', () => {
-    const encoded = indyCredx.encodeCredentialAttributes({ attributeRawValues: ['value2', 'value1'] })
+    const encoded = anoncreds.encodeCredentialAttributes({ attributeRawValues: ['value2', 'value1'] })
 
     expect(encoded).toEqual(
       expect.arrayContaining([
@@ -100,7 +100,7 @@ describe('bindings', () => {
     )
   }),
     test('create revocation registry', () => {
-      const schemaObj = indyCredx.createSchema({
+      const schemaObj = anoncreds.createSchema({
         name: 'schema-1',
         originDid: TEST_DID,
         version: '1',
@@ -108,14 +108,14 @@ describe('bindings', () => {
         attributeNames: ['attr-1'],
       })
 
-      const { credentialDefinition } = indyCredx.createCredentialDefinition({
+      const { credentialDefinition } = anoncreds.createCredentialDefinition({
         originDid: TEST_DID,
         schema: schemaObj,
         signatureType: 'CL',
         supportRevocation: true,
         tag: 'TAG',
       })
-      const { registryDefinition } = indyCredx.createRevocationRegistry({
+      const { registryDefinition } = anoncreds.createRevocationRegistry({
         originDid: TEST_DID,
         credentialDefinition,
         tag: 'default',
@@ -123,13 +123,13 @@ describe('bindings', () => {
         maximumCredentialNumber: 100,
       })
 
-      const maximumCredentialNumber = indyCredx.revocationRegistryDefinitionGetAttribute({
+      const maximumCredentialNumber = anoncreds.revocationRegistryDefinitionGetAttribute({
         objectHandle: registryDefinition,
         name: 'max_cred_num',
       })
 
       expect(maximumCredentialNumber).toEqual('100')
-      const json = indyCredx.getJson({ objectHandle: registryDefinition })
+      const json = anoncreds.getJson({ objectHandle: registryDefinition })
       expect(JSON.parse(json)).toEqual(
         expect.objectContaining({
           credDefId: '55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG',
@@ -148,14 +148,14 @@ describe('bindings', () => {
     })
 
   test('create master secret', () => {
-    const masterSecret = indyCredx.createMasterSecret()
-    const json = indyCredx.getJson({ objectHandle: masterSecret })
+    const masterSecret = anoncreds.createMasterSecret()
+    const json = anoncreds.getJson({ objectHandle: masterSecret })
     expect(JSON.parse(json)).toHaveProperty('value')
     expect(JSON.parse(json).value).toHaveProperty('ms')
   })
 
   test('create credential offer', () => {
-    const schemaObj = indyCredx.createSchema({
+    const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
       originDid: TEST_DID,
       version: '1',
@@ -163,7 +163,7 @@ describe('bindings', () => {
       attributeNames: ['attr-1'],
     })
 
-    const { credentialDefinition, keyProof } = indyCredx.createCredentialDefinition({
+    const { credentialDefinition, keyProof } = anoncreds.createCredentialDefinition({
       originDid: TEST_DID,
       schema: schemaObj,
       signatureType: 'CL',
@@ -171,13 +171,13 @@ describe('bindings', () => {
       tag: 'TAG',
     })
 
-    const credOfferObj = indyCredx.createCredentialOffer({
+    const credOfferObj = anoncreds.createCredentialOffer({
       schemaId: TEST_SCHEMA,
       credentialDefinition: credentialDefinition,
       keyProof,
     })
 
-    const json = indyCredx.getJson({ objectHandle: credOfferObj })
+    const json = anoncreds.getJson({ objectHandle: credOfferObj })
     expect(JSON.parse(json)).toEqual(
       expect.objectContaining({
         cred_def_id: '55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG',
@@ -189,7 +189,7 @@ describe('bindings', () => {
   })
 
   test('create credential request', () => {
-    const schemaObj = indyCredx.createSchema({
+    const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
       originDid: TEST_DID,
       version: '1',
@@ -197,7 +197,7 @@ describe('bindings', () => {
       attributeNames: ['attr-1'],
     })
 
-    const { credentialDefinition, keyProof } = indyCredx.createCredentialDefinition({
+    const { credentialDefinition, keyProof } = anoncreds.createCredentialDefinition({
       originDid: TEST_DID,
       schema: schemaObj,
       signatureType: 'CL',
@@ -205,16 +205,16 @@ describe('bindings', () => {
       tag: 'TAG',
     })
 
-    const credOfferObj = indyCredx.createCredentialOffer({
+    const credOfferObj = anoncreds.createCredentialOffer({
       schemaId: TEST_SCHEMA,
       credentialDefinition: credentialDefinition,
       keyProof,
     })
 
-    const masterSecret = indyCredx.createMasterSecret()
+    const masterSecret = anoncreds.createMasterSecret()
     const masterSecretId = 'master secret id'
 
-    const { credentialRequest, credentialRequestMeta } = indyCredx.createCredentialRequest({
+    const { credentialRequest, credentialRequestMeta } = anoncreds.createCredentialRequest({
       proverDid: TEST_DID,
       credentialDefinition: credentialDefinition,
       masterSecret,
@@ -222,7 +222,7 @@ describe('bindings', () => {
       credentialOffer: credOfferObj,
     })
 
-    const credReqJson = indyCredx.getJson({ objectHandle: credentialRequest })
+    const credReqJson = anoncreds.getJson({ objectHandle: credentialRequest })
     expect(JSON.parse(credReqJson)).toEqual(
       expect.objectContaining({
         prover_did: TEST_DID,
@@ -231,7 +231,7 @@ describe('bindings', () => {
     expect(JSON.parse(credReqJson)).toHaveProperty('blinded_ms')
     expect(JSON.parse(credReqJson)).toHaveProperty('nonce')
 
-    const credReqMetadataJson = indyCredx.getJson({ objectHandle: credentialRequestMeta })
+    const credReqMetadataJson = anoncreds.getJson({ objectHandle: credentialRequestMeta })
     expect(JSON.parse(credReqMetadataJson)).toEqual(
       expect.objectContaining({
         master_secret_name: masterSecretId,
@@ -242,7 +242,7 @@ describe('bindings', () => {
   })
 
   test('create and receive credential', () => {
-    const schemaObj = indyCredx.createSchema({
+    const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
       originDid: TEST_DID,
       version: '1',
@@ -250,7 +250,7 @@ describe('bindings', () => {
       attributeNames: ['attr-1'],
     })
 
-    const { credentialDefinition, keyProof, credentialDefinitionPrivate } = indyCredx.createCredentialDefinition({
+    const { credentialDefinition, keyProof, credentialDefinitionPrivate } = anoncreds.createCredentialDefinition({
       originDid: TEST_DID,
       schema: schemaObj,
       signatureType: 'CL',
@@ -258,16 +258,16 @@ describe('bindings', () => {
       tag: 'TAG',
     })
 
-    const credOfferObj = indyCredx.createCredentialOffer({
+    const credOfferObj = anoncreds.createCredentialOffer({
       schemaId: TEST_SCHEMA,
       credentialDefinition: credentialDefinition,
       keyProof,
     })
 
-    const masterSecret = indyCredx.createMasterSecret()
+    const masterSecret = anoncreds.createMasterSecret()
     const masterSecretId = 'master secret id'
 
-    const { credentialRequestMeta, credentialRequest } = indyCredx.createCredentialRequest({
+    const { credentialRequestMeta, credentialRequest } = anoncreds.createCredentialRequest({
       proverDid: TEST_DID,
       credentialDefinition,
       masterSecret,
@@ -275,7 +275,7 @@ describe('bindings', () => {
       credentialOffer: credOfferObj,
     })
 
-    const { registryDefinition, registryEntry, registryDefinitionPrivate } = indyCredx.createRevocationRegistry({
+    const { registryDefinition, registryEntry, registryDefinitionPrivate } = anoncreds.createRevocationRegistry({
       originDid: TEST_DID,
       credentialDefinition,
       tag: 'default',
@@ -283,12 +283,12 @@ describe('bindings', () => {
       maximumCredentialNumber: 100,
     })
 
-    const tailsPath = indyCredx.revocationRegistryDefinitionGetAttribute({
+    const tailsPath = anoncreds.revocationRegistryDefinitionGetAttribute({
       objectHandle: registryDefinition,
       name: 'tails_location',
     })
 
-    const { credential } = indyCredx.createCredential({
+    const { credential } = anoncreds.createCredential({
       credentialDefinition: credentialDefinition,
       credentialDefinitionPrivate: credentialDefinitionPrivate,
       credentialOffer: credOfferObj,
@@ -304,7 +304,7 @@ describe('bindings', () => {
       },
     })
 
-    const credReceived = indyCredx.processCredential({
+    const credReceived = anoncreds.processCredential({
       credential,
       credentialDefinition,
       credentialRequestMetadata: credentialRequestMeta,
@@ -312,7 +312,7 @@ describe('bindings', () => {
       revocationRegistryDefinition: registryDefinition,
     })
 
-    const credJson = indyCredx.getJson({ objectHandle: credential })
+    const credJson = anoncreds.getJson({ objectHandle: credential })
     expect(JSON.parse(credJson)).toEqual(
       expect.objectContaining({
         cred_def_id: '55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG',
@@ -321,7 +321,7 @@ describe('bindings', () => {
       })
     )
 
-    const credReceivedJson = indyCredx.getJson({ objectHandle: credReceived })
+    const credReceivedJson = anoncreds.getJson({ objectHandle: credReceived })
     expect(JSON.parse(credReceivedJson)).toEqual(
       expect.objectContaining({
         cred_def_id: '55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG',
@@ -335,9 +335,9 @@ describe('bindings', () => {
 
   test('create and verify presentation', () => {
     const timestamp = Math.floor(Date.now() / 1000)
-    const nonce = indyCredx.generateNonce()
+    const nonce = anoncreds.generateNonce()
 
-    const presRequestObj = indyCredx.presentationRequestFromJson({
+    const presRequestObj = anoncreds.presentationRequestFromJson({
       json: JSON.stringify({
         name: 'proof',
         version: '1.0',
@@ -358,9 +358,9 @@ describe('bindings', () => {
       }),
     })
 
-    expect(indyCredx.getTypeName({ objectHandle: presRequestObj })).toEqual('PresentationRequest')
+    expect(anoncreds.getTypeName({ objectHandle: presRequestObj })).toEqual('PresentationRequest')
 
-    const schemaObj = indyCredx.createSchema({
+    const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
       originDid: TEST_DID,
       version: '1',
@@ -368,7 +368,7 @@ describe('bindings', () => {
       attributeNames: ['attr-1'],
     })
 
-    const { credentialDefinition, credentialDefinitionPrivate, keyProof } = indyCredx.createCredentialDefinition({
+    const { credentialDefinition, credentialDefinitionPrivate, keyProof } = anoncreds.createCredentialDefinition({
       originDid: TEST_DID,
       schema: schemaObj,
       signatureType: 'CL',
@@ -376,16 +376,16 @@ describe('bindings', () => {
       tag: 'TAG',
     })
 
-    const credOfferObj = indyCredx.createCredentialOffer({
+    const credOfferObj = anoncreds.createCredentialOffer({
       schemaId: TEST_SCHEMA,
       credentialDefinition,
       keyProof,
     })
 
-    const masterSecret = indyCredx.createMasterSecret()
+    const masterSecret = anoncreds.createMasterSecret()
     const masterSecretId = 'master secret id'
 
-    const { credentialRequest, credentialRequestMeta } = indyCredx.createCredentialRequest({
+    const { credentialRequest, credentialRequestMeta } = anoncreds.createCredentialRequest({
       proverDid: TEST_DID,
       credentialDefinition,
       masterSecret,
@@ -394,7 +394,7 @@ describe('bindings', () => {
     })
 
     const { registryDefinition, registryEntry, registryDefinitionPrivate, registryInitDelta } =
-      indyCredx.createRevocationRegistry({
+      anoncreds.createRevocationRegistry({
         originDid: TEST_DID,
         credentialDefinition,
         tag: 'default',
@@ -402,12 +402,12 @@ describe('bindings', () => {
         maximumCredentialNumber: 100,
       })
 
-    const tailsPath = indyCredx.revocationRegistryDefinitionGetAttribute({
+    const tailsPath = anoncreds.revocationRegistryDefinitionGetAttribute({
       objectHandle: registryDefinition,
       name: 'tails_location',
     })
 
-    const { credential } = indyCredx.createCredential({
+    const { credential } = anoncreds.createCredential({
       credentialDefinition,
       credentialDefinitionPrivate,
       credentialOffer: credOfferObj,
@@ -423,7 +423,7 @@ describe('bindings', () => {
       },
     })
 
-    const credentialReceived = indyCredx.processCredential({
+    const credentialReceived = anoncreds.processCredential({
       credential,
       credentialDefinition,
       credentialRequestMetadata: credentialRequestMeta,
@@ -431,14 +431,14 @@ describe('bindings', () => {
       revocationRegistryDefinition: registryDefinition,
     })
 
-    const revRegIndex = indyCredx.credentialGetAttribute({
+    const revRegIndex = anoncreds.credentialGetAttribute({
       objectHandle: credentialReceived,
       name: 'rev_reg_index',
     })
 
     const revocationRegistryIndex = revRegIndex === null ? 0 : parseInt(revRegIndex)
 
-    const revocationState = indyCredx.createOrUpdateRevocationState({
+    const revocationState = anoncreds.createOrUpdateRevocationState({
       revocationRegistryDefinition: registryDefinition,
       revocationRegistryDelta: registryInitDelta,
       revocationRegistryIndex,
@@ -446,7 +446,7 @@ describe('bindings', () => {
       tailsPath,
     })
 
-    const presentationObj = indyCredx.createPresentation({
+    const presentationObj = anoncreds.createPresentation({
       presentationRequest: presRequestObj,
       credentials: [
         {
@@ -469,7 +469,7 @@ describe('bindings', () => {
       selfAttest: { name: 'value' },
     })
 
-    const verify = indyCredx.verifyPresentation({
+    const verify = anoncreds.verifyPresentation({
       presentation: presentationObj,
       presentationRequest: presRequestObj,
       credentialDefinitions: [credentialDefinition],

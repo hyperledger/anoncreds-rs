@@ -2,8 +2,8 @@ import type { CredentialDefinition } from './CredentialDefinition'
 import type { CredentialOffer } from './CredentialOffer'
 import type { MasterSecret } from './MasterSecret'
 
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
 import { CredentialRequestMetadata } from './CredentialRequestMetadata'
 
@@ -15,9 +15,9 @@ export type CreateCredentialRequestOptions = {
   credentialOffer: CredentialOffer
 }
 
-export class CredentialRequest extends IndyObject {
+export class CredentialRequest extends AnoncredsObject {
   public static create(options: CreateCredentialRequestOptions) {
-    const { credentialRequest, credentialRequestMeta } = indyCredx.createCredentialRequest({
+    const { credentialRequest, credentialRequestMeta } = anoncreds.createCredentialRequest({
       proverDid: options.proverDid,
       credentialDefinition: options.credentialDefinition.handle,
       masterSecret: options.masterSecret.handle,
@@ -32,6 +32,6 @@ export class CredentialRequest extends IndyObject {
   }
 
   public static load(json: string) {
-    return new CredentialRequest(indyCredx.credentialRequestFromJson({ json }).handle)
+    return new CredentialRequest(anoncreds.credentialRequestFromJson({ json }).handle)
   }
 }

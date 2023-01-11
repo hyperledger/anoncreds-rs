@@ -1,4 +1,4 @@
-import { ObjectHandle } from 'indy-credx-shared'
+import { ObjectHandle } from 'anoncreds-shared'
 
 type Argument = SerializedArgument | Date | boolean | ObjectHandle
 

@@ -31,7 +31,7 @@ export type NativeCredentialRevocationConfig = {
   tailsPath: string
 }
 
-export interface IndyCredx {
+export interface Anoncreds {
   version(): string
 
   getCurrentError(): string

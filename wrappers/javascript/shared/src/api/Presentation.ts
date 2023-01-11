@@ -7,8 +7,8 @@ import type { RevocationRegistry } from './RevocationRegistry'
 import type { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
 import type { Schema } from './Schema'
 
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
 // TODO: Simplify Presentation API (see PresentCredentials object in python wrapper))
 
@@ -50,10 +50,10 @@ export type VerifyPresentationOptions = {
   revocationEntries: RevocationEntry[]
 }
 
-export class Presentation extends IndyObject {
+export class Presentation extends AnoncredsObject {
   public static create(options: CreatePresentationOptions) {
     return new Presentation(
-      indyCredx.createPresentation({
+      anoncreds.createPresentation({
         presentationRequest: options.presentationRequest.handle,
         credentials: options.credentials.map((item) => ({
           credential: item.credential.handle,
@@ -70,11 +70,11 @@ export class Presentation extends IndyObject {
   }
 
   public static load(json: string) {
-    return new Presentation(indyCredx.presentationFromJson({ json }).handle)
+    return new Presentation(anoncreds.presentationFromJson({ json }).handle)
   }
 
   public verify(options: VerifyPresentationOptions) {
-    return indyCredx.verifyPresentation({
+    return anoncreds.verifyPresentation({
       presentation: options.presentation.handle,
       presentationRequest: options.presentationRequest.handle,
       schemas: options.schemas.map((object) => object.handle),

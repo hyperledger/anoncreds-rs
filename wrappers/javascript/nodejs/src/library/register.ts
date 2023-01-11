@@ -7,8 +7,8 @@ import path from 'path'
 
 import { nativeBindings } from './bindings'
 
-const LIBNAME = 'indy_credx'
-const ENV_VAR = 'LIB_INDY_CREDX_PATH'
+const LIBNAME = 'anoncreds'
+const ENV_VAR = 'LIB_ANONCREDS_PATH'
 
 type Platform = 'darwin' | 'linux' | 'win32'
 
@@ -65,4 +65,4 @@ const getLibrary = () => {
   return Library(validLibraryPath, nativeBindings)
 }
 
-export const nativeIndyCredx = getLibrary() as unknown as NativeMethods
+export const nativeAnoncreds = getLibrary() as unknown as NativeMethods

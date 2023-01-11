@@ -1,18 +1,18 @@
 import type { CredentialDefinition } from './CredentialDefinition'
 import type { KeyCorrectnessProof } from './KeyCorrectnessProof'
 
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
 export type CreateCredentialOfferOptions = {
   schemaId: string
   credentialDefinition: CredentialDefinition
   keyCorrectnessProof: KeyCorrectnessProof
 }
-export class CredentialOffer extends IndyObject {
+export class CredentialOffer extends AnoncredsObject {
   public static create(options: CreateCredentialOfferOptions) {
     return new CredentialOffer(
-      indyCredx.createCredentialOffer({
+      anoncreds.createCredentialOffer({
         schemaId: options.schemaId,
         credentialDefinition: options.credentialDefinition.handle,
         keyProof: options.keyCorrectnessProof.handle,
@@ -21,6 +21,6 @@ export class CredentialOffer extends IndyObject {
   }
 
   public static load(json: string) {
-    return new CredentialOffer(indyCredx.credentialOfferFromJson({ json }).handle)
+    return new CredentialOffer(anoncreds.credentialOfferFromJson({ json }).handle)
   }
 }

@@ -1,7 +1,7 @@
 import type { Schema } from './Schema'
 
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
 import { CredentialDefinitionPrivate } from './CredentialDefinitionPrivate'
 import { KeyCorrectnessProof } from './KeyCorrectnessProof'
@@ -14,9 +14,9 @@ export type CreateCredentialDefinitionOptions = {
   supportRevocation?: boolean
 }
 
-export class CredentialDefinition extends IndyObject {
+export class CredentialDefinition extends AnoncredsObject {
   public static create(options: CreateCredentialDefinitionOptions) {
-    const { credentialDefinition, credentialDefinitionPrivate, keyProof } = indyCredx.createCredentialDefinition({
+    const { credentialDefinition, credentialDefinitionPrivate, keyProof } = anoncreds.createCredentialDefinition({
       originDid: options.originDid,
       schema: options.schema.handle,
       signatureType: options.signatureType,
@@ -32,14 +32,14 @@ export class CredentialDefinition extends IndyObject {
   }
 
   public static load(json: string) {
-    return new CredentialDefinition(indyCredx.credentialDefinitionFromJson({ json }).handle)
+    return new CredentialDefinition(anoncreds.credentialDefinitionFromJson({ json }).handle)
   }
 
   public getId() {
-    return indyCredx.credentialDefinitionGetAttribute({ objectHandle: this.handle, name: 'id' })
+    return anoncreds.credentialDefinitionGetAttribute({ objectHandle: this.handle, name: 'id' })
   }
 
   public getSchemaId() {
-    return indyCredx.credentialDefinitionGetAttribute({ objectHandle: this.handle, name: 'schema_id' })
+    return anoncreds.credentialDefinitionGetAttribute({ objectHandle: this.handle, name: 'schema_id' })
   }
 }

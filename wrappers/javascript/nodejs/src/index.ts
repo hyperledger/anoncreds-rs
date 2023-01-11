@@ -1,2 +1,2 @@
-export * from 'indy-credx-shared'
-export { NodeJSIndyCredx } from './NodeJSIndyCredx'
+export * from 'anoncreds-shared'
+export { NodeJSAnoncreds } from './NodeJSAnoncreds'

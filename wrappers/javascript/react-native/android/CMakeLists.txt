@@ -1,18 +1,18 @@
 cmake_minimum_required(VERSION 3.9.0)
-project(indycredxreactnative)
+project(anoncredsreactnative)
 
-set (PACKAGE_NAME "indycredxreactnative")
-set (LIB_NAME "indycredx")
+set (PACKAGE_NAME "anoncredsreactnative")
+set (LIB_NAME "anoncreds")
 set (BUILD_DIR ${CMAKE_SOURCE_DIR}/build)
 
 file (GLOB LIBFBJNI_INCLUDE_DIR "${BUILD_DIR}/fbjni-*-headers.jar/")
 file (GLOB LIBRN_DIR "${BUILD_DIR}/react-native-0*/jni/${ANDROID_ABI}")
-file (GLOB LIBCREDX_DIR "${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}")
+file (GLOB LIBANONCREDS_DIR "${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}")
 
 include_directories(
   ../cpp
   ../cpp/include
-  "${LIBCREDX_DIR}"
+  "${LIBANONCREDS_DIR}"
   "${LIBFBJNI_INCLUDE_DIR}"
   "${NODE_MODULES_DIR}/react-native/React"
   "${NODE_MODULES_DIR}/react-native/React/Base"
@@ -29,7 +29,7 @@ add_library(
   cpp-adapter.cpp
   ../cpp/HostObject.cpp
   ../cpp/turboModuleUtility.cpp
-  ../cpp/indyCredx.cpp
+  ../cpp/anoncreds.cpp
 )
 
 set_target_properties(
@@ -68,19 +68,19 @@ find_library(
 )
 
 find_library(
-  CREDX_LIB 
-  indy_credx
-  paths ${LIBCREDX_DIR}
+  ANONCREDS_LIB 
+  anoncreds
+  paths ${LIBANONCREDS_DIR}
   NO_CMAKE_FIND_ROOT_PATH
 )
 
-if (NOT CREDX_LIB)
-  message(FATAL_ERROR "Could not find CREDX_LIB at: ${LIBCREDX_DIR}")
+if (NOT ANONCREDS_LIB)
+  message(FATAL_ERROR "Could not find ANONCREDS_LIB at: ${LIBANONCREDS_DIR}")
 endif()
 
 target_link_libraries(
   ${PACKAGE_NAME}
-  ${CREDX_LIB}
+  ${ANONCREDS_LIB}
   ${LOG_LIB} 
   ${JSI_LIB}
   ${REACT_NATIVE_JNI_LIB}

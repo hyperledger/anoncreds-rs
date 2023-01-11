@@ -4,9 +4,9 @@ type Module = {
   install: () => boolean
 }
 
-const module = NativeModules.IndyCredx as Module
-if (!module.install()) throw Error('Unable to install the turboModule: IndyCredx')
+const module = NativeModules.Anoncreds as Module
+if (!module.install()) throw Error('Unable to install the turboModule: Anoncreds')
 
-export * from 'indy-credx-shared'
+export * from 'anoncreds-shared'
 
-export { ReactNativeIndyCredx } from './ReactNativeIndyCredx'
+export { ReactNativeAnoncreds } from './ReactNativeAnoncreds'

@@ -7,8 +7,8 @@ import type { CredentialRevocationConfig } from './CredentialRevocationConfig'
 import type { MasterSecret } from './MasterSecret'
 import type { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
 
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
 import { RevocationRegistry } from './RevocationRegistry'
 import { RevocationRegistryDelta } from './RevocationRegistryDelta'
@@ -30,9 +30,9 @@ export type ProcessCredentialOptions = {
   revocationRegistryDefinition?: RevocationRegistryDefinition
 }
 
-export class Credential extends IndyObject {
+export class Credential extends AnoncredsObject {
   public static create(options: CreateCredentialOptions) {
-    const { credential, revocationDelta, revocationRegistry } = indyCredx.createCredential({
+    const { credential, revocationDelta, revocationRegistry } = anoncreds.createCredential({
       credentialDefinition: options.credentialDefinition.handle,
       credentialDefinitionPrivate: options.credentialDefinitionPrivate.handle,
       credentialRequest: options.credentialRequest.handle,
@@ -50,11 +50,11 @@ export class Credential extends IndyObject {
   }
 
   public static load(json: string) {
-    return new Credential(indyCredx.credentialFromJson({ json }).handle)
+    return new Credential(anoncreds.credentialFromJson({ json }).handle)
   }
 
   public process(options: ProcessCredentialOptions) {
-    const credential = indyCredx.processCredential({
+    const credential = anoncreds.processCredential({
       credential: this.handle,
       credentialDefinition: options.credentialDefinition.handle,
       credentialRequestMetadata: options.credentialRequestMetadata.handle,
@@ -66,19 +66,19 @@ export class Credential extends IndyObject {
   }
 
   public getSchemaId() {
-    return indyCredx.credentialGetAttribute({ objectHandle: this.handle, name: 'schema_id' })
+    return anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'schema_id' })
   }
 
   public getCredentialDefinitionId() {
-    return indyCredx.credentialGetAttribute({ objectHandle: this.handle, name: 'cred_def_id' })
+    return anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'cred_def_id' })
   }
 
   public getRevocationRegistryId() {
-    return indyCredx.credentialGetAttribute({ objectHandle: this.handle, name: 'rev_reg_id' })
+    return anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'rev_reg_id' })
   }
 
   public getRevocationRegistryIndex() {
-    const index = indyCredx.credentialGetAttribute({ objectHandle: this.handle, name: 'rev_reg_index' })
+    const index = anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'rev_reg_index' })
     return index ? Number(index) : undefined
   }
 }

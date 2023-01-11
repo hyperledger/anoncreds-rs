@@ -1,8 +1,8 @@
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
-export class PresentationRequest extends IndyObject {
+export class PresentationRequest extends AnoncredsObject {
   public static load(json: string) {
-    return new PresentationRequest(indyCredx.presentationRequestFromJson({ json }).handle)
+    return new PresentationRequest(anoncreds.presentationRequestFromJson({ json }).handle)
   }
 }

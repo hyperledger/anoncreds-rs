@@ -23,8 +23,8 @@ import {
 
 export const nativeBindings = {
   // first element is method return type, second element is list of method argument types
-  credx_buffer_free: [FFI_VOID, [ByteBufferStruct]],
-  credx_create_credential: [
+  anoncreds_buffer_free: [FFI_VOID, [ByteBufferStruct]],
+  anoncreds_create_credential: [
     FFI_ERRORCODE,
     [
       FFI_OBJECT_HANDLE,
@@ -40,7 +40,7 @@ export const nativeBindings = {
       FFI_OBJECT_HANDLE_PTR,
     ],
   ],
-  credx_create_credential_definition: [
+  anoncreds_create_credential_definition: [
     FFI_ERRORCODE,
     [
       FFI_STRING,
@@ -53,11 +53,11 @@ export const nativeBindings = {
       FFI_OBJECT_HANDLE_PTR,
     ],
   ],
-  credx_create_credential_offer: [
+  anoncreds_create_credential_offer: [
     FFI_ERRORCODE,
     [FFI_STRING, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
   ],
-  credx_create_credential_request: [
+  anoncreds_create_credential_request: [
     FFI_ERRORCODE,
     [
       FFI_STRING,
@@ -69,12 +69,12 @@ export const nativeBindings = {
       FFI_OBJECT_HANDLE_PTR,
     ],
   ],
-  credx_create_master_secret: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE_PTR]],
-  credx_create_or_update_revocation_state: [
+  anoncreds_create_master_secret: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE_PTR]],
+  anoncreds_create_or_update_revocation_state: [
     FFI_ERRORCODE,
     [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_INT64, FFI_INT64, FFI_STRING, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
   ],
-  credx_create_presentation: [
+  anoncreds_create_presentation: [
     FFI_ERRORCODE,
     [
       FFI_OBJECT_HANDLE,
@@ -88,7 +88,7 @@ export const nativeBindings = {
       FFI_OBJECT_HANDLE_PTR,
     ],
   ],
-  credx_create_revocation_registry: [
+  anoncreds_create_revocation_registry: [
     FFI_ERRORCODE,
     [
       FFI_STRING,
@@ -104,24 +104,24 @@ export const nativeBindings = {
       FFI_OBJECT_HANDLE_PTR,
     ],
   ],
-  credx_create_schema: [
+  anoncreds_create_schema: [
     FFI_ERRORCODE,
     [FFI_STRING, FFI_STRING, FFI_STRING, StringListStruct, FFI_INT64, FFI_OBJECT_HANDLE_PTR],
   ],
-  credx_credential_definition_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
-  credx_credential_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
-  credx_encode_credential_attributes: [FFI_ERRORCODE, [StringListStruct, FFI_STRING_PTR]],
-  credx_generate_nonce: [FFI_ERRORCODE, [FFI_STRING_PTR]],
-  credx_get_current_error: [FFI_ERRORCODE, [FFI_STRING_PTR]],
-  credx_merge_revocation_registry_deltas: [
+  anoncreds_credential_definition_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
+  anoncreds_credential_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
+  anoncreds_encode_credential_attributes: [FFI_ERRORCODE, [StringListStruct, FFI_STRING_PTR]],
+  anoncreds_generate_nonce: [FFI_ERRORCODE, [FFI_STRING_PTR]],
+  anoncreds_get_current_error: [FFI_ERRORCODE, [FFI_STRING_PTR]],
+  anoncreds_merge_revocation_registry_deltas: [
     FFI_ERRORCODE,
     [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
   ],
-  credx_object_free: [FFI_VOID, [FFI_OBJECT_HANDLE]],
-  credx_object_get_json: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, ByteBufferStructPtr]],
-  credx_object_get_type_name: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING_PTR]],
-  credx_presentation_request_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_process_credential: [
+  anoncreds_object_free: [FFI_VOID, [FFI_OBJECT_HANDLE]],
+  anoncreds_object_get_json: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, ByteBufferStructPtr]],
+  anoncreds_object_get_type_name: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING_PTR]],
+  anoncreds_presentation_request_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_process_credential: [
     FFI_ERRORCODE,
     [
       FFI_OBJECT_HANDLE,
@@ -132,14 +132,17 @@ export const nativeBindings = {
       FFI_OBJECT_HANDLE_PTR,
     ],
   ],
-  credx_revocation_registry_definition_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
-  credx_revoke_credential: [
+  anoncreds_revocation_registry_definition_get_attribute: [
+    FFI_ERRORCODE,
+    [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR],
+  ],
+  anoncreds_revoke_credential: [
     FFI_ERRORCODE,
     [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_INT64, FFI_STRING, FFI_OBJECT_HANDLE_PTR, FFI_OBJECT_HANDLE_PTR],
   ],
-  credx_schema_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
-  credx_set_default_logger: [FFI_ERRORCODE, []],
-  credx_update_revocation_registry: [
+  anoncreds_schema_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
+  anoncreds_set_default_logger: [FFI_ERRORCODE, []],
+  anoncreds_update_revocation_registry: [
     FFI_ERRORCODE,
     [
       FFI_OBJECT_HANDLE,
@@ -151,7 +154,7 @@ export const nativeBindings = {
       FFI_OBJECT_HANDLE_PTR,
     ],
   ],
-  credx_verify_presentation: [
+  anoncreds_verify_presentation: [
     FFI_ERRORCODE,
     [
       FFI_OBJECT_HANDLE,
@@ -163,20 +166,20 @@ export const nativeBindings = {
       FFI_INT8_PTR,
     ],
   ],
-  credx_version: [FFI_STRING, []],
-  credx_master_secret_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_credential_request_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_credential_request_metadata_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_presentation_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_credential_offer_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_revocation_registry_definition_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_revocation_registry_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_revocation_state_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_credential_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_credential_definition_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_credential_definition_private_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_revocation_registry_definition_private_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_revocation_registry_delta_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_key_correctness_proof_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  credx_schema_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_version: [FFI_STRING, []],
+  anoncreds_master_secret_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_credential_request_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_credential_request_metadata_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_presentation_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_credential_offer_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_revocation_registry_definition_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_revocation_registry_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_revocation_state_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_credential_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_credential_definition_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_credential_definition_private_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_revocation_registry_definition_private_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_revocation_registry_delta_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_key_correctness_proof_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_schema_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
 } as const

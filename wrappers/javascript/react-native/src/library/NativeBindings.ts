@@ -3,7 +3,7 @@ import type {
   NativeCredentialProve,
   NativeRevocationEntry,
   NativeCredentialRevocationConfig,
-} from 'indy-credx-shared'
+} from 'anoncreds-shared'
 
 // Alias for _Handle.handle
 type _Handle = number

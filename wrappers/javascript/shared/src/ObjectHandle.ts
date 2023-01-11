@@ -1,4 +1,4 @@
-import { indyCredx } from './register'
+import { anoncreds } from './register'
 
 export class ObjectHandle {
   private _handle: number
@@ -12,11 +12,11 @@ export class ObjectHandle {
   }
 
   public typeName() {
-    return indyCredx.getTypeName({ objectHandle: this })
+    return anoncreds.getTypeName({ objectHandle: this })
   }
 
   // TODO: do we need this?
   public clear() {
-    indyCredx.objectFree({ objectHandle: this })
+    anoncreds.objectFree({ objectHandle: this })
   }
 }

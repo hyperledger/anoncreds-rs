@@ -1,4 +1,4 @@
-package org.hyperledger.indycredx;
+package org.hyperledger.anoncreds;
 
 import android.util.Log;
 
@@ -18,16 +18,16 @@ import com.facebook.react.turbomodule.core.interfaces.CallInvokerHolder;
 
 @Keep
 @DoNotStrip
-public class IndyCredxModule extends ReactContextBaseJavaModule {
+public class AnoncredsModule extends ReactContextBaseJavaModule {
     static {
-      System.loadLibrary("indycredxreactnative");
+      System.loadLibrary("anoncredsreactnative");
     }
 
-    public static final String NAME = "IndyCredx";
+    public static final String NAME = "Anoncreds";
 
-    static String TAG = "IndyCredx";
+    static String TAG = "Anoncreds";
 
-    public IndyCredxModule(ReactApplicationContext reactContext) {
+    public AnoncredsModule(ReactApplicationContext reactContext) {
         super(reactContext);
     }
 
@@ -42,7 +42,7 @@ public class IndyCredxModule extends ReactContextBaseJavaModule {
     @ReactMethod(isBlockingSynchronousMethod = true)
     public boolean install() {
       try {
-        System.loadLibrary("indycredxreactnative");
+        System.loadLibrary("anoncredsreactnative");
         ReactContext context = getReactApplicationContext();
         long jsContextPointer = context.getJavaScriptContextHolder().get();
         CallInvokerHolderImpl holder = (CallInvokerHolderImpl) context.getCatalystInstance().getJSCallInvokerHolder();

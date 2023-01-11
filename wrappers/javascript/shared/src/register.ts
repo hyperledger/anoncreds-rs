@@ -1,5 +1,5 @@
-import type { IndyCredx } from './IndyCredx'
+import type { Anoncreds } from './Anoncreds'
 
-export let indyCredx: IndyCredx
+export let anoncreds: Anoncreds
 
-export const registerIndyCredx = ({ credx }: { credx: IndyCredx }) => (indyCredx = credx)
+export const registerAnoncreds = ({ lib }: { lib: Anoncreds }) => (anoncreds = lib)

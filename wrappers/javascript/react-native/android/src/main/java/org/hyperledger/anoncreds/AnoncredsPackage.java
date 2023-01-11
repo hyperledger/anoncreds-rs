@@ -1,4 +1,4 @@
-package org.hyperledger.indycredx;
+package org.hyperledger.anoncreds;
 
 import androidx.annotation.NonNull;
 
@@ -10,11 +10,11 @@ import com.facebook.react.uimanager.ViewManager;
 import java.util.Collections;
 import java.util.List;
 
-public class IndyCredxPackage implements ReactPackage {
+public class AnoncredsPackage implements ReactPackage {
     @NonNull
     @Override
     public List<NativeModule> createNativeModules(@NonNull ReactApplicationContext reactContext) {
-        return Collections.singletonList(new IndyCredxModule(reactContext));
+        return Collections.singletonList(new AnoncredsModule(reactContext));
     }
 
     @NonNull

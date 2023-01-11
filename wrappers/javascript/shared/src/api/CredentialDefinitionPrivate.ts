@@ -1,8 +1,8 @@
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
-export class CredentialDefinitionPrivate extends IndyObject {
+export class CredentialDefinitionPrivate extends AnoncredsObject {
   public static load(json: string) {
-    return new CredentialDefinitionPrivate(indyCredx.credentialDefinitionPrivateFromJson({ json }).handle)
+    return new CredentialDefinitionPrivate(anoncreds.credentialDefinitionPrivateFromJson({ json }).handle)
   }
 }

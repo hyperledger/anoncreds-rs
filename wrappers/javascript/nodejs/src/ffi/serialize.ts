@@ -1,6 +1,6 @@
 import type { ByteBufferStruct } from './structures'
 
-import { ObjectHandle } from 'indy-credx-shared'
+import { ObjectHandle } from 'anoncreds-shared'
 import { NULL } from 'ref-napi'
 
 import { ObjectHandleListStruct, StringListStruct, I64ListStruct, Int64Array } from './structures'
@@ -46,6 +46,8 @@ export type SerializedOptions<Type> = Required<{
     : Type[Property] extends Buffer
     ? Buffer
     : Type[Property] extends ObjectHandle
+    ? number
+    : Type[Property] extends ObjectHandle | undefined
     ? number
     : Type[Property] extends Uint8Array
     ? typeof ByteBufferStruct

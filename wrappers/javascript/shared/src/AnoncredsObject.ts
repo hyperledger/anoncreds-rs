@@ -1,8 +1,8 @@
 import { ObjectHandle } from './ObjectHandle'
-import { IndyCredxError } from './error'
-import { indyCredx } from './register'
+import { AnoncredsError } from './error'
+import { anoncreds } from './register'
 
-export class IndyObject {
+export class AnoncredsObject {
   protected _handle: ObjectHandle
 
   public constructor(handle: number) {
@@ -15,20 +15,20 @@ export class IndyObject {
 
   // TODO: do we need this?
   public copy() {
-    return new IndyObject(this._handle.handle)
+    return new AnoncredsObject(this._handle.handle)
   }
 
   // TODO: do we need this?
   public toBytes() {
-    throw new IndyCredxError({ code: 100, message: 'Method toBytes not implemented' })
+    throw new AnoncredsError({ code: 100, message: 'Method toBytes not implemented' })
   }
 
   public toJson() {
-    return indyCredx.getJson({ objectHandle: this._handle })
+    return anoncreds.getJson({ objectHandle: this._handle })
   }
 
   // TODO: do we need this?
   public toJsonBuffer() {
-    throw new IndyCredxError({ code: 100, message: 'Method toJsonBuffer not implemented' })
+    throw new AnoncredsError({ code: 100, message: 'Method toJsonBuffer not implemented' })
   }
 }

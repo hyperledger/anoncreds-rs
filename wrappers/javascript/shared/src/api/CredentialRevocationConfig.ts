@@ -1,4 +1,4 @@
-import type { NativeCredentialRevocationConfig } from '../IndyCredx'
+import type { NativeCredentialRevocationConfig } from '../Anoncreds'
 import type { RevocationRegistry } from './RevocationRegistry'
 import type { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
 import type { RevocationRegistryDefinitionPrivate } from './RevocationRegistryDefinitionPrivate'

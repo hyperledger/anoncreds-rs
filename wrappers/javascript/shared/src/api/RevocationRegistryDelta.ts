@@ -1,13 +1,13 @@
-import { IndyObject } from '../IndyObject'
-import { indyCredx } from '../register'
+import { AnoncredsObject } from '../AnoncredsObject'
+import { anoncreds } from '../register'
 
-export class RevocationRegistryDelta extends IndyObject {
+export class RevocationRegistryDelta extends AnoncredsObject {
   public static load(json: string) {
-    return new RevocationRegistryDelta(indyCredx.revocationRegistryDeltaFromJson({ json }).handle)
+    return new RevocationRegistryDelta(anoncreds.revocationRegistryDeltaFromJson({ json }).handle)
   }
 
   public updateWith(nextDelta: RevocationRegistryDelta) {
-    this._handle = indyCredx.mergeRevocationRegistryDeltas({
+    this._handle = anoncreds.mergeRevocationRegistryDeltas({
       revocationRegistryDelta1: this.handle,
       revocationRegistryDelta2: nextDelta.handle,
     })

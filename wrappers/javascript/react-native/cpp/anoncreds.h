@@ -1,12 +1,12 @@
 #pragma once
 
-#include <include/libindy_credx.h>
+#include <include/libanoncreds.h>
 #include <jsi/jsi.h>
 #include <turboModuleUtility.h>
 
 using namespace facebook;
 
-namespace indyCredx {
+namespace anoncreds {
 
 jsi::Value version(jsi::Runtime &rt, jsi::Object options);
 jsi::Value getCurrentError(jsi::Runtime &rt, jsi::Object options);
@@ -39,4 +39,4 @@ jsi::Value verifyPresentation(jsi::Runtime &rt, jsi::Object options);
 jsi::Value updateRevocationRegistry(jsi::Runtime &rt, jsi::Object options);
 jsi::Value objectFree(jsi::Runtime &rt, jsi::Object options);
 
-} // namespace indyCredx
+} // namespace anoncreds

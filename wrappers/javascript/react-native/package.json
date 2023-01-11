@@ -1,15 +1,15 @@
 {
-  "name": "indy-credx-react-native",
+  "name": "anoncreds-react-native",
   "version": "0.0.0",
   "license": "Apache-2.0",
-  "description": "React Native wrapper for Indy Credx",
+  "description": "React Native wrapper for Anoncreds",
   "main": "build/index",
   "source": "src/index",
-  "homepage": "https://github.com/hyperledger/indy-credx/tree/main/wrappers/javascript/react-native",
+  "homepage": "https://github.com/hyperledger/anoncreds/tree/main/wrappers/javascript/react-native",
   "author": "Hyperledger (https://github.com/hyperledger)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hyperledger/indy-credx",
+    "url": "https://github.com/hyperledger/anoncreds",
     "directory": "wrappers/javascript/react-native"
   },
   "publishConfig": {
@@ -25,10 +25,10 @@
     "ios/**/*.h",
     "ios/**/*.mm",
     "ios/Frameworks",
-    "ios/IndyCredx.xcodeproj/project.pbxproj",
+    "ios/Anoncreds.xcodeproj/project.pbxproj",
     "cpp/**/*.cpp",
     "cpp/**/*.h",
-    "indy-credx.podspec",
+    "anoncreds.podspec",
     "README.md",
     "LICENSE",
     "package.json"
@@ -39,7 +39,7 @@
     "compile": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "indy-credx-shared": "*"
+    "anoncreds-shared": "*"
   },
   "devDependencies": {
     "@types/react": "16.9.19",

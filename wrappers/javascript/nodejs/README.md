@@ -1,6 +1,6 @@
-# indy-credx-nodejs
+# anoncreds-nodejs
 
-Wrapper for Nodejs around Indy Credx
+Wrapper for Nodejs around Anoncreds
 
 ## Requirements
 
@@ -10,17 +10,17 @@ Older and newer versions might also work, but they have not been tested.
 ## Installation
 
 ```sh
-yarn add indy-credx-nodejs indy-credx-shared
+yarn add anoncreds-nodejs anoncreds-shared
 ```
 
 ## Setup
 
-In order to work with this module a function from `indy-credx-shared` has to be
-called to register the native module (indy-credx-nodejs)
+In order to work with this module a function from `anoncreds-shared` has to be
+called to register the native module (anoncreds-nodejs)
 
 ```typescript
-import { registerIndyCredx } from 'indy-credx-shared'
-import { indyCredxNodeJS } from 'indy-credx-nodejs'
+import { registerAnoncreds } from 'anoncreds-shared'
+import { AnoncredsNodeJS } from 'anoncreds-nodejs'
 
-registerIndyCredx({ credx: indyCredxNodeJS })
+registerAnoncreds({ anoncreds: AnoncredsNodeJS })
 ```

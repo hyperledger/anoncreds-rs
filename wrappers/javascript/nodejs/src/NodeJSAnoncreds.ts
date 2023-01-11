@@ -2,12 +2,12 @@
 import type {
   NativeCredentialEntry,
   NativeCredentialProve,
-  IndyCredx,
+  Anoncreds,
   NativeRevocationEntry,
   NativeCredentialRevocationConfig,
-} from 'indy-credx-shared'
+} from 'anoncreds-shared'
 
-import { ObjectHandle } from 'indy-credx-shared'
+import { ObjectHandle } from 'anoncreds-shared'
 import { TextDecoder, TextEncoder } from 'util'
 
 import { ByteBuffer } from '../../shared/src/types'
@@ -31,12 +31,12 @@ import {
   CredRevInfoStruct,
   allocateByteBuffer,
 } from './ffi'
-import { nativeIndyCredx } from './library'
+import { nativeAnoncreds } from './library'
 
-export class NodeJSIndyCredx implements IndyCredx {
+export class NodeJSAnoncreds implements Anoncreds {
   public generateNonce(): string {
     const ret = allocateStringBuffer()
-    nativeIndyCredx.credx_generate_nonce(ret)
+    nativeAnoncreds.anoncreds_generate_nonce(ret)
     handleError()
 
     return ret.deref() as string
@@ -54,7 +54,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const ret = allocatePointer()
 
     // @ts-ignore
-    nativeIndyCredx.credx_create_schema(originDid, name, version, attributeNames, sequenceNumber, ret)
+    nativeAnoncreds.anoncreds_create_schema(originDid, name, version, attributeNames, sequenceNumber, ret)
     handleError()
 
     return new ObjectHandle(ret.deref() as number)
@@ -64,7 +64,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const { objectHandle, name } = serializeArguments(options)
 
     const ret = allocateStringBuffer()
-    nativeIndyCredx.credx_schema_get_attribute(objectHandle, name, ret)
+    nativeAnoncreds.anoncreds_schema_get_attribute(objectHandle, name, ret)
     handleError()
 
     return ret.deref() as string
@@ -74,7 +74,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const { objectHandle, name } = serializeArguments(options)
 
     const ret = allocateStringBuffer()
-    nativeIndyCredx.credx_revocation_registry_definition_get_attribute(objectHandle, name, ret)
+    nativeAnoncreds.anoncreds_revocation_registry_definition_get_attribute(objectHandle, name, ret)
     handleError()
 
     return ret.deref() as string
@@ -84,7 +84,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const { objectHandle, name } = serializeArguments(options)
 
     const ret = allocateStringBuffer()
-    nativeIndyCredx.credx_credential_get_attribute(objectHandle, name, ret)
+    nativeAnoncreds.anoncreds_credential_get_attribute(objectHandle, name, ret)
     handleError()
 
     return ret.deref() as string
@@ -103,7 +103,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const credentialDefinitionPrivatePtr = allocatePointer()
     const keyProofPtr = allocatePointer()
 
-    nativeIndyCredx.credx_create_credential_definition(
+    nativeAnoncreds.anoncreds_create_credential_definition(
       originDid,
       schema,
       tag,
@@ -126,7 +126,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const { objectHandle, name } = serializeArguments(options)
 
     const ret = allocateStringBuffer()
-    nativeIndyCredx.credx_credential_definition_get_attribute(objectHandle, name, ret)
+    nativeAnoncreds.anoncreds_credential_definition_get_attribute(objectHandle, name, ret)
     handleError()
 
     return ret.deref() as string
@@ -194,7 +194,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const revocationRegistryPtr = allocatePointer()
     const revocationDeltaPtr = allocatePointer()
 
-    nativeIndyCredx.credx_create_credential(
+    nativeAnoncreds.anoncreds_create_credential(
       credentialDefinition,
       credentialDefinitionPrivate,
       credentialOffer,
@@ -223,7 +223,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const ret = allocateStringBuffer()
 
     // @ts-ignore
-    nativeIndyCredx.credx_encode_credential_attributes(attributeRawValues, ret)
+    nativeAnoncreds.anoncreds_encode_credential_attributes(attributeRawValues, ret)
     handleError()
 
     const result = ret.deref() as string
@@ -243,7 +243,7 @@ export class NodeJSIndyCredx implements IndyCredx {
 
     const ret = allocatePointer()
 
-    nativeIndyCredx.credx_process_credential(
+    nativeAnoncreds.anoncreds_process_credential(
       credential,
       credentialRequestMetadata,
       masterSecret,
@@ -268,7 +268,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const revocationRegistryPtr = allocatePointer()
     const revocationRegistryDeltaPtr = allocatePointer()
 
-    nativeIndyCredx.credx_revoke_credential(
+    nativeAnoncreds.anoncreds_revoke_credential(
       revocationRegistryDefinition,
       revocationRegistry,
       credentialRevocationIndex,
@@ -292,7 +292,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const { schemaId, credentialDefinition, keyProof } = serializeArguments(options)
 
     const ret = allocatePointer()
-    nativeIndyCredx.credx_create_credential_offer(schemaId, credentialDefinition, keyProof, ret)
+    nativeAnoncreds.anoncreds_create_credential_offer(schemaId, credentialDefinition, keyProof, ret)
     handleError()
 
     return new ObjectHandle(ret.deref() as number)
@@ -311,7 +311,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const credentialRequestPtr = allocatePointer()
     const credentialRequestMetaPtr = allocatePointer()
 
-    nativeIndyCredx.credx_create_credential_request(
+    nativeAnoncreds.anoncreds_create_credential_request(
       proverDid,
       credentialDefinition,
       masterSecret,
@@ -331,7 +331,7 @@ export class NodeJSIndyCredx implements IndyCredx {
   public createMasterSecret(): ObjectHandle {
     const ret = allocatePointer()
 
-    nativeIndyCredx.credx_create_master_secret(ret)
+    nativeAnoncreds.anoncreds_create_master_secret(ret)
     handleError()
 
     return new ObjectHandle(ret.deref() as number)
@@ -386,7 +386,7 @@ export class NodeJSIndyCredx implements IndyCredx {
 
     const ret = allocatePointer()
 
-    nativeIndyCredx.credx_create_presentation(
+    nativeAnoncreds.anoncreds_create_presentation(
       presentationRequest,
       // @ts-ignore
       credentialEntryList,
@@ -430,7 +430,7 @@ export class NodeJSIndyCredx implements IndyCredx {
 
     const ret = allocateInt8Buffer()
 
-    nativeIndyCredx.credx_verify_presentation(
+    nativeAnoncreds.anoncreds_verify_presentation(
       presentation,
       presentationRequest,
       // @ts-ignore
@@ -474,7 +474,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const registryEntryPtr = allocatePointer()
     const registryInitDeltaPtr = allocatePointer()
 
-    nativeIndyCredx.credx_create_revocation_registry(
+    nativeAnoncreds.anoncreds_create_revocation_registry(
       originDid,
       credentialDefinition,
       tag,
@@ -510,7 +510,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const revocationRegistryPtr = allocatePointer()
     const revocationRegistryDelta = allocatePointer()
 
-    nativeIndyCredx.credx_update_revocation_registry(
+    nativeAnoncreds.anoncreds_update_revocation_registry(
       revocationRegistryDefinition,
       revocationRegistry,
       // @ts-ignore
@@ -535,7 +535,7 @@ export class NodeJSIndyCredx implements IndyCredx {
 
     const ret = allocatePointer()
 
-    nativeIndyCredx.credx_merge_revocation_registry_deltas(revocationRegistryDelta1, revocationRegistryDelta2, ret)
+    nativeAnoncreds.anoncreds_merge_revocation_registry_deltas(revocationRegistryDelta1, revocationRegistryDelta2, ret)
     handleError()
 
     return new ObjectHandle(ret.deref() as number)
@@ -555,7 +555,7 @@ export class NodeJSIndyCredx implements IndyCredx {
     const previousRevocationState = options.previousRevocationState ?? new ObjectHandle(0)
     const ret = allocatePointer()
 
-    nativeIndyCredx.credx_create_or_update_revocation_state(
+    nativeAnoncreds.anoncreds_create_or_update_revocation_state(
       revocationRegistryDefinition,
       revocationRegistryDelta,
       revocationRegistryIndex,
@@ -570,13 +570,13 @@ export class NodeJSIndyCredx implements IndyCredx {
     return new ObjectHandle(ret.deref() as number)
   }
   public version(): string {
-    return nativeIndyCredx.credx_version()
+    return nativeAnoncreds.anoncreds_version()
   }
 
   // This should be called when a function returns a non-zero code
   public getCurrentError(): string {
     const ret = allocateStringBuffer()
-    nativeIndyCredx.credx_get_current_error(ret)
+    nativeAnoncreds.anoncreds_get_current_error(ret)
     handleError()
 
     return ret.deref() as string
@@ -595,74 +595,74 @@ export class NodeJSIndyCredx implements IndyCredx {
   }
 
   public presentationRequestFromJson(options: { json: string }) {
-    return this.objectFromJson(nativeIndyCredx.credx_presentation_request_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_presentation_request_from_json, options)
   }
 
   public masterSecretFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_master_secret_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_master_secret_from_json, options)
   }
 
   public credentialRequestFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_credential_request_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_credential_request_from_json, options)
   }
 
   public credentialRequestMetadataFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_credential_request_metadata_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_credential_request_metadata_from_json, options)
   }
 
   public revocationRegistryDefinitionFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_revocation_registry_definition_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_revocation_registry_definition_from_json, options)
   }
 
   public revocationRegistryFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_revocation_registry_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_revocation_registry_from_json, options)
   }
 
   public revocationStateFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_revocation_state_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_revocation_state_from_json, options)
   }
 
   public presentationFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_presentation_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_presentation_from_json, options)
   }
 
   public credentialOfferFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_credential_offer_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_credential_offer_from_json, options)
   }
 
   public schemaFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_schema_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_schema_from_json, options)
   }
 
   public credentialFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_credential_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_credential_from_json, options)
   }
 
   public revocationRegistryDefinitionPrivateFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_revocation_registry_definition_private_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_revocation_registry_definition_private_from_json, options)
   }
 
   public revocationRegistryDeltaFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_revocation_registry_delta_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_revocation_registry_delta_from_json, options)
   }
 
   public credentialDefinitionFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_credential_definition_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_credential_definition_from_json, options)
   }
 
   public credentialDefinitionPrivateFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_credential_definition_private_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_credential_definition_private_from_json, options)
   }
 
   public keyCorrectnessProofFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(nativeIndyCredx.credx_key_correctness_proof_from_json, options)
+    return this.objectFromJson(nativeAnoncreds.anoncreds_key_correctness_proof_from_json, options)
   }
 
   public getJson(options: { objectHandle: ObjectHandle }) {
     const ret = allocateByteBuffer()
 
     const { objectHandle } = serializeArguments(options)
-    nativeIndyCredx.credx_object_get_json(objectHandle, ret)
+    nativeAnoncreds.anoncreds_object_get_json(objectHandle, ret)
     handleError()
 
     const output = new Uint8Array(byteBufferToBuffer(ret.deref() as { data: Buffer; len: number }))
@@ -675,14 +675,14 @@ export class NodeJSIndyCredx implements IndyCredx {
 
     const ret = allocateStringBuffer()
 
-    nativeIndyCredx.credx_object_get_type_name(objectHandle, ret)
+    nativeAnoncreds.anoncreds_object_get_type_name(objectHandle, ret)
     handleError()
 
     return ret.deref() as string
   }
 
   public objectFree(options: { objectHandle: ObjectHandle }) {
-    nativeIndyCredx.credx_object_free(options.objectHandle.handle)
+    nativeAnoncreds.anoncreds_object_free(options.objectHandle.handle)
     handleError()
   }
 }

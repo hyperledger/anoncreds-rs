@@ -1,27 +1,27 @@
 import type {
-  IndyCredx,
+  Anoncreds,
   NativeCredentialEntry,
   NativeCredentialProve,
   NativeCredentialRevocationConfig,
   NativeRevocationEntry,
-} from 'indy-credx-shared'
+} from 'anoncreds-shared'
 
-import { ObjectHandle } from 'indy-credx-shared'
+import { ObjectHandle } from 'anoncreds-shared'
 
-import { indyCredxReactNative } from './library'
+import { anoncredsReactNative } from './library'
 import { serializeArguments } from './utils'
 
-export class ReactNativeIndyCredx implements IndyCredx {
+export class ReactNativeAnoncreds implements Anoncreds {
   public version(): string {
-    return indyCredxReactNative.version({})
+    return anoncredsReactNative.version({})
   }
 
   public getCurrentError(): string {
-    return indyCredxReactNative.getCurrentError({})
+    return anoncredsReactNative.getCurrentError({})
   }
 
   public generateNonce(): string {
-    return indyCredxReactNative.generateNonce({})
+    return anoncredsReactNative.generateNonce({})
   }
 
   public createSchema(options: {
@@ -31,7 +31,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
     attributeNames: string[]
     sequenceNumber?: number
   }): ObjectHandle {
-    const handle = indyCredxReactNative.createSchema(serializeArguments(options))
+    const handle = anoncredsReactNative.createSchema(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
@@ -43,7 +43,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
     supportRevocation: boolean
   }): { credentialDefinition: ObjectHandle; credentialDefinitionPrivate: ObjectHandle; keyProof: ObjectHandle } {
     const { keyProof, credentialDefinition, credentialDefinitionPrivate } =
-      indyCredxReactNative.createCredentialDefinition(serializeArguments(options))
+      anoncredsReactNative.createCredentialDefinition(serializeArguments(options))
 
     return {
       credentialDefinitionPrivate: new ObjectHandle(credentialDefinitionPrivate),
@@ -61,7 +61,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
     attributeEncodedValues?: Record<string, string>
     revocationConfiguration?: NativeCredentialRevocationConfig
   }): { credential: ObjectHandle; revocationRegistry: ObjectHandle; revocationDelta: ObjectHandle } {
-    const { credential, revocationDelta, revocationRegistry } = indyCredxReactNative.createCredential(
+    const { credential, revocationDelta, revocationRegistry } = anoncredsReactNative.createCredential(
       serializeArguments(options)
     )
 
@@ -73,7 +73,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
   }
 
   public encodeCredentialAttributes(options: { attributeRawValues: Array<string> }): Array<string> {
-    const s = indyCredxReactNative.encodeCredentialAttributes(serializeArguments(options))
+    const s = anoncredsReactNative.encodeCredentialAttributes(serializeArguments(options))
     return s.split(',')
   }
 
@@ -84,7 +84,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
     credentialDefinition: ObjectHandle
     revocationRegistryDefinition?: ObjectHandle
   }): ObjectHandle {
-    const handle = indyCredxReactNative.processCredential(serializeArguments(options))
+    const handle = anoncredsReactNative.processCredential(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
@@ -94,7 +94,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
     credentialRevocationIndex: number
     tailsPath: string
   }): { revocationRegistry: ObjectHandle; revocationRegistryDelta: ObjectHandle } {
-    const { revocationRegistry, revocationRegistryDelta } = indyCredxReactNative.revokeCredential(
+    const { revocationRegistry, revocationRegistryDelta } = anoncredsReactNative.revokeCredential(
       serializeArguments(options)
     )
 
@@ -109,7 +109,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
     credentialDefinition: ObjectHandle
     keyProof: ObjectHandle
   }): ObjectHandle {
-    const handle = indyCredxReactNative.createCredentialOffer(serializeArguments(options))
+    const handle = anoncredsReactNative.createCredentialOffer(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
@@ -120,7 +120,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
     masterSecretId: string
     credentialOffer: ObjectHandle
   }): { credentialRequest: ObjectHandle; credentialRequestMeta: ObjectHandle } {
-    const { credentialRequest, credentialRequestMeta } = indyCredxReactNative.createCredentialRequest(
+    const { credentialRequest, credentialRequestMeta } = anoncredsReactNative.createCredentialRequest(
       serializeArguments(options)
     )
 
@@ -131,7 +131,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
   }
 
   public createMasterSecret(): ObjectHandle {
-    const handle = indyCredxReactNative.createMasterSecret({})
+    const handle = anoncredsReactNative.createMasterSecret({})
     return new ObjectHandle(handle)
   }
 
@@ -144,7 +144,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
     schemas: ObjectHandle[]
     credentialDefinitions: ObjectHandle[]
   }): ObjectHandle {
-    const handle = indyCredxReactNative.createPresentation(serializeArguments(options))
+    const handle = anoncredsReactNative.createPresentation(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
@@ -156,7 +156,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
     revocationRegistryDefinitions: ObjectHandle[]
     revocationEntries: NativeRevocationEntry[]
   }): boolean {
-    return indyCredxReactNative.verifyPresentation(serializeArguments(options))
+    return anoncredsReactNative.verifyPresentation(serializeArguments(options))
   }
 
   public createRevocationRegistry(options: {
@@ -174,7 +174,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
     registryInitDelta: ObjectHandle
   } {
     const { registryEntry, registryInitDelta, registryDefinition, registryDefinitionPrivate } =
-      indyCredxReactNative.createRevocationRegistry(serializeArguments(options))
+      anoncredsReactNative.createRevocationRegistry(serializeArguments(options))
 
     return {
       registryDefinitionPrivate: new ObjectHandle(registryDefinitionPrivate),
@@ -191,7 +191,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
     revoked: number[]
     tailsDirectoryPath: string
   }): { revocationRegistry: ObjectHandle; revocationRegistryDelta: ObjectHandle } {
-    const { revocationRegistry, revocationRegistryDelta } = indyCredxReactNative.updateRevocationRegistry(
+    const { revocationRegistry, revocationRegistryDelta } = anoncredsReactNative.updateRevocationRegistry(
       serializeArguments(options)
     )
 
@@ -205,7 +205,7 @@ export class ReactNativeIndyCredx implements IndyCredx {
     revocationRegistryDelta1: ObjectHandle
     revocationRegistryDelta2: ObjectHandle
   }): ObjectHandle {
-    const handle = indyCredxReactNative.mergeRevocationRegistryDeltas(serializeArguments(options))
+    const handle = anoncredsReactNative.mergeRevocationRegistryDeltas(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
@@ -217,114 +217,114 @@ export class ReactNativeIndyCredx implements IndyCredx {
     tailsPath: string
     previousRevocationState?: ObjectHandle
   }): ObjectHandle {
-    const handle = indyCredxReactNative.createOrUpdateRevocationState(serializeArguments(options))
+    const handle = anoncredsReactNative.createOrUpdateRevocationState(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public presentationRequestFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.presentationRequestFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.presentationRequestFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public schemaGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string {
-    return indyCredxReactNative.schemaGetAttribute(serializeArguments(options))
+    return anoncredsReactNative.schemaGetAttribute(serializeArguments(options))
   }
 
   public revocationRegistryDefinitionGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string {
-    return indyCredxReactNative.revocationRegistryDefinitionGetAttribute(serializeArguments(options))
+    return anoncredsReactNative.revocationRegistryDefinitionGetAttribute(serializeArguments(options))
   }
 
   public credentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string {
-    return indyCredxReactNative.credentialGetAttribute(serializeArguments(options))
+    return anoncredsReactNative.credentialGetAttribute(serializeArguments(options))
   }
 
   public getJson(options: { objectHandle: ObjectHandle }): string {
-    return indyCredxReactNative.getJson(serializeArguments(options))
+    return anoncredsReactNative.getJson(serializeArguments(options))
   }
 
   public getTypeName(options: { objectHandle: ObjectHandle }): string {
-    return indyCredxReactNative.getTypeName(serializeArguments(options))
+    return anoncredsReactNative.getTypeName(serializeArguments(options))
   }
 
   public objectFree(options: { objectHandle: ObjectHandle }): void {
-    return indyCredxReactNative.objectFree(serializeArguments(options))
+    return anoncredsReactNative.objectFree(serializeArguments(options))
   }
 
   public credentialDefinitionGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string {
-    return indyCredxReactNative.credentialDefinitionGetAttribute(serializeArguments(options))
+    return anoncredsReactNative.credentialDefinitionGetAttribute(serializeArguments(options))
   }
 
   public revocationRegistryDefinitionFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.revocationRegistryFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.revocationRegistryFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public revocationRegistryFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.revocationRegistryFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.revocationRegistryFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public presentationFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.presentationFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.presentationFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public credentialOfferFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.credentialFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.credentialFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public schemaFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.schemaFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.schemaFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public masterSecretFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.masterSecretFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.masterSecretFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public credentialRequestFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.credentialRequestFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.credentialRequestFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public credentialRequestMetadataFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.credentialRequestMetadataFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.credentialRequestMetadataFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public credentialFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.credentialFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.credentialFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public revocationRegistryDefinitionPrivateFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.revocationRegistryDefinitionPrivateFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.revocationRegistryDefinitionPrivateFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public revocationRegistryDeltaFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.revocationRegistryDeltaFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.revocationRegistryDeltaFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public revocationStateFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.revocationStateFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.revocationStateFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
   public credentialDefinitionFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.credentialDefinitionFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.credentialDefinitionFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public credentialDefinitionPrivateFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.credentialDefinitionPrivateFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.credentialDefinitionPrivateFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public keyCorrectnessProofFromJson(options: { json: string }): ObjectHandle {
-    const handle = indyCredxReactNative.keyCorrectnessProofFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.keyCorrectnessProofFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 }

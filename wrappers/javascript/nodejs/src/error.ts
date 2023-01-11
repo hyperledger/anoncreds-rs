@@ -1,16 +1,16 @@
-import type { IndyCredxErrorObject } from 'indy-credx-shared'
+import type { AnoncredsErrorObject } from 'anoncreds-shared'
 
-import { IndyCredxError } from 'indy-credx-shared'
+import { AnoncredsError } from 'anoncreds-shared'
 
 import { allocateStringBuffer } from './ffi'
-import { nativeIndyCredx } from './library'
+import { nativeAnoncreds } from './library'
 
 export const handleError = () => {
   const nativeError = allocateStringBuffer()
-  nativeIndyCredx.credx_get_current_error(nativeError)
-  const indyCredxErrorObject = JSON.parse(nativeError.deref() as string) as IndyCredxErrorObject
+  nativeAnoncreds.anoncreds_get_current_error(nativeError)
+  const anoncredsErrorObject = JSON.parse(nativeError.deref() as string) as AnoncredsErrorObject
 
-  if (indyCredxErrorObject.code === 0) return
+  if (anoncredsErrorObject.code === 0) return
 
-  throw new IndyCredxError(indyCredxErrorObject)
+  throw new AnoncredsError(anoncredsErrorObject)
 }

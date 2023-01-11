@@ -1,10 +1,18 @@
 {
-  "name": "indy-credx-js",
+  "name": "anoncreds-js",
   "private": true,
   "license": "Apache-2.0",
   "workspaces": {
-    "packages": ["shared", "nodejs", "react-native", "ReactNativeExample"],
-    "nohoist": ["**/react-native/**", "react-native/**", "**/react-native"]
+    "packages": [
+      "shared",
+      "nodejs",
+      "react-native"
+    ],
+    "nohoist": [
+      "**/react-native/**",
+      "react-native/**",
+      "**/react-native"
+    ]
   },
   "scripts": {
     "lint": "eslint .",
@@ -22,7 +30,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/hyperledger/indy-shared-rs",
+    "url": "https://github.com/hyperledger/anoncreds-rs",
     "directory": "wrappers/javascript"
   },
   "devDependencies": {

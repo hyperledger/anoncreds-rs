@@ -1,6 +1,6 @@
 #import "turboModuleUtility.h"
 
-#import "IndyCredx.h"
+#import "Anoncreds.h"
 #import <React/RCTBridge+Private.h>
 #import <jsi/jsi.h>
 #import <React/RCTUtils.h>
@@ -8,7 +8,7 @@
 
 using namespace facebook;
 
-@implementation IndyCredx
+@implementation Anoncreds
 
 RCT_EXPORT_MODULE()
 

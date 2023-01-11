@@ -1,9 +1,9 @@
-import { registerIndyCredx } from 'indy-credx-shared'
+import { registerAnoncreds } from 'anoncreds-shared'
 
-import { NodeJSIndyCredx } from '../../src/NodeJSIndyCredx'
-import { nativeIndyCredx } from '../../src/library'
+import { NodeJSAnoncreds } from '../../src/NodeJSAnoncreds'
+import { nativeAnoncreds } from '../../src/library'
 
 export const setup = () => {
-  registerIndyCredx({ credx: new NodeJSIndyCredx() })
-  nativeIndyCredx.credx_set_default_logger()
+  registerAnoncreds({ lib: new NodeJSAnoncreds() })
+  nativeAnoncreds.anoncreds_set_default_logger()
 }

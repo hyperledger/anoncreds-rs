@@ -4,7 +4,7 @@
 #include <jsi/jsi.h>
 
 #include <HostObject.h>
-#include <include/libindy_credx.h>
+#include <include/libanoncreds.h>
 
 using namespace facebook;
 
