@@ -2,10 +2,6 @@ import { anoncreds } from 'anoncreds-shared'
 
 import { setup } from './utils'
 
-// FIXTURES
-const TEST_DID = '55GkHamhTU1ZbTbV2ab9DE'
-const TEST_SCHEMA = '55GkHamhTU1ZbTbV2ab9DE:2:schema-1:1'
-
 describe('bindings', () => {
   beforeAll(() => setup())
 
@@ -27,28 +23,20 @@ describe('bindings', () => {
   })
 
   test('create schema', () => {
-    const schemaObj = anoncreds.createSchema({
+    const obj = {
       name: 'schema-1',
-      originDid: TEST_DID,
+      issuerId: 'mock:uri',
       version: '1',
-      sequenceNumber: 1,
       attributeNames: ['attr-1'],
-    })
-
-    const schemaId = anoncreds.schemaGetAttribute({
-      objectHandle: schemaObj,
-      name: 'id',
-    })
-
-    expect(schemaId).toEqual(TEST_SCHEMA)
+    }
+    const schemaObj = anoncreds.createSchema(obj)
 
     const json = anoncreds.getJson({ objectHandle: schemaObj })
+
     expect(JSON.parse(json)).toEqual({
-      id: TEST_SCHEMA,
       name: 'schema-1',
-      ver: '1.0',
-      seqNo: 1,
       version: '1',
+      issuerId: 'mock:uri',
       attrNames: ['attr-1'],
     })
   })
@@ -56,14 +44,14 @@ describe('bindings', () => {
   test('create credential definition', () => {
     const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
-      originDid: TEST_DID,
+      issuerId: 'mock:uri',
       version: '1',
-      sequenceNumber: 1,
       attributeNames: ['attr-1'],
     })
 
     const { keyProof, credentialDefinition, credentialDefinitionPrivate } = anoncreds.createCredentialDefinition({
-      originDid: TEST_DID,
+      schemaId: 'mock:uri',
+      issuerId: 'mock:uri',
       schema: schemaObj,
       signatureType: 'CL',
       supportRevocation: true,
@@ -73,11 +61,10 @@ describe('bindings', () => {
     const credDefJson = anoncreds.getJson({ objectHandle: credentialDefinition })
     expect(JSON.parse(credDefJson)).toEqual(
       expect.objectContaining({
-        id: '55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG',
         tag: 'TAG',
         type: 'CL',
-        schemaId: '1',
-        ver: '1.0',
+        schemaId: 'mock:uri',
+        issuerId: 'mock:uri',
       })
     )
 
@@ -98,54 +85,56 @@ describe('bindings', () => {
         '27404702143883897701950953229849815393032792099783647152371385368148256400014',
       ])
     )
-  }),
-    test('create revocation registry', () => {
-      const schemaObj = anoncreds.createSchema({
-        name: 'schema-1',
-        originDid: TEST_DID,
-        version: '1',
-        sequenceNumber: 1,
-        attributeNames: ['attr-1'],
-      })
+  })
 
-      const { credentialDefinition } = anoncreds.createCredentialDefinition({
-        originDid: TEST_DID,
-        schema: schemaObj,
-        signatureType: 'CL',
-        supportRevocation: true,
-        tag: 'TAG',
-      })
-      const { registryDefinition } = anoncreds.createRevocationRegistry({
-        originDid: TEST_DID,
-        credentialDefinition,
-        tag: 'default',
-        revocationRegistryType: 'CL_ACCUM',
-        maximumCredentialNumber: 100,
-      })
-
-      const maximumCredentialNumber = anoncreds.revocationRegistryDefinitionGetAttribute({
-        objectHandle: registryDefinition,
-        name: 'max_cred_num',
-      })
-
-      expect(maximumCredentialNumber).toEqual('100')
-      const json = anoncreds.getJson({ objectHandle: registryDefinition })
-      expect(JSON.parse(json)).toEqual(
-        expect.objectContaining({
-          credDefId: '55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG',
-          id: '55GkHamhTU1ZbTbV2ab9DE:4:55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG:CL_ACCUM:default',
-          revocDefType: 'CL_ACCUM',
-          tag: 'default',
-        })
-      )
-
-      expect(JSON.parse(json).value).toEqual(
-        expect.objectContaining({
-          issuanceType: 'ISSUANCE_BY_DEFAULT',
-          maxCredNum: 100,
-        })
-      )
+  test('create revocation registry', () => {
+    const schemaObj = anoncreds.createSchema({
+      name: 'schema-1',
+      issuerId: 'mock:uri',
+      version: '1',
+      sequenceNumber: 1,
+      attributeNames: ['attr-1'],
     })
+
+    const { credentialDefinition } = anoncreds.createCredentialDefinition({
+      schemaId: 'mock:uri',
+      issuerId: 'mock:uri',
+      schema: schemaObj,
+      signatureType: 'CL',
+      supportRevocation: true,
+      tag: 'TAG',
+    })
+
+    const { registryDefinition } = anoncreds.createRevocationRegistry({
+      credentialDefinitionId: 'mock:uri',
+      credentialDefinition,
+      tag: 'default',
+      revocationRegistryType: 'CL_ACCUM',
+      maximumCredentialNumber: 100,
+    })
+
+    const maximumCredentialNumber = anoncreds.revocationRegistryDefinitionGetAttribute({
+      objectHandle: registryDefinition,
+      name: 'max_cred_num',
+    })
+
+    expect(maximumCredentialNumber).toEqual('100')
+    const json = anoncreds.getJson({ objectHandle: registryDefinition })
+    expect(JSON.parse(json)).toEqual(
+      expect.objectContaining({
+        credDefId: 'mock:uri',
+        revocDefType: 'CL_ACCUM',
+        tag: 'default',
+      })
+    )
+
+    expect(JSON.parse(json).value).toEqual(
+      expect.objectContaining({
+        issuanceType: 'ISSUANCE_BY_DEFAULT',
+        maxCredNum: 100,
+      })
+    )
+  })
 
   test('create master secret', () => {
     const masterSecret = anoncreds.createMasterSecret()
@@ -157,31 +146,32 @@ describe('bindings', () => {
   test('create credential offer', () => {
     const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
-      originDid: TEST_DID,
+      issuerId: 'mock:uri',
       version: '1',
       sequenceNumber: 1,
       attributeNames: ['attr-1'],
     })
 
-    const { credentialDefinition, keyProof } = anoncreds.createCredentialDefinition({
-      originDid: TEST_DID,
+    const { keyProof } = anoncreds.createCredentialDefinition({
+      schemaId: 'mock:uri',
       schema: schemaObj,
+      issuerId: 'mock:uri',
       signatureType: 'CL',
       supportRevocation: true,
       tag: 'TAG',
     })
 
     const credOfferObj = anoncreds.createCredentialOffer({
-      schemaId: TEST_SCHEMA,
-      credentialDefinition: credentialDefinition,
+      schemaId: 'mock:uri',
+      credentialDefinitionId: 'mock:uri',
       keyProof,
     })
 
     const json = anoncreds.getJson({ objectHandle: credOfferObj })
     expect(JSON.parse(json)).toEqual(
       expect.objectContaining({
-        cred_def_id: '55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG',
-        schema_id: TEST_SCHEMA,
+        cred_def_id: 'mock:uri',
+        schema_id: 'mock:uri',
       })
     )
     expect(JSON.parse(json)).toHaveProperty('nonce')
@@ -191,14 +181,15 @@ describe('bindings', () => {
   test('create credential request', () => {
     const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
-      originDid: TEST_DID,
+      issuerId: 'mock:uri',
       version: '1',
       sequenceNumber: 1,
       attributeNames: ['attr-1'],
     })
 
     const { credentialDefinition, keyProof } = anoncreds.createCredentialDefinition({
-      originDid: TEST_DID,
+      schemaId: 'mock:uri',
+      issuerId: 'mock:uri',
       schema: schemaObj,
       signatureType: 'CL',
       supportRevocation: true,
@@ -206,8 +197,8 @@ describe('bindings', () => {
     })
 
     const credOfferObj = anoncreds.createCredentialOffer({
-      schemaId: TEST_SCHEMA,
-      credentialDefinition: credentialDefinition,
+      schemaId: 'mock:uri',
+      credentialDefinitionId: 'mock:uri',
       keyProof,
     })
 
@@ -215,7 +206,7 @@ describe('bindings', () => {
     const masterSecretId = 'master secret id'
 
     const { credentialRequest, credentialRequestMeta } = anoncreds.createCredentialRequest({
-      proverDid: TEST_DID,
+      proverDid: '55GkHamhTU1ZbTbV2ab9DE',
       credentialDefinition: credentialDefinition,
       masterSecret,
       masterSecretId,
@@ -225,7 +216,7 @@ describe('bindings', () => {
     const credReqJson = anoncreds.getJson({ objectHandle: credentialRequest })
     expect(JSON.parse(credReqJson)).toEqual(
       expect.objectContaining({
-        prover_did: TEST_DID,
+        prover_did: expect.any(String),
       })
     )
     expect(JSON.parse(credReqJson)).toHaveProperty('blinded_ms')
@@ -244,14 +235,15 @@ describe('bindings', () => {
   test('create and receive credential', () => {
     const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
-      originDid: TEST_DID,
+      issuerId: 'mock:uri',
       version: '1',
       sequenceNumber: 1,
       attributeNames: ['attr-1'],
     })
 
     const { credentialDefinition, keyProof, credentialDefinitionPrivate } = anoncreds.createCredentialDefinition({
-      originDid: TEST_DID,
+      schemaId: 'mock:uri',
+      issuerId: 'mock:uri',
       schema: schemaObj,
       signatureType: 'CL',
       supportRevocation: true,
@@ -259,8 +251,8 @@ describe('bindings', () => {
     })
 
     const credOfferObj = anoncreds.createCredentialOffer({
-      schemaId: TEST_SCHEMA,
-      credentialDefinition: credentialDefinition,
+      schemaId: 'mock:uri',
+      credentialDefinitionId: 'mock:uri',
       keyProof,
     })
 
@@ -268,7 +260,7 @@ describe('bindings', () => {
     const masterSecretId = 'master secret id'
 
     const { credentialRequestMeta, credentialRequest } = anoncreds.createCredentialRequest({
-      proverDid: TEST_DID,
+      proverDid: '55GkHamhTU1ZbTbV2ab9DE',
       credentialDefinition,
       masterSecret,
       masterSecretId,
@@ -276,7 +268,7 @@ describe('bindings', () => {
     })
 
     const { registryDefinition, registryEntry, registryDefinitionPrivate } = anoncreds.createRevocationRegistry({
-      originDid: TEST_DID,
+      credentialDefinitionId: 'mock:uri',
       credentialDefinition,
       tag: 'default',
       revocationRegistryType: 'CL_ACCUM',
@@ -289,12 +281,13 @@ describe('bindings', () => {
     })
 
     const { credential } = anoncreds.createCredential({
-      credentialDefinition: credentialDefinition,
-      credentialDefinitionPrivate: credentialDefinitionPrivate,
+      credentialDefinition,
+      credentialDefinitionPrivate,
       credentialOffer: credOfferObj,
       credentialRequest: credentialRequest,
       attributeRawValues: { 'attr-1': 'test' },
       attributeEncodedValues: undefined,
+      revocationRegistryId: 'mock:uri',
       revocationConfiguration: {
         registryDefinition,
         registryDefinitionPrivate,
@@ -315,18 +308,18 @@ describe('bindings', () => {
     const credJson = anoncreds.getJson({ objectHandle: credential })
     expect(JSON.parse(credJson)).toEqual(
       expect.objectContaining({
-        cred_def_id: '55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG',
-        rev_reg_id: '55GkHamhTU1ZbTbV2ab9DE:4:55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG:CL_ACCUM:default',
-        schema_id: TEST_SCHEMA,
+        cred_def_id: 'mock:uri',
+        rev_reg_id: 'mock:uri',
+        schema_id: 'mock:uri',
       })
     )
 
     const credReceivedJson = anoncreds.getJson({ objectHandle: credReceived })
     expect(JSON.parse(credReceivedJson)).toEqual(
       expect.objectContaining({
-        cred_def_id: '55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG',
-        rev_reg_id: '55GkHamhTU1ZbTbV2ab9DE:4:55GkHamhTU1ZbTbV2ab9DE:3:CL:1:TAG:CL_ACCUM:default',
-        schema_id: TEST_SCHEMA,
+        cred_def_id: 'mock:uri',
+        rev_reg_id: 'mock:uri',
+        schema_id: 'mock:uri',
       })
     )
     expect(JSON.parse(credReceivedJson)).toHaveProperty('signature')
@@ -362,14 +355,15 @@ describe('bindings', () => {
 
     const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
-      originDid: TEST_DID,
+      issuerId: 'mock:uri',
       version: '1',
       sequenceNumber: 1,
       attributeNames: ['attr-1'],
     })
 
     const { credentialDefinition, credentialDefinitionPrivate, keyProof } = anoncreds.createCredentialDefinition({
-      originDid: TEST_DID,
+      schemaId: 'mock:uri',
+      issuerId: 'mock:uri',
       schema: schemaObj,
       signatureType: 'CL',
       supportRevocation: true,
@@ -377,8 +371,8 @@ describe('bindings', () => {
     })
 
     const credOfferObj = anoncreds.createCredentialOffer({
-      schemaId: TEST_SCHEMA,
-      credentialDefinition,
+      schemaId: 'mock:uri',
+      credentialDefinitionId: 'mock:uri',
       keyProof,
     })
 
@@ -386,7 +380,7 @@ describe('bindings', () => {
     const masterSecretId = 'master secret id'
 
     const { credentialRequest, credentialRequestMeta } = anoncreds.createCredentialRequest({
-      proverDid: TEST_DID,
+      proverDid: '55GkHamhTU1ZbTbV2ab9DE',
       credentialDefinition,
       masterSecret,
       masterSecretId,
@@ -395,7 +389,7 @@ describe('bindings', () => {
 
     const { registryDefinition, registryEntry, registryDefinitionPrivate, registryInitDelta } =
       anoncreds.createRevocationRegistry({
-        originDid: TEST_DID,
+        credentialDefinitionId: 'mock:uri',
         credentialDefinition,
         tag: 'default',
         revocationRegistryType: 'CL_ACCUM',
@@ -414,6 +408,7 @@ describe('bindings', () => {
       credentialRequest,
       attributeRawValues: { 'attr-1': 'test' },
       attributeEncodedValues: undefined,
+      revocationRegistryId: 'mock:uri',
       revocationConfiguration: {
         registryDefinition,
         registryDefinitionPrivate,
@@ -440,9 +435,8 @@ describe('bindings', () => {
 
     const revocationState = anoncreds.createOrUpdateRevocationState({
       revocationRegistryDefinition: registryDefinition,
-      revocationRegistryDelta: registryInitDelta,
+      revocationRegistryList: registryInitDelta,
       revocationRegistryIndex,
-      timestamp,
       tailsPath,
     })
 

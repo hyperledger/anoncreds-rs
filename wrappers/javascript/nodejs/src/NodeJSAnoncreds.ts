@@ -43,18 +43,17 @@ export class NodeJSAnoncreds implements Anoncreds {
   }
 
   public createSchema(options: {
-    originDid: string
     name: string
     version: string
+    issuerId: string
     attributeNames: string[]
-    sequenceNumber?: number | undefined
   }): ObjectHandle {
-    const { originDid, name, version, attributeNames, sequenceNumber } = serializeArguments(options)
+    const { name, version, issuerId, attributeNames } = serializeArguments(options)
 
     const ret = allocatePointer()
 
     // @ts-ignore
-    nativeAnoncreds.anoncreds_create_schema(originDid, name, version, attributeNames, sequenceNumber, ret)
+    nativeAnoncreds.anoncreds_create_schema(name, version, issuerId, attributeNames, ret)
     handleError()
 
     return new ObjectHandle(ret.deref() as number)
@@ -81,22 +80,24 @@ export class NodeJSAnoncreds implements Anoncreds {
   }
 
   public createCredentialDefinition(options: {
-    originDid: string
+    schemaId: string
     schema: ObjectHandle
+    issuerId: string
     tag: string
     signatureType: string
     supportRevocation: boolean
   }): { credentialDefinition: ObjectHandle; credentialDefinitionPrivate: ObjectHandle; keyProof: ObjectHandle } {
-    const { originDid, schema, tag, signatureType, supportRevocation } = serializeArguments(options)
+    const { schemaId, issuerId, schema, tag, signatureType, supportRevocation } = serializeArguments(options)
 
     const credentialDefinitionPtr = allocatePointer()
     const credentialDefinitionPrivatePtr = allocatePointer()
     const keyProofPtr = allocatePointer()
 
     nativeAnoncreds.anoncreds_create_credential_definition(
-      originDid,
+      schemaId,
       schema,
       tag,
+      issuerId,
       signatureType,
       supportRevocation,
       credentialDefinitionPtr,
@@ -119,10 +120,16 @@ export class NodeJSAnoncreds implements Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     attributeEncodedValues?: Record<string, string> | undefined
+    revocationRegistryId: string
     revocationConfiguration?: NativeCredentialRevocationConfig | undefined
   }): { credential: ObjectHandle; revocationRegistry: ObjectHandle; revocationDelta: ObjectHandle } {
-    const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest } =
-      serializeArguments(options)
+    const {
+      credentialDefinition,
+      credentialDefinitionPrivate,
+      credentialOffer,
+      credentialRequest,
+      revocationRegistryId,
+    } = serializeArguments(options)
 
     const attributeNames = StringListStruct({
       count: Object.keys(options.attributeRawValues).length,
@@ -183,6 +190,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       attributeNames,
       attributeRawValues,
       attributeEncodedValues,
+      revocationRegistryId,
       revocationConfiguration.ref(),
       credentialPtr,
       revocationRegistryPtr,
@@ -266,20 +274,20 @@ export class NodeJSAnoncreds implements Anoncreds {
 
   public createCredentialOffer(options: {
     schemaId: string
-    credentialDefinition: ObjectHandle
+    credentialDefinitionId: string
     keyProof: ObjectHandle
   }): ObjectHandle {
-    const { schemaId, credentialDefinition, keyProof } = serializeArguments(options)
+    const { schemaId, credentialDefinitionId, keyProof } = serializeArguments(options)
 
     const ret = allocatePointer()
-    nativeAnoncreds.anoncreds_create_credential_offer(schemaId, credentialDefinition, keyProof, ret)
+    nativeAnoncreds.anoncreds_create_credential_offer(schemaId, credentialDefinitionId, keyProof, ret)
     handleError()
 
     return new ObjectHandle(ret.deref() as number)
   }
 
   public createCredentialRequest(options: {
-    proverDid: string
+    proverDid?: string
     credentialDefinition: ObjectHandle
     masterSecret: ObjectHandle
     masterSecretId: string
@@ -426,8 +434,8 @@ export class NodeJSAnoncreds implements Anoncreds {
   }
 
   public createRevocationRegistry(options: {
-    originDid: string
     credentialDefinition: ObjectHandle
+    credentialDefinitionId: string
     tag: string
     revocationRegistryType: string
     issuanceType?: string | undefined
@@ -440,8 +448,8 @@ export class NodeJSAnoncreds implements Anoncreds {
     registryInitDelta: ObjectHandle
   } {
     const {
-      originDid,
       credentialDefinition,
+      credentialDefinitionId,
       tag,
       revocationRegistryType,
       issuanceType,
@@ -455,8 +463,8 @@ export class NodeJSAnoncreds implements Anoncreds {
     const registryInitDeltaPtr = allocatePointer()
 
     nativeAnoncreds.anoncreds_create_revocation_registry(
-      originDid,
       credentialDefinition,
+      credentialDefinitionId,
       tag,
       revocationRegistryType,
       issuanceType,
@@ -523,13 +531,12 @@ export class NodeJSAnoncreds implements Anoncreds {
 
   public createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: ObjectHandle
-    revocationRegistryDelta: ObjectHandle
+    revocationRegistryList: ObjectHandle
     revocationRegistryIndex: number
-    timestamp: number
     tailsPath: string
     previousRevocationState?: ObjectHandle | undefined
   }): ObjectHandle {
-    const { revocationRegistryDefinition, revocationRegistryDelta, revocationRegistryIndex, timestamp, tailsPath } =
+    const { revocationRegistryDefinition, revocationRegistryList, revocationRegistryIndex, tailsPath } =
       serializeArguments(options)
 
     const previousRevocationState = options.previousRevocationState ?? new ObjectHandle(0)
@@ -537,9 +544,8 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     nativeAnoncreds.anoncreds_create_or_update_revocation_state(
       revocationRegistryDefinition,
-      revocationRegistryDelta,
+      revocationRegistryList,
       revocationRegistryIndex,
-      timestamp,
       tailsPath,
       // @ts-ignore
       previousRevocationState.handle,

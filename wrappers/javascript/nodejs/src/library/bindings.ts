@@ -34,6 +34,7 @@ export const nativeBindings = {
       StringListStruct,
       StringListStruct,
       StringListStruct,
+      FFI_STRING,
       refType(CredRevInfoStruct),
       FFI_OBJECT_HANDLE_PTR,
       FFI_OBJECT_HANDLE_PTR,
@@ -47,6 +48,7 @@ export const nativeBindings = {
       FFI_OBJECT_HANDLE,
       FFI_STRING,
       FFI_STRING,
+      FFI_STRING,
       FFI_INT8,
       FFI_OBJECT_HANDLE_PTR,
       FFI_OBJECT_HANDLE_PTR,
@@ -55,7 +57,7 @@ export const nativeBindings = {
   ],
   anoncreds_create_credential_offer: [
     FFI_ERRORCODE,
-    [FFI_STRING, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
+    [FFI_STRING, FFI_STRING, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
   ],
   anoncreds_create_credential_request: [
     FFI_ERRORCODE,
@@ -72,7 +74,7 @@ export const nativeBindings = {
   anoncreds_create_master_secret: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE_PTR]],
   anoncreds_create_or_update_revocation_state: [
     FFI_ERRORCODE,
-    [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_INT64, FFI_INT64, FFI_STRING, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
+    [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_INT64, FFI_STRING, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
   ],
   anoncreds_create_presentation: [
     FFI_ERRORCODE,
@@ -91,8 +93,8 @@ export const nativeBindings = {
   anoncreds_create_revocation_registry: [
     FFI_ERRORCODE,
     [
-      FFI_STRING,
       FFI_OBJECT_HANDLE,
+      FFI_STRING,
       FFI_STRING,
       FFI_STRING,
       FFI_STRING,
@@ -106,7 +108,7 @@ export const nativeBindings = {
   ],
   anoncreds_create_schema: [
     FFI_ERRORCODE,
-    [FFI_STRING, FFI_STRING, FFI_STRING, StringListStruct, FFI_INT64, FFI_OBJECT_HANDLE_PTR],
+    [FFI_STRING, FFI_STRING, FFI_STRING, StringListStruct, FFI_OBJECT_HANDLE_PTR],
   ],
   anoncreds_credential_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
   anoncreds_encode_credential_attributes: [FFI_ERRORCODE, [StringListStruct, FFI_STRING_PTR]],

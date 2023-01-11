@@ -39,17 +39,18 @@ export interface Anoncreds {
   generateNonce(): string
 
   createSchema(options: {
-    originDid: string
     name: string
     version: string
+    issuerId: string
     attributeNames: string[]
     sequenceNumber?: number
   }): ObjectHandle
 
   createCredentialDefinition(options: {
-    originDid: string
+    schemaId: string
     schema: ObjectHandle
     tag: string
+    issuerId: string
     signatureType: string
     supportRevocation: boolean
   }): { credentialDefinition: ObjectHandle; credentialDefinitionPrivate: ObjectHandle; keyProof: ObjectHandle }
@@ -61,6 +62,7 @@ export interface Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     attributeEncodedValues?: Record<string, string>
+    revocationRegistryId: string
     revocationConfiguration?: NativeCredentialRevocationConfig
   }): { credential: ObjectHandle; revocationRegistry: ObjectHandle; revocationDelta: ObjectHandle }
 
@@ -83,12 +85,12 @@ export interface Anoncreds {
 
   createCredentialOffer(options: {
     schemaId: string
-    credentialDefinition: ObjectHandle
+    credentialDefinitionId: string
     keyProof: ObjectHandle
   }): ObjectHandle
 
   createCredentialRequest(options: {
-    proverDid: string
+    proverDid?: string
     credentialDefinition: ObjectHandle
     masterSecret: ObjectHandle
     masterSecretId: string
@@ -117,8 +119,8 @@ export interface Anoncreds {
   }): boolean
 
   createRevocationRegistry(options: {
-    originDid: string
     credentialDefinition: ObjectHandle
+    credentialDefinitionId: string
     tag: string
     revocationRegistryType: string
     issuanceType?: string
@@ -146,9 +148,8 @@ export interface Anoncreds {
 
   createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: ObjectHandle
-    revocationRegistryDelta: ObjectHandle
+    revocationRegistryList: ObjectHandle
     revocationRegistryIndex: number
-    timestamp: number
     tailsPath: string
     previousRevocationState?: ObjectHandle
   }): ObjectHandle
