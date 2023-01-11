@@ -44,14 +44,15 @@ where
     );
     let issuer_id = issuer_id.try_into()?;
 
-    attr_names.validate()?;
-
     let schema = Schema {
         name: schema_name.to_string(),
         version: schema_version.to_string(),
         issuer_id,
         attr_names,
     };
+
+    schema.validate()?;
+
     Ok(schema)
 }
 
