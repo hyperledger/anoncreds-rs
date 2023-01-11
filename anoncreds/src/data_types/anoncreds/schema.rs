@@ -52,6 +52,7 @@ impl From<AttributeNames> for HashSet<String> {
 
 impl Validatable for Schema {
     fn validate(&self) -> Result<(), ValidationError> {
+        self.issuer_id.validate()?;
         self.attr_names.validate()?;
         Ok(())
     }
@@ -80,29 +81,52 @@ mod test_schema_validation {
     use super::*;
 
     #[test]
-    fn test_valid_schema() {
+    fn test_schema_valid() {
         let schema_json = json!({
             "name": "gvt",
             "version": "1.0",
             "attrNames": ["aaa", "bbb", "ccc"],
-            "issuerId": "bob"
-        })
-        .to_string();
+            "issuerId": "mock:uri"
+        });
 
-        let schema: Schema = serde_json::from_str(&schema_json).unwrap();
+        let schema: Schema = serde_json::from_value(schema_json).unwrap();
         assert_eq!(schema.name, "gvt");
         assert_eq!(schema.version, "1.0");
     }
 
     #[test]
-    fn test_invalid_schema() {
+    fn test_schema_invalid_missing_properties() {
+        let schema_json = json!({
+            "name": "gvt",
+        });
+
+        let schema = serde_json::from_value::<Schema>(schema_json);
+        assert!(schema.is_err());
+    }
+
+    #[test]
+    fn test_schema_invalid_issuer_id() {
+        let schema_json = json!({
+            "name": "gvt",
+            "version": "1.0",
+            "attrNames": ["aaa", "bbb", "ccc"],
+            "issuerId": "bob"
+        });
+
+        let schema: Schema = serde_json::from_value(schema_json).unwrap();
+        assert!(schema.validate().is_err());
+    }
+
+    #[test]
+    fn test_schema_invalid_attr_names() {
         let schema_json = json!({
             "name": "gvt1",
             "version": "1.0",
-            "attrNames": ["aaa", "bbb", "ccc"],
-        })
-        .to_string();
+            "attrNames": [],
+            "issuerId": "mock:uri"
+        });
 
-        assert!(serde_json::from_str::<Schema>(&schema_json).is_err());
+        let schema: Schema = serde_json::from_value(schema_json).unwrap();
+        assert!(schema.validate().is_err());
     }
 }
