@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use crate::{
-    data_types::{invalid, ConversionError, Validatable, ValidationError},
+    data_types::{ConversionError, Validatable, ValidationError},
     impl_anoncreds_object_identifier,
 };
 
@@ -108,21 +108,4 @@ impl Validatable for RevocationRegistryDefinitionV1 {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RevocationRegistryDefinitionPrivate {
     pub value: ursa::cl::RevocationKeyPrivate,
-}
-
-#[derive(Deserialize, Debug, Serialize)]
-pub struct RevocationRegistryConfig {
-    pub issuance_type: Option<IssuanceType>,
-    pub max_cred_num: Option<u32>,
-}
-
-impl Validatable for RevocationRegistryConfig {
-    fn validate(&self) -> Result<(), ValidationError> {
-        if let Some(num_) = self.max_cred_num {
-            if num_ == 0 {
-                return Err(invalid!("RevocationRegistryConfig validation failed: `max_cred_num` must be greater than 0"));
-            }
-        }
-        Ok(())
-    }
 }
