@@ -23,6 +23,8 @@ pub use self::error::{Error, ErrorKind};
 mod services;
 pub use services::*;
 
+mod utils;
+
 #[cfg(feature = "ffi")]
 mod ffi;
 

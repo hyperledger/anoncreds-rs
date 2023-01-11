@@ -4,6 +4,8 @@ use crate::impl_anoncreds_object_identifier;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
+use super::issuer_id::IssuerId;
+
 pub const MAX_ATTRIBUTES_COUNT: usize = 125;
 
 impl_anoncreds_object_identifier!(SchemaId);
@@ -13,8 +15,8 @@ impl_anoncreds_object_identifier!(SchemaId);
 pub struct Schema {
     pub name: String,
     pub version: String,
-    #[serde(rename = "attrNames")]
     pub attr_names: AttributeNames,
+    pub issuer_id: IssuerId,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -83,6 +85,7 @@ mod test_schema_validation {
             "name": "gvt",
             "version": "1.0",
             "attrNames": ["aaa", "bbb", "ccc"],
+            "issuerId": "bob"
         })
         .to_string();
 
@@ -92,7 +95,7 @@ mod test_schema_validation {
     }
 
     #[test]
-    fn test_invalid_name_schema() {
+    fn test_invalid_schema() {
         let schema_json = json!({
             "name": "gvt1",
             "version": "1.0",
@@ -100,18 +103,6 @@ mod test_schema_validation {
         })
         .to_string();
 
-        serde_json::from_str::<Schema>(&schema_json).unwrap();
-    }
-
-    #[test]
-    fn test_invalid_version_schema() {
-        let schema_json = json!({
-            "name": "gvt",
-            "version": "1.1",
-            "attrNames": ["aaa", "bbb", "ccc"],
-        })
-        .to_string();
-
-        serde_json::from_str::<Schema>(&schema_json).unwrap();
+        assert!(serde_json::from_str::<Schema>(&schema_json).is_err());
     }
 }

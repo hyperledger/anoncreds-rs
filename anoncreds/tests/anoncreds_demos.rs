@@ -30,6 +30,7 @@ mod utils;
 
 pub static SCHEMA_ID: &str = "mock:uri";
 pub static CRED_DEF_ID: &str = "mock:uri";
+pub static ISSUER_ID: &str = "mock:issuer_id/path&q=bar";
 pub const GVT_SCHEMA_NAME: &str = "gvt";
 pub const GVT_SCHEMA_ATTRIBUTES: &[&str; 4] = &["name", "age", "sex", "height"];
 pub static REV_REG_ID: &str = "mock:uri:revregid";
@@ -45,14 +46,19 @@ fn anoncreds_works_for_single_issuer_single_prover() {
     let mut prover_wallet = ProverWallet::default();
 
     // Issuer creates Schema - would be published to the ledger
-    let gvt_schema =
-        issuer::create_schema(GVT_SCHEMA_NAME, "1.0", GVT_SCHEMA_ATTRIBUTES[..].into())
-            .expect("Error creating gvt schema for issuer");
+    let gvt_schema = issuer::create_schema(
+        GVT_SCHEMA_NAME,
+        "1.0",
+        ISSUER_ID,
+        GVT_SCHEMA_ATTRIBUTES[..].into(),
+    )
+    .expect("Error creating gvt schema for issuer");
 
     // Issuer creates Credential Definition
     let cred_def_parts = issuer::create_credential_definition(
         SCHEMA_ID,
         &gvt_schema,
+        ISSUER_ID,
         "tag",
         SignatureType::CL,
         CredentialDefinitionConfig {
@@ -218,6 +224,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         "175",
         revealed_attr_groups.values.get("height").unwrap().raw
     );
+
     let valid = verifier::verify_presentation(
         &presentation,
         &pres_request,
@@ -240,14 +247,19 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let mut prover_wallet = ProverWallet::default();
 
     // Issuer creates Schema - would be published to the ledger
-    let gvt_schema =
-        issuer::create_schema(GVT_SCHEMA_NAME, "1.0", GVT_SCHEMA_ATTRIBUTES[..].into())
-            .expect("Error creating gvt schema for issuer");
+    let gvt_schema = issuer::create_schema(
+        GVT_SCHEMA_NAME,
+        "1.0",
+        ISSUER_ID,
+        GVT_SCHEMA_ATTRIBUTES[..].into(),
+    )
+    .expect("Error creating gvt schema for issuer");
 
     // Issuer creates Credential Definition
     let (cred_def_pub, cred_def_priv, cred_def_correctness) = issuer::create_credential_definition(
         SCHEMA_ID,
         &gvt_schema,
+        ISSUER_ID,
         "tag",
         SignatureType::CL,
         CredentialDefinitionConfig {
@@ -381,7 +393,8 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         "version":"0.1",
         "requested_attributes":{
             "attr1_referent":{
-                "name":"name"
+                "name":"name",
+                "issuer_id": ISSUER_ID
             },
             "attr2_referent":{
                 "name":"sex"

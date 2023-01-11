@@ -77,6 +77,28 @@ impl<K, V> AbstractQuery<K, V> {
         }
     }
 
+    pub fn get_name(&self) -> Vec<&K> {
+        match self {
+            Self::And(subqueries) | Self::Or(subqueries) => {
+                subqueries.iter().flat_map(|s| s.get_name()).collect()
+            }
+            Self::Exist(subquery_names) => subquery_names
+                .to_owned()
+                .iter()
+                .map(|s| s.to_owned())
+                .collect(),
+            Self::Not(boxed_query) => boxed_query.get_name(),
+            Self::Eq(tag_name, _)
+            | Self::Neq(tag_name, _)
+            | Self::Gt(tag_name, _)
+            | Self::Gte(tag_name, _)
+            | Self::Lt(tag_name, _)
+            | Self::Lte(tag_name, _)
+            | Self::Like(tag_name, _)
+            | Self::In(tag_name, _) => vec![tag_name],
+        }
+    }
+
     /// Perform a transformation on all field names in query clauses
     pub fn map_names<RK, E>(
         self,

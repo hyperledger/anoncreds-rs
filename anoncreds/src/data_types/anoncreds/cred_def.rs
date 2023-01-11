@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use crate::{data_types::ConversionError, impl_anoncreds_object_identifier};
 
-use super::schema::SchemaId;
+use super::{issuer_id::IssuerId, schema::SchemaId};
 
 pub const CL_SIGNATURE_TYPE: &str = "CL";
 
@@ -33,12 +33,14 @@ pub struct CredentialDefinitionData {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CredentialDefinition {
     pub schema_id: SchemaId,
     #[serde(rename = "type")]
     pub signature_type: SignatureType,
     pub tag: String,
     pub value: CredentialDefinitionData,
+    pub issuer_id: IssuerId,
 }
 
 impl CredentialDefinition {

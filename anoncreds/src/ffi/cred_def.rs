@@ -18,6 +18,7 @@ pub extern "C" fn anoncreds_create_credential_definition(
     schema_id: FfiStr,
     schema: ObjectHandle,
     tag: FfiStr,
+    issuer_id: FfiStr,
     signature_type: FfiStr,
     support_revocation: i8,
     cred_def_p: *mut ObjectHandle,
@@ -38,9 +39,13 @@ pub extern "C" fn anoncreds_create_credential_definition(
                 .ok_or_else(|| err_msg!("Missing signature type"))?;
             SignatureType::from_str(stype).map_err(err_map!(Input))?
         };
+        let issuer_id = issuer_id
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing issuer id"))?;
         let (cred_def, cred_def_pvt, key_proof) = create_credential_definition(
             schema_id,
             schema.load()?.cast_ref()?,
+            issuer_id,
             tag,
             signature_type,
             CredentialDefinitionConfig {

@@ -11,27 +11,32 @@ macro_rules! impl_anoncreds_object_identifier {
 
             pub fn new(s: impl Into<String>) -> Result<Self, $crate::data_types::ValidationError> {
                 let s = Self(s.into());
-                s.validate()?;
+                $crate::data_types::Validatable::validate(&s)?;
                 Ok(s)
             }
         }
 
         impl $crate::data_types::Validatable for $i {
             fn validate(&self) -> Result<(), $crate::data_types::ValidationError> {
-                // TODO: stricten the URI regex.
-                // Right now everything after the first colon is allowed, we might want to restrict
-                // this
-                let uri_regex = regex::Regex::new(r"^[a-zA-Z0-9\+\-\.]+:.+$").unwrap();
-                uri_regex
+                if $crate::utils::validation::URI_IDENTIFIER
                     .captures(&self.0)
-                    .ok_or_else(|| {
-                        indy_utils::invalid!(
-                            "type: {}, identifier: {} is invalid. It MUST be a URI.",
-                            stringify!($i),
-                            self.0
-                        )
-                    })
-                    .map(|_| ())
+                    .is_some()
+                {
+                    return Ok(());
+                }
+
+                if $crate::utils::validation::LEGACY_IDENTIFIER
+                    .captures(&self.0)
+                    .is_some()
+                {
+                    return Ok(());
+                }
+
+                Err(indy_utils::invalid!(
+                    "type: {}, identifier: {} is invalid. It MUST be a URI or legacy identifier.",
+                    stringify!($i),
+                    self.0
+                ))
             }
         }
 

@@ -5,6 +5,7 @@ use indy_utils::ValidationError;
 
 use super::types::*;
 use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
+use crate::data_types::anoncreds::issuer_id::IssuerId;
 use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
 use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
@@ -26,29 +27,37 @@ use crate::ursa::cl::{
 
 use super::tails::{TailsFileReader, TailsReader, TailsWriter};
 
-pub fn create_schema(
+pub fn create_schema<II>(
     schema_name: &str,
     schema_version: &str,
+    issuer_id: II,
     attr_names: AttributeNames,
-) -> Result<Schema> {
+) -> Result<Schema>
+where
+    II: TryInto<IssuerId, Error = ValidationError>,
+{
     trace!(
-        "create_schema >>> schema_name: {:?}, schema_version: {:?}, attr_names: {:?}",
+        "create_schema >>> schema_name: {}, schema_version: {}, attr_names: {:?}",
         schema_name,
         schema_version,
-        attr_names
+        attr_names,
     );
+
+    let issuer_id = issuer_id.try_into()?;
 
     let schema = Schema {
         name: schema_name.to_string(),
         version: schema_version.to_string(),
+        issuer_id,
         attr_names,
     };
     Ok(schema)
 }
 
-pub fn create_credential_definition<SI>(
+pub fn create_credential_definition<SI, II>(
     schema_id: SI,
     schema: &Schema,
+    issuer_id: II,
     tag: &str,
     signature_type: SignatureType,
     config: CredentialDefinitionConfig,
@@ -59,12 +68,14 @@ pub fn create_credential_definition<SI>(
 )>
 where
     SI: TryInto<SchemaId, Error = ValidationError>,
+    II: TryInto<IssuerId, Error = ValidationError>,
 {
     trace!(
         "create_credential_definition >>> schema: {:?}, config: {:?}",
         schema,
         config
     );
+    let issuer_id = issuer_id.try_into()?;
     let schema_id = schema_id.try_into()?;
 
     let credential_schema = build_credential_schema(&schema.attr_names.0)?;
@@ -80,6 +91,7 @@ where
     let cred_def = CredentialDefinition {
         schema_id,
         signature_type,
+        issuer_id,
         tag: tag.to_owned(),
         value: CredentialDefinitionData {
             primary: credential_public_key.get_primary_key()?.try_clone()?,

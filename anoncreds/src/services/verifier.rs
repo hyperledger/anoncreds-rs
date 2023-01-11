@@ -7,6 +7,7 @@ use super::helpers::*;
 use super::types::*;
 use crate::data_types::anoncreds::cred_def::CredentialDefinition;
 use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
+use crate::data_types::anoncreds::issuer_id::IssuerId;
 use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
 use crate::data_types::anoncreds::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::anoncreds::schema::Schema;
@@ -18,15 +19,16 @@ use crate::data_types::anoncreds::{
 };
 use crate::error::Result;
 use crate::ursa::cl::{verifier::Verifier as CryptoVerifier, CredentialPublicKey};
+use crate::utils::validation::LEGACY_IDENTIFIER;
 use indy_utils::query::Query;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Filter {
     schema_id: SchemaId,
-    schema_issuer_did: String,
+    schema_issuer_id: IssuerId,
     schema_name: String,
     schema_version: String,
-    issuer_did: String,
+    issuer_id: IssuerId,
     cred_def_id: CredentialDefinitionId,
 }
 
@@ -64,6 +66,8 @@ pub fn verify_presentation(
 
     verify_requested_restrictions(
         pres_req,
+        schemas,
+        cred_defs,
         &presentation.requested_proof,
         &received_revealed_attrs,
         &received_unrevealed_attrs,
@@ -565,6 +569,8 @@ fn verify_revealed_attribute_value(
 
 fn verify_requested_restrictions(
     pres_req: &PresentationRequestPayload,
+    schemas: &HashMap<&SchemaId, &Schema>,
+    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
     requested_proof: &RequestedProof,
     received_revealed_attrs: &HashMap<String, Identifier>,
     received_unrevealed_attrs: &HashMap<String, Identifier>,
@@ -584,9 +590,47 @@ fn verify_requested_restrictions(
         .map(|(referent, info)| (referent.to_string(), info.clone()))
         .collect();
 
+    let requested_attributes_queries = pres_req
+        .requested_attributes
+        .iter()
+        .filter_map(|(_, info)| info.restrictions.to_owned());
+
+    let requested_predicates_queries = pres_req
+        .requested_predicates
+        .iter()
+        .filter_map(|(_, info)| info.restrictions.to_owned());
+
+    let filter_tags: Vec<String> = requested_attributes_queries
+        .chain(requested_predicates_queries)
+        .flat_map(|r| {
+            r.get_name()
+                .iter()
+                .map(|n| n.to_owned().to_owned())
+                .collect::<Vec<String>>()
+        })
+        .collect();
+
+    // We check whether both the `issuer_id` and `issuer_did` are included. Since `issuer_did` will
+    // only be used for legacy support and `issuer_id` will be the new restriction tag, we do not
+    // allow mixing them.
+    if filter_tags.contains(&"issuer_id".to_owned())
+        && filter_tags.contains(&"issuer_did".to_owned())
+    {
+        return Err(err_msg!("Presentation request contains restriction for `issuer_id` (new) and `issuer_did` (legacy)"));
+    }
+
+    // We check whether both the `schema_issuer_id` and `schema_issuer_did` are included. Since
+    // `schema_issuer_did` will only be used for legacy support and `schema_issuer_id` will be the
+    // new restriction tag, we do not allow mixing them.
+    if filter_tags.contains(&"schema_issuer_id".to_owned())
+        && filter_tags.contains(&"schema_issuer_did".to_owned())
+    {
+        return Err(err_msg!("Presentation request contains both restrictions for `schema_issuer_id` (new) and `schema_issuer_did` (legacy)"));
+    }
+
     for (referent, info) in requested_attrs.iter() {
         if let Some(ref query) = info.restrictions {
-            let filter = gather_filter_info(referent, &proof_attr_identifiers)?;
+            let filter = gather_filter_info(referent, &proof_attr_identifiers, schemas, cred_defs)?;
 
             let attr_value_map: HashMap<String, Option<&str>> = if let Some(name) =
                 info.name.as_ref()
@@ -630,7 +674,7 @@ fn verify_requested_restrictions(
 
     for (referent, info) in pres_req.requested_predicates.iter() {
         if let Some(ref query) = info.restrictions {
-            let filter = gather_filter_info(referent, received_predicates)?;
+            let filter = gather_filter_info(referent, received_predicates, schemas, cred_defs)?;
 
             // start with the predicate requested attribute, which is un-revealed
             let mut attr_value_map = HashMap::new();
@@ -690,7 +734,12 @@ fn is_self_attested(
     }
 }
 
-fn gather_filter_info(referent: &str, identifiers: &HashMap<String, Identifier>) -> Result<Filter> {
+fn gather_filter_info(
+    referent: &str,
+    identifiers: &HashMap<String, Identifier>,
+    schemas: &HashMap<&SchemaId, &Schema>,
+    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
+) -> Result<Filter> {
     let identifier = identifiers.get(referent).ok_or_else(|| {
         err_msg!(
             InvalidState,
@@ -699,26 +748,24 @@ fn gather_filter_info(referent: &str, identifiers: &HashMap<String, Identifier>)
         )
     })?;
 
-    // TODO: how can we get these as as we can not extract them from the ID anymore
-    let schema_name = String::from("");
-    let schema_version = String::from("");
-    let schema_issuer_did = String::from("");
-    let cred_def_issuer_did = Some(String::from(""));
+    let schema_id = &identifier.schema_id;
+    let cred_def_id = &identifier.cred_def_id;
 
-    let issuer_did = cred_def_issuer_did.ok_or_else(|| {
-        err_msg!(
-            "Invalid Credential Definition ID `{}`: wrong number of parts",
-            identifier.cred_def_id
-        )
-    })?;
+    let schema = schemas
+        .get(schema_id)
+        .ok_or_else(|| err_msg!("schema_id {schema_id} could not be found in the schemas"))?;
+
+    let cred_def = cred_defs
+        .get(cred_def_id)
+        .ok_or_else(|| err_msg!("cred_def_id {cred_def_id} could not be found in the cred_defs"))?;
 
     Ok(Filter {
-        schema_id: identifier.schema_id.to_owned(),
-        schema_name,
-        schema_issuer_did,
-        schema_version,
-        cred_def_id: identifier.cred_def_id.to_owned(),
-        issuer_did,
+        schema_id: schema_id.to_owned(),
+        schema_name: schema.name.to_owned(),
+        schema_version: schema.version.to_owned(),
+        schema_issuer_id: schema.issuer_id.to_owned(),
+        issuer_id: cred_def.issuer_id.to_owned(),
+        cred_def_id: cred_def_id.to_owned(),
     })
 }
 
@@ -806,11 +853,17 @@ fn process_filter(
     );
     match tag {
         tag_ @ "schema_id" => precess_filed(tag_, filter.schema_id.to_string(), tag_value),
-        tag_ @ "schema_issuer_did" => precess_filed(tag_, &filter.schema_issuer_did, tag_value),
+        tag_ @ "schema_issuer_did" => {
+            precess_filed(tag_, filter.schema_issuer_id.to_owned(), tag_value)
+        }
+        tag_ @ "schema_issuer_id" => {
+            precess_filed(tag_, filter.schema_issuer_id.to_owned(), tag_value)
+        }
         tag_ @ "schema_name" => precess_filed(tag_, &filter.schema_name, tag_value),
         tag_ @ "schema_version" => precess_filed(tag_, &filter.schema_version, tag_value),
         tag_ @ "cred_def_id" => precess_filed(tag_, &filter.cred_def_id.to_string(), tag_value),
-        tag_ @ "issuer_did" => precess_filed(tag_, &filter.issuer_did, tag_value),
+        tag_ @ "issuer_did" => precess_filed(tag_, filter.issuer_id.to_owned(), tag_value),
+        tag_ @ "issuer_id" => precess_filed(tag_, filter.issuer_id.to_owned(), tag_value),
         x if is_attr_internal_tag(x, attr_value_map) => {
             check_internal_tag_revealed_value(x, tag_value, attr_value_map)
         }
@@ -821,6 +874,18 @@ fn process_filter(
 
 fn precess_filed(filed: &str, filter_value: impl Into<String>, tag_value: &str) -> Result<()> {
     let filter_value = filter_value.into();
+    // We explicitly check here with it is one of the two legacy identifier restrictions. This
+    // means that we only allow legacy identifiers which can be detected with a simple regex. If
+    // they are not in the legacy format, we do not support this.
+    if filed == "schema_issuer_did" || filed == "issuer_did" {
+        if LEGACY_IDENTIFIER.captures(&filter_value).is_none() {
+            return Err(err_msg!(
+            ProofRejected,
+            "\"{}\" value is a legacy identifier tag and therefore only legacy identifiers can be used",
+            filed,
+        ));
+        }
+    }
     if filter_value == tag_value {
         Ok(())
     } else {
@@ -880,10 +945,10 @@ mod tests {
 
     pub const SCHEMA_ID: &str = "123";
     pub const SCHEMA_NAME: &str = "Schema Name";
-    pub const SCHEMA_ISSUER_DID: &str = "234";
+    pub const SCHEMA_ISSUER_ID: &str = "1111111111111111111111";
     pub const SCHEMA_VERSION: &str = "1.2.3";
     pub const CRED_DEF_ID: &str = "345";
-    pub const ISSUER_DID: &str = "456";
+    pub const ISSUER_ID: &str = "1111111111111111111111";
 
     fn schema_id_tag() -> String {
         "schema_id".to_string()
@@ -925,10 +990,10 @@ mod tests {
         Filter {
             schema_id: SchemaId::new_unchecked(SCHEMA_ID),
             schema_name: SCHEMA_NAME.to_string(),
-            schema_issuer_did: SCHEMA_ISSUER_DID.to_string(),
+            schema_issuer_id: IssuerId::new_unchecked(SCHEMA_ISSUER_ID),
             schema_version: SCHEMA_VERSION.to_string(),
             cred_def_id: CredentialDefinitionId::new_unchecked(CRED_DEF_ID),
-            issuer_did: ISSUER_DID.to_string(),
+            issuer_id: IssuerId::new_unchecked(ISSUER_ID),
         }
     }
 
@@ -1108,12 +1173,12 @@ mod tests {
                 Query::Eq(cred_def_id_tag(), CRED_DEF_ID.to_string()),
             ]),
             Query::And(vec![
-                Query::Eq(schema_issuer_did_tag(), SCHEMA_ISSUER_DID.to_string()),
+                Query::Eq(schema_issuer_did_tag(), SCHEMA_ISSUER_ID.to_string()),
                 Query::Eq(schema_name_tag(), SCHEMA_NAME.to_string()),
             ]),
             Query::And(vec![
                 Query::Eq(schema_version_tag(), SCHEMA_VERSION.to_string()),
-                Query::Eq(issuer_did_tag(), ISSUER_DID.to_string()),
+                Query::Eq(issuer_did_tag(), ISSUER_ID.to_string()),
             ]),
         ]);
         assert!(_process_operator("zip", &op, &filter, None).is_err());
@@ -1128,12 +1193,12 @@ mod tests {
                 Query::Eq(cred_def_id_tag(), CRED_DEF_ID.to_string()),
             ]),
             Query::And(vec![
-                Query::Eq(schema_issuer_did_tag(), SCHEMA_ISSUER_DID.to_string()),
+                Query::Eq(schema_issuer_did_tag(), SCHEMA_ISSUER_ID.to_string()),
                 Query::Eq(schema_name_tag(), SCHEMA_NAME.to_string()),
             ]),
             Query::And(vec![
                 Query::Eq(schema_version_tag(), SCHEMA_VERSION.to_string()),
-                Query::Eq(issuer_did_tag(), ISSUER_DID.to_string()),
+                Query::Eq(issuer_did_tag(), ISSUER_ID.to_string()),
             ]),
             Query::Not(Box::new(Query::Eq(
                 schema_version_tag(),
@@ -1152,12 +1217,12 @@ mod tests {
                 Query::Eq(cred_def_id_tag(), CRED_DEF_ID.to_string()),
             ]),
             Query::And(vec![
-                Query::Eq(schema_issuer_did_tag(), SCHEMA_ISSUER_DID.to_string()),
+                Query::Eq(schema_issuer_did_tag(), SCHEMA_ISSUER_ID.to_string()),
                 Query::Eq(schema_name_tag(), SCHEMA_NAME.to_string()),
             ]),
             Query::And(vec![
                 Query::Eq(schema_version_tag(), SCHEMA_VERSION.to_string()),
-                Query::Eq(issuer_did_tag(), ISSUER_DID.to_string()),
+                Query::Eq(issuer_did_tag(), ISSUER_ID.to_string()),
             ]),
             Query::Not(Box::new(Query::Eq(
                 schema_version_tag(),
@@ -1177,7 +1242,7 @@ mod tests {
 
         op = Query::And(vec![
             Query::Eq(attr_tag_value(), value.to_string()),
-            Query::Eq(schema_issuer_did_tag(), SCHEMA_ISSUER_DID.to_string()),
+            Query::Eq(schema_issuer_did_tag(), SCHEMA_ISSUER_ID.to_string()),
         ]);
         _process_operator("zip", &op, &filter, Some(value)).unwrap();
 
