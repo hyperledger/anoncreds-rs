@@ -1,3 +1,5 @@
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use std::collections::{BTreeSet, HashSet};
 use std::iter::FromIterator;
 
@@ -279,6 +281,9 @@ pub fn create_credential(
         "Error fetching public key from credential definition"
     ))?;
     let credential_values = build_credential_values(&cred_values.0, None)?;
+    let rand_str = String::from_utf8(thread_rng().sample_iter(&Alphanumeric).take(22).collect())
+        .map_err(|_| err_msg!("Unable to instantiate random string for prover did"))?;
+    let prover_did = cred_request.prover_did.as_ref().unwrap_or(&rand_str);
 
     let (credential_signature, signature_correctness_proof, rev_reg, rev_reg_delta, witness) =
         match revocation_config {
@@ -289,9 +294,10 @@ pub fn create_credential(
                 let mut rev_reg = match revocation.registry {
                     RevocationRegistry::RevocationRegistryV1(v1) => v1.value.clone(),
                 };
+
                 let (credential_signature, signature_correctness_proof, delta) =
                     CryptoIssuer::sign_credential_with_revoc(
-                        &cred_request.prover_did,
+                        prover_did,
                         &cred_request.blinded_ms,
                         &cred_request.blinded_ms_correctness_proof,
                         cred_offer.nonce.as_native(),
@@ -338,7 +344,7 @@ pub fn create_credential(
             }
             None => {
                 let (signature, correctness_proof) = CryptoIssuer::sign_credential(
-                    &cred_request.prover_did,
+                    prover_did,
                     &cred_request.blinded_ms,
                     &cred_request.blinded_ms_correctness_proof,
                     cred_offer.nonce.as_native(),

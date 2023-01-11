@@ -3,7 +3,8 @@ use crate::data_types::{Validatable, ValidationError};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialRequest {
-    pub prover_did: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prover_did: Option<String>,
     pub cred_def_id: CredentialDefinitionId,
     pub blinded_ms: ursa::cl::BlindedCredentialSecrets,
     pub blinded_ms_correctness_proof: ursa::cl::BlindedCredentialSecretsCorrectnessProof,

@@ -1,6 +1,4 @@
 use bitvec::bitvec;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 use std::{
     collections::{HashMap, HashSet},
     convert::TryFrom,
@@ -48,10 +46,6 @@ pub fn create_credential_request(
         credential_offer
     );
 
-    let rand_str = String::from_utf8(thread_rng().sample_iter(&Alphanumeric).take(22).collect())
-        .map_err(|_| err_msg!("Unable to instantiate random string for prover did"))?;
-    let prover_did = prover_did.unwrap_or(&rand_str);
-
     let credential_pub_key = CredentialPublicKey::build_from_parts(
         &cred_def.value.primary,
         cred_def.value.revocation.as_ref(),
@@ -72,7 +66,7 @@ pub fn create_credential_request(
         )?;
 
     let credential_request = CredentialRequest {
-        prover_did: prover_did.to_owned(),
+        prover_did: prover_did.map(|d| d.to_owned()),
         cred_def_id: credential_offer.cred_def_id.to_owned(),
         blinded_ms,
         blinded_ms_correctness_proof,
