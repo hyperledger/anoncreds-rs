@@ -16,9 +16,8 @@ use crate::services::{
     prover::create_or_update_revocation_state,
     tails::{TailsFileReader, TailsFileWriter},
     types::{
-        CredentialRevocationState, IssuanceType, RegistryType, RevocationRegistry,
-        RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate, RevocationRegistryDelta,
-        RevocationStatusList,
+        CredentialRevocationState, RegistryType, RevocationRegistry, RevocationRegistryDefinition,
+        RevocationRegistryDefinitionPrivate, RevocationRegistryDelta, RevocationStatusList,
     },
 };
 
@@ -28,7 +27,6 @@ pub extern "C" fn anoncreds_create_revocation_registry(
     cred_def_id: FfiStr,
     tag: FfiStr,
     rev_reg_type: FfiStr,
-    issuance_type: FfiStr,
     max_cred_num: i64,
     tails_dir_path: FfiStr,
     reg_def_p: *mut ObjectHandle,
@@ -51,17 +49,12 @@ pub extern "C" fn anoncreds_create_revocation_registry(
                 .ok_or_else(|| err_msg!("Missing registry type"))?;
             RegistryType::from_str(rtype).map_err(err_map!(Input))?
         };
-        let issuance_type = match issuance_type.as_opt_str() {
-            Some(s) => IssuanceType::from_str(s).map_err(err_map!(Input))?,
-            None => IssuanceType::default(),
-        };
         let mut tails_writer = TailsFileWriter::new(tails_dir_path.into_opt_string());
         let (reg_def, reg_def_private, reg_entry, reg_init_delta) = create_revocation_registry(
             cred_def.load()?.cast_ref()?,
             cred_def_id,
             tag,
             rev_reg_type,
-            issuance_type,
             max_cred_num
                 .try_into()
                 .map_err(|_| err_msg!("Invalid maximum credential count"))?,

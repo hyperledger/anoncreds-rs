@@ -9,47 +9,8 @@ use super::cred_def::CredentialDefinitionId;
 
 pub const CL_ACCUM: &str = "CL_ACCUM";
 
-pub const ISSUANCE_BY_DEFAULT: &str = "ISSUANCE_BY_DEFAULT";
-pub const ISSUANCE_ON_DEMAND: &str = "ISSUANCE_ON_DEMAND";
-
 impl_anoncreds_object_identifier!(RevocationRegistryDefinitionId);
 
-#[allow(non_camel_case_types)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Serialize, Default)]
-pub enum IssuanceType {
-    #[default]
-    ISSUANCE_BY_DEFAULT,
-    ISSUANCE_ON_DEMAND,
-}
-
-impl FromStr for IssuanceType {
-    type Err = ConversionError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            ISSUANCE_BY_DEFAULT => Ok(Self::ISSUANCE_BY_DEFAULT),
-            ISSUANCE_ON_DEMAND => Ok(Self::ISSUANCE_ON_DEMAND),
-            _ => Err(ConversionError::from_msg("Invalid issuance type")),
-        }
-    }
-}
-
-impl From<IssuanceType> for usize {
-    fn from(value: IssuanceType) -> usize {
-        match value {
-            // Credentials are by default revoked
-            IssuanceType::ISSUANCE_ON_DEMAND => 1,
-            // Credentials are by default not revoked
-            IssuanceType::ISSUANCE_BY_DEFAULT => 0,
-        }
-    }
-}
-
-impl IssuanceType {
-    pub fn to_bool(&self) -> bool {
-        *self == IssuanceType::ISSUANCE_BY_DEFAULT
-    }
-}
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub enum RegistryType {
@@ -70,7 +31,6 @@ impl FromStr for RegistryType {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDefinitionValue {
-    pub issuance_type: IssuanceType,
     pub max_cred_num: u32,
     pub public_keys: RevocationRegistryDefinitionValuePublicKeys,
     pub tails_hash: String,

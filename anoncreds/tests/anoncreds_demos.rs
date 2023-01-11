@@ -15,7 +15,7 @@ use anoncreds::{
     tails::{TailsFileReader, TailsFileWriter},
     types::{
         CredentialDefinitionConfig, CredentialRevocationConfig, CredentialRevocationState,
-        IssuanceType, MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType,
+        MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType,
         RevocationStatusList, SignatureType,
     },
     verifier,
@@ -286,7 +286,6 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         CRED_DEF_ID,
         "some_tag",
         RegistryType::CL_ACCUM,
-        IssuanceType::ISSUANCE_BY_DEFAULT,
         MAX_CRED_NUM,
         &mut tf,
     )

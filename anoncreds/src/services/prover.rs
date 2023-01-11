@@ -293,7 +293,8 @@ pub fn create_or_update_revocation_state(
         } else {
             let list_size = usize::try_from(revoc_reg_def.value.max_cred_num)
                 .map_err(|e| Error::from_msg(crate::ErrorKind::InvalidState, e.to_string()))?;
-            let bit: usize = revoc_reg_def.value.issuance_type.into();
+            // Issuance by default
+            let bit: usize = 0;
             let list = bitvec![bit; list_size];
             _create_index_deltas(
                 rev_reg_list.state_owned().bitxor(list),
@@ -306,7 +307,8 @@ pub fn create_or_update_revocation_state(
             Witness::new(
                 rev_reg_idx,
                 revoc_reg_def.value.max_cred_num,
-                revoc_reg_def.value.issuance_type.to_bool(),
+                // issuance by default
+                true,
                 &rev_reg_delta,
                 &tails_reader,
             )?

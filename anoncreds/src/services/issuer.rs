@@ -121,7 +121,6 @@ pub fn create_revocation_registry<TW>(
     cred_def_id: impl TryInto<CredentialDefinitionId, Error = ValidationError>,
     tag: &str,
     rev_reg_type: RegistryType,
-    issuance_type: IssuanceType,
     max_cred_num: u32,
     tails_writer: &mut TW,
 ) -> Result<(
@@ -133,8 +132,8 @@ pub fn create_revocation_registry<TW>(
 where
     TW: TailsWriter,
 {
-    trace!("create_revocation_registry >>> cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}, issuance_type: {:?}",
-             cred_def, tag, max_cred_num, rev_reg_type, issuance_type);
+    trace!("create_revocation_registry >>> cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}",
+             cred_def, tag, max_cred_num, rev_reg_type);
     let cred_def_id = cred_def_id.try_into()?;
 
     let credential_pub_key = cred_def.get_public_key().map_err(err_map!(
@@ -155,7 +154,6 @@ where
 
     let revoc_reg_def_value = RevocationRegistryDefinitionValue {
         max_cred_num,
-        issuance_type,
         public_keys: rev_keys_pub,
         tails_location: tails_location.clone(),
         tails_hash,
@@ -173,7 +171,7 @@ where
     };
 
     // now update registry to reflect issuance-by-default
-    let (revoc_reg, revoc_init_delta) = if issuance_type == IssuanceType::ISSUANCE_BY_DEFAULT {
+    let (revoc_reg, revoc_init_delta) = {
         let tails_reader = TailsFileReader::new_tails_reader(&tails_location);
         let issued = BTreeSet::from_iter(1..=max_cred_num);
         update_revocation_registry(
@@ -183,9 +181,6 @@ where
             BTreeSet::new(),
             &tails_reader,
         )?
-    } else {
-        let delta = revoc_reg.initial_delta();
-        (revoc_reg, delta)
     };
 
     let revoc_def_priv = RevocationRegistryDefinitionPrivate {
@@ -296,7 +291,8 @@ pub fn create_credential(
                         &cred_def_private.value,
                         revocation.registry_idx,
                         rev_reg_def.max_cred_num,
-                        rev_reg_def.issuance_type.to_bool(),
+                        // issuance by default
+                        true,
                         &mut rev_reg,
                         &revocation.reg_def_private.value,
                         &revocation.tails_reader,
@@ -304,14 +300,7 @@ pub fn create_credential(
 
                 let witness = {
                     let empty = HashSet::new();
-                    let (by_default, issued, revoked) = match rev_reg_def.issuance_type {
-                        IssuanceType::ISSUANCE_ON_DEMAND => {
-                            (false, revocation.registry_used, &empty)
-                        }
-                        IssuanceType::ISSUANCE_BY_DEFAULT => {
-                            (true, &empty, revocation.registry_used)
-                        }
-                    };
+                    let (by_default, issued, revoked) = (true, &empty, revocation.registry_used);
 
                     let rev_reg_delta =
                         CryptoRevocationRegistryDelta::from_parts(None, &rev_reg, issued, revoked);
