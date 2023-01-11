@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "indy-credx-shared": ["shared/src"],
+      "indy-credx-react-native": ["react-native/src"],
+      "indy-credx-nodejs": ["nodejs/src"]
+    }
+  },
+  "ts-node": {
+    "require": ["tsconfig-paths/register"],
+    "files": true
+  },
+  "exclude": ["node_modules", "**/build/**", "build"]
+}
