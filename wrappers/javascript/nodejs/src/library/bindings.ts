@@ -108,7 +108,6 @@ export const nativeBindings = {
     FFI_ERRORCODE,
     [FFI_STRING, FFI_STRING, FFI_STRING, StringListStruct, FFI_INT64, FFI_OBJECT_HANDLE_PTR],
   ],
-  anoncreds_credential_definition_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
   anoncreds_credential_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
   anoncreds_encode_credential_attributes: [FFI_ERRORCODE, [StringListStruct, FFI_STRING_PTR]],
   anoncreds_generate_nonce: [FFI_ERRORCODE, [FFI_STRING_PTR]],
@@ -140,7 +139,6 @@ export const nativeBindings = {
     FFI_ERRORCODE,
     [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_INT64, FFI_STRING, FFI_OBJECT_HANDLE_PTR, FFI_OBJECT_HANDLE_PTR],
   ],
-  anoncreds_schema_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
   anoncreds_set_default_logger: [FFI_ERRORCODE, []],
   anoncreds_update_revocation_registry: [
     FFI_ERRORCODE,

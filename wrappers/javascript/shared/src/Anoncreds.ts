@@ -155,10 +155,6 @@ export interface Anoncreds {
 
   credentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string
 
-  credentialDefinitionGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string
-
-  schemaGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string
-
   revocationRegistryDefinitionGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string
 
   presentationRequestFromJson(options: { json: string }): ObjectHandle

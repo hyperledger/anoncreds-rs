@@ -60,16 +60,6 @@ export class NodeJSAnoncreds implements Anoncreds {
     return new ObjectHandle(ret.deref() as number)
   }
 
-  public schemaGetAttribute(options: { objectHandle: ObjectHandle; name: string }) {
-    const { objectHandle, name } = serializeArguments(options)
-
-    const ret = allocateStringBuffer()
-    nativeAnoncreds.anoncreds_schema_get_attribute(objectHandle, name, ret)
-    handleError()
-
-    return ret.deref() as string
-  }
-
   public revocationRegistryDefinitionGetAttribute(options: { objectHandle: ObjectHandle; name: string }) {
     const { objectHandle, name } = serializeArguments(options)
 
@@ -120,16 +110,6 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialDefinitionPrivate: new ObjectHandle(credentialDefinitionPrivatePtr.deref() as number),
       keyProof: new ObjectHandle(keyProofPtr.deref() as number),
     }
-  }
-
-  public credentialDefinitionGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string {
-    const { objectHandle, name } = serializeArguments(options)
-
-    const ret = allocateStringBuffer()
-    nativeAnoncreds.anoncreds_credential_definition_get_attribute(objectHandle, name, ret)
-    handleError()
-
-    return ret.deref() as string
   }
 
   public createCredential(options: {
