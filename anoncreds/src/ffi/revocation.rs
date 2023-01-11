@@ -25,6 +25,7 @@ use crate::services::{
 pub extern "C" fn anoncreds_create_revocation_registry(
     cred_def: ObjectHandle,
     cred_def_id: FfiStr,
+    issuer_id: FfiStr,
     tag: FfiStr,
     rev_reg_type: FfiStr,
     max_cred_num: i64,
@@ -43,6 +44,9 @@ pub extern "C" fn anoncreds_create_revocation_registry(
         let cred_def_id = cred_def_id
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing cred def id"))?;
+        let issuer_id = issuer_id
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing issuer id"))?;
         let rev_reg_type = {
             let rtype = rev_reg_type
                 .as_opt_str()
@@ -53,6 +57,7 @@ pub extern "C" fn anoncreds_create_revocation_registry(
         let (reg_def, reg_def_private, reg_entry, reg_init_delta) = create_revocation_registry(
             cred_def.load()?.cast_ref()?,
             cred_def_id,
+            issuer_id,
             tag,
             rev_reg_type,
             max_cred_num

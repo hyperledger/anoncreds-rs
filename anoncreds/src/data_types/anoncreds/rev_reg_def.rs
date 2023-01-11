@@ -5,7 +5,7 @@ use crate::{
     impl_anoncreds_object_identifier,
 };
 
-use super::cred_def::CredentialDefinitionId;
+use super::{cred_def::CredentialDefinitionId, issuer_id::IssuerId};
 
 pub const CL_ACCUM: &str = "CL_ACCUM";
 
@@ -46,6 +46,7 @@ pub struct RevocationRegistryDefinitionValuePublicKeys {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDefinition {
+    pub issuer_id: IssuerId,
     pub revoc_def_type: RegistryType,
     pub tag: String,
     pub cred_def_id: CredentialDefinitionId,

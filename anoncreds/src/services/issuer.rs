@@ -119,6 +119,7 @@ where
 pub fn create_revocation_registry<TW>(
     cred_def: &CredentialDefinition,
     cred_def_id: impl TryInto<CredentialDefinitionId, Error = ValidationError>,
+    issuer_id: impl TryInto<IssuerId, Error = ValidationError>,
     tag: &str,
     rev_reg_type: RegistryType,
     max_cred_num: u32,
@@ -135,6 +136,7 @@ where
     trace!("create_revocation_registry >>> cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}",
              cred_def, tag, max_cred_num, rev_reg_type);
     let cred_def_id = cred_def_id.try_into()?;
+    let issuer_id = issuer_id.try_into()?;
 
     let credential_pub_key = cred_def.get_public_key().map_err(err_map!(
         Unexpected,
@@ -161,6 +163,7 @@ where
 
     let revoc_reg_def = RevocationRegistryDefinition {
         revoc_def_type: rev_reg_type,
+        issuer_id,
         tag: tag.to_string(),
         cred_def_id,
         value: revoc_reg_def_value,

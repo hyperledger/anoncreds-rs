@@ -284,6 +284,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let (rev_reg_def_pub, rev_reg_def_priv, rev_reg, _) = issuer::create_revocation_registry(
         &cred_def_pub,
         CRED_DEF_ID,
+        ISSUER_ID,
         "some_tag",
         RegistryType::CL_ACCUM,
         MAX_CRED_NUM,
