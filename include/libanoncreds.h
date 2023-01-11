@@ -241,6 +241,7 @@ ErrorCode anoncreds_create_credential(ObjectHandle cred_def,
 ErrorCode anoncreds_create_credential_definition(FfiStr schema_id,
                                                  ObjectHandle schema,
                                                  FfiStr tag,
+                                                 FfiStr issuer_id,
                                                  FfiStr signature_type,
                                                  int8_t support_revocation,
                                                  ObjectHandle *cred_def_p,
@@ -263,11 +264,11 @@ ErrorCode anoncreds_create_credential_request(FfiStr prover_did,
 ErrorCode anoncreds_create_master_secret(ObjectHandle *master_secret_p);
 
 ErrorCode anoncreds_create_or_update_revocation_state(ObjectHandle rev_reg_def,
-                                                      ObjectHandle rev_reg_delta,
+                                                      ObjectHandle rev_reg_list,
                                                       int64_t rev_reg_index,
-                                                      int64_t timestamp,
                                                       FfiStr tails_path,
                                                       ObjectHandle rev_state,
+                                                      ObjectHandle old_rev_reg_list,
                                                       ObjectHandle *rev_state_p);
 
 ErrorCode anoncreds_create_presentation(ObjectHandle pres_req,
@@ -296,6 +297,7 @@ ErrorCode anoncreds_create_revocation_registry(ObjectHandle cred_def,
 
 ErrorCode anoncreds_create_schema(FfiStr schema_name,
                                   FfiStr schema_version,
+                                  FfiStr issuer_id,
                                   FfiStrList attr_names,
                                   ObjectHandle *result_p);
 
