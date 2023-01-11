@@ -3,7 +3,7 @@ mod utils {
     pub use indy_utils::{qualifiable, Qualifiable};
 }
 
-pub use indy_utils::did;
+//pub use indy_utils::did;
 pub use indy_utils::keys;
 pub use indy_utils::{invalid, ConversionError, Validatable, ValidationError};
 

@@ -17,7 +17,6 @@ pub use crate::data_types::anoncreds::{
     schema::AttributeNames,
 };
 
-pub use indy_utils::did::DidValue;
 use indy_utils::{invalid, Validatable, ValidationError};
 
 use crate::error::Error;

@@ -81,7 +81,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
 
     // Prover creates a Credential Request
     let (cred_request, cred_request_metadata) = prover::create_credential_request(
-        &prover_wallet.did,
+        None,
         &*gvt_cred_def,
         &prover_wallet.master_secret,
         "default",
@@ -313,7 +313,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
 
     // Prover creates a Credential Request
     let (cred_request, cred_request_metadata) = prover::create_credential_request(
-        &prover_wallet.did,
+        None,
         &*gvt_cred_def,
         &prover_wallet.master_secret,
         "default",

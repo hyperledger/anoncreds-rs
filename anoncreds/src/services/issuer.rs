@@ -291,7 +291,7 @@ pub fn create_credential(
                 };
                 let (credential_signature, signature_correctness_proof, delta) =
                     CryptoIssuer::sign_credential_with_revoc(
-                        &cred_request.prover_did.0,
+                        &cred_request.prover_did,
                         &cred_request.blinded_ms,
                         &cred_request.blinded_ms_correctness_proof,
                         cred_offer.nonce.as_native(),
@@ -338,7 +338,7 @@ pub fn create_credential(
             }
             None => {
                 let (signature, correctness_proof) = CryptoIssuer::sign_credential(
-                    &cred_request.prover_did.0,
+                    &cred_request.prover_did,
                     &cred_request.blinded_ms,
                     &cred_request.blinded_ms_correctness_proof,
                     cred_offer.nonce.as_native(),

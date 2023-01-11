@@ -1,10 +1,9 @@
 use super::{cred_def::CredentialDefinitionId, nonce::Nonce};
 use crate::data_types::{Validatable, ValidationError};
-use indy_utils::did::DidValue;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialRequest {
-    pub prover_did: DidValue,
+    pub prover_did: String,
     pub cred_def_id: CredentialDefinitionId,
     pub blinded_ms: ursa::cl::BlindedCredentialSecrets,
     pub blinded_ms_correctness_proof: ursa::cl::BlindedCredentialSecretsCorrectnessProof,
@@ -13,7 +12,6 @@ pub struct CredentialRequest {
 
 impl Validatable for CredentialRequest {
     fn validate(&self) -> Result<(), ValidationError> {
-        self.prover_did.validate()?;
         self.cred_def_id.validate()?;
         Ok(())
     }
