@@ -16,7 +16,7 @@ use anoncreds::{
     types::{
         CredentialDefinitionConfig, CredentialRevocationConfig, CredentialRevocationState,
         IssuanceType, MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType,
-        RevocationRegistry, RevocationRegistryDefinition, RevocationStatusList, SignatureType,
+        RevocationStatusList, SignatureType,
     },
     verifier,
 };
@@ -339,11 +339,8 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let rev_reg_id = RevocationRegistryId::new_unchecked(REV_REG_ID);
 
     // Get the location of the tails_file so it can be read
-    let location = match rev_reg_def_pub.clone() {
-        RevocationRegistryDefinition::RevocationRegistryDefinitionV1(value) => {
-            value.value.tails_location
-        }
-    };
+    let location = rev_reg_def_pub.clone().value.tails_location;
+
     let tr = TailsFileReader::new_tails_reader(location.as_str());
 
     // The Prover's index in the revocation list is REV_IDX
@@ -414,9 +411,8 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     // Prover: here we deliberately do not put in the same timestamp as the global non_revoked time interval,
     // this shows that it is not used
     let prover_timestamp = 1234u64;
-    let rev_reg = match cred_rev_reg.clone() {
-        RevocationRegistry::RevocationRegistryV1(r) => r.value,
-    };
+    let rev_reg = cred_rev_reg.value.clone();
+
     let rev_state = CredentialRevocationState {
         timestamp: prover_timestamp,
         rev_reg: rev_reg.clone(),
@@ -477,9 +473,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     // revoked_bit is not a reference so can drop
     drop(revoked_bit);
 
-    let ursa_rev_reg = match revoked_rev_reg.clone() {
-        RevocationRegistry::RevocationRegistryV1(v) => v.value,
-    };
+    let ursa_rev_reg = revoked_rev_reg.value.clone();
 
     let revocation_list =
         RevocationStatusList::new(REV_REG_ID, list, ursa_rev_reg, prover_timestamp).unwrap();

@@ -104,12 +104,7 @@ pub fn process_credential(
     )?;
     let credential_values =
         build_credential_values(&credential.values.0, Some(&master_secret.value))?;
-    let rev_pub_key = match rev_reg_def {
-        Some(RevocationRegistryDefinition::RevocationRegistryDefinitionV1(def)) => {
-            Some(&def.value.public_keys.accum_key)
-        }
-        _ => None,
-    };
+    let rev_pub_key = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
 
     CryptoProver::process_credential_signature(
         &mut credential.signature,
@@ -270,7 +265,6 @@ pub fn create_or_update_revocation_state(
         old_rev_reg_list,
     );
 
-    let RevocationRegistryDefinition::RevocationRegistryDefinitionV1(revoc_reg_def) = revoc_reg_def;
     let mut issued = HashSet::<u32>::new();
     let mut revoked = HashSet::<u32>::new();
     let witness =

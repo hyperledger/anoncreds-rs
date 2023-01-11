@@ -13,11 +13,8 @@ use crate::data_types::anoncreds::schema::SchemaId;
 use crate::data_types::anoncreds::{
     cred_def::{CredentialDefinition, CredentialDefinitionData},
     nonce::Nonce,
-    rev_reg::{RevocationRegistryDeltaV1, RevocationRegistryV1},
-    rev_reg_def::{
-        RevocationRegistryDefinitionV1, RevocationRegistryDefinitionValue,
-        RevocationRegistryDefinitionValuePublicKeys,
-    },
+    rev_reg::RevocationRegistryDelta,
+    rev_reg_def::{RevocationRegistryDefinitionValue, RevocationRegistryDefinitionValuePublicKeys},
     schema::Schema,
 };
 use crate::error::Result;
@@ -164,18 +161,16 @@ where
         tails_hash,
     };
 
-    let revoc_reg_def = RevocationRegistryDefinition::RevocationRegistryDefinitionV1(
-        RevocationRegistryDefinitionV1 {
-            revoc_def_type: rev_reg_type,
-            tag: tag.to_string(),
-            cred_def_id,
-            value: revoc_reg_def_value,
-        },
-    );
+    let revoc_reg_def = RevocationRegistryDefinition {
+        revoc_def_type: rev_reg_type,
+        tag: tag.to_string(),
+        cred_def_id,
+        value: revoc_reg_def_value,
+    };
 
-    let revoc_reg = RevocationRegistry::RevocationRegistryV1(RevocationRegistryV1 {
+    let revoc_reg = RevocationRegistry {
         value: revoc_registry,
-    });
+    };
 
     // now update registry to reflect issuance-by-default
     let (revoc_reg, revoc_init_delta) = if issuance_type == IssuanceType::ISSUANCE_BY_DEFAULT {
@@ -214,10 +209,8 @@ pub fn update_revocation_registry(
     revoked: BTreeSet<u32>,
     tails_reader: &TailsReader,
 ) -> Result<(RevocationRegistry, RevocationRegistryDelta)> {
-    let RevocationRegistryDefinition::RevocationRegistryDefinitionV1(rev_reg_def) = rev_reg_def;
-    let mut rev_reg = match rev_reg {
-        RevocationRegistry::RevocationRegistryV1(v1) => v1.value.clone(),
-    };
+    let mut rev_reg = rev_reg.value.clone();
+
     let max_cred_num = rev_reg_def.value.max_cred_num;
     let delta = CryptoIssuer::update_revocation_registry(
         &mut rev_reg,
@@ -227,10 +220,8 @@ pub fn update_revocation_registry(
         tails_reader,
     )?;
     Ok((
-        RevocationRegistry::RevocationRegistryV1(RevocationRegistryV1 { value: rev_reg }),
-        RevocationRegistryDelta::RevocationRegistryDeltaV1(RevocationRegistryDeltaV1 {
-            value: delta,
-        }),
+        RevocationRegistry { value: rev_reg },
+        RevocationRegistryDelta { value: delta },
     ))
 }
 
@@ -290,12 +281,8 @@ pub fn create_credential(
     let (credential_signature, signature_correctness_proof, rev_reg, rev_reg_delta, witness) =
         match revocation_config {
             Some(revocation) => {
-                let rev_reg_def = match revocation.reg_def {
-                    RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => &v1.value,
-                };
-                let mut rev_reg = match revocation.registry {
-                    RevocationRegistry::RevocationRegistryV1(v1) => v1.value.clone(),
-                };
+                let rev_reg_def = &revocation.reg_def.value;
+                let mut rev_reg = revocation.registry.value.clone();
 
                 let (credential_signature, signature_correctness_proof, delta) =
                     CryptoIssuer::sign_credential_with_revoc(
@@ -370,13 +357,8 @@ pub fn create_credential(
         witness,
     };
 
-    let rev_reg = rev_reg
-        .map(|reg| RevocationRegistry::RevocationRegistryV1(RevocationRegistryV1 { value: reg }));
-    let rev_reg_delta = rev_reg_delta.map(|delta| {
-        RevocationRegistryDelta::RevocationRegistryDeltaV1(RevocationRegistryDeltaV1 {
-            value: delta,
-        })
-    });
+    let rev_reg = rev_reg.map(|reg| RevocationRegistry { value: reg });
+    let rev_reg_delta = rev_reg_delta.map(|delta| RevocationRegistryDelta { value: delta });
 
     trace!(
         "create_credential <<< credential {:?}, rev_reg_delta {:?}",
@@ -400,20 +382,15 @@ pub fn revoke_credential(
         secret!(&cred_rev_idx)
     );
 
-    let max_cred_num = match rev_reg_def {
-        RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => v1.value.max_cred_num,
-    };
-    let mut rev_reg = match rev_reg {
-        RevocationRegistry::RevocationRegistryV1(v1) => v1.value.clone(),
-    };
+    let max_cred_num = rev_reg_def.value.max_cred_num;
+    let mut rev_reg = rev_reg.value.clone();
     let rev_reg_delta =
         CryptoIssuer::revoke_credential(&mut rev_reg, max_cred_num, cred_rev_idx, tails_reader)?;
 
-    let new_rev_reg =
-        RevocationRegistry::RevocationRegistryV1(RevocationRegistryV1 { value: rev_reg });
-    let delta = RevocationRegistryDelta::RevocationRegistryDeltaV1(RevocationRegistryDeltaV1 {
+    let new_rev_reg = RevocationRegistry { value: rev_reg };
+    let delta = RevocationRegistryDelta {
         value: rev_reg_delta,
-    });
+    };
     trace!("revoke <<< rev_reg_delta {:?}", delta);
 
     Ok((new_rev_reg, delta))
@@ -433,20 +410,16 @@ pub fn recover_credential(
         secret!(&cred_rev_idx)
     );
 
-    let max_cred_num = match rev_reg_def {
-        RevocationRegistryDefinition::RevocationRegistryDefinitionV1(v1) => v1.value.max_cred_num,
-    };
-    let mut rev_reg = match rev_reg {
-        RevocationRegistry::RevocationRegistryV1(v1) => v1.value.clone(),
-    };
+    let max_cred_num = rev_reg_def.value.max_cred_num;
+    let mut rev_reg = rev_reg.value.clone();
+
     let rev_reg_delta =
         CryptoIssuer::recovery_credential(&mut rev_reg, max_cred_num, cred_rev_idx, tails_reader)?;
 
-    let new_rev_reg =
-        RevocationRegistry::RevocationRegistryV1(RevocationRegistryV1 { value: rev_reg });
-    let delta = RevocationRegistryDelta::RevocationRegistryDeltaV1(RevocationRegistryDeltaV1 {
+    let new_rev_reg = RevocationRegistry { value: rev_reg };
+    let delta = RevocationRegistryDelta {
         value: rev_reg_delta,
-    });
+    };
     trace!("recover <<< rev_reg_delta {:?}", delta);
 
     Ok((new_rev_reg, delta))
@@ -456,16 +429,9 @@ pub fn merge_revocation_registry_deltas(
     rev_reg_delta: &RevocationRegistryDelta,
     other_delta: &RevocationRegistryDelta,
 ) -> Result<RevocationRegistryDelta> {
-    match (rev_reg_delta, other_delta) {
-        (
-            RevocationRegistryDelta::RevocationRegistryDeltaV1(v1),
-            RevocationRegistryDelta::RevocationRegistryDeltaV1(other),
-        ) => {
-            let mut result = v1.clone();
-            result.value.merge(&other.value)?;
-            Ok(RevocationRegistryDelta::RevocationRegistryDeltaV1(result))
-        }
-    }
+    let mut result = rev_reg_delta.clone();
+    result.value.merge(&other_delta.value)?;
+    Ok(result)
 }
 
 #[cfg(test)]

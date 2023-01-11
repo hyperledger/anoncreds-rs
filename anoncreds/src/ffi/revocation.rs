@@ -180,21 +180,9 @@ pub extern "C" fn anoncreds_revocation_registry_definition_get_attribute(
         let reg_def = handle.load()?;
         let reg_def = reg_def.cast_ref::<RevocationRegistryDefinition>()?;
         let val = match name.as_opt_str().unwrap_or_default() {
-            "max_cred_num" => match reg_def {
-                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => {
-                    r.value.max_cred_num.to_string()
-                }
-            },
-            "tails_hash" => match reg_def {
-                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => {
-                    r.value.tails_hash.to_string()
-                }
-            },
-            "tails_location" => match reg_def {
-                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => {
-                    r.value.tails_location.to_string()
-                }
-            },
+            "max_cred_num" => reg_def.value.max_cred_num.to_string(),
+            "tails_hash" => reg_def.value.tails_hash.to_string(),
+            "tails_location" => reg_def.value.tails_location.to_string(),
             s => return Err(err_msg!("Unsupported attribute: {}", s)),
         };
         unsafe { *result_p = rust_string_to_c(val) };

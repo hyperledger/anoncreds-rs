@@ -84,22 +84,15 @@ pub struct RevocationRegistryDefinitionValuePublicKeys {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "ver")]
-pub enum RevocationRegistryDefinition {
-    #[serde(rename = "1.0")]
-    RevocationRegistryDefinitionV1(RevocationRegistryDefinitionV1),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RevocationRegistryDefinitionV1 {
+pub struct RevocationRegistryDefinition {
     pub revoc_def_type: RegistryType,
     pub tag: String,
     pub cred_def_id: CredentialDefinitionId,
     pub value: RevocationRegistryDefinitionValue,
 }
 
-impl Validatable for RevocationRegistryDefinitionV1 {
+impl Validatable for RevocationRegistryDefinition {
     fn validate(&self) -> Result<(), ValidationError> {
         self.cred_def_id.validate()
     }
