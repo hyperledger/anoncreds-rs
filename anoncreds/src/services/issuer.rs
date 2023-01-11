@@ -1,7 +1,7 @@
 use std::collections::{BTreeSet, HashSet};
 use std::iter::FromIterator;
 
-use indy_utils::ValidationError;
+use indy_utils::{Validatable, ValidationError};
 
 use super::types::*;
 use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
@@ -42,8 +42,9 @@ where
         schema_version,
         attr_names,
     );
-
     let issuer_id = issuer_id.try_into()?;
+
+    attr_names.validate()?;
 
     let schema = Schema {
         name: schema_name.to_string(),
