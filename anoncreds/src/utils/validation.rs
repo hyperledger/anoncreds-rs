@@ -14,3 +14,8 @@ pub const URI_IDENTIFIER: Lazy<Regex> =
 /// to fall within the base58 alphabet, but there is not much we can do about that.
 pub const LEGACY_IDENTIFIER: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}$").unwrap());
+
+
+pub fn is_uri_identifier(id: &str) -> bool {
+    URI_IDENTIFIER.captures(id).is_some()
+}

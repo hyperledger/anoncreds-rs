@@ -1,12 +1,3 @@
-macro_rules! unwrap_opt_or_return {
-    ($opt:expr, $err:expr) => {
-        match $opt {
-            Some(val) => val,
-            None => return $err,
-        }
-    };
-}
-
 /// Used to optionally add Serialize and Deserialize traits to Qualifiable types
 #[cfg(feature = "serde")]
 #[macro_export]

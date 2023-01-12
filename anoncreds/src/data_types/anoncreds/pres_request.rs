@@ -6,8 +6,8 @@ use serde_json::Value;
 
 use super::credential::Credential;
 use super::nonce::Nonce;
-use crate::data_types::utils::qualifiable;
 use crate::data_types::{Validatable, ValidationError};
+use crate::utils::validation;
 use indy_utils::invalid;
 use indy_utils::query::Query;
 
@@ -279,7 +279,7 @@ fn _check_restriction(
 ) -> Result<(), ValidationError> {
     if *version == PresentationRequestVersion::V1
         && Credential::QUALIFIABLE_TAGS.contains(&tag_name)
-        && qualifiable::is_fully_qualified(tag_value)
+        && validation::is_uri_identifier(tag_value)
     {
         return Err(invalid!("Presentation request validation failed: fully qualified identifiers can not be used for presentation request of the first version. \
                     Please, set \"ver\":\"2.0\" to use fully qualified identifiers."));
