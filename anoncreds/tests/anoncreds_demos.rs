@@ -111,6 +111,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         cred_values.into(),
         None,
         None,
+        None,
     )
     .expect("Error creating credential");
 

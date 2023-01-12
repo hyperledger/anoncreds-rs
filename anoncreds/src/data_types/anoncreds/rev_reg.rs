@@ -63,6 +63,10 @@ impl RevocationStatusList {
         self.revocation_list.clone()
     }
 
+    pub(crate) fn get(&self, idx: usize) -> Option<bool> {
+        self.revocation_list.get(idx).as_deref().copied()
+    }
+
     pub fn new(
         rev_reg_id: &str,
         revocation_list: bitvec::vec::BitVec,

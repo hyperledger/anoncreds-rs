@@ -256,6 +256,7 @@ pub fn create_credential(
     cred_request: &CredentialRequest,
     cred_values: CredentialValues,
     rev_reg_id: Option<RevocationRegistryId>,
+    rev_status_list: Option<&RevocationStatusList>,
     revocation_config: Option<CredentialRevocationConfig>,
 ) -> Result<(
     Credential,
@@ -277,10 +278,28 @@ pub fn create_credential(
     let prover_did = cred_request.prover_did.as_ref().unwrap_or(&rand_str);
 
     let (credential_signature, signature_correctness_proof, rev_reg, rev_reg_delta, witness) =
-        match revocation_config {
-            Some(revocation) => {
-                let rev_reg_def = &revocation.reg_def.value;
-                let mut rev_reg = revocation.registry.value.clone();
+        match (revocation_config, rev_status_list ) {
+            (Some(revocation_config), Some(rev_status_list)) => {
+                let rev_reg_def = &revocation_config.reg_def.value;
+                let mut rev_reg = revocation_config.registry.value.clone();
+
+                let status = rev_status_list.get(revocation_config.registry_idx as usize).ok_or_else(||
+                    err_msg!("Revocation status list does not have the index {}", revocation_config.registry_idx)
+                )?;
+
+                // This will be a temporary solution for the `issuance_on_demand` vs
+                // `issuance_by_default` state. Right now, we pass in the revcation status list and
+                // we check in this list whether the provided idx (revocation_config.registry_idx)
+                // is inside the revocation status list. If it is not in there we hit an edge case,
+                // which should not be possible within the happy flow.
+                //
+                // If the index is inside the revocation status list we check whether it is set to
+                // `true` or `false` within the bitvec.
+                // When it is set to `true`, or 1, we invert the value. This means that we use 
+                // `issuance_on_demand`.
+                // When it is set to `false`, or 0, we invert the value. This means that we use
+                // `issuance_by_default`.
+                let issuance_type = !status;
 
                 let (credential_signature, signature_correctness_proof, delta) =
                     CryptoIssuer::sign_credential_with_revoc(
@@ -292,27 +311,26 @@ pub fn create_credential(
                         &credential_values,
                         &cred_public_key,
                         &cred_def_private.value,
-                        revocation.registry_idx,
+                        revocation_config.registry_idx,
                         rev_reg_def.max_cred_num,
-                        // issuance by default
-                        true,
+                        issuance_type,
                         &mut rev_reg,
-                        &revocation.reg_def_private.value,
-                        &revocation.tails_reader,
+                        &revocation_config.reg_def_private.value,
+                        &revocation_config.tails_reader,
                     )?;
 
                 let witness = {
                     let empty = HashSet::new();
-                    let (by_default, issued, revoked) = (true, &empty, revocation.registry_used);
+                    let (by_default, issued, revoked) = (true, &empty, revocation_config.registry_used);
 
                     let rev_reg_delta =
                         CryptoRevocationRegistryDelta::from_parts(None, &rev_reg, issued, revoked);
                     Witness::new(
-                        revocation.registry_idx,
+                        revocation_config.registry_idx,
                         rev_reg_def.max_cred_num,
                         by_default,
                         &rev_reg_delta,
-                        &revocation.tails_reader,
+                        &revocation_config.tails_reader,
                     )?
                 };
                 (
@@ -323,7 +341,7 @@ pub fn create_credential(
                     Some(witness),
                 )
             }
-            None => {
+            _ => {
                 let (signature, correctness_proof) = CryptoIssuer::sign_credential(
                     prover_did,
                     &cred_request.blinded_ms,
