@@ -265,6 +265,15 @@ pub fn create_or_update_revocation_state(
         old_rev_status_list,
     );
 
+    let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_status_list.into();
+    let rev_reg = rev_reg.ok_or(err_msg!(
+        "revocation registry is required to create or update the revocation state"
+    ))?;
+
+    let timestamp = rev_status_list.timestamp().ok_or_else(|| {
+        err_msg!("Timestamp is required to create or update the revocation state")
+    })?;
+
     let mut issued = HashSet::<u32>::new();
     let mut revoked = HashSet::<u32>::new();
     let witness = if let (Some(source_rev_state), Some(source_rev_list)) =
@@ -279,9 +288,11 @@ pub fn create_or_update_revocation_state(
             &mut revoked,
         );
 
+        let source_rev_reg: Option<ursa::cl::RevocationRegistry> = source_rev_list.into();
+
         let rev_reg_delta = RevocationRegistryDelta::from_parts(
-            Some(&source_rev_list.into()),
-            &rev_status_list.into(),
+            source_rev_reg.as_ref(),
+            &rev_reg,
             &issued,
             &revoked,
         );
@@ -305,8 +316,11 @@ pub fn create_or_update_revocation_state(
             &mut issued,
             &mut revoked,
         );
-        let rev_reg_delta =
-            RevocationRegistryDelta::from_parts(None, &rev_status_list.into(), &issued, &revoked);
+        let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_status_list.into();
+        let rev_reg = rev_reg.ok_or(err_msg!(
+            "revocation registry is not inside the revocation status list"
+        ))?;
+        let rev_reg_delta = RevocationRegistryDelta::from_parts(None, &rev_reg, &issued, &revoked);
         Witness::new(
             rev_reg_idx,
             revoc_reg_def.value.max_cred_num,
@@ -319,8 +333,8 @@ pub fn create_or_update_revocation_state(
 
     Ok(CredentialRevocationState {
         witness,
-        rev_reg: rev_status_list.into(),
-        timestamp: rev_status_list.timestamp(),
+        rev_reg,
+        timestamp,
     })
 }
 

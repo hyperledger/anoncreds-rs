@@ -348,6 +348,10 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     // The Prover's index in the revocation list is REV_IDX
     let registry_used = HashSet::from([REV_IDX]);
 
+    let list = bitvec![0; MAX_CRED_NUM as usize ];
+    let mut revocation_status_list =
+        RevocationStatusList::new(None, list, None, None).expect("Error creating status list");
+
     // TODO: Here Delta is not needed but is it used elsewhere?
     let (issue_cred, cred_rev_reg, _) = issuer::create_credential(
         &*gvt_cred_def,
@@ -356,8 +360,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         &cred_request,
         cred_values.into(),
         Some(rev_reg_def_id.clone()),
-        // TODO: this should be a rev_status_list
-        None,
+        Some(&revocation_status_list),
         Some(CredentialRevocationConfig {
             reg_def: &rev_reg_def_pub,
             reg_def_private: &rev_reg_def_priv,
@@ -369,6 +372,8 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     )
     .expect("Error creating credential");
     let cred_rev_reg = cred_rev_reg.unwrap();
+
+    revocation_status_list.set_registry(cred_rev_reg.value.clone());
 
     // Prover receives the credential and processes it
     let mut recv_cred = issue_cred;
@@ -481,8 +486,13 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
 
     let ursa_rev_reg = revoked_rev_reg.value.clone();
 
-    let revocation_list =
-        RevocationStatusList::new(REV_REG_DEF_ID, list, ursa_rev_reg, prover_timestamp).unwrap();
+    let revocation_list = RevocationStatusList::new(
+        Some(REV_REG_DEF_ID),
+        list,
+        Some(ursa_rev_reg),
+        Some(prover_timestamp),
+    )
+    .unwrap();
     let new_rev_state = prover::create_or_update_revocation_state(
         tr,
         &rev_reg_def_pub,
