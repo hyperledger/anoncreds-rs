@@ -278,14 +278,19 @@ pub fn create_credential(
     let prover_did = cred_request.prover_did.as_ref().unwrap_or(&rand_str);
 
     let (credential_signature, signature_correctness_proof, rev_reg, rev_reg_delta, witness) =
-        match (revocation_config, rev_status_list ) {
+        match (revocation_config, rev_status_list) {
             (Some(revocation_config), Some(rev_status_list)) => {
                 let rev_reg_def = &revocation_config.reg_def.value;
                 let mut rev_reg = revocation_config.registry.value.clone();
 
-                let status = rev_status_list.get(revocation_config.registry_idx as usize).ok_or_else(||
-                    err_msg!("Revocation status list does not have the index {}", revocation_config.registry_idx)
-                )?;
+                let status = rev_status_list
+                    .get(revocation_config.registry_idx as usize)
+                    .ok_or_else(|| {
+                        err_msg!(
+                            "Revocation status list does not have the index {}",
+                            revocation_config.registry_idx
+                        )
+                    })?;
 
                 // This will be a temporary solution for the `issuance_on_demand` vs
                 // `issuance_by_default` state. Right now, we pass in the revcation status list and
@@ -295,7 +300,7 @@ pub fn create_credential(
                 //
                 // If the index is inside the revocation status list we check whether it is set to
                 // `true` or `false` within the bitvec.
-                // When it is set to `true`, or 1, we invert the value. This means that we use 
+                // When it is set to `true`, or 1, we invert the value. This means that we use
                 // `issuance_on_demand`.
                 // When it is set to `false`, or 0, we invert the value. This means that we use
                 // `issuance_by_default`.
@@ -321,7 +326,8 @@ pub fn create_credential(
 
                 let witness = {
                     let empty = HashSet::new();
-                    let (by_default, issued, revoked) = (true, &empty, revocation_config.registry_used);
+                    let (by_default, issued, revoked) =
+                        (true, &empty, revocation_config.registry_used);
 
                     let rev_reg_delta =
                         CryptoRevocationRegistryDelta::from_parts(None, &rev_reg, issued, revoked);

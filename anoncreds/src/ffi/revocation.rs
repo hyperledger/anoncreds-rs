@@ -232,17 +232,17 @@ impl_anoncreds_object_from_json!(RevocationStatusList, anoncreds_revocation_list
 #[no_mangle]
 pub extern "C" fn anoncreds_create_or_update_revocation_state(
     rev_reg_def: ObjectHandle,
-    rev_reg_list: ObjectHandle,
+    rev_status_list: ObjectHandle,
     rev_reg_index: i64,
     tails_path: FfiStr,
     rev_state: ObjectHandle,
-    old_rev_reg_list: ObjectHandle,
+    old_rev_status_list: ObjectHandle,
     rev_state_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(rev_state_p);
         let prev_rev_state = rev_state.opt_load()?;
-        let prev_rev_reg_list = old_rev_reg_list.opt_load()?;
+        let prev_rev_status_list = old_rev_status_list.opt_load()?;
         let tails_reader = TailsFileReader::new_tails_reader(
             tails_path
                 .as_opt_str()
@@ -251,7 +251,7 @@ pub extern "C" fn anoncreds_create_or_update_revocation_state(
         let rev_state = create_or_update_revocation_state(
             tails_reader,
             rev_reg_def.load()?.cast_ref()?,
-            rev_reg_list.load()?.cast_ref()?,
+            rev_status_list.load()?.cast_ref()?,
             rev_reg_index
                 .try_into()
                 .map_err(|_| err_msg!("Invalid credential revocation index"))?,
@@ -259,7 +259,7 @@ pub extern "C" fn anoncreds_create_or_update_revocation_state(
                 .as_ref()
                 .map(AnonCredsObject::cast_ref)
                 .transpose()?,
-            prev_rev_reg_list
+            prev_rev_status_list
                 .as_ref()
                 .map(AnonCredsObject::cast_ref)
                 .transpose()?,

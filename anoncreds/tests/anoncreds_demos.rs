@@ -33,6 +33,7 @@ pub static CRED_DEF_ID: &str = "mock:uri";
 pub static ISSUER_ID: &str = "mock:issuer_id/path&q=bar";
 pub const GVT_SCHEMA_NAME: &str = "gvt";
 pub const GVT_SCHEMA_ATTRIBUTES: &[&str; 4] = &["name", "age", "sex", "height"];
+pub static REV_REG_DEF_ID: &str = "mock:uri:revregdefid";
 pub static REV_REG_ID: &str = "mock:uri:revregid";
 pub static REV_IDX: u32 = 89;
 pub static MAX_CRED_NUM: u32 = 150;
@@ -337,7 +338,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         .add_raw("age", "28")
         .expect("Error encoding attribute");
 
-    let rev_reg_id = RevocationRegistryId::new_unchecked(REV_REG_ID);
+    let rev_reg_def_id = RevocationRegistryId::new_unchecked(REV_REG_DEF_ID);
 
     // Get the location of the tails_file so it can be read
     let location = rev_reg_def_pub.clone().value.tails_location;
@@ -354,7 +355,9 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         &cred_offer,
         &cred_request,
         cred_values.into(),
-        Some(rev_reg_id.clone()),
+        Some(rev_reg_def_id.clone()),
+        // TODO: this should be a rev_status_list
+        None,
         Some(CredentialRevocationConfig {
             reg_def: &rev_reg_def_pub,
             reg_def_private: &rev_reg_def_priv,
@@ -444,11 +447,13 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
 
     // Verifier verifies presentation of not Revoked rev_state
     // TODO: rev reg def id is the same as the rev reg id?
-    let rev_reg_def_id = RevocationRegistryDefinitionId::new_unchecked(REV_REG_ID);
+    let rev_reg_def_id = RevocationRegistryDefinitionId::new_unchecked(REV_REG_DEF_ID);
     let rev_reg_def_map = HashMap::from([(&rev_reg_def_id, &rev_reg_def_pub)]);
 
     // Create the map that contines the registries
     let rev_timestamp_map = HashMap::from([(prover_timestamp, &cred_rev_reg)]);
+
+    let rev_reg_id = RevocationRegistryId::new_unchecked(REV_REG_ID);
     let mut rev_reg_map = HashMap::from([(rev_reg_id.clone(), rev_timestamp_map.clone())]);
 
     let valid = verifier::verify_presentation(
@@ -477,7 +482,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let ursa_rev_reg = revoked_rev_reg.value.clone();
 
     let revocation_list =
-        RevocationStatusList::new(REV_REG_ID, list, ursa_rev_reg, prover_timestamp).unwrap();
+        RevocationStatusList::new(REV_REG_DEF_ID, list, ursa_rev_reg, prover_timestamp).unwrap();
     let new_rev_state = prover::create_or_update_revocation_state(
         tr,
         &rev_reg_def_pub,
