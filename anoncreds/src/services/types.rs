@@ -17,10 +17,13 @@ pub use crate::data_types::anoncreds::{
     schema::AttributeNames,
 };
 
-use crate::{utils::{validation::Validatable, error::ValidationError}, invalid};
-use crate::error::Error;
 use crate::services::helpers::encode_credential_attribute;
 use crate::ursa::cl::{RevocationRegistry as CryptoRevocationRegistry, Witness};
+use crate::{
+    error::{Error, ValidationError},
+    invalid,
+    utils::validation::Validatable,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CredentialDefinitionConfig {

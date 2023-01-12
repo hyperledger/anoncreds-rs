@@ -2,8 +2,8 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
+use crate::error::ConversionError;
 use crate::ursa::cl::{new_nonce, Nonce as UrsaNonce};
-use crate::utils::error::ConversionError;
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 
 pub struct Nonce {

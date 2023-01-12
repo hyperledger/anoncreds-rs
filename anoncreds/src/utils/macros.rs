@@ -1,17 +1,8 @@
 /// Used to optionally add Serialize and Deserialize traits to Qualifiable types
-#[cfg(feature = "serde")]
 #[macro_export]
 macro_rules! serde_derive_impl {
     ($def:item) => {
         #[derive(Serialize, Deserialize)]
-        $def
-    };
-}
-
-#[cfg(not(feature = "serde"))]
-#[macro_export]
-macro_rules! serde_derive_impl {
-    ($def:item) => {
         $def
     };
 }
@@ -57,7 +48,7 @@ macro_rules! new_handle_type (($newtype:ident, $counter:ident) => (
     }
 
     impl $crate::utils::validation::Validatable for $newtype {
-        fn validate(&self) -> std::result::Result<(), $crate::utils::error::ValidationError> {
+        fn validate(&self) -> std::result::Result<(), $crate::error::ValidationError> {
             if(**self == 0) {
                 Err("Invalid handle: zero".into())
             } else {

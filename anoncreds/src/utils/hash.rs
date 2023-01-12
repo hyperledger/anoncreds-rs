@@ -1,6 +1,6 @@
 pub use sha2::Digest;
 
-use super::error::ValidationError;
+use crate::error::ValidationError;
 
 /// Derive a new hash type
 #[macro_export]

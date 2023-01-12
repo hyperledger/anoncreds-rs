@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::{impl_anoncreds_object_identifier, utils::error::ConversionError};
+use crate::{error::ConversionError, impl_anoncreds_object_identifier};
 
 use super::{issuer_id::IssuerId, schema::SchemaId};
 

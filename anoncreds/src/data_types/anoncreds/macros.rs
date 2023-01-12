@@ -1,8 +1,8 @@
 #[macro_export]
 macro_rules! impl_anoncreds_object_identifier {
     ($i:ident) => {
+        use $crate::error::ValidationError;
         use $crate::utils::validation::{Validatable, LEGACY_IDENTIFIER, URI_IDENTIFIER};
-        use $crate::utils::error::ValidationError;
 
         #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Default)]
         pub struct $i(pub String);
@@ -19,15 +19,11 @@ macro_rules! impl_anoncreds_object_identifier {
             }
 
             pub fn is_legacy(&self) -> bool {
-                LEGACY_IDENTIFIER
-                    .captures(&self.0)
-                    .is_some()
+                LEGACY_IDENTIFIER.captures(&self.0).is_some()
             }
 
             pub fn is_uri(&self) -> bool {
-                URI_IDENTIFIER
-                    .captures(&self.0)
-                    .is_some()
+                URI_IDENTIFIER.captures(&self.0).is_some()
             }
         }
 

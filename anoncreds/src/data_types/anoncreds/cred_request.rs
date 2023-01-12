@@ -1,4 +1,5 @@
-use crate::utils::{validation::Validatable, error::ValidationError};
+use crate::error::ValidationError;
+use crate::utils::validation::Validatable;
 
 use super::{cred_def::CredentialDefinitionId, nonce::Nonce};
 

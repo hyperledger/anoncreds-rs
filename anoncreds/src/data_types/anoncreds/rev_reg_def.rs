@@ -1,8 +1,6 @@
 use std::str::FromStr;
 
-use crate::{
-    impl_anoncreds_object_identifier, utils::error::ConversionError, invalid,
-};
+use crate::{error::ConversionError, impl_anoncreds_object_identifier, invalid};
 
 use super::cred_def::CredentialDefinitionId;
 

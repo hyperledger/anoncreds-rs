@@ -5,8 +5,6 @@ use std::iter::FromIterator;
 
 use super::types::*;
 
-use crate::utils::validation::Validatable;
-use crate::utils::error::ValidationError;
 use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
 use crate::data_types::anoncreds::issuer_id::IssuerId;
 use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
@@ -22,11 +20,13 @@ use crate::data_types::anoncreds::{
     schema::Schema,
 };
 use crate::error::Result;
+use crate::error::ValidationError;
 use crate::services::helpers::*;
 use crate::ursa::cl::{
     issuer::Issuer as CryptoIssuer, RevocationRegistryDelta as CryptoRevocationRegistryDelta,
     Witness,
 };
+use crate::utils::validation::Validatable;
 
 use super::tails::{TailsFileReader, TailsReader, TailsWriter};
 

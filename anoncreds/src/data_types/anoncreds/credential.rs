@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use zeroize::Zeroize;
 
-use crate::utils::{error::{ValidationError, ConversionError}, validation::Validatable};
+use crate::error::{ConversionError, ValidationError};
+use crate::utils::validation::Validatable;
 
 use super::{cred_def::CredentialDefinitionId, rev_reg::RevocationRegistryId, schema::SchemaId};
 

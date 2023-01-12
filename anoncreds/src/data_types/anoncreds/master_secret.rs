@@ -1,7 +1,8 @@
 use std::fmt;
 
-use crate::{ursa::cl::{prover::Prover as UrsaProver, MasterSecret as UrsaMasterSecret}, utils::error::ConversionError};
+use crate::error::ConversionError;
 use serde::{Deserialize, Serialize};
+use ursa::cl::{prover::Prover as UrsaProver, MasterSecret as UrsaMasterSecret};
 
 #[derive(Serialize, Deserialize)]
 pub struct MasterSecret {

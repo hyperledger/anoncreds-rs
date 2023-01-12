@@ -6,10 +6,12 @@ use serde_json::Value;
 
 use super::credential::Credential;
 use super::nonce::Nonce;
+use crate::error::ValidationError;
 use crate::invalid;
-use crate::utils::error::ValidationError;
-use crate::utils::query::Query;
-use crate::utils::validation::{self, Validatable};
+use crate::utils::{
+    query::Query,
+    validation::{self, Validatable},
+};
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct PresentationRequestPayload {

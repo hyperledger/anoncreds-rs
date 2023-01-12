@@ -1,4 +1,4 @@
-use super::error::ValidationError;
+use crate::error::ValidationError;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -23,9 +23,9 @@ pub fn is_uri_identifier(id: &str) -> bool {
 /// Macro to return a new `ValidationError` with an optional message
 #[macro_export]
 macro_rules! invalid {
-    () => { $crate::utils::error::ValidationError::from(None) };
+    () => { $crate::error::ValidationError::from(None) };
     ($($arg:tt)+) => {
-        $crate::utils::error::ValidationError::from(format!($($arg)+))
+        $crate::error::ValidationError::from(format!($($arg)+))
     };
 }
 

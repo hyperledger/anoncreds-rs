@@ -118,7 +118,6 @@ define_error!(
     "Error type for failures of `Validatable::validate`"
 );
 
-#[cfg(feature = "serde")]
 impl From<serde_json::error::Error> for ConversionError {
     fn from(err: serde_json::error::Error) -> Self {
         Self::from_msg(err.to_string())
