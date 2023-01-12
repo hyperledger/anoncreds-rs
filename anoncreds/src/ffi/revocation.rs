@@ -7,12 +7,19 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, ObjectHandle};
 use super::util::FfiList;
-use crate::data_types::rev_reg::{RevocationRegistry, RevocationRegistryDelta, RevocationStatusList};
-use crate::data_types::rev_reg_def::{RegistryType, IssuanceType, RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate};
+use crate::data_types::rev_reg::{
+    RevocationRegistry, RevocationRegistryDelta, RevocationStatusList,
+};
+use crate::data_types::rev_reg_def::{
+    IssuanceType, RegistryType, RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate,
+};
 use crate::error::Result;
-use crate::issuer::{create_revocation_registry, update_revocation_registry, revoke_credential, merge_revocation_registry_deltas};
+use crate::issuer::{
+    create_revocation_registry, merge_revocation_registry_deltas, revoke_credential,
+    update_revocation_registry,
+};
 use crate::prover::create_or_update_revocation_state;
-use crate::tails::{TailsFileWriter, TailsFileReader};
+use crate::tails::{TailsFileReader, TailsFileWriter};
 use crate::types::CredentialRevocationState;
 
 #[no_mangle]

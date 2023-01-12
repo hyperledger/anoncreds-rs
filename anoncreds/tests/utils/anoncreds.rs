@@ -1,8 +1,8 @@
 use anoncreds::types::{CredentialDefinitionPrivate, CredentialKeyCorrectnessProof};
 
-use anoncreds::data_types::anoncreds::cred_def::CredentialDefinition;
-use anoncreds::data_types::anoncreds::credential::Credential;
-use anoncreds::data_types::anoncreds::master_secret::MasterSecret;
+use anoncreds::data_types::cred_def::CredentialDefinition;
+use anoncreds::data_types::credential::Credential;
+use anoncreds::data_types::master_secret::MasterSecret;
 
 pub struct StoredCredDef {
     pub public: CredentialDefinition,

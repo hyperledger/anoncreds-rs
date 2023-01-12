@@ -4,7 +4,7 @@ use std::{
 };
 
 use anoncreds::{
-    data_types::anoncreds::{
+    data_types::{
         cred_def::{CredentialDefinition, CredentialDefinitionId},
         presentation::Presentation,
         rev_reg::RevocationRegistryId,

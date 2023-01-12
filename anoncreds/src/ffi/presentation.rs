@@ -14,9 +14,7 @@ use crate::data_types::rev_reg_def::{
 use crate::data_types::schema::{Schema, SchemaId};
 use crate::error::Result;
 use crate::services::{
-    prover::create_presentation,
-    types::PresentCredentials,
-    verifier::verify_presentation,
+    prover::create_presentation, types::PresentCredentials, verifier::verify_presentation,
 };
 
 impl_anoncreds_object!(Presentation, "Presentation");
