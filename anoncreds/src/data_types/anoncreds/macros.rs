@@ -14,6 +14,18 @@ macro_rules! impl_anoncreds_object_identifier {
                 $crate::data_types::Validatable::validate(&s)?;
                 Ok(s)
             }
+
+            pub fn is_legacy(&self) -> bool {
+                $crate::utils::validation::LEGACY_IDENTIFIER
+                    .captures(&self.0)
+                    .is_some()
+            }
+
+            pub fn is_uri(&self) -> bool {
+                $crate::utils::validation::URI_IDENTIFIER
+                    .captures(&self.0)
+                    .is_some()
+            }
         }
 
         impl $crate::data_types::Validatable for $i {

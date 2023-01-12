@@ -33,7 +33,7 @@ pub fn create_master_secret() -> Result<MasterSecret> {
 }
 
 pub fn create_credential_request(
-    prover_did: &DidValue,
+    prover_did: Option<&str>,
     cred_def: &CredentialDefinition,
     master_secret: &MasterSecret,
     master_secret_id: &str,
@@ -66,7 +66,7 @@ pub fn create_credential_request(
         )?;
 
     let credential_request = CredentialRequest {
-        prover_did: prover_did.clone(),
+        prover_did: prover_did.map(|d| d.to_owned()),
         cred_def_id: credential_offer.cred_def_id.to_owned(),
         blinded_ms,
         blinded_ms_correctness_proof,

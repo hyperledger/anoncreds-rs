@@ -1,16 +1,16 @@
 use ffi_support::FfiStr;
-use indy_utils::Qualifiable;
 
 use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
+use crate::data_types::anoncreds::cred_def::CredentialDefinition;
 use crate::services::{
     prover::create_credential_request,
-    types::{CredentialRequest, CredentialRequestMetadata, DidValue},
+    types::{CredentialRequest, CredentialRequestMetadata},
 };
 
 #[no_mangle]
 pub extern "C" fn anoncreds_create_credential_request(
-    prover_did: FfiStr,
+    prover_did: FfiStr, // optional
     cred_def: ObjectHandle,
     master_secret: ObjectHandle,
     master_secret_id: FfiStr,
@@ -21,18 +21,25 @@ pub extern "C" fn anoncreds_create_credential_request(
     catch_error(|| {
         check_useful_c_ptr!(cred_req_p);
         check_useful_c_ptr!(cred_req_meta_p);
-        let prover_did = {
-            let did = prover_did
-                .as_opt_str()
-                .ok_or_else(|| err_msg!("Missing prover DID"))?;
-            DidValue::from_str(did)?
-        };
         let master_secret_id = master_secret_id
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing master secret ID"))?;
+
+        // Here we check whether the identifiers inside the cred_def (schema_id, and issuer_id)
+        // are legacy or new. If they are new, it is not allowed to supply a `prover_did` and a
+        // random string will be chosen for you.
+        let cred_def = cred_def.load()?;
+        let cred_def: &CredentialDefinition = cred_def.cast_ref()?;
+        if cred_def.schema_id.is_uri() || cred_def.issuer_id.is_uri() {
+            return Err(err_msg!(
+                "Prover did must not be supplied when using new identifiers"
+            ));
+        }
+
+        let prover_did = prover_did.as_opt_str();
         let (cred_req, cred_req_metadata) = create_credential_request(
-            &prover_did,
-            cred_def.load()?.cast_ref()?,
+            prover_did,
+            cred_def,
             master_secret.load()?.cast_ref()?,
             master_secret_id,
             cred_offer.load()?.cast_ref()?,
