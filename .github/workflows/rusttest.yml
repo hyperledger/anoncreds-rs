@@ -63,16 +63,10 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --manifest-path anoncreds/Cargo.toml --features vendored
-
-      - name: Test indy-utils
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --manifest-path indy-utils/Cargo.toml
+          args: --manifest-path Cargo.toml --features vendored
 
       - name: Test anoncreds (vendored)
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --manifest-path anoncreds/Cargo.toml --features vendored
+          args: --manifest-path Cargo.toml --features vendored
