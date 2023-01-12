@@ -5,11 +5,11 @@ use std::iter::FromIterator;
 
 use super::types::*;
 
-use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
-use crate::data_types::anoncreds::issuer_id::IssuerId;
-use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
-use crate::data_types::anoncreds::schema::SchemaId;
-use crate::data_types::anoncreds::{
+use crate::data_types::cred_def::CredentialDefinitionId;
+use crate::data_types::issuer_id::IssuerId;
+use crate::data_types::rev_reg::RevocationRegistryId;
+use crate::data_types::schema::SchemaId;
+use crate::data_types::{
     cred_def::{CredentialDefinition, CredentialDefinitionData},
     nonce::Nonce,
     rev_reg::{RevocationRegistryDeltaV1, RevocationRegistryV1},

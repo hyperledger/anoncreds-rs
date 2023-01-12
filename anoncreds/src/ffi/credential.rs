@@ -7,7 +7,7 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
-use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
+use crate::data_types::rev_reg::RevocationRegistryId;
 use crate::error::Result;
 use crate::services::{
     issuer::create_credential,

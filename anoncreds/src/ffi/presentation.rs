@@ -5,16 +5,17 @@ use ffi_support::FfiStr;
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, AnonCredsObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
-use crate::data_types::anoncreds::cred_def::{CredentialDefinition, CredentialDefinitionId};
-use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
-use crate::data_types::anoncreds::rev_reg_def::{
+use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
+use crate::data_types::presentation::Presentation;
+use crate::data_types::rev_reg::RevocationRegistryId;
+use crate::data_types::rev_reg_def::{
     RevocationRegistryDefinition, RevocationRegistryDefinitionId,
 };
-use crate::data_types::anoncreds::schema::{Schema, SchemaId};
+use crate::data_types::schema::{Schema, SchemaId};
 use crate::error::Result;
 use crate::services::{
     prover::create_presentation,
-    types::{PresentCredentials, Presentation},
+    types::PresentCredentials,
     verifier::verify_presentation,
 };
 

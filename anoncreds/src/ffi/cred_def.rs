@@ -4,7 +4,7 @@ use ffi_support::FfiStr;
 
 use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
-use crate::data_types::anoncreds::cred_def::CredentialDefinition;
+use crate::data_types::cred_def::CredentialDefinition;
 use crate::services::{
     issuer::create_credential_definition,
     types::{

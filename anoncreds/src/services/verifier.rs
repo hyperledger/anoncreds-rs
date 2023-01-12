@@ -5,14 +5,14 @@ use regex::Regex;
 
 use super::helpers::*;
 use super::types::*;
-use crate::data_types::anoncreds::cred_def::CredentialDefinition;
-use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
-use crate::data_types::anoncreds::issuer_id::IssuerId;
-use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;
-use crate::data_types::anoncreds::rev_reg_def::RevocationRegistryDefinitionId;
-use crate::data_types::anoncreds::schema::Schema;
-use crate::data_types::anoncreds::schema::SchemaId;
-use crate::data_types::anoncreds::{
+use crate::data_types::cred_def::CredentialDefinition;
+use crate::data_types::cred_def::CredentialDefinitionId;
+use crate::data_types::issuer_id::IssuerId;
+use crate::data_types::rev_reg::RevocationRegistryId;
+use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
+use crate::data_types::schema::Schema;
+use crate::data_types::schema::SchemaId;
+use crate::data_types::{
     nonce::Nonce,
     pres_request::{AttributeInfo, NonRevocedInterval, PredicateInfo, PresentationRequestPayload},
     presentation::{Identifier, RequestedProof, RevealedAttributeInfo},

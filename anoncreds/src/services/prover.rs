@@ -6,7 +6,7 @@ use std::{
 };
 
 use super::types::*;
-use crate::data_types::anoncreds::{
+use crate::data_types::{
     cred_def::{CredentialDefinition, CredentialDefinitionId},
     credential::AttributeValues,
     pres_request::{PresentationRequestPayload, RequestedAttributeInfo, RequestedPredicateInfo},
@@ -543,7 +543,7 @@ fn build_sub_proof_request(
 mod tests {
     use super::*;
 
-    use crate::data_types::anoncreds::pres_request::PredicateTypes;
+    use crate::data_types::pres_request::PredicateTypes;
 
     macro_rules! hashmap {
         ($( $key: expr => $val: expr ),*) => {
@@ -570,7 +570,7 @@ mod tests {
     }
 
     mod prepare_credentials_for_proving {
-        use crate::data_types::anoncreds::pres_request::{AttributeInfo, PredicateInfo};
+        use crate::data_types::pres_request::{AttributeInfo, PredicateInfo};
 
         use super::*;
 

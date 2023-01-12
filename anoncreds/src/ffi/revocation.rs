@@ -7,20 +7,13 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, ObjectHandle};
 use super::util::FfiList;
+use crate::data_types::rev_reg::{RevocationRegistry, RevocationRegistryDelta, RevocationStatusList};
+use crate::data_types::rev_reg_def::{RegistryType, IssuanceType, RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate};
 use crate::error::Result;
-use crate::services::{
-    issuer::{
-        create_revocation_registry, merge_revocation_registry_deltas, revoke_credential,
-        update_revocation_registry,
-    },
-    prover::create_or_update_revocation_state,
-    tails::{TailsFileReader, TailsFileWriter},
-    types::{
-        CredentialRevocationState, IssuanceType, RegistryType, RevocationRegistry,
-        RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate, RevocationRegistryDelta,
-        RevocationStatusList,
-    },
-};
+use crate::issuer::{create_revocation_registry, update_revocation_registry, revoke_credential, merge_revocation_registry_deltas};
+use crate::prover::create_or_update_revocation_state;
+use crate::tails::{TailsFileWriter, TailsFileReader};
+use crate::types::CredentialRevocationState;
 
 #[no_mangle]
 pub extern "C" fn anoncreds_create_revocation_registry(
