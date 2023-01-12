@@ -16,9 +16,8 @@ use crate::services::{
     prover::create_or_update_revocation_state,
     tails::{TailsFileReader, TailsFileWriter},
     types::{
-        CredentialRevocationState, IssuanceType, RegistryType, RevocationRegistry,
-        RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate, RevocationRegistryDelta,
-        RevocationStatusList,
+        CredentialRevocationState, RegistryType, RevocationRegistry, RevocationRegistryDefinition,
+        RevocationRegistryDefinitionPrivate, RevocationRegistryDelta, RevocationStatusList,
     },
 };
 
@@ -26,9 +25,9 @@ use crate::services::{
 pub extern "C" fn anoncreds_create_revocation_registry(
     cred_def: ObjectHandle,
     cred_def_id: FfiStr,
+    issuer_id: FfiStr,
     tag: FfiStr,
     rev_reg_type: FfiStr,
-    issuance_type: FfiStr,
     max_cred_num: i64,
     tails_dir_path: FfiStr,
     reg_def_p: *mut ObjectHandle,
@@ -45,23 +44,22 @@ pub extern "C" fn anoncreds_create_revocation_registry(
         let cred_def_id = cred_def_id
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing cred def id"))?;
+        let issuer_id = issuer_id
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing issuer id"))?;
         let rev_reg_type = {
             let rtype = rev_reg_type
                 .as_opt_str()
                 .ok_or_else(|| err_msg!("Missing registry type"))?;
             RegistryType::from_str(rtype).map_err(err_map!(Input))?
         };
-        let issuance_type = match issuance_type.as_opt_str() {
-            Some(s) => IssuanceType::from_str(s).map_err(err_map!(Input))?,
-            None => IssuanceType::default(),
-        };
         let mut tails_writer = TailsFileWriter::new(tails_dir_path.into_opt_string());
         let (reg_def, reg_def_private, reg_entry, reg_init_delta) = create_revocation_registry(
             cred_def.load()?.cast_ref()?,
             cred_def_id,
+            issuer_id,
             tag,
             rev_reg_type,
-            issuance_type,
             max_cred_num
                 .try_into()
                 .map_err(|_| err_msg!("Invalid maximum credential count"))?,
@@ -180,21 +178,9 @@ pub extern "C" fn anoncreds_revocation_registry_definition_get_attribute(
         let reg_def = handle.load()?;
         let reg_def = reg_def.cast_ref::<RevocationRegistryDefinition>()?;
         let val = match name.as_opt_str().unwrap_or_default() {
-            "max_cred_num" => match reg_def {
-                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => {
-                    r.value.max_cred_num.to_string()
-                }
-            },
-            "tails_hash" => match reg_def {
-                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => {
-                    r.value.tails_hash.to_string()
-                }
-            },
-            "tails_location" => match reg_def {
-                RevocationRegistryDefinition::RevocationRegistryDefinitionV1(r) => {
-                    r.value.tails_location.to_string()
-                }
-            },
+            "max_cred_num" => reg_def.value.max_cred_num.to_string(),
+            "tails_hash" => reg_def.value.tails_hash.to_string(),
+            "tails_location" => reg_def.value.tails_location.to_string(),
             s => return Err(err_msg!("Unsupported attribute: {}", s)),
         };
         unsafe { *result_p = rust_string_to_c(val) };
@@ -246,17 +232,17 @@ impl_anoncreds_object_from_json!(RevocationStatusList, anoncreds_revocation_list
 #[no_mangle]
 pub extern "C" fn anoncreds_create_or_update_revocation_state(
     rev_reg_def: ObjectHandle,
-    rev_reg_list: ObjectHandle,
+    rev_status_list: ObjectHandle,
     rev_reg_index: i64,
     tails_path: FfiStr,
     rev_state: ObjectHandle,
-    old_rev_reg_list: ObjectHandle,
+    old_rev_status_list: ObjectHandle,
     rev_state_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(rev_state_p);
         let prev_rev_state = rev_state.opt_load()?;
-        let prev_rev_reg_list = old_rev_reg_list.opt_load()?;
+        let prev_rev_status_list = old_rev_status_list.opt_load()?;
         let tails_reader = TailsFileReader::new_tails_reader(
             tails_path
                 .as_opt_str()
@@ -265,7 +251,7 @@ pub extern "C" fn anoncreds_create_or_update_revocation_state(
         let rev_state = create_or_update_revocation_state(
             tails_reader,
             rev_reg_def.load()?.cast_ref()?,
-            rev_reg_list.load()?.cast_ref()?,
+            rev_status_list.load()?.cast_ref()?,
             rev_reg_index
                 .try_into()
                 .map_err(|_| err_msg!("Invalid credential revocation index"))?,
@@ -273,7 +259,7 @@ pub extern "C" fn anoncreds_create_or_update_revocation_state(
                 .as_ref()
                 .map(AnonCredsObject::cast_ref)
                 .transpose()?,
-            prev_rev_reg_list
+            prev_rev_status_list
                 .as_ref()
                 .map(AnonCredsObject::cast_ref)
                 .transpose()?,

@@ -173,14 +173,8 @@ pub fn verify_presentation(
             cred_def.value.revocation.as_ref(),
         )?;
 
-        let rev_key_pub = rev_reg_def.as_ref().map(|r_reg_def| match r_reg_def {
-            RevocationRegistryDefinition::RevocationRegistryDefinitionV1(reg_def) => {
-                &reg_def.value.public_keys.accum_key
-            }
-        });
-        let rev_reg = rev_reg.as_ref().map(|r_reg| match r_reg {
-            RevocationRegistry::RevocationRegistryV1(reg_def) => &reg_def.value,
-        });
+        let rev_key_pub = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
+        let rev_reg = rev_reg.map(|r| &r.value);
 
         proof_verifier.add_sub_proof_request(
             &sub_pres_request,

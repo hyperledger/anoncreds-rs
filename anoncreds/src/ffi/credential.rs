@@ -60,6 +60,7 @@ pub extern "C" fn anoncreds_create_credential(
     attr_raw_values: FfiStrList,
     attr_enc_values: FfiStrList,
     rev_reg_id: FfiStr,
+    rev_status_list: ObjectHandle,
     revocation: *const FfiCredRevInfo,
     cred_p: *mut ObjectHandle,
     rev_reg_p: *mut ObjectHandle,
@@ -135,6 +136,7 @@ pub extern "C" fn anoncreds_create_credential(
         } else {
             None
         };
+
         let (cred, rev_reg, rev_delta) = create_credential(
             cred_def.load()?.cast_ref()?,
             cred_def_private.load()?.cast_ref()?,
@@ -142,6 +144,7 @@ pub extern "C" fn anoncreds_create_credential(
             cred_request.load()?.cast_ref()?,
             cred_values.into(),
             rev_reg_id,
+            rev_status_list.load()?.cast_ref().ok(),
             revocation_config
                 .as_ref()
                 .map(RevocationConfig::as_ref_config)

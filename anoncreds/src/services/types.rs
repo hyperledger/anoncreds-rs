@@ -11,8 +11,7 @@ pub use crate::data_types::anoncreds::{
     presentation::Presentation,
     rev_reg::{RevocationRegistry, RevocationRegistryDelta, RevocationStatusList},
     rev_reg_def::{
-        IssuanceType, RegistryType, RevocationRegistryDefinition,
-        RevocationRegistryDefinitionPrivate,
+        RegistryType, RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate,
     },
     schema::AttributeNames,
 };
