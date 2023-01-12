@@ -1,0 +1,57 @@
+{
+  "name": "anoncreds-js",
+  "private": true,
+  "license": "Apache-2.0",
+  "workspaces": {
+    "packages": [
+      "shared",
+      "nodejs",
+      "react-native"
+    ],
+    "nohoist": [
+      "**/react-native/**",
+      "react-native/**",
+      "**/react-native"
+    ]
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "jest",
+    "check-types": "yarn workspaces run tsc --noEmit -p tsconfig.json",
+    "check-format": "yarn prettier --list-different",
+    "build": "yarn workspaces run build",
+    "clean": "yarn workspaces run clean",
+    "prettier": "prettier --ignore-path .gitignore '**/*.+(js|json|ts|md|yml|yaml)'",
+    "format": "yarn prettier --write",
+    "validate": "yarn lint && yarn check-types && yarn check-format",
+    "react-native": "yarn --cwd react-native",
+    "shared": "yarn --cwd shared",
+    "nodejs": "yarn --cwd nodejs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hyperledger/anoncreds-rs",
+    "directory": "wrappers/javascript"
+  },
+  "devDependencies": {
+    "@babel/runtime": "7.17.9",
+    "@types/eslint": "8.4.1",
+    "@types/jest": "28.1.6",
+    "@typescript-eslint/eslint-plugin": "5.11.0",
+    "@typescript-eslint/parser": "5.11.0",
+    "eslint": "8.22.0",
+    "eslint-config-prettier": "8.3.0",
+    "eslint-import-resolver-typescript": "3.5.0",
+    "eslint-plugin-import": "2.25.4",
+    "eslint-plugin-prettier": "4.0.0",
+    "jest": "28.1.3",
+    "prettier": "2.5.1",
+    "ts-jest": "28.0.7",
+    "ts-node": "10.9.1",
+    "tsconfig-paths": "4.1.0",
+    "typescript": "4.5.5"
+  },
+  "engines": {
+    "node": ">= 12"
+  }
+}

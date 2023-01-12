@@ -24,7 +24,7 @@ pub extern "C" fn anoncreds_create_schema(
             .ok_or_else(|| err_msg!("Missing schema version"))?;
         let issuer_id = issuer_id
             .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing issuer_id version"))?;
+            .ok_or_else(|| err_msg!("Missing issuer_id"))?;
         let schema = create_schema(
             schema_name,
             schema_version,
