@@ -5,7 +5,7 @@ use crate::data_types::anoncreds::{
     nonce::Nonce,
     pres_request::{AttributeInfo, NonRevocedInterval, PredicateInfo},
 };
-use indy_utils::hash::SHA256;
+use crate::utils::hash::SHA256;
 
 use crate::error::Result;
 use crate::ursa::{

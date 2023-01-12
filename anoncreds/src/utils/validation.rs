@@ -1,3 +1,4 @@
+use super::error::ValidationError;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -15,7 +16,23 @@ pub const URI_IDENTIFIER: Lazy<Regex> =
 pub const LEGACY_IDENTIFIER: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}$").unwrap());
 
-
 pub fn is_uri_identifier(id: &str) -> bool {
     URI_IDENTIFIER.captures(id).is_some()
+}
+
+/// Macro to return a new `ValidationError` with an optional message
+#[macro_export]
+macro_rules! invalid {
+    () => { $crate::utils::error::ValidationError::from(None) };
+    ($($arg:tt)+) => {
+        $crate::utils::error::ValidationError::from(format!($($arg)+))
+    };
+}
+
+/// Trait for data types which need validation after being loaded from external sources
+/// TODO: this should not default to Ok(())
+pub trait Validatable {
+    fn validate(&self) -> Result<(), ValidationError> {
+        Ok(())
+    }
 }

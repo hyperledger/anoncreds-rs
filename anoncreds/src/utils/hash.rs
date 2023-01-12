@@ -1,6 +1,6 @@
 pub use sha2::Digest;
 
-use super::ValidationError;
+use super::error::ValidationError;
 
 /// Derive a new hash type
 #[macro_export]
@@ -9,7 +9,9 @@ macro_rules! hash_type {
         #[doc=$doc]
         #[allow(non_snake_case)]
         pub mod $modname {
+            #[cfg(test)]
             use once_cell::sync::Lazy;
+
             use sha2::Digest;
 
             pub type DigestType = $digest;
@@ -18,11 +20,13 @@ macro_rules! hash_type {
                 DigestType::digest(input.as_ref()).to_vec()
             }
 
+            #[cfg(test)]
             pub fn digest_empty() -> &'static [u8] {
                 static EMPTY_HASH_BYTES: Lazy<Vec<u8>> = Lazy::new(|| digest(&[]));
                 EMPTY_HASH_BYTES.as_slice()
             }
 
+            #[cfg(test)]
             pub fn output_size() -> usize {
                 DigestType::output_size()
             }

@@ -3,6 +3,7 @@ use std::fmt::{self, Display, Formatter};
 use std::result::Result as StdResult;
 
 use crate::ursa::errors::{UrsaCryptoError, UrsaCryptoErrorKind};
+use crate::utils::error::ValidationError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -116,8 +117,8 @@ impl From<ErrorKind> for Error {
     }
 }
 
-impl From<indy_utils::ValidationError> for Error {
-    fn from(err: indy_utils::ValidationError) -> Self {
+impl From<ValidationError> for Error {
+    fn from(err: ValidationError) -> Self {
         Error::from_opt_msg(ErrorKind::Input, err.context)
     }
 }

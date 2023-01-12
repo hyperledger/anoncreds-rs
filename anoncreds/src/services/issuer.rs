@@ -3,9 +3,10 @@ use rand::{thread_rng, Rng};
 use std::collections::{BTreeSet, HashSet};
 use std::iter::FromIterator;
 
-use indy_utils::{Validatable, ValidationError};
-
 use super::types::*;
+
+use crate::utils::validation::Validatable;
+use crate::utils::error::ValidationError;
 use crate::data_types::anoncreds::cred_def::CredentialDefinitionId;
 use crate::data_types::anoncreds::issuer_id::IssuerId;
 use crate::data_types::anoncreds::rev_reg::RevocationRegistryId;

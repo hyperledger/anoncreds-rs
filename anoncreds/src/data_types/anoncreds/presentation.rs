@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use indy_utils::ValidationError;
-
-use crate::data_types::Validatable;
+use crate::utils::{validation::Validatable, error::ValidationError};
 
 use super::{cred_def::CredentialDefinitionId, rev_reg::RevocationRegistryId, schema::SchemaId};
 

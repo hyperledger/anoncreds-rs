@@ -17,8 +17,7 @@ pub use crate::data_types::anoncreds::{
     schema::AttributeNames,
 };
 
-use indy_utils::{invalid, Validatable, ValidationError};
-
+use crate::{utils::{validation::Validatable, error::ValidationError}, invalid};
 use crate::error::Error;
 use crate::services::helpers::encode_credential_attribute;
 use crate::ursa::cl::{RevocationRegistry as CryptoRevocationRegistry, Witness};

@@ -22,6 +22,7 @@ logger = ["env_logger"]
 vendored = ["openssl", "openssl/vendored"]
 
 [dependencies]
+bs58 = "0.4"
 env_logger = { version = "0.9.3", optional = true }
 ffi-support = { version = "0.4.0", optional = true }
 log = "0.4"
@@ -40,9 +41,3 @@ zeroize = { version = "1.3", optional = true, features = ["zeroize_derive"] }
 # Since we use "cl_native" as a feature, which uses openssl, we can add a vendored build with 
 # the new exposed "vendored" feature
 openssl = { version = "0.10", optional = true }
-
-[dependencies.indy-utils]
-version = "0.5"
-path = "../indy-utils"
-default-features = false
-features = ["query", "hash"]

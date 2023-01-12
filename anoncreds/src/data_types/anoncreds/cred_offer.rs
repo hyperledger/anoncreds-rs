@@ -1,4 +1,4 @@
-use indy_utils::{Validatable, ValidationError};
+use crate::utils::{validation::Validatable, error::ValidationError};
 
 use super::{cred_def::CredentialDefinitionId, nonce::Nonce, schema::SchemaId};
 

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use zeroize::Zeroize;
 
-use crate::data_types::{Validatable, ValidationError};
+use crate::utils::{error::{ValidationError, ConversionError}, validation::Validatable};
 
 use super::{cred_def::CredentialDefinitionId, rev_reg::RevocationRegistryId, schema::SchemaId};
 
@@ -19,7 +19,7 @@ pub struct Credential {
 }
 
 impl Credential {
-    pub fn try_clone(&self) -> Result<Self, crate::data_types::ConversionError> {
+    pub fn try_clone(&self) -> Result<Self, ConversionError> {
         Ok(Self {
             schema_id: self.schema_id.clone(),
             cred_def_id: self.cred_def_id.clone(),

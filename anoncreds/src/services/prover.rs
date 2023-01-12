@@ -24,7 +24,7 @@ use crate::ursa::cl::{
     verifier::Verifier as CryptoVerifier, CredentialPublicKey, RevocationRegistryDelta,
     SubProofRequest, Witness,
 };
-use indy_utils::Validatable;
+use crate::utils::validation::Validatable;
 
 use super::tails::TailsReader;
 

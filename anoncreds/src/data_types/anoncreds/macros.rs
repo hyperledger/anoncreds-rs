@@ -1,6 +1,9 @@
 #[macro_export]
 macro_rules! impl_anoncreds_object_identifier {
     ($i:ident) => {
+        use $crate::utils::validation::{Validatable, LEGACY_IDENTIFIER, URI_IDENTIFIER};
+        use $crate::utils::error::ValidationError;
+
         #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Default)]
         pub struct $i(pub String);
 
@@ -9,27 +12,27 @@ macro_rules! impl_anoncreds_object_identifier {
                 Self(s.into())
             }
 
-            pub fn new(s: impl Into<String>) -> Result<Self, $crate::data_types::ValidationError> {
+            pub fn new(s: impl Into<String>) -> Result<Self, ValidationError> {
                 let s = Self(s.into());
-                $crate::data_types::Validatable::validate(&s)?;
+                Validatable::validate(&s)?;
                 Ok(s)
             }
 
             pub fn is_legacy(&self) -> bool {
-                $crate::utils::validation::LEGACY_IDENTIFIER
+                LEGACY_IDENTIFIER
                     .captures(&self.0)
                     .is_some()
             }
 
             pub fn is_uri(&self) -> bool {
-                $crate::utils::validation::URI_IDENTIFIER
+                URI_IDENTIFIER
                     .captures(&self.0)
                     .is_some()
             }
         }
 
-        impl $crate::data_types::Validatable for $i {
-            fn validate(&self) -> Result<(), $crate::data_types::ValidationError> {
+        impl Validatable for $i {
+            fn validate(&self) -> Result<(), ValidationError> {
                 if $crate::utils::validation::URI_IDENTIFIER
                     .captures(&self.0)
                     .is_some()
@@ -44,7 +47,7 @@ macro_rules! impl_anoncreds_object_identifier {
                     return Ok(());
                 }
 
-                Err(indy_utils::invalid!(
+                Err($crate::invalid!(
                     "type: {}, identifier: {} is invalid. It MUST be a URI or legacy identifier.",
                     stringify!($i),
                     self.0
@@ -59,7 +62,7 @@ macro_rules! impl_anoncreds_object_identifier {
         }
 
         impl TryFrom<String> for $i {
-            type Error = indy_utils::ValidationError;
+            type Error = ValidationError;
 
             fn try_from(value: String) -> Result<Self, Self::Error> {
                 $i::new(value)
@@ -67,7 +70,7 @@ macro_rules! impl_anoncreds_object_identifier {
         }
 
         impl TryFrom<&str> for $i {
-            type Error = indy_utils::ValidationError;
+            type Error = ValidationError;
 
             fn try_from(value: &str) -> Result<Self, Self::Error> {
                 $i::new(value.to_owned())

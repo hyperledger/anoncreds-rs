@@ -56,8 +56,8 @@ macro_rules! new_handle_type (($newtype:ident, $counter:ident) => (
         }
     }
 
-    impl $crate::Validatable for $newtype {
-        fn validate(&self) -> std::result::Result<(), $crate::ValidationError> {
+    impl $crate::utils::validation::Validatable for $newtype {
+        fn validate(&self) -> std::result::Result<(), $crate::utils::error::ValidationError> {
             if(**self == 0) {
                 Err("Invalid handle: zero".into())
             } else {

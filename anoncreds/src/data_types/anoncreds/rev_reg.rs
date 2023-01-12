@@ -5,7 +5,7 @@ use serde::{
 };
 use std::collections::HashSet;
 
-use crate::{data_types::Validatable, error, impl_anoncreds_object_identifier};
+use crate::{error, impl_anoncreds_object_identifier};
 
 impl_anoncreds_object_identifier!(RevocationRegistryId);
 

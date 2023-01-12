@@ -1,9 +1,6 @@
 [workspace]
 
-members = [
-    "anoncreds",
-    "indy-utils",
-]
+members = [ "anoncreds" ]
 
 [profile.release]
 lto = true

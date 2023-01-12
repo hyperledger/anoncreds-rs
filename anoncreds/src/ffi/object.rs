@@ -13,11 +13,12 @@ use serde::Serialize;
 
 use super::error::{catch_error, ErrorCode};
 use crate::error::Result;
+use crate::new_handle_type;
 
 pub(crate) static FFI_OBJECTS: Lazy<Mutex<BTreeMap<ObjectHandle, AnonCredsObject>>> =
     Lazy::new(|| Mutex::new(BTreeMap::new()));
 
-indy_utils::new_handle_type!(ObjectHandle, FFI_OBJECT_COUNTER);
+new_handle_type!(ObjectHandle, FFI_OBJECT_COUNTER);
 
 impl ObjectHandle {
     pub(crate) fn create<O: AnyAnonCredsObject + 'static>(value: O) -> Result<Self> {

@@ -19,8 +19,8 @@ use crate::data_types::anoncreds::{
 };
 use crate::error::Result;
 use crate::ursa::cl::{verifier::Verifier as CryptoVerifier, CredentialPublicKey};
+use crate::utils::query::Query;
 use crate::utils::validation::LEGACY_IDENTIFIER;
-use indy_utils::query::Query;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Filter {

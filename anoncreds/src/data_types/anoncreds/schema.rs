@@ -1,4 +1,3 @@
-use crate::data_types::{Validatable, ValidationError};
 use crate::impl_anoncreds_object_identifier;
 
 use std::collections::HashSet;

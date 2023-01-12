@@ -3,9 +3,8 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use crate::ursa::cl::{new_nonce, Nonce as UrsaNonce};
+use crate::utils::error::ConversionError;
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
-
-use crate::data_types::ConversionError;
 
 pub struct Nonce {
     strval: String,

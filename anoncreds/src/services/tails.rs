@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
-use indy_utils::base58;
+use crate::utils::base58;
 use sha2::{Digest, Sha256};
 use tempfile;
 

@@ -1,7 +1,6 @@
-use indy_utils::{Validatable, ValidationError};
 use std::str::FromStr;
 
-use crate::{data_types::ConversionError, impl_anoncreds_object_identifier};
+use crate::{impl_anoncreds_object_identifier, utils::error::ConversionError};
 
 use super::{issuer_id::IssuerId, schema::SchemaId};
 
