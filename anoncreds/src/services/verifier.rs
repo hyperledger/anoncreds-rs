@@ -877,14 +877,14 @@ fn precess_filed(filed: &str, filter_value: impl Into<String>, tag_value: &str) 
     // We explicitly check here with it is one of the two legacy identifier restrictions. This
     // means that we only allow legacy identifiers which can be detected with a simple regex. If
     // they are not in the legacy format, we do not support this.
-    if filed == "schema_issuer_did" || filed == "issuer_did" {
-        if LEGACY_IDENTIFIER.captures(&filter_value).is_none() {
-            return Err(err_msg!(
+    if (filed == "schema_issuer_did" || filed == "issuer_did")
+        && (LEGACY_IDENTIFIER.captures(&filter_value).is_none())
+    {
+        return Err(err_msg!(
             ProofRejected,
             "\"{}\" value is a legacy identifier tag and therefore only legacy identifiers can be used",
             filed,
         ));
-        }
     }
     if filter_value == tag_value {
         Ok(())
