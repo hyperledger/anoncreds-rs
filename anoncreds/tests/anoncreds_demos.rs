@@ -4,7 +4,7 @@ use std::{
 };
 
 use anoncreds::{
-    data_types::anoncreds::{
+   data_types::anoncreds::{
         cred_def::{CredentialDefinition, CredentialDefinitionId},
         presentation::Presentation,
         rev_reg::RevocationRegistryId,
@@ -33,7 +33,6 @@ pub static CRED_DEF_ID: &str = "mock:uri";
 pub static ISSUER_ID: &str = "mock:issuer_id/path&q=bar";
 pub const GVT_SCHEMA_NAME: &str = "gvt";
 pub const GVT_SCHEMA_ATTRIBUTES: &[&str; 4] = &["name", "age", "sex", "height"];
-pub static REV_REG_DEF_ID: &str = "mock:uri:revregdefid";
 pub static REV_REG_ID: &str = "mock:uri:revregid";
 pub static REV_IDX: u32 = 89;
 pub static MAX_CRED_NUM: u32 = 150;
@@ -338,7 +337,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         .add_raw("age", "28")
         .expect("Error encoding attribute");
 
-    let rev_reg_def_id = RevocationRegistryId::new_unchecked(REV_REG_DEF_ID);
+    let rev_reg_def_id = RevocationRegistryId::new_unchecked(REV_REG_ID);
 
     // Get the location of the tails_file so it can be read
     let location = rev_reg_def_pub.clone().value.tails_location;
@@ -349,7 +348,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let registry_used = HashSet::from([REV_IDX]);
 
     let list = bitvec![0; MAX_CRED_NUM as usize ];
-    let mut revocation_status_list =
+    let revocation_status_list =
         RevocationStatusList::new(None, list, None, None).expect("Error creating status list");
 
     // TODO: Here Delta is not needed but is it used elsewhere?
@@ -372,8 +371,6 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     )
     .expect("Error creating credential");
     let cred_rev_reg = cred_rev_reg.unwrap();
-
-    revocation_status_list.set_registry(cred_rev_reg.value.clone());
 
     // Prover receives the credential and processes it
     let mut recv_cred = issue_cred;
@@ -420,7 +417,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     // Prover: here we deliberately do not put in the same timestamp as the global non_revoked time interval,
     // this shows that it is not used
     let prover_timestamp = 1234u64;
-    let rev_reg = cred_rev_reg.value.clone();
+    let rev_reg = cred_rev_reg.clone().value;
 
     let rev_state = CredentialRevocationState {
         timestamp: prover_timestamp,
@@ -452,7 +449,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
 
     // Verifier verifies presentation of not Revoked rev_state
     // TODO: rev reg def id is the same as the rev reg id?
-    let rev_reg_def_id = RevocationRegistryDefinitionId::new_unchecked(REV_REG_DEF_ID);
+    let rev_reg_def_id = RevocationRegistryDefinitionId::new_unchecked(REV_REG_ID);
     let rev_reg_def_map = HashMap::from([(&rev_reg_def_id, &rev_reg_def_pub)]);
 
     // Create the map that contines the registries
@@ -484,15 +481,10 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     // revoked_bit is not a reference so can drop
     drop(revoked_bit);
 
-    let ursa_rev_reg = revoked_rev_reg.value.clone();
+    let ursa_rev_reg = revoked_rev_reg.clone().value;
 
-    let revocation_list = RevocationStatusList::new(
-        Some(REV_REG_DEF_ID),
-        list,
-        Some(ursa_rev_reg),
-        Some(prover_timestamp),
-    )
-    .unwrap();
+    let revocation_list =
+        RevocationStatusList::new(Some(REV_REG_ID), list, Some(ursa_rev_reg), Some(prover_timestamp)).unwrap();
     let new_rev_state = prover::create_or_update_revocation_state(
         tr,
         &rev_reg_def_pub,
