@@ -4,7 +4,7 @@ use std::{
 };
 
 use anoncreds::{
-   data_types::anoncreds::{
+    data_types::anoncreds::{
         cred_def::{CredentialDefinition, CredentialDefinitionId},
         presentation::Presentation,
         rev_reg::RevocationRegistryId,
@@ -483,8 +483,13 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
 
     let ursa_rev_reg = revoked_rev_reg.clone().value;
 
-    let revocation_list =
-        RevocationStatusList::new(Some(REV_REG_ID), list, Some(ursa_rev_reg), Some(prover_timestamp)).unwrap();
+    let revocation_list = RevocationStatusList::new(
+        Some(REV_REG_ID),
+        list,
+        Some(ursa_rev_reg),
+        Some(prover_timestamp),
+    )
+    .unwrap();
     let new_rev_state = prover::create_or_update_revocation_state(
         tr,
         &rev_reg_def_pub,
