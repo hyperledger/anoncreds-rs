@@ -1,0 +1,55 @@
+{
+  "name": "anoncreds-react-native",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "description": "React Native wrapper for Anoncreds",
+  "main": "build/index",
+  "source": "src/index",
+  "homepage": "https://github.com/hyperledger/anoncreds/tree/main/wrappers/javascript/react-native",
+  "author": "Hyperledger (https://github.com/hyperledger)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hyperledger/anoncreds",
+    "directory": "wrappers/javascript/react-native"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "build",
+    "android/src",
+    "android/libs",
+    "android/build.gradle",
+    "android/CMakeLists.txt",
+    "android/cpp-adapter.cpp",
+    "ios/**/*.h",
+    "ios/**/*.mm",
+    "ios/Frameworks",
+    "ios/Anoncreds.xcodeproj/project.pbxproj",
+    "cpp/**/*.cpp",
+    "cpp/**/*.h",
+    "anoncreds.podspec",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "yarn clean && yarn compile",
+    "clean": "rimraf -rf ./build",
+    "compile": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "anoncreds-shared": "*"
+  },
+  "devDependencies": {
+    "@types/react": "16.9.19",
+    "@types/react-native": "0.67.0",
+    "react": "17.0.2",
+    "react-native": "0.67.2",
+    "typescript": "4.5.5"
+  },
+  "peerDependencies": {
+    "react": ">= 16",
+    "react-native": ">= 0.66.0"
+  }
+}
