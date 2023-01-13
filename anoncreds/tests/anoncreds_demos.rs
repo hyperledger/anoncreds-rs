@@ -337,7 +337,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         .add_raw("age", "28")
         .expect("Error encoding attribute");
 
-    let rev_reg_def_id = RevocationRegistryId::new_unchecked(REV_REG_ID);
+    let rev_reg_id = RevocationRegistryId::new_unchecked(REV_REG_ID);
 
     // Get the location of the tails_file so it can be read
     let location = rev_reg_def_pub.clone().value.tails_location;
@@ -358,7 +358,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         &cred_offer,
         &cred_request,
         cred_values.into(),
-        Some(rev_reg_def_id.clone()),
+        Some(rev_reg_id.clone()),
         Some(&revocation_status_list),
         Some(CredentialRevocationConfig {
             reg_def: &rev_reg_def_pub,
