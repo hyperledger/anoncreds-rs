@@ -224,7 +224,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         None,
     )
     .expect("Error verifying presentation");
-    assert!(valid);
+    assert!(valid.0);
 }
 
 #[test]
@@ -439,7 +439,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         Some(&rev_reg_map),
     )
     .expect("Error verifying presentation");
-    assert!(valid);
+    assert!(valid.0);
 
     //  ===================== Issuer revokes credential ================
     let time_revoke_cred = time_after_creating_cred + 1;
@@ -488,7 +488,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         Some(&rev_reg_map),
     )
     .expect("Error verifying presentation");
-    assert!(!valid);
+    assert!(!valid.0);
 }
 
 /*

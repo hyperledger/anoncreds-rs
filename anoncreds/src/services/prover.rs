@@ -337,10 +337,6 @@ pub fn create_or_update_revocation_state(
             &mut issued,
             &mut revoked,
         );
-        let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_status_list.into();
-        let rev_reg = rev_reg.ok_or_else(|| {
-            err_msg!("revocation registry is not inside the revocation status list")
-        })?;
         let rev_reg_delta = RevocationRegistryDelta::from_parts(None, &rev_reg, &issued, &revoked);
         Witness::new(
             rev_reg_idx,

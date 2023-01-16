@@ -19,10 +19,11 @@ use anoncreds::{
     types::{
         CredentialDefinitionConfig, CredentialRequest, CredentialRevocationConfig,
         CredentialRevocationState, MakeCredentialValues, PresentCredentials, PresentationRequest,
-        RegistryType, SignatureType,
+        RegistryType, RevocationStatusList, SignatureType,
     },
     verifier,
 };
+use bitvec::bitvec;
 
 // {cred_def_id: {
 //       schema_id, credential_values, support_revocation, rev_reg_id, rev_idx
@@ -180,6 +181,20 @@ impl<'a> Mock<'a> {
                     rev_reg_id,
                     HashMap::from([(time_now, revocation_status_list)]),
                 );
+
+                // TODO create_revocation_registry needs issuance type to update this
+                let list = bitvec![0; self.max_cred_num as usize ];
+                let revocation_list = RevocationStatusList::new(
+                    Some(rev_reg_id),
+                    list,
+                    Some(rev_reg.clone().value),
+                    Some(time_now),
+                )
+                .unwrap();
+
+                self.ledger
+                    .revcation_list
+                    .insert(rev_reg_id, revocation_list);
 
                 self.ledger.rev_reg_defs.insert(
                     RevocationRegistryDefinitionId::new_unchecked(*rev_reg_id),
