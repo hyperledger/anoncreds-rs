@@ -15,8 +15,8 @@ use anoncreds::{
     tails::{TailsFileReader, TailsFileWriter},
     types::{
         CredentialDefinitionConfig, CredentialRevocationConfig, CredentialRevocationState,
-        IssuanceType, MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType,
-        RevocationRegistry, RevocationRegistryDefinition, RevocationStatusList, SignatureType,
+        MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType,
+        RevocationStatusList, SignatureType,
     },
     verifier,
 };
@@ -109,6 +109,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         &cred_offer,
         &cred_request,
         cred_values.into(),
+        None,
         None,
         None,
     )
@@ -284,9 +285,9 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let (rev_reg_def_pub, rev_reg_def_priv, rev_reg, _) = issuer::create_revocation_registry(
         &cred_def_pub,
         CRED_DEF_ID,
+        ISSUER_ID,
         "some_tag",
         RegistryType::CL_ACCUM,
-        IssuanceType::ISSUANCE_BY_DEFAULT,
         MAX_CRED_NUM,
         &mut tf,
     )
@@ -339,15 +340,16 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let rev_reg_id = RevocationRegistryId::new_unchecked(REV_REG_ID);
 
     // Get the location of the tails_file so it can be read
-    let location = match rev_reg_def_pub.clone() {
-        RevocationRegistryDefinition::RevocationRegistryDefinitionV1(value) => {
-            value.value.tails_location
-        }
-    };
+    let location = rev_reg_def_pub.clone().value.tails_location;
+
     let tr = TailsFileReader::new_tails_reader(location.as_str());
 
     // The Prover's index in the revocation list is REV_IDX
     let registry_used = HashSet::from([REV_IDX]);
+
+    let list = bitvec![0; MAX_CRED_NUM as usize ];
+    let revocation_status_list =
+        RevocationStatusList::new(None, list, None, None).expect("Error creating status list");
 
     // TODO: Here Delta is not needed but is it used elsewhere?
     let (issue_cred, cred_rev_reg, _) = issuer::create_credential(
@@ -357,6 +359,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         &cred_request,
         cred_values.into(),
         Some(rev_reg_id.clone()),
+        Some(&revocation_status_list),
         Some(CredentialRevocationConfig {
             reg_def: &rev_reg_def_pub,
             reg_def_private: &rev_reg_def_priv,
@@ -414,9 +417,8 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     // Prover: here we deliberately do not put in the same timestamp as the global non_revoked time interval,
     // this shows that it is not used
     let prover_timestamp = 1234u64;
-    let rev_reg = match cred_rev_reg.clone() {
-        RevocationRegistry::RevocationRegistryV1(r) => r.value,
-    };
+    let rev_reg = cred_rev_reg.clone().value;
+
     let rev_state = CredentialRevocationState {
         timestamp: prover_timestamp,
         rev_reg: rev_reg.clone(),
@@ -452,6 +454,8 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
 
     // Create the map that contines the registries
     let rev_timestamp_map = HashMap::from([(prover_timestamp, &cred_rev_reg)]);
+
+    let rev_reg_id = RevocationRegistryId::new_unchecked(REV_REG_ID);
     let mut rev_reg_map = HashMap::from([(rev_reg_id.clone(), rev_timestamp_map.clone())]);
 
     let valid = verifier::verify_presentation(
@@ -477,12 +481,15 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     // revoked_bit is not a reference so can drop
     drop(revoked_bit);
 
-    let ursa_rev_reg = match revoked_rev_reg.clone() {
-        RevocationRegistry::RevocationRegistryV1(v) => v.value,
-    };
+    let ursa_rev_reg = revoked_rev_reg.clone().value;
 
-    let revocation_list =
-        RevocationStatusList::new(REV_REG_ID, list, ursa_rev_reg, prover_timestamp).unwrap();
+    let revocation_list = RevocationStatusList::new(
+        Some(REV_REG_ID),
+        list,
+        Some(ursa_rev_reg),
+        Some(prover_timestamp),
+    )
+    .unwrap();
     let new_rev_state = prover::create_or_update_revocation_state(
         tr,
         &rev_reg_def_pub,

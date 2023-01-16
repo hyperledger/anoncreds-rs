@@ -10,68 +10,50 @@ use crate::{data_types::Validatable, error, impl_anoncreds_object_identifier};
 impl_anoncreds_object_identifier!(RevocationRegistryId);
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "ver")]
-pub enum RevocationRegistry {
-    #[serde(rename = "1.0")]
-    RevocationRegistryV1(RevocationRegistryV1),
+pub struct RevocationRegistry {
+    pub value: ursa::cl::RevocationRegistry,
 }
 
 impl RevocationRegistry {
     pub fn initial_delta(&self) -> RevocationRegistryDelta {
-        match self {
-            Self::RevocationRegistryV1(v1) => {
-                RevocationRegistryDelta::RevocationRegistryDeltaV1(RevocationRegistryDeltaV1 {
-                    value: {
-                        let empty = HashSet::new();
-                        ursa::cl::RevocationRegistryDelta::from_parts(
-                            None, &v1.value, &empty, &empty,
-                        )
-                    },
-                })
-            }
+        RevocationRegistryDelta {
+            value: {
+                let empty = HashSet::new();
+                ursa::cl::RevocationRegistryDelta::from_parts(None, &self.value, &empty, &empty)
+            },
         }
     }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct RevocationRegistryV1 {
-    pub value: ursa::cl::RevocationRegistry,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "ver")]
-pub enum RevocationRegistryDelta {
-    #[serde(rename = "1.0")]
-    RevocationRegistryDeltaV1(RevocationRegistryDeltaV1),
+#[serde(rename_all = "camelCase")]
+pub struct RevocationRegistryDelta {
+    pub value: ursa::cl::RevocationRegistryDelta,
 }
 
 impl Validatable for RevocationRegistryDelta {}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RevocationRegistryDeltaV1 {
-    pub value: ursa::cl::RevocationRegistryDelta,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct RevocationStatusList {
-    rev_reg_id: RevocationRegistryId,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    rev_reg_def_id: Option<RevocationRegistryId>,
     #[serde(with = "serde_revocation_list")]
     revocation_list: bitvec::vec::BitVec,
-    #[serde(flatten)]
-    registry: ursa::cl::RevocationRegistry,
-    timestamp: u64,
+    #[serde(flatten, skip_serializing_if = "Option::is_none")]
+    registry: Option<ursa::cl::RevocationRegistry>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    timestamp: Option<u64>,
 }
 
-impl From<&RevocationStatusList> for ursa::cl::RevocationRegistry {
-    fn from(rev_reg_list: &RevocationStatusList) -> ursa::cl::RevocationRegistry {
-        rev_reg_list.registry.clone()
+impl From<&RevocationStatusList> for Option<ursa::cl::RevocationRegistry> {
+    fn from(rev_status_list: &RevocationStatusList) -> Option<ursa::cl::RevocationRegistry> {
+        rev_status_list.registry.clone()
     }
 }
 
 impl RevocationStatusList {
-    pub(crate) fn timestamp(&self) -> u64 {
+    pub(crate) fn timestamp(&self) -> Option<u64> {
         self.timestamp
     }
 
@@ -79,18 +61,26 @@ impl RevocationStatusList {
         &self.revocation_list
     }
 
+    pub fn set_registry(&mut self, registry: ursa::cl::RevocationRegistry) {
+        self.registry = Some(registry)
+    }
+
     pub(crate) fn state_owned(&self) -> bitvec::vec::BitVec {
         self.revocation_list.clone()
     }
 
+    pub(crate) fn get(&self, idx: usize) -> Option<bool> {
+        self.revocation_list.get(idx).as_deref().copied()
+    }
+
     pub fn new(
-        rev_reg_id: &str,
+        rev_reg_def_id: Option<&str>,
         revocation_list: bitvec::vec::BitVec,
-        registry: ursa::cl::RevocationRegistry,
-        timestamp: u64,
+        registry: Option<ursa::cl::RevocationRegistry>,
+        timestamp: Option<u64>,
     ) -> Result<Self, error::Error> {
         Ok(RevocationStatusList {
-            rev_reg_id: RevocationRegistryId::new(rev_reg_id)?,
+            rev_reg_def_id: rev_reg_def_id.map(RevocationRegistryId::new).transpose()?,
             revocation_list,
             registry,
             timestamp,
@@ -157,7 +147,7 @@ mod tests {
 
     const REVOCATION_LIST: &str = r#"
         {
-            "revRegId": "reg",
+            "revRegDefId": "reg",
             "revocationList": [1, 1, 1, 1],
             "accum":  "1 1379509F4D411630D308A5ABB4F422FCE6737B330B1C5FD286AA5C26F2061E60 1 235535CC45D4816C7686C5A402A230B35A62DDE82B4A652E384FD31912C4E4BB 1 0C94B61595FCAEFC892BB98A27D524C97ED0B7ED1CC49AD6F178A59D4199C9A4 1 172482285606DEE8500FC8A13E6A35EC071F8B84F0EB4CD3DD091C0B4CD30E5E 2 095E45DDF417D05FB10933FFC63D474548B7FFFF7888802F07FFFFFF7D07A8A8 1 0000000000000000000000000000000000000000000000000000000000000000",
 			 "timestamp": 1234
