@@ -4,7 +4,7 @@ import os
 import runpy
 from setuptools import find_packages, setup
 
-PACKAGE_NAME = "indy_credx"
+PACKAGE_NAME = "anoncreds"
 version_meta = runpy.run_path("./{}/version.py".format(PACKAGE_NAME))
 VERSION = version_meta["__version__"]
 
@@ -24,9 +24,9 @@ if __name__ == "__main__":
         include_package_data=True,
         package_data={
             "": [
-                "indy_credx.dll",
-                "libindy_credx.dylib",
-                "libindy_credx.so",
+                "anoncreds.dll",
+                "anoncreds.dylib",
+                "anoncreds.so",
             ]
         },
         python_requires=">=3.6.3",

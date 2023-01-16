@@ -1,4 +1,4 @@
-"""Low-level interaction with the indy-credx library."""
+"""Low-level interaction with the anoncreds library."""
 
 import json
 import logging
@@ -22,7 +22,7 @@ from ctypes.util import find_library
 from io import BytesIO
 from typing import Optional, Mapping, Sequence, Union
 
-from .error import CredxError, CredxErrorCode
+from .error import AnoncredsError, AnoncredsErrorCode
 
 
 CALLBACKS = {}
@@ -31,7 +31,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class ObjectHandle(c_int64):
-    """Index of an active IndyObject instance."""
+    """Index of an active AnoncredsObject instance."""
 
     @property
     def type_name(self) -> str:
@@ -42,7 +42,7 @@ class ObjectHandle(c_int64):
         if self.value:
             try:
                 type_name = f'"{self.type_name}"'
-            except CredxError:
+            except AnoncredsError:
                 type_name = "<error>"
         else:
             type_name = "<none>"
@@ -52,10 +52,10 @@ class ObjectHandle(c_int64):
         object_free(self)
 
 
-class IndyObject:
-    """A generic Indy object allocated by the library."""
+class AnoncredsObject:
+    """A generic Anoncreds object allocated by the library."""
 
-    def __init__(self, handle: ObjectHandle) -> "IndyObject":
+    def __init__(self, handle: ObjectHandle) -> "AnoncredsObject":
         self.handle = handle
 
     def __bytes__(self) -> bytes:
@@ -101,7 +101,7 @@ class ByteBuffer(Structure):
 
     def __del__(self):
         """Call the byte buffer destructor when this instance is released."""
-        get_library().credx_buffer_free(self)
+        get_library().anoncreds_buffer_free(self)
 
 
 class StrBuffer(c_char_p):
@@ -133,7 +133,7 @@ class StrBuffer(c_char_p):
 
     def __del__(self):
         """Call the string destructor when this instance is released."""
-        get_library().credx_string_free(self)
+        get_library().anoncreds_string_free(self)
 
 
 class FfiObjectHandleList(Structure):
@@ -317,16 +317,16 @@ def get_library() -> CDLL:
     """Return the CDLL instance, loading it if necessary."""
     global LIB
     if LIB is None:
-        LIB = _load_library("indy_credx")
-        do_call("credx_set_default_logger")
+        LIB = _load_library("anoncreds")
+        do_call("anoncreds_set_default_logger")
     return LIB
 
 
 def library_version() -> str:
     """Get the version of the installed aries-askar library."""
     lib = get_library()
-    lib.credx_version.restype = c_void_p
-    return str(StrBuffer(lib.credx_version()))
+    lib.anoncreds_version.restype = c_void_p
+    return str(StrBuffer(lib.anoncreds_version()))
 
 
 def _load_library(lib_name: str) -> CDLL:
@@ -346,19 +346,20 @@ def _load_library(lib_name: str) -> CDLL:
         return CDLL(lib_path)
     except KeyError:
         LOGGER.debug("Unknown platform for shared library")
-    except OSError:
+    except OSError as e:
+        LOGGER.warning(e)
         LOGGER.warning("Library not loaded from python package")
 
     lib_path = find_library(lib_name)
     if not lib_path:
-        raise CredxError(
-            CredxErrorCode.WRAPPER, f"Library not found in path: {lib_path}"
+        raise AnoncredsError(
+            AnoncredsErrorCode.WRAPPER, f"Library not found in path: {lib_path}"
         )
     try:
         return CDLL(lib_path)
     except OSError as e:
-        raise CredxError(
-            CredxErrorCode.WRAPPER, f"Error loading library: {lib_path}"
+        raise AnoncredsError(
+            AnoncredsErrorCode.WRAPPER, f"Error loading library: {lib_path}"
         ) from e
 
 
@@ -370,7 +371,7 @@ def do_call(fn_name, *args):
         raise get_current_error(True)
 
 
-def get_current_error(expect: bool = False) -> Optional[CredxError]:
+def get_current_error(expect: bool = False) -> Optional[AnoncredsError]:
     """
     Get the error result from the previous failed API method.
 
@@ -378,19 +379,19 @@ def get_current_error(expect: bool = False) -> Optional[CredxError]:
         expect: Return a default error message if none is found
     """
     err_json = StrBuffer()
-    if not get_library().credx_get_current_error(byref(err_json)):
+    if not get_library().anoncreds_get_current_error(byref(err_json)):
         try:
             msg = json.loads(err_json.value)
         except json.JSONDecodeError:
-            LOGGER.warning("JSON decode error for credx_get_current_error")
+            LOGGER.warning("JSON decode error for anoncreds_get_current_error")
             msg = None
         if msg and "message" in msg and "code" in msg:
-            return CredxError(
-                CredxErrorCode(msg["code"]), msg["message"], msg.get("extra")
+            return AnoncredsError(
+                AnoncredsErrorCode(msg["code"]), msg["message"], msg.get("extra")
             )
         if not expect:
             return None
-    return CredxError(CredxErrorCode.WRAPPER, "Unknown error")
+    return AnoncredsError(AnoncredsErrorCode.WRAPPER, "Unknown error")
 
 
 def decode_str(value: c_char_p) -> str:
@@ -439,18 +440,18 @@ def encode_bytes(arg: Optional[Union[str, bytes]]) -> FfiByteBuffer:
 
 
 def object_free(handle: ObjectHandle):
-    get_library().credx_object_free(handle)
+    get_library().anoncreds_object_free(handle)
 
 
 def object_get_json(handle: ObjectHandle) -> ByteBuffer:
     result = ByteBuffer()
-    do_call("credx_object_get_json", handle, byref(result))
+    do_call("anoncreds_object_get_json", handle, byref(result))
     return result
 
 
 def object_get_type_name(handle: ObjectHandle) -> StrBuffer:
     result = StrBuffer()
-    do_call("credx_object_get_type_name", handle, byref(result))
+    do_call("anoncreds_object_get_type_name", handle, byref(result))
     return result
 
 
@@ -474,44 +475,44 @@ def _object_get_attribute(
 
 def generate_nonce() -> str:
     result = StrBuffer()
-    do_call("credx_generate_nonce", byref(result))
+    do_call("anoncreds_generate_nonce", byref(result))
     return str(result)
 
 
 def create_schema(
-    origin_did: str,
     name: str,
     version: str,
+    issuer_id: str,
     attr_names: Sequence[str],
-    seq_no: int = None,
 ) -> ObjectHandle:
     result = ObjectHandle()
     attrs = FfiStrList.create(attr_names)
     do_call(
-        "credx_create_schema",
-        encode_str(origin_did),
+        "anoncreds_create_schema",
         encode_str(name),
         encode_str(version),
+        encode_str(issuer_id),
         attrs,
-        c_int64(seq_no or -1),
         byref(result),
     )
     return result
 
 
 def create_credential_definition(
-    origin_did: str,
+    schema_id: str,
     schema: ObjectHandle,
     tag: str,
+    issuer_id: str,
     signature_type: str,
     support_revocation: bool,
 ) -> (ObjectHandle, ObjectHandle, ObjectHandle):
     cred_def, cred_def_pvt, key_proof = ObjectHandle(), ObjectHandle(), ObjectHandle()
     do_call(
-        "credx_create_credential_definition",
-        encode_str(origin_did),
+        "anoncreds_create_credential_definition",
+        encode_str(schema_id),
         schema,
         encode_str(tag),
+        encode_str(issuer_id),
         encode_str(signature_type),
         c_int8(support_revocation),
         byref(cred_def),
@@ -528,6 +529,7 @@ def create_credential(
     cred_request: ObjectHandle,
     attr_raw_values: Mapping[str, str],
     attr_enc_values: Optional[Mapping[str, str]],
+    rev_reg_id: Optional[str],
     revocation_config: Optional[RevocationConfig],
 ) -> (ObjectHandle, ObjectHandle, ObjectHandle):
     cred = ObjectHandle()
@@ -544,7 +546,7 @@ def create_credential(
         enc_values_list = None
     enc_values_list = FfiStrList().create(enc_values_list)
     do_call(
-        "credx_create_credential",
+        "anoncreds_create_credential",
         cred_def,
         cred_def_private,
         cred_offer,
@@ -552,9 +554,8 @@ def create_credential(
         names_list,
         raw_values_list,
         enc_values_list,
-        pointer(revocation_config)
-        if revocation_config
-        else POINTER(RevocationConfig)(),
+        encode_str(rev_reg_id),
+        pointer(revocation_config) if revocation_config else POINTER(RevocationConfig)(),
         byref(cred),
         byref(rev_reg),
         byref(rev_delta),
@@ -568,7 +569,7 @@ def encode_credential_attributes(
     attr_keys = list(attr_raw_values.keys())
     raw_values_list = FfiStrList.create(str(attr_raw_values[k]) for k in attr_keys)
     result = StrBuffer()
-    do_call("credx_encode_credential_attributes", raw_values_list, byref(result))
+    do_call("anoncreds_encode_credential_attributes", raw_values_list, byref(result))
     return dict(zip(attr_keys, str(result).split(",")))
 
 
@@ -581,7 +582,7 @@ def process_credential(
 ) -> ObjectHandle:
     result = ObjectHandle()
     do_call(
-        "credx_process_credential",
+        "anoncreds_process_credential",
         cred,
         cred_req_metadata,
         master_secret,
@@ -601,7 +602,7 @@ def revoke_credential(
     upd_rev_reg = ObjectHandle()
     rev_delta = ObjectHandle()
     do_call(
-        "credx_revoke_credential",
+        "anoncreds_revoke_credential",
         rev_reg_def,
         rev_reg,
         c_int64(cred_rev_idx),
@@ -613,13 +614,13 @@ def revoke_credential(
 
 
 def create_credential_offer(
-    schema_id: str, cred_def: ObjectHandle, key_proof: ObjectHandle
+    schema_id: str, cred_def_id: str, key_proof: ObjectHandle
 ) -> ObjectHandle:
     cred_offer = ObjectHandle()
     do_call(
-        "credx_create_credential_offer",
+        "anoncreds_create_credential_offer",
         encode_str(schema_id),
-        cred_def,
+        encode_str(cred_def_id),
         key_proof,
         byref(cred_offer),
     )
@@ -627,7 +628,7 @@ def create_credential_offer(
 
 
 def create_credential_request(
-    prover_did: str,
+    prover_did: Optional[str],
     cred_def: ObjectHandle,
     master_secret: ObjectHandle,
     master_secret_id: str,
@@ -635,7 +636,7 @@ def create_credential_request(
 ) -> (ObjectHandle, ObjectHandle):
     cred_req, cred_req_metadata = ObjectHandle(), ObjectHandle()
     do_call(
-        "credx_create_credential_request",
+        "anoncreds_create_credential_request",
         encode_str(prover_did),
         cred_def,
         master_secret,
@@ -650,7 +651,7 @@ def create_credential_request(
 def create_master_secret() -> ObjectHandle:
     secret = ObjectHandle()
     do_call(
-        "credx_create_master_secret",
+        "anoncreds_create_master_secret",
         byref(secret),
     )
     return secret
@@ -663,7 +664,9 @@ def create_presentation(
     self_attest: Mapping[str, str],
     master_secret: ObjectHandle,
     schemas: Sequence[ObjectHandle],
+    schema_ids: Sequence[str],
     cred_defs: Sequence[ObjectHandle],
+    cred_def_ids: Sequence[str],
 ) -> ObjectHandle:
     entry_list = CredentialEntryList()
     entry_list.count = len(credentials)
@@ -673,7 +676,7 @@ def create_presentation(
     prove_list.data = (CredentialProve * prove_list.count)(*credentials_prove)
     present = ObjectHandle()
     do_call(
-        "credx_create_presentation",
+        "anoncreds_create_presentation",
         pres_req,
         entry_list,
         prove_list,
@@ -681,7 +684,9 @@ def create_presentation(
         FfiStrList.create(self_attest.values()),
         master_secret,
         FfiObjectHandleList.create(schemas),
+        FfiStrList.create(schema_ids),
         FfiObjectHandleList.create(cred_defs),
+        FfiStrList.create(cred_def_ids),
         byref(present),
     )
     return present
@@ -701,7 +706,7 @@ def verify_presentation(
         entry_list.count = len(rev_regs)
         entry_list.data = (RevocationEntry * entry_list.count)(*rev_regs)
     do_call(
-        "credx_verify_presentation",
+        "anoncreds_verify_presentation",
         presentation,
         pres_req,
         FfiObjectHandleList.create(schemas),
@@ -714,8 +719,8 @@ def verify_presentation(
 
 
 def create_revocation_registry(
-    origin_did: str,
     cred_def: ObjectHandle,
+    cred_def_id: str,
     tag: str,
     rev_reg_type: str,
     issuance_type: Optional[str],
@@ -727,9 +732,9 @@ def create_revocation_registry(
     reg_entry = ObjectHandle()
     reg_init_delta = ObjectHandle()
     do_call(
-        "credx_create_revocation_registry",
-        encode_str(origin_did),
+        "anoncreds_create_revocation_registry",
         cred_def,
+        encode_str(cred_def_id),
         encode_str(tag),
         encode_str(rev_reg_type),
         encode_str(issuance_type),
@@ -753,7 +758,7 @@ def update_revocation_registry(
     upd_rev_reg = ObjectHandle()
     rev_delta = ObjectHandle()
     do_call(
-        "credx_update_revocation_registry",
+        "anoncreds_update_revocation_registry",
         rev_reg_def,
         rev_reg,
         FfiIntList.create(issued),
@@ -771,7 +776,7 @@ def merge_revocation_registry_deltas(
 ) -> ObjectHandle:
     rev_delta = ObjectHandle()
     do_call(
-        "credx_merge_revocation_registry_deltas",
+        "anoncreds_merge_revocation_registry_deltas",
         rev_reg_delta_1,
         rev_reg_delta_2,
         byref(rev_delta),
@@ -781,21 +786,21 @@ def merge_revocation_registry_deltas(
 
 def create_or_update_revocation_state(
     rev_reg_def: ObjectHandle,
-    rev_reg_delta: ObjectHandle,
+    rev_reg_list: ObjectHandle,
     rev_reg_index: int,
-    timestamp: int,
     tails_path: str,
-    prev_rev_state: Optional[ObjectHandle],
+    rev_state: ObjectHandle,
+    old_rev_reg_list: ObjectHandle,
 ) -> ObjectHandle:
     rev_state = ObjectHandle()
     do_call(
-        "credx_create_or_update_revocation_state",
+        "anoncreds_create_or_update_revocation_state",
         rev_reg_def,
-        rev_reg_delta,
+        rev_reg_list,
         c_int64(rev_reg_index),
-        c_int64(timestamp),
         encode_str(tails_path),
-        prev_rev_state or ObjectHandle(),
-        byref(rev_state),
+        rev_state,
+        old_rev_reg_list,
+        byref(rev_state)
     )
     return rev_state

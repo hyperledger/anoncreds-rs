@@ -1,7 +1,7 @@
-"""Indy-Credx Python wrapper library"""
+"""Anoncreds Python wrapper library"""
 
 from .bindings import encode_credential_attributes, generate_nonce, library_version
-from .error import CredxError, CredxErrorCode
+from .error import AnoncredsError, AnoncredsErrorCode
 from .types import (
     Credential,
     CredentialDefinition,
@@ -27,8 +27,8 @@ __all__ = (
     "encode_credential_attributes",
     "generate_nonce",
     "library_version",
-    "CredxError",
-    "CredxErrorCode",
+    "AnoncredsError",
+    "AnoncredsErrorCode",
     "Credential",
     "CredentialDefinition",
     "CredentialDefinitionPrivate",
