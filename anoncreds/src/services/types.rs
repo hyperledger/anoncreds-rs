@@ -217,9 +217,9 @@ impl Validatable for CredentialRevocationState {
 pub struct CredentialRevocationConfig<'a> {
     pub reg_def: &'a RevocationRegistryDefinition,
     pub reg_def_private: &'a RevocationRegistryDefinitionPrivate,
+    // TODO remove this!
     pub registry: &'a RevocationRegistry,
     pub registry_idx: u32,
-    pub registry_used: &'a HashSet<u32>,
     pub tails_reader: TailsReader,
 }
 

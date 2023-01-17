@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeSet, HashMap},
     fs::create_dir,
 };
 
@@ -16,11 +16,10 @@ use anoncreds::{
     types::{
         CredentialDefinitionConfig, CredentialRevocationConfig, CredentialRevocationState,
         MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType,
-        RevocationStatusList, SignatureType,
+        RevocationRegistry, RevocationStatusList, SignatureType,
     },
     verifier,
 };
-use bitvec::bitvec;
 
 use serde_json::json;
 
@@ -33,9 +32,9 @@ pub static CRED_DEF_ID: &str = "mock:uri";
 pub static ISSUER_ID: &str = "mock:issuer_id/path&q=bar";
 pub const GVT_SCHEMA_NAME: &str = "gvt";
 pub const GVT_SCHEMA_ATTRIBUTES: &[&str; 4] = &["name", "age", "sex", "height"];
-pub static REV_REG_ID: &str = "mock:uri:revregid";
-pub static REV_IDX: u32 = 89;
-pub static MAX_CRED_NUM: u32 = 150;
+pub static REV_REG_DEF_ID: &str = "mock:uri:revregid";
+pub static REV_IDX: u32 = 9;
+pub static MAX_CRED_NUM: u32 = 10;
 
 #[test]
 fn anoncreds_works_for_single_issuer_single_prover() {
@@ -103,7 +102,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
     cred_values
         .add_raw("age", "28")
         .expect("Error encoding attribute");
-    let (issue_cred, _, _) = issuer::create_credential(
+    let issue_cred = issuer::create_credential(
         &*gvt_cred_def,
         &issuer_wallet.cred_defs[0].private,
         &cred_offer,
@@ -240,7 +239,6 @@ fn anoncreds_works_for_single_issuer_single_prover() {
 
 #[test]
 fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
-    env_logger::init();
     // Create Issuer pseudo wallet
     let mut issuer_wallet = IssuerWallet::default();
 
@@ -282,7 +280,9 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         .unwrap();
 
     let mut tf = TailsFileWriter::new(Some(tf_path.to_owned()));
-    let (rev_reg_def_pub, rev_reg_def_priv, rev_reg, _) = issuer::create_revocation_registry(
+
+    // Issuer creates Revocation Registry Definitions
+    let (rev_reg_def_pub, rev_reg_def_priv) = issuer::create_revocation_registry_def(
         &cred_def_pub,
         CRED_DEF_ID,
         ISSUER_ID,
@@ -290,6 +290,16 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         RegistryType::CL_ACCUM,
         MAX_CRED_NUM,
         &mut tf,
+    )
+    .unwrap();
+
+    // Issuer creates reovcation status list - to be put on the ledger
+    let time_create_rev_status_list = 12;
+    let revocation_status_list = issuer::create_revocation_status_list(
+        REV_REG_DEF_ID,
+        &rev_reg_def_pub,
+        Some(time_create_rev_status_list),
+        true,
     )
     .unwrap();
 
@@ -337,22 +347,14 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         .add_raw("age", "28")
         .expect("Error encoding attribute");
 
-    let rev_reg_id = RevocationRegistryId::new_unchecked(REV_REG_ID);
+    let rev_reg_def_id = RevocationRegistryDefinitionId::new_unchecked(REV_REG_DEF_ID);
+    let rev_reg_id = RevocationRegistryId::new_unchecked(REV_REG_DEF_ID);
 
     // Get the location of the tails_file so it can be read
     let location = rev_reg_def_pub.clone().value.tails_location;
-
     let tr = TailsFileReader::new_tails_reader(location.as_str());
 
-    // The Prover's index in the revocation list is REV_IDX
-    let registry_used = HashSet::from([REV_IDX]);
-
-    let list = bitvec![0; MAX_CRED_NUM as usize ];
-    let revocation_status_list =
-        RevocationStatusList::new(None, list, None, None).expect("Error creating status list");
-
-    // TODO: Here Delta is not needed but is it used elsewhere?
-    let (issue_cred, cred_rev_reg, _) = issuer::create_credential(
+    let issue_cred = issuer::create_credential(
         &*gvt_cred_def,
         &issuer_wallet.cred_defs[0].private,
         &cred_offer,
@@ -363,14 +365,25 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         Some(CredentialRevocationConfig {
             reg_def: &rev_reg_def_pub,
             reg_def_private: &rev_reg_def_priv,
-            registry: &rev_reg,
+            registry: &<&RevocationStatusList as Into<Option<RevocationRegistry>>>::into(
+                &revocation_status_list,
+            )
+            .unwrap(),
             registry_idx: REV_IDX,
-            registry_used: &registry_used,
             tails_reader: tr,
         }),
     )
     .expect("Error creating credential");
-    let cred_rev_reg = cred_rev_reg.unwrap();
+
+    let time_after_creating_cred = time_create_rev_status_list + 1;
+    let issued_rev_status_list = issuer::update_revocation_status_list(
+        time_after_creating_cred,
+        BTreeSet::from([REV_IDX]),
+        BTreeSet::new(),
+        &rev_reg_def_pub,
+        &revocation_status_list,
+    )
+    .unwrap();
 
     // Prover receives the credential and processes it
     let mut recv_cred = issue_cred;
@@ -414,20 +427,15 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     }))
     .expect("Error creating proof request");
 
-    // Prover: here we deliberately do not put in the same timestamp as the global non_revoked time interval,
-    // this shows that it is not used
-    let prover_timestamp = 1234u64;
-    let rev_reg = cred_rev_reg.clone().value;
-
-    let rev_state = CredentialRevocationState {
-        timestamp: prover_timestamp,
-        rev_reg: rev_reg.clone(),
-        witness: prover_wallet.credentials[0]
-            .try_clone()
-            .unwrap()
-            .witness
-            .unwrap(),
-    };
+    let rev_state = prover::create_or_update_revocation_state(
+        &rev_reg_def_pub.value.tails_location,
+        &rev_reg_def_pub,
+        &revocation_status_list,
+        REV_IDX,
+        None,
+        None,
+    )
+    .unwrap();
 
     let mut schemas = HashMap::new();
     let schema_id = SchemaId::new_unchecked(SCHEMA_ID);
@@ -443,21 +451,18 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         &cred_defs,
         &pres_request,
         &prover_wallet,
-        Some(prover_timestamp),
+        Some(time_after_creating_cred),
         Some(&rev_state),
     );
 
     // Verifier verifies presentation of not Revoked rev_state
-    // TODO: rev reg def id is the same as the rev reg id?
-    let rev_reg_def_id = RevocationRegistryDefinitionId::new_unchecked(REV_REG_ID);
     let rev_reg_def_map = HashMap::from([(&rev_reg_def_id, &rev_reg_def_pub)]);
-
-    // Create the map that contines the registries
-    let rev_timestamp_map = HashMap::from([(prover_timestamp, &cred_rev_reg)]);
-
-    let rev_reg_id = RevocationRegistryId::new_unchecked(REV_REG_ID);
+    // Create the map that containes the registries
+    let rev_reg =
+        <&RevocationStatusList as Into<Option<RevocationRegistry>>>::into(&issued_rev_status_list)
+            .unwrap();
+    let rev_timestamp_map = HashMap::from([(time_after_creating_cred, &rev_reg)]);
     let mut rev_reg_map = HashMap::from([(rev_reg_id.clone(), rev_timestamp_map.clone())]);
-
     let valid = verifier::verify_presentation(
         &presentation,
         &pres_request,
@@ -469,53 +474,43 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     .expect("Error verifying presentation");
     assert!(valid);
 
-    // Issuer Revoke the holder's credentail
-    let tr = TailsFileReader::new_tails_reader(location.as_str());
-    let (revoked_rev_reg, _) =
-        issuer::revoke_credential(&rev_reg_def_pub, &cred_rev_reg, REV_IDX, &tr).unwrap();
-
-    // Prover using the revoked list to update witness and create rev state,
-    let mut list = bitvec![0; MAX_CRED_NUM as usize ];
-    let mut revoked_bit = list.get_mut(REV_IDX as usize).unwrap();
-    *revoked_bit = true;
-    // revoked_bit is not a reference so can drop
-    drop(revoked_bit);
-
-    let ursa_rev_reg = revoked_rev_reg.clone().value;
-
-    let revocation_list = RevocationStatusList::new(
-        Some(REV_REG_ID),
-        list,
-        Some(ursa_rev_reg),
-        Some(prover_timestamp),
-    )
-    .unwrap();
-    let new_rev_state = prover::create_or_update_revocation_state(
-        tr,
+    //  ===================== Issuer revokes credential ================
+    let time_revoke_cred = time_after_creating_cred + 1;
+    let revoked_status_list = issuer::update_revocation_status_list(
+        time_revoke_cred,
+        BTreeSet::new(),
+        BTreeSet::from([REV_IDX]),
         &rev_reg_def_pub,
-        &revocation_list,
-        REV_IDX,
-        None,
-        None,
+        &issued_rev_status_list,
     )
     .unwrap();
 
-    // lets say the proof is for a later time
-    // TODO: this has nothing to do with pres_request time at the moment
-    let new_prover_timestamp = prover_timestamp + 100;
+    let rev_state = prover::create_or_update_revocation_state(
+        &rev_reg_def_pub.value.tails_location,
+        &rev_reg_def_pub,
+        &revocation_status_list,
+        REV_IDX,
+        Some(&rev_state),
+        Some(&issued_rev_status_list),
+    )
+    .unwrap();
 
+    // Prover creates presentation
     let presentation = _create_presentation(
         &schemas,
         &cred_defs,
         &pres_request,
         &prover_wallet,
-        Some(new_prover_timestamp),
-        Some(&new_rev_state),
+        Some(time_revoke_cred),
+        Some(&rev_state),
     );
 
-    // Add the updated revocation registyr to the map that contines the new registry of revoked state
+    // Add the updated revocation registry to the map that contines the new registry of revoked state
+    let rev_reg =
+        <&RevocationStatusList as Into<Option<RevocationRegistry>>>::into(&revoked_status_list)
+            .unwrap();
     let r = rev_reg_map.get_mut(&rev_reg_id).unwrap();
-    r.insert(new_prover_timestamp, &revoked_rev_reg);
+    r.insert(time_revoke_cred, &rev_reg);
 
     let valid = verifier::verify_presentation(
         &presentation,
