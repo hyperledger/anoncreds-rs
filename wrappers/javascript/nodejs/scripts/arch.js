@@ -1,6 +1,6 @@
 const os = require('os')
 
-// Find appropriate target architecture settings for retrieving askar binaries
+// Find appropriate target architecture settings for retrieving anoncreds binaries
 const platform = os.platform()
 const arch = os.arch()
 
