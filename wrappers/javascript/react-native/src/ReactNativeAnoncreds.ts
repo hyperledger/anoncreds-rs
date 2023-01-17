@@ -25,20 +25,20 @@ export class ReactNativeAnoncreds implements Anoncreds {
   }
 
   public createSchema(options: {
-    originDid: string
     name: string
     version: string
     attributeNames: string[]
-    sequenceNumber?: number
+    issuerId: string
   }): ObjectHandle {
     const handle = anoncredsReactNative.createSchema(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 
   public createCredentialDefinition(options: {
-    originDid: string
+    schemaId: string
     schema: ObjectHandle
     tag: string
+    issuerId: string
     signatureType: string
     supportRevocation: boolean
   }): { credentialDefinition: ObjectHandle; credentialDefinitionPrivate: ObjectHandle; keyProof: ObjectHandle } {
@@ -106,7 +106,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
 
   public createCredentialOffer(options: {
     schemaId: string
-    credentialDefinition: ObjectHandle
+    credentialDefinitionId: string
     keyProof: ObjectHandle
   }): ObjectHandle {
     const handle = anoncredsReactNative.createCredentialOffer(serializeArguments(options))
@@ -160,8 +160,8 @@ export class ReactNativeAnoncreds implements Anoncreds {
   }
 
   public createRevocationRegistry(options: {
-    originDid: string
     credentialDefinition: ObjectHandle
+    credentialDefinitionId: string
     tag: string
     revocationRegistryType: string
     issuanceType?: string
@@ -211,11 +211,11 @@ export class ReactNativeAnoncreds implements Anoncreds {
 
   public createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: ObjectHandle
-    revocationRegistryDelta: ObjectHandle
+    revocationRegistryList: ObjectHandle
     revocationRegistryIndex: number
-    timestamp: number
     tailsPath: string
-    previousRevocationState?: ObjectHandle
+    revocationState: ObjectHandle
+    oldRevocationRegistryList: ObjectHandle
   }): ObjectHandle {
     const handle = anoncredsReactNative.createOrUpdateRevocationState(serializeArguments(options))
     return new ObjectHandle(handle)

@@ -17,6 +17,7 @@
   },
   "files": [
     "build",
+    "scripts",
     "README.md",
     "package.json",
     "../../../LICENSE"
@@ -27,6 +28,7 @@
     "compile": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
+    "@mapbox/node-pre-gyp": "^1.0.10",
     "anoncreds-shared": "*",
     "ffi-napi": "4.0.3",
     "node-cache": "5.1.2",
@@ -41,5 +43,12 @@
     "@types/ref-napi": "3.0.4",
     "@types/ref-struct-di": "1.1.6",
     "typescript": "4.5.5"
+  },
+  "binary": {
+    "module_name": "anoncreds",
+    "module_path": "native",
+    "remote_path": "v{version}",
+    "host": "https://github.com/hyperledger/anoncreds/release/download/",
+    "package_name": "library-{platform}-{arch}.tar.gz"
   }
 }

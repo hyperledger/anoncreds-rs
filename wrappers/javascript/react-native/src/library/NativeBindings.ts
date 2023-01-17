@@ -12,16 +12,11 @@ export interface NativeBindings {
   version(options: Record<never, never>): string
   getCurrentError(options: Record<never, never>): string
   generateNonce(options: Record<never, never>): string
-  createSchema(options: {
-    originDid: string
-    name: string
-    version: string
-    attributeNames: string[]
-    sequenceNumber?: number
-  }): _Handle
+  createSchema(options: { name: string; version: string; issuerId: string; attributeNames: string[] }): _Handle
   createCredentialDefinition(options: {
-    originDid: string
+    schemaId: string
     schema: number
+    issuerId: string
     tag: string
     signatureType: string
     supportRevocation: number
@@ -50,7 +45,7 @@ export interface NativeBindings {
     tailsPath: string
   }): { revocationRegistry: _Handle; revocationRegistryDelta: _Handle }
 
-  createCredentialOffer(options: { schemaId: string; credentialDefinition: number; keyProof: number }): _Handle
+  createCredentialOffer(options: { schemaId: string; credentialDefinitionId: string; keyProof: number }): _Handle
 
   createCredentialRequest(options: {
     proverDid: string
@@ -82,8 +77,8 @@ export interface NativeBindings {
   }): boolean
 
   createRevocationRegistry(options: {
-    originDid: string
     credentialDefinition: number
+    credentialDefinitionId: string
     tag: string
     revocationRegistryType: string
     issuanceType?: string
@@ -111,11 +106,11 @@ export interface NativeBindings {
 
   createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: number
-    revocationRegistryDelta: number
+    revocationRegistryList: number
     revocationRegistryIndex: number
-    timestamp: number
     tailsPath: string
-    previousRevocationState?: number
+    revocationState: number
+    oldRevocationRegistryList: number
   }): _Handle
   presentationRequestFromJson(options: { json: string }): _Handle
   schemaGetAttribute(options: { objectHandle: number; name: string }): string

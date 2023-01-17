@@ -6,15 +6,14 @@ import { anoncreds } from '../register'
 
 export type CreateRevocationStateOptions = {
   revocationRegistryDefinition: RevocationRegistryDefinition
-  revocationRegistryDelta: RevocationRegistryDelta
+  revocationRegistryList: RevocationRegistryDelta
   revocationRegistryIndex: number
-  timestamp: number
   tailsPath: string
 }
 
 export type UpdateRevocationStateOptions = {
   revocationRegistryDefinition: RevocationRegistryDefinition
-  revocationRegistryDelta: RevocationRegistryDelta
+  revocationRegistryList: RevocationRegistryDelta
   revocationRegistryIndex: number
   timestamp: number
   tailsPath: string
@@ -25,9 +24,8 @@ export class CredentialRevocationState extends AnoncredsObject {
     return new CredentialRevocationState(
       anoncreds.createOrUpdateRevocationState({
         revocationRegistryDefinition: options.revocationRegistryDefinition.handle,
-        revocationRegistryDelta: options.revocationRegistryDelta.handle,
+        revocationRegistryList: options.revocationRegistryList.handle,
         revocationRegistryIndex: options.revocationRegistryIndex,
-        timestamp: options.timestamp,
         tailsPath: options.tailsPath,
       }).handle
     )
@@ -40,9 +38,8 @@ export class CredentialRevocationState extends AnoncredsObject {
   public update(options: UpdateRevocationStateOptions) {
     this._handle = anoncreds.createOrUpdateRevocationState({
       revocationRegistryDefinition: options.revocationRegistryDefinition.handle,
-      revocationRegistryDelta: options.revocationRegistryDelta.handle,
+      revocationRegistryList: options.revocationRegistryList.handle,
       revocationRegistryIndex: options.revocationRegistryIndex,
-      timestamp: options.timestamp,
       tailsPath: options.tailsPath,
       previousRevocationState: this.handle,
     })
