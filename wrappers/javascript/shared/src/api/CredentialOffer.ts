@@ -1,4 +1,3 @@
-import type { CredentialDefinition } from './CredentialDefinition'
 import type { KeyCorrectnessProof } from './KeyCorrectnessProof'
 
 import { AnoncredsObject } from '../AnoncredsObject'
@@ -6,7 +5,7 @@ import { anoncreds } from '../register'
 
 export type CreateCredentialOfferOptions = {
   schemaId: string
-  credentialDefinition: CredentialDefinition
+  credentialDefinitionId: string
   keyCorrectnessProof: KeyCorrectnessProof
 }
 export class CredentialOffer extends AnoncredsObject {
@@ -14,7 +13,7 @@ export class CredentialOffer extends AnoncredsObject {
     return new CredentialOffer(
       anoncreds.createCredentialOffer({
         schemaId: options.schemaId,
-        credentialDefinition: options.credentialDefinition.handle,
+        credentialDefinitionId: options.credentialDefinitionId,
         keyProof: options.keyCorrectnessProof.handle,
       }).handle
     )

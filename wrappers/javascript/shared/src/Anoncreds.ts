@@ -62,7 +62,7 @@ export interface Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     attributeEncodedValues?: Record<string, string>
-    revocationRegistryId: string
+    revocationRegistryId?: string
     revocationConfiguration?: NativeCredentialRevocationConfig
   }): { credential: ObjectHandle; revocationRegistry: ObjectHandle; revocationDelta: ObjectHandle }
 

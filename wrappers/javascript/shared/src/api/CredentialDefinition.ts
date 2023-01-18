@@ -7,20 +7,22 @@ import { CredentialDefinitionPrivate } from './CredentialDefinitionPrivate'
 import { KeyCorrectnessProof } from './KeyCorrectnessProof'
 
 export type CreateCredentialDefinitionOptions = {
-  originDid: string
+  schemaId: string
   schema: Schema
   signatureType: string
   tag: string
+  issuerId: string
   supportRevocation?: boolean
 }
 
 export class CredentialDefinition extends AnoncredsObject {
   public static create(options: CreateCredentialDefinitionOptions) {
     const { credentialDefinition, credentialDefinitionPrivate, keyProof } = anoncreds.createCredentialDefinition({
-      originDid: options.originDid,
+      schemaId: options.schemaId,
       schema: options.schema.handle,
       signatureType: options.signatureType,
       tag: options.tag,
+      issuerId: options.issuerId,
       supportRevocation: options.supportRevocation ?? false,
     })
 
@@ -33,13 +35,5 @@ export class CredentialDefinition extends AnoncredsObject {
 
   public static load(json: string) {
     return new CredentialDefinition(anoncreds.credentialDefinitionFromJson({ json }).handle)
-  }
-
-  public getId() {
-    return anoncreds.credentialDefinitionGetAttribute({ objectHandle: this.handle, name: 'id' })
-  }
-
-  public getSchemaId() {
-    return anoncreds.credentialDefinitionGetAttribute({ objectHandle: this.handle, name: 'schema_id' })
   }
 }
