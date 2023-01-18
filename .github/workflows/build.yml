@@ -40,6 +40,8 @@ jobs:
       - name: Cargo fmt
         run: cargo fmt --all -- --check
 
+  
+
   check:
     name: Run Checks
     needs: [lint]
@@ -65,9 +67,19 @@ jobs:
           OPENSSL_STATIC: 1
         run: cargo build --package anoncreds --features vendored
 
-      - name: Debug build
+      - name: Debug build Linux and macOS
         if: "runner.os != 'Windows'"
         run: cargo build --package anoncreds --features vendored
+
+      - name: Test Linux and macOS
+        if: "runner.os != 'Windows'"
+        run: cargo test --package anoncreds --features vendored
+
+      - name: Test Windows
+        if: "runner.os == 'Windows'"
+        env:
+          OPENSSL_STATIC: 1
+        run: cargo test --package anoncreds --features vendored
 
   build-release:
     name: Build Library
