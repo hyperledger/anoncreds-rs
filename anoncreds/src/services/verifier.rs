@@ -335,7 +335,7 @@ fn compare_timestamps_from_proof_and_request(
                 received_self_attested_attrs
                     .get(referent)
                     .map(|_| ())
-                    .ok_or_else(|| err_msg!("Missing referent"))
+                    .ok_or_else(|| err_msg!("Missing referent: {}", referent))
             })
         })
         .collect::<Result<Vec<()>>>()?;

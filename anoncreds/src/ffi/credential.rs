@@ -30,7 +30,6 @@ pub struct FfiCredRevInfo<'a> {
 struct RevocationConfig {
     reg_def: AnonCredsObject,
     reg_def_private: AnonCredsObject,
-    registry: AnonCredsObject,
     reg_idx: u32,
     tails_path: String,
 }
@@ -40,7 +39,6 @@ impl RevocationConfig {
         Ok(CredentialRevocationConfig {
             reg_def: self.reg_def.cast_ref()?,
             reg_def_private: self.reg_def_private.cast_ref()?,
-            registry: self.registry.cast_ref()?,
             registry_idx: self.reg_idx,
             tails_reader: TailsFileReader::new_tails_reader(self.tails_path.as_str()),
         })
@@ -112,7 +110,6 @@ pub extern "C" fn anoncreds_create_credential(
             Some(RevocationConfig {
                 reg_def: revocation.reg_def.load()?,
                 reg_def_private: revocation.reg_def_private.load()?,
-                registry: revocation.registry.load()?,
                 reg_idx: revocation
                     .reg_idx
                     .try_into()
