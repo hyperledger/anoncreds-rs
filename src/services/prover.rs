@@ -47,6 +47,15 @@ pub fn create_credential_request(
         credential_offer
     );
 
+    // Here we check whether the identifiers inside the cred_def (schema_id, and issuer_id)
+    // are legacy or new. If they are new, it is not allowed to supply a `prover_did` and a
+    // random string will be chosen for you.
+    if !(cred_def.schema_id.is_legacy() || cred_def.issuer_id.is_legacy()) && prover_did.is_some() {
+        return Err(err_msg!(
+            "Prover did must not be supplied when using new identifiers"
+        ));
+    }
+
     let credential_pub_key = CredentialPublicKey::build_from_parts(
         &cred_def.value.primary,
         cred_def.value.revocation.as_ref(),
@@ -764,6 +773,142 @@ mod tests {
                 get_credential_values_for_attribute(&cred_values, "            name            ")
                     .unwrap();
             assert_eq!(_attr_values(), res);
+        }
+    }
+
+    mod using_prover_did_with_new_and_legacy_identifiers {
+        use crate::issuer::{create_credential_definition, create_credential_offer, create_schema};
+
+        use super::*;
+
+        const SCHEMA_ID: &str = "mock:uri";
+        const ISSUER_ID: &str = "mock:uri";
+        const CRED_DEF_ID: &str = "mock:uri";
+
+        const PROVER_DID: &str = "NcYxiDXkpYi6ov5FcYDi1e";
+
+        const LEGACY_SCHEMA_ID: &str = "NcYxiDXkpYi6ov5FcYDi1e";
+        const LEGACY_ISSUER_ID: &str = "NcYxiDXkpYi6ov5FcYDi1e";
+        const LEGACY_CRED_DEF_ID: &str = "NcYxiDXkpYi6ov5FcYDi1e";
+
+        fn _master_secret() -> MasterSecret {
+            MasterSecret::new().expect("Error creating prover master secret")
+        }
+
+        fn _schema() -> Schema {
+            create_schema("test", "1.0", ISSUER_ID, ["a", "b", "c"][..].into()).unwrap()
+        }
+
+        fn _cred_def_and_key_correctness_proof(
+        ) -> (CredentialDefinition, CredentialKeyCorrectnessProof) {
+            let (cred_def, _, key_correctness_proof) = create_credential_definition(
+                SCHEMA_ID,
+                &_schema(),
+                ISSUER_ID,
+                "tag",
+                SignatureType::CL,
+                CredentialDefinitionConfig {
+                    support_revocation: false,
+                },
+            )
+            .unwrap();
+            (cred_def, key_correctness_proof)
+        }
+
+        fn _cred_offer(key_correctness_proof: CredentialKeyCorrectnessProof) -> CredentialOffer {
+            create_credential_offer(SCHEMA_ID, CRED_DEF_ID, &key_correctness_proof).unwrap()
+        }
+
+        fn _legacy_schema() -> Schema {
+            create_schema("test", "1.0", LEGACY_ISSUER_ID, ["a", "b", "c"][..].into()).unwrap()
+        }
+
+        fn _legacy_cred_def_and_key_correctness_proof(
+        ) -> (CredentialDefinition, CredentialKeyCorrectnessProof) {
+            let (cred_def, _, key_correctness_proof) = create_credential_definition(
+                LEGACY_SCHEMA_ID,
+                &_legacy_schema(),
+                LEGACY_ISSUER_ID,
+                "tag",
+                SignatureType::CL,
+                CredentialDefinitionConfig {
+                    support_revocation: false,
+                },
+            )
+            .unwrap();
+            (cred_def, key_correctness_proof)
+        }
+
+        fn _legacy_cred_offer(
+            key_correctness_proof: CredentialKeyCorrectnessProof,
+        ) -> CredentialOffer {
+            create_credential_offer(LEGACY_SCHEMA_ID, LEGACY_CRED_DEF_ID, &key_correctness_proof)
+                .unwrap()
+        }
+
+        #[test]
+        fn create_credential_request_with_new_identifiers_and_no_prover_did() {
+            let (cred_def, key_correctness_proof) = _cred_def_and_key_correctness_proof();
+            let master_secret = _master_secret();
+            let cred_offer = _cred_offer(key_correctness_proof);
+            let resp =
+                create_credential_request(None, &cred_def, &master_secret, "default", &cred_offer);
+            assert!(resp.is_ok())
+        }
+
+        #[test]
+        fn create_credential_request_with_legacy_identifiers_and_a_prover_did() {
+            let (cred_def, key_correctness_proof) = _legacy_cred_def_and_key_correctness_proof();
+            let master_secret = _master_secret();
+            let cred_offer = _legacy_cred_offer(key_correctness_proof);
+            let resp = create_credential_request(
+                Some(PROVER_DID),
+                &cred_def,
+                &master_secret,
+                "default",
+                &cred_offer,
+            );
+            assert!(resp.is_ok())
+        }
+
+        #[test]
+        fn create_credential_request_with_legacy_identifiers_and_no_prover_did() {
+            let (cred_def, key_correctness_proof) = _legacy_cred_def_and_key_correctness_proof();
+            let master_secret = _master_secret();
+            let cred_offer = _legacy_cred_offer(key_correctness_proof);
+            let resp =
+                create_credential_request(None, &cred_def, &master_secret, "default", &cred_offer);
+            assert!(resp.is_ok())
+        }
+
+        #[test]
+        fn create_credential_request_with_new_identifiers_and_a_prover_did() {
+            let (cred_def, key_correctness_proof) = _cred_def_and_key_correctness_proof();
+            let master_secret = _master_secret();
+            let cred_offer = _cred_offer(key_correctness_proof);
+            let resp = create_credential_request(
+                Some(PROVER_DID),
+                &cred_def,
+                &master_secret,
+                "default",
+                &cred_offer,
+            );
+            assert!(resp.is_err())
+        }
+
+        #[test]
+        fn create_credential_request_with_new_and_legacy_identifiers_and_a_prover_did() {
+            let (cred_def, key_correctness_proof) = _cred_def_and_key_correctness_proof();
+            let master_secret = _master_secret();
+            let cred_offer = _legacy_cred_offer(key_correctness_proof);
+            let resp = create_credential_request(
+                Some(PROVER_DID),
+                &cred_def,
+                &master_secret,
+                "default",
+                &cred_offer,
+            );
+            assert!(resp.is_err())
         }
     }
 }
