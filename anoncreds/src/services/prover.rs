@@ -21,8 +21,9 @@ use crate::error::{Error, Result};
 use crate::services::helpers::*;
 use crate::ursa::cl::{
     issuer::Issuer as CryptoIssuer, prover::Prover as CryptoProver,
-    verifier::Verifier as CryptoVerifier, CredentialPublicKey, RevocationRegistryDelta,
-    SubProofRequest, Witness,
+    verifier::Verifier as CryptoVerifier, CredentialPublicKey,
+    RevocationRegistry as CryptoRevocationRegistry, RevocationRegistryDelta, SubProofRequest,
+    Witness,
 };
 use indy_utils::Validatable;
 
@@ -246,6 +247,25 @@ pub fn create_presentation(
     Ok(full_proof)
 }
 
+pub fn create_or_update_revocation_state_with_witness(
+    witness: Witness,
+    revocation_status_list: &RevocationStatusList,
+    timestamp: u64,
+) -> Result<CredentialRevocationState> {
+    let rev_reg = <&RevocationStatusList as Into<Option<CryptoRevocationRegistry>>>::into(
+        revocation_status_list,
+    )
+    .ok_or_else(|| err_msg!(Unexpected, "Revocation Status List must have accum value"))?;
+
+    Ok(CredentialRevocationState {
+        witness,
+        rev_reg,
+        timestamp,
+    })
+}
+
+// This can be done by anyone, allowing prover to offload this task
+// The tails_path here is used instead of tails_location in `revoc_reg_def` so prover can provide it
 pub fn create_or_update_revocation_state(
     tails_path: &str,
     revoc_reg_def: &RevocationRegistryDefinition,

@@ -23,7 +23,7 @@ use anoncreds::{
 
 use serde_json::json;
 
-use self::utils::anoncreds::{IssuerWallet, ProverWallet};
+use self::utils::anoncreds::ProverWallet;
 
 mod utils;
 
@@ -38,9 +38,6 @@ pub static MAX_CRED_NUM: u32 = 10;
 
 #[test]
 fn anoncreds_works_for_single_issuer_single_prover() {
-    // Create Issuer pseudo wallet
-    let mut issuer_wallet = IssuerWallet::default();
-
     // Create Prover pseudo wallet and master secret
     let mut prover_wallet = ProverWallet::default();
 
@@ -54,7 +51,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
     .expect("Error creating gvt schema for issuer");
 
     // Issuer creates Credential Definition
-    let cred_def_parts = issuer::create_credential_definition(
+    let (cred_def_pub, cred_def_priv, cred_def_correctness) = issuer::create_credential_definition(
         SCHEMA_ID,
         &gvt_schema,
         ISSUER_ID,
@@ -65,23 +62,15 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         },
     )
     .expect("Error creating gvt credential definition");
-    issuer_wallet.cred_defs.push(cred_def_parts.into());
-
-    // Public part would be published to the ledger
-    let gvt_cred_def = &issuer_wallet.cred_defs[0].public;
 
     // Issuer creates a Credential Offer
-    let cred_offer = issuer::create_credential_offer(
-        SCHEMA_ID,
-        CRED_DEF_ID,
-        &issuer_wallet.cred_defs[0].key_proof,
-    )
-    .expect("Error creating credential offer");
+    let cred_offer = issuer::create_credential_offer(SCHEMA_ID, CRED_DEF_ID, &cred_def_correctness)
+        .expect("Error creating credential offer");
 
     // Prover creates a Credential Request
     let (cred_request, cred_request_metadata) = prover::create_credential_request(
         None,
-        &*gvt_cred_def,
+        &cred_def_pub,
         &prover_wallet.master_secret,
         "default",
         &cred_offer,
@@ -103,8 +92,8 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         .add_raw("age", "28")
         .expect("Error encoding attribute");
     let issue_cred = issuer::create_credential(
-        &*gvt_cred_def,
-        &issuer_wallet.cred_defs[0].private,
+        &cred_def_pub,
+        &cred_def_priv,
         &cred_offer,
         &cred_request,
         cred_values.into(),
@@ -120,7 +109,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         &mut recv_cred,
         &cred_request_metadata,
         &prover_wallet.master_secret,
-        &*gvt_cred_def,
+        &cred_def_pub,
         None,
     )
     .expect("Error processing credential");
@@ -175,7 +164,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
 
     let mut cred_defs = HashMap::new();
     let cred_def_id = CredentialDefinitionId::new_unchecked(CRED_DEF_ID);
-    cred_defs.insert(&cred_def_id, &*gvt_cred_def);
+    cred_defs.insert(&cred_def_id, &cred_def_pub);
 
     let presentation = prover::create_presentation(
         &pres_request,
@@ -239,9 +228,6 @@ fn anoncreds_works_for_single_issuer_single_prover() {
 
 #[test]
 fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
-    // Create Issuer pseudo wallet
-    let mut issuer_wallet = IssuerWallet::default();
-
     // Create Prover pseudo wallet and master secret
     let mut prover_wallet = ProverWallet::default();
 
@@ -303,29 +289,14 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     )
     .unwrap();
 
-    issuer_wallet
-        .cred_defs
-        .push(utils::anoncreds::StoredCredDef {
-            public: cred_def_pub,
-            private: cred_def_priv,
-            key_proof: cred_def_correctness,
-        });
-
-    // Public part would be published to the ledger
-    let gvt_cred_def = &issuer_wallet.cred_defs[0].public;
-
     // Issuer creates a Credential Offer
-    let cred_offer = issuer::create_credential_offer(
-        SCHEMA_ID,
-        CRED_DEF_ID,
-        &issuer_wallet.cred_defs[0].key_proof,
-    )
-    .expect("Error creating credential offer");
+    let cred_offer = issuer::create_credential_offer(SCHEMA_ID, CRED_DEF_ID, &cred_def_correctness)
+        .expect("Error creating credential offer");
 
     // Prover creates a Credential Request
     let (cred_request, cred_request_metadata) = prover::create_credential_request(
         None,
-        &*gvt_cred_def,
+        &cred_def_pub,
         &prover_wallet.master_secret,
         "default",
         &cred_offer,
@@ -355,8 +326,8 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let tr = TailsFileReader::new_tails_reader(location.as_str());
 
     let issue_cred = issuer::create_credential(
-        &*gvt_cred_def,
-        &issuer_wallet.cred_defs[0].private,
+        &cred_def_pub,
+        &cred_def_priv,
         &cred_offer,
         &cred_request,
         cred_values.into(),
@@ -365,10 +336,6 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         Some(CredentialRevocationConfig {
             reg_def: &rev_reg_def_pub,
             reg_def_private: &rev_reg_def_priv,
-            registry: &<&RevocationStatusList as Into<Option<RevocationRegistry>>>::into(
-                &revocation_status_list,
-            )
-            .unwrap(),
             registry_idx: REV_IDX,
             tails_reader: tr,
         }),
@@ -391,7 +358,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         &mut recv_cred,
         &cred_request_metadata,
         &prover_wallet.master_secret,
-        &*gvt_cred_def,
+        &cred_def_pub,
         Some(&rev_reg_def_pub),
     )
     .expect("Error processing credential");
@@ -443,7 +410,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
 
     let mut cred_defs = HashMap::new();
     let cred_def_id = CredentialDefinitionId::new_unchecked(CRED_DEF_ID);
-    cred_defs.insert(&cred_def_id, &*gvt_cred_def);
+    cred_defs.insert(&cred_def_id, &cred_def_pub);
 
     // Prover creates presentation
     let presentation = _create_presentation(

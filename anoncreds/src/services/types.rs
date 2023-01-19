@@ -217,8 +217,6 @@ impl Validatable for CredentialRevocationState {
 pub struct CredentialRevocationConfig<'a> {
     pub reg_def: &'a RevocationRegistryDefinition,
     pub reg_def_private: &'a RevocationRegistryDefinitionPrivate,
-    // TODO remove this!
-    pub registry: &'a RevocationRegistry,
     pub registry_idx: u32,
     pub tails_reader: TailsReader,
 }
@@ -227,10 +225,9 @@ impl<'a> std::fmt::Debug for CredentialRevocationConfig<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "CredentialRevocationConfig {{ reg_def: {:?}, private: {:?}, registry: {:?}, idx: {}, reader: {:?} }}",
+            "CredentialRevocationConfig {{ reg_def: {:?}, private: {:?}, idx: {}, reader: {:?} }}",
             self.reg_def,
             secret!(self.reg_def_private),
-            self.registry,
             secret!(self.registry_idx),
             self.tails_reader,
         )

@@ -332,7 +332,10 @@ pub fn create_credential(
         match (revocation_config, rev_status_list) {
             (Some(revocation_config), Some(rev_status_list)) => {
                 let rev_reg_def = &revocation_config.reg_def.value;
-                let mut rev_reg = revocation_config.registry.value.clone();
+                let mut rev_reg = <&RevocationStatusList as Into<
+                    Option<ursa::cl::RevocationRegistry>,
+                >>::into(rev_status_list)
+                .unwrap();
 
                 let status = rev_status_list
                     .get(revocation_config.registry_idx as usize)
@@ -423,7 +426,7 @@ pub fn create_credential(
         values: cred_values,
         signature: credential_signature,
         signature_correctness_proof,
-        rev_reg: rev_reg.clone(),
+        rev_reg,
         witness,
     };
 
