@@ -255,7 +255,8 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     .expect("Error creating gvt credential definition");
 
     // This will create a tails file locally in the .tmp dir
-    create_dir(TF_PATH)
+    let tf_path = "../.tmp";
+    create_dir(tf_path)
         .or_else(|e| -> Result<(), std::io::Error> {
             println!(
                 "Tail file path creation error but test can still proceed {}",
