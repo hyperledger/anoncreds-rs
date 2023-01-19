@@ -59,6 +59,15 @@ module.exports = {
   },
   overrides: [
     {
+      files: ['arch.js'],
+      env: { node: true },
+      rules: {
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        'no-console': 'off',
+        '@typescript-eslint/no-var-requires': 'off',
+      },
+    },
+    {
       files: ['.eslintrc.js', '*.config.js'],
       env: {
         node: true,

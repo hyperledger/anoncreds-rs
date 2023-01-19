@@ -10,6 +10,7 @@ import { RevocationRegistryDelta } from './RevocationRegistryDelta'
 export type CreateRevocationRegistryDefinitionOptions = {
   originDid: string
   credentialDefinition: CredentialDefinition
+  credentialDefinitionId: string
   tag: string
   revocationRegistryType: string
   issuanceType?: string
@@ -21,8 +22,8 @@ export class RevocationRegistryDefinition extends AnoncredsObject {
   public static create(options: CreateRevocationRegistryDefinitionOptions) {
     const { registryDefinition, registryDefinitionPrivate, registryEntry, registryInitDelta } =
       anoncreds.createRevocationRegistry({
-        originDid: options.originDid,
         credentialDefinition: options.credentialDefinition.handle,
+        credentialDefinitionId: options.credentialDefinitionId,
         tag: options.tag,
         revocationRegistryType: options.revocationRegistryType,
         issuanceType: options.issuanceType,

@@ -20,6 +20,7 @@ export type CreateCredentialOptions = {
   credentialRequest: CredentialRequest
   attributeRawValues: Record<string, string>
   attributeEncodedValues?: Record<string, string>
+  revocationRegistryId?: string
   revocationConfiguration?: CredentialRevocationConfig
 }
 
@@ -35,10 +36,11 @@ export class Credential extends AnoncredsObject {
     const { credential, revocationDelta, revocationRegistry } = anoncreds.createCredential({
       credentialDefinition: options.credentialDefinition.handle,
       credentialDefinitionPrivate: options.credentialDefinitionPrivate.handle,
-      credentialRequest: options.credentialRequest.handle,
       credentialOffer: options.credentialOffer.handle,
+      credentialRequest: options.credentialRequest.handle,
       attributeRawValues: options.attributeRawValues,
       attributeEncodedValues: options.attributeEncodedValues,
+      revocationRegistryId: options.revocationRegistryId,
       revocationConfiguration: options.revocationConfiguration?.native,
     })
 
