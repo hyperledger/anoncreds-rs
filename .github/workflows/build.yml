@@ -43,8 +43,6 @@ jobs:
   
 
   check:
-    name: Run Checks
-    needs: [lint]
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
@@ -83,7 +81,6 @@ jobs:
 
   build-release:
     name: Build Library
-    needs: [check]
 
     env:
       # This is required for fetching the openssl dependency from git more consistently
