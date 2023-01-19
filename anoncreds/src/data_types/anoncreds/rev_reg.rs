@@ -3,9 +3,11 @@ use serde::{
     de::{Deserializer, Error as DeError, SeqAccess, Visitor},
     ser::{SerializeSeq, Serializer},
 };
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
 use crate::{data_types::Validatable, error, impl_anoncreds_object_identifier};
+
+use super::rev_reg_def::RevocationRegistryDefinitionId;
 
 impl_anoncreds_object_identifier!(RevocationRegistryId);
 
@@ -37,7 +39,7 @@ impl Validatable for RevocationRegistryDelta {}
 #[serde(rename_all = "camelCase")]
 pub struct RevocationStatusList {
     #[serde(skip_serializing_if = "Option::is_none")]
-    rev_reg_def_id: Option<RevocationRegistryId>,
+    rev_reg_def_id: Option<RevocationRegistryDefinitionId>,
     #[serde(with = "serde_revocation_list")]
     revocation_list: bitvec::vec::BitVec,
     #[serde(flatten, skip_serializing_if = "Option::is_none")]
@@ -49,6 +51,15 @@ pub struct RevocationStatusList {
 impl From<&RevocationStatusList> for Option<ursa::cl::RevocationRegistry> {
     fn from(rev_status_list: &RevocationStatusList) -> Option<ursa::cl::RevocationRegistry> {
         rev_status_list.registry.clone()
+    }
+}
+
+impl From<&RevocationStatusList> for Option<RevocationRegistry> {
+    fn from(rev_status_list: &RevocationStatusList) -> Option<RevocationRegistry> {
+        rev_status_list
+            .registry
+            .clone()
+            .map(|v| RevocationRegistry { value: v })
     }
 }
 
@@ -73,6 +84,48 @@ impl RevocationStatusList {
         self.revocation_list.get(idx).as_deref().copied()
     }
 
+    pub(crate) fn update(
+        &mut self,
+        registry: Option<ursa::cl::RevocationRegistry>,
+        issued: Option<BTreeSet<u32>>,
+        revoked: Option<BTreeSet<u32>>,
+        timestamp: Option<u64>,
+    ) -> Result<(), error::Error> {
+        if let Some(reg) = registry {
+            self.registry = Some(reg)
+        };
+        if let Some(issued) = issued {
+            // issued credentials are assigned `false`
+            // i.e. NOT revoked
+            for i in issued {
+                let mut bit = self.revocation_list.get_mut(i as usize).ok_or_else(|| {
+                    error::Error::from_msg(
+                        crate::ErrorKind::Unexpected,
+                        "Update Revocation List Index Out of Range",
+                    )
+                })?;
+                *bit = false;
+            }
+        }
+        if let Some(revoked) = revoked {
+            // revoked credentials are assigned `true`
+            // i.e. IS revoked
+            for i in revoked {
+                let mut bit = self.revocation_list.get_mut(i as usize).ok_or_else(|| {
+                    error::Error::from_msg(
+                        crate::ErrorKind::Unexpected,
+                        "Update Revocation List Index Out of Range",
+                    )
+                })?;
+                *bit = true;
+            }
+        }
+        if let Some(t) = timestamp {
+            self.timestamp = Some(t);
+        }
+        Ok(())
+    }
+
     pub fn new(
         rev_reg_def_id: Option<&str>,
         revocation_list: bitvec::vec::BitVec,
@@ -80,7 +133,9 @@ impl RevocationStatusList {
         timestamp: Option<u64>,
     ) -> Result<Self, error::Error> {
         Ok(RevocationStatusList {
-            rev_reg_def_id: rev_reg_def_id.map(RevocationRegistryId::new).transpose()?,
+            rev_reg_def_id: rev_reg_def_id
+                .map(RevocationRegistryDefinitionId::new)
+                .transpose()?,
             revocation_list,
             registry,
             timestamp,
@@ -167,5 +222,18 @@ mod tests {
         let des = serde_json::from_str::<RevocationStatusList>(&ser).unwrap();
         let ser2 = serde_json::to_string(&des).unwrap();
         assert_eq!(ser, ser2)
+    }
+
+    #[test]
+    fn update_rev_status_list_works() {
+        let mut list = serde_json::from_str::<RevocationStatusList>(REVOCATION_LIST).unwrap();
+        let list_status = list.state_owned();
+        assert_eq!(list.timestamp().unwrap(), 1234);
+        assert_eq!(list_status.get(0usize).unwrap(), true);
+
+        list.update(None, Some(BTreeSet::from([0u32])), None, Some(1245))
+            .unwrap();
+        assert_eq!(list.get(0usize).unwrap(), false);
+        assert_eq!(list.timestamp().unwrap(), 1245);
     }
 }

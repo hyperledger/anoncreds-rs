@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::os::raw::c_char;
 use std::ptr;
 
@@ -33,7 +32,6 @@ struct RevocationConfig {
     reg_def_private: AnonCredsObject,
     registry: AnonCredsObject,
     reg_idx: u32,
-    reg_used: HashSet<u32>,
     tails_path: String,
 }
 
@@ -44,7 +42,6 @@ impl RevocationConfig {
             reg_def_private: self.reg_def_private.cast_ref()?,
             registry: self.registry.cast_ref()?,
             registry_idx: self.reg_idx,
-            registry_used: &self.reg_used,
             tails_reader: TailsFileReader::new_tails_reader(self.tails_path.as_str()),
         })
     }
@@ -63,8 +60,6 @@ pub extern "C" fn anoncreds_create_credential(
     rev_status_list: ObjectHandle,
     revocation: *const FfiCredRevInfo,
     cred_p: *mut ObjectHandle,
-    rev_reg_p: *mut ObjectHandle,
-    rev_delta_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(cred_p);
@@ -114,14 +109,6 @@ pub extern "C" fn anoncreds_create_credential(
                 .as_opt_str()
                 .ok_or_else(|| err_msg!("Missing tails file path"))?
                 .to_string();
-            let mut reg_used = HashSet::new();
-            for reg_idx in revocation.reg_used.as_slice() {
-                reg_used.insert(
-                    (*reg_idx)
-                        .try_into()
-                        .map_err(|_| err_msg!("Invalid revocation index"))?,
-                );
-            }
             Some(RevocationConfig {
                 reg_def: revocation.reg_def.load()?,
                 reg_def_private: revocation.reg_def_private.load()?,
@@ -130,14 +117,13 @@ pub extern "C" fn anoncreds_create_credential(
                     .reg_idx
                     .try_into()
                     .map_err(|_| err_msg!("Invalid revocation index"))?,
-                reg_used,
                 tails_path,
             })
         } else {
             None
         };
 
-        let (cred, rev_reg, rev_delta) = create_credential(
+        let cred = create_credential(
             cred_def.load()?.cast_ref()?,
             cred_def_private.load()?.cast_ref()?,
             cred_offer.load()?.cast_ref()?,
@@ -151,18 +137,8 @@ pub extern "C" fn anoncreds_create_credential(
                 .transpose()?,
         )?;
         let cred = ObjectHandle::create(cred)?;
-        let rev_reg = rev_reg
-            .map(ObjectHandle::create)
-            .transpose()?
-            .unwrap_or_default();
-        let rev_delta = rev_delta
-            .map(ObjectHandle::create)
-            .transpose()?
-            .unwrap_or_default();
         unsafe {
             *cred_p = cred;
-            *rev_reg_p = rev_reg;
-            *rev_delta_p = rev_delta;
         };
         Ok(())
     })

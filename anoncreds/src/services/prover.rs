@@ -26,7 +26,7 @@ use crate::ursa::cl::{
 };
 use indy_utils::Validatable;
 
-use super::tails::TailsReader;
+use super::tails::TailsFileReader;
 
 pub fn create_master_secret() -> Result<MasterSecret> {
     MasterSecret::new().map_err(err_map!(Unexpected))
@@ -247,7 +247,7 @@ pub fn create_presentation(
 }
 
 pub fn create_or_update_revocation_state(
-    tails_reader: TailsReader,
+    tails_path: &str,
     revoc_reg_def: &RevocationRegistryDefinition,
     rev_status_list: &RevocationStatusList,
     rev_reg_idx: u32,
@@ -255,9 +255,8 @@ pub fn create_or_update_revocation_state(
     old_rev_status_list: Option<&RevocationStatusList>, // for witness update
 ) -> Result<CredentialRevocationState> {
     trace!(
-        "create_or_update_revocation_state >>> , tails_reader: {:?}, revoc_reg_def: {:?}, \
+        "create_or_update_revocation_state >>> revoc_reg_def: {:?}, \
     rev_status_list: {:?}, rev_reg_idx: {},  rev_state: {:?}, old_rev_status_list {:?}",
-        tails_reader,
         revoc_reg_def,
         rev_status_list,
         rev_reg_idx,
@@ -266,9 +265,9 @@ pub fn create_or_update_revocation_state(
     );
 
     let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_status_list.into();
-    let rev_reg = rev_reg.ok_or(err_msg!(
-        "revocation registry is required to create or update the revocation state"
-    ))?;
+    let rev_reg = rev_reg.ok_or_else(|| {
+        err_msg!("revocation registry is required to create or update the revocation state")
+    })?;
 
     let timestamp = rev_status_list.timestamp().ok_or_else(|| {
         err_msg!("Timestamp is required to create or update the revocation state")
@@ -276,6 +275,7 @@ pub fn create_or_update_revocation_state(
 
     let mut issued = HashSet::<u32>::new();
     let mut revoked = HashSet::<u32>::new();
+    let tails_reader = TailsFileReader::new_tails_reader(tails_path);
     let witness = if let (Some(source_rev_state), Some(source_rev_list)) =
         (rev_state, old_rev_status_list)
     {
@@ -296,6 +296,7 @@ pub fn create_or_update_revocation_state(
             &issued,
             &revoked,
         );
+
         let mut witness = source_rev_state.witness.clone();
         witness.update(
             rev_reg_idx,
@@ -317,9 +318,9 @@ pub fn create_or_update_revocation_state(
             &mut revoked,
         );
         let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_status_list.into();
-        let rev_reg = rev_reg.ok_or(err_msg!(
-            "revocation registry is not inside the revocation status list"
-        ))?;
+        let rev_reg = rev_reg.ok_or_else(|| {
+            err_msg!("revocation registry is not inside the revocation status list")
+        })?;
         let rev_reg_delta = RevocationRegistryDelta::from_parts(None, &rev_reg, &issued, &revoked);
         Witness::new(
             rev_reg_idx,
