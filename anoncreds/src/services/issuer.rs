@@ -1,7 +1,6 @@
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::collections::{BTreeSet, HashSet};
-use std::convert::{From, Into};
 use std::iter::FromIterator;
 
 use indy_utils::{Validatable, ValidationError};
@@ -219,61 +218,60 @@ pub fn create_revocation_status_list(
     )
 }
 
+/// Update the timestamp only without changing any actual state
+pub fn update_revocation_status_list_timestamp_only(
+    timestamp: u64,
+    current_list: &RevocationStatusList,
+) -> RevocationStatusList {
+    let mut list = current_list.clone();
+    // this does not error as only timestamp is updated
+    list.update(None, None, None, Some(timestamp)).unwrap();
+    list
+}
 /// Update Revocation Status List
-/// - if `rev_reg_def` is `Some`: updates will be made to the accumulator and status_list bitvec
-/// according to the `BTreeSet`
-/// - if `rev_reg_def` is `None`: only the timestamp will be updated
+/// - if `timestamp` is `None`: the timestamp is not updated
 pub fn update_revocation_status_list(
     timestamp: Option<u64>,
     issued: Option<BTreeSet<u32>>,
     revoked: Option<BTreeSet<u32>>,
-    rev_reg_def: Option<&RevocationRegistryDefinition>,
+    rev_reg_def: &RevocationRegistryDefinition,
     current_list: &RevocationStatusList,
 ) -> Result<RevocationStatusList> {
     let mut new_list = current_list.clone();
-    if let Some(rev_reg_def) = rev_reg_def {
-        let issued = issued.map(|i_list| {
-            BTreeSet::from_iter(
-                i_list
-                    .into_iter()
-                    .filter(|&i| current_list.get(i as usize).unwrap_or(false)),
-            )
-        });
+    let issued = issued.map(|i_list| {
+        BTreeSet::from_iter(
+            i_list
+                .into_iter()
+                .filter(|&i| current_list.get(i as usize).unwrap_or(false)),
+        )
+    });
 
-        let revoked = revoked.map(|r_list| {
-            BTreeSet::from_iter(
-                r_list
-                    .into_iter()
-                    .filter(|&i| !current_list.get(i as usize).unwrap_or(true)),
-            )
-        });
+    let revoked = revoked.map(|r_list| {
+        BTreeSet::from_iter(
+            r_list
+                .into_iter()
+                .filter(|&i| !current_list.get(i as usize).unwrap_or(true)),
+        )
+    });
 
-        let rev_reg_opt: Option<ursa::cl::RevocationRegistry> = current_list.into();
-        let mut rev_reg = rev_reg_opt.ok_or_else(|| {
-            Error::from_msg(
-                ErrorKind::Unexpected,
-                "Require Accumulator Value to update Rev Status List",
-            )
-        })?;
-        let tails_reader = TailsFileReader::new_tails_reader(&rev_reg_def.value.tails_location);
-        let max_cred_num = rev_reg_def.value.max_cred_num;
+    let rev_reg_opt: Option<ursa::cl::RevocationRegistry> = current_list.into();
+    let mut rev_reg = rev_reg_opt.ok_or_else(|| {
+        Error::from_msg(
+            ErrorKind::Unexpected,
+            "Require Accumulator Value to update Rev Status List",
+        )
+    })?;
+    let tails_reader = TailsFileReader::new_tails_reader(&rev_reg_def.value.tails_location);
+    let max_cred_num = rev_reg_def.value.max_cred_num;
 
-        CryptoIssuer::update_revocation_registry(
-            &mut rev_reg,
-            max_cred_num,
-            issued.clone().unwrap_or_default(),
-            revoked.clone().unwrap_or_default(),
-            &tails_reader,
-        )?;
-        new_list.update(Some(rev_reg), issued, revoked, timestamp)?;
-    } else if timestamp.is_some() {
-        new_list.update(None, None, None, timestamp)?;
-    } else {
-        return Err(err_msg!(
-            Unexpected,
-            "Either timestamp or Revocation Registry Definition must be provided"
-        ));
-    }
+    CryptoIssuer::update_revocation_registry(
+        &mut rev_reg,
+        max_cred_num,
+        issued.clone().unwrap_or_default(),
+        revoked.clone().unwrap_or_default(),
+        &tails_reader,
+    )?;
+    new_list.update(Some(rev_reg), issued, revoked, timestamp)?;
 
     Ok(new_list)
 }
@@ -332,10 +330,13 @@ pub fn create_credential(
         match (revocation_config, rev_status_list) {
             (Some(revocation_config), Some(rev_status_list)) => {
                 let rev_reg_def = &revocation_config.reg_def.value;
-                let mut rev_reg = <&RevocationStatusList as Into<
-                    Option<ursa::cl::RevocationRegistry>,
-                >>::into(rev_status_list)
-                .unwrap();
+                let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_status_list.into();
+                let mut rev_reg = rev_reg.ok_or_else(|| {
+                    err_msg!(
+                        Unexpected,
+                        "RevocationStatusList should have accumulator value"
+                    )
+                })?;
 
                 let status = rev_status_list
                     .get(revocation_config.registry_idx as usize)

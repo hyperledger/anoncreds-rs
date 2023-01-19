@@ -347,7 +347,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         Some(time_after_creating_cred),
         Some(BTreeSet::from([REV_IDX])),
         None,
-        Some(&rev_reg_def_pub),
+        &rev_reg_def_pub,
         &revocation_status_list,
     )
     .unwrap();
@@ -447,7 +447,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         Some(time_revoke_cred),
         None,
         Some(BTreeSet::from([REV_IDX])),
-        Some(&rev_reg_def_pub),
+        &rev_reg_def_pub,
         &issued_rev_status_list,
     )
     .unwrap();

@@ -362,7 +362,7 @@ impl<'a> Mock<'a> {
                     Some(time_new_rev_reg),
                     Some(BTreeSet::from([*rev_idx])),
                     None,
-                    Some(rev_def),
+                    rev_def,
                     list,
                 )
                 .unwrap();
