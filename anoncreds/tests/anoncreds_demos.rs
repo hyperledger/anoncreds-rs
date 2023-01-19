@@ -377,10 +377,10 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
 
     let time_after_creating_cred = time_create_rev_status_list + 1;
     let issued_rev_status_list = issuer::update_revocation_status_list(
-        time_after_creating_cred,
-        BTreeSet::from([REV_IDX]),
-        BTreeSet::new(),
-        &rev_reg_def_pub,
+        Some(time_after_creating_cred),
+        Some(BTreeSet::from([REV_IDX])),
+        None,
+        Some(&rev_reg_def_pub),
         &revocation_status_list,
     )
     .unwrap();
@@ -477,10 +477,10 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     //  ===================== Issuer revokes credential ================
     let time_revoke_cred = time_after_creating_cred + 1;
     let revoked_status_list = issuer::update_revocation_status_list(
-        time_revoke_cred,
-        BTreeSet::new(),
-        BTreeSet::from([REV_IDX]),
-        &rev_reg_def_pub,
+        Some(time_revoke_cred),
+        None,
+        Some(BTreeSet::from([REV_IDX])),
+        Some(&rev_reg_def_pub),
         &issued_rev_status_list,
     )
     .unwrap();

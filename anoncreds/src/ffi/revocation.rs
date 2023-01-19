@@ -14,6 +14,7 @@ use crate::services::{
         RevocationRegistryDefinitionPrivate, RevocationRegistryDelta, RevocationStatusList,
     },
 };
+// TODO: interfaces to create
 //use crate::services::issuer::{create_revocation_status_list, update_revocation_status_list}
 
 #[no_mangle]

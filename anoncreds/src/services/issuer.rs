@@ -219,51 +219,62 @@ pub fn create_revocation_status_list(
     )
 }
 
+/// Update Revocation Status List
+/// - if `rev_reg_def` is `Some`: updates will be made to the accumulator and status_list bitvec
+/// according to the `BTreeSet`
+/// - if `rev_reg_def` is `None`: only the timestamp will be updated
 pub fn update_revocation_status_list(
-    timestamp: u64,
-    issued: BTreeSet<u32>,
-    revoked: BTreeSet<u32>,
-    rev_reg_def: &RevocationRegistryDefinition,
+    timestamp: Option<u64>,
+    issued: Option<BTreeSet<u32>>,
+    revoked: Option<BTreeSet<u32>>,
+    rev_reg_def: Option<&RevocationRegistryDefinition>,
     current_list: &RevocationStatusList,
 ) -> Result<RevocationStatusList> {
-    // Checks that it is not already issued
-    let issued = BTreeSet::from_iter(
-        issued
-            .into_iter()
-            .filter(|&i| current_list.get(i as usize).unwrap_or(false)),
-    );
-    let revoked = BTreeSet::from_iter(
-        revoked
-            .into_iter()
-            .filter(|&i| !current_list.get(i as usize).unwrap_or(true)),
-    );
-
-    let rev_reg_opt: Option<ursa::cl::RevocationRegistry> = current_list.into();
-    let mut rev_reg = rev_reg_opt.ok_or_else(|| {
-        Error::from_msg(
-            ErrorKind::Unexpected,
-            "Require Accumulator Value to update Rev Status List",
-        )
-    })?;
-
-    let tails_reader = TailsFileReader::new_tails_reader(&rev_reg_def.value.tails_location);
-    let max_cred_num = rev_reg_def.value.max_cred_num;
-
-    CryptoIssuer::update_revocation_registry(
-        &mut rev_reg,
-        max_cred_num,
-        issued.clone(),
-        revoked.clone(),
-        &tails_reader,
-    )?;
-
     let mut new_list = current_list.clone();
-    new_list.update(
-        Some(rev_reg),
-        Some(&issued),
-        Some(&revoked),
-        Some(timestamp),
-    )?;
+    if let Some(rev_reg_def) = rev_reg_def {
+        let issued = issued.map(|i_list| {
+            BTreeSet::from_iter(
+                i_list
+                    .into_iter()
+                    .filter(|&i| current_list.get(i as usize).unwrap_or(false)),
+            )
+        });
+
+        let revoked = revoked.map(|r_list| {
+            BTreeSet::from_iter(
+                r_list
+                    .into_iter()
+                    .filter(|&i| !current_list.get(i as usize).unwrap_or(true)),
+            )
+        });
+
+        let rev_reg_opt: Option<ursa::cl::RevocationRegistry> = current_list.into();
+        let mut rev_reg = rev_reg_opt.ok_or_else(|| {
+            Error::from_msg(
+                ErrorKind::Unexpected,
+                "Require Accumulator Value to update Rev Status List",
+            )
+        })?;
+        let tails_reader = TailsFileReader::new_tails_reader(&rev_reg_def.value.tails_location);
+        let max_cred_num = rev_reg_def.value.max_cred_num;
+
+        CryptoIssuer::update_revocation_registry(
+            &mut rev_reg,
+            max_cred_num,
+            issued.clone().unwrap_or_default(),
+            revoked.clone().unwrap_or_default(),
+            &tails_reader,
+        )?;
+        new_list.update(Some(rev_reg), issued, revoked, timestamp)?;
+    } else if timestamp.is_some() {
+        new_list.update(None, None, None, timestamp)?;
+    } else {
+        return Err(err_msg!(
+            Unexpected,
+            "Either timestamp or Revocation Registry Definition must be provided"
+        ));
+    }
+
     Ok(new_list)
 }
 

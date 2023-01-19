@@ -87,8 +87,8 @@ impl RevocationStatusList {
     pub(crate) fn update(
         &mut self,
         registry: Option<ursa::cl::RevocationRegistry>,
-        issued: Option<&BTreeSet<u32>>,
-        revoked: Option<&BTreeSet<u32>>,
+        issued: Option<BTreeSet<u32>>,
+        revoked: Option<BTreeSet<u32>>,
         timestamp: Option<u64>,
     ) -> Result<(), error::Error> {
         if let Some(reg) = registry {
@@ -98,7 +98,7 @@ impl RevocationStatusList {
             // issued credentials are assigned `false`
             // i.e. NOT revoked
             for i in issued {
-                let mut bit = self.revocation_list.get_mut(*i as usize).ok_or_else(|| {
+                let mut bit = self.revocation_list.get_mut(i as usize).ok_or_else(|| {
                     error::Error::from_msg(
                         crate::ErrorKind::Unexpected,
                         "Update Revocation List Index Out of Range",
@@ -111,7 +111,7 @@ impl RevocationStatusList {
             // revoked credentials are assigned `true`
             // i.e. IS revoked
             for i in revoked {
-                let mut bit = self.revocation_list.get_mut(*i as usize).ok_or_else(|| {
+                let mut bit = self.revocation_list.get_mut(i as usize).ok_or_else(|| {
                     error::Error::from_msg(
                         crate::ErrorKind::Unexpected,
                         "Update Revocation List Index Out of Range",
@@ -231,7 +231,7 @@ mod tests {
         assert_eq!(list.timestamp().unwrap(), 1234);
         assert_eq!(list_status.get(0usize).unwrap(), true);
 
-        list.update(None, Some(&BTreeSet::from([0u32])), None, Some(1245))
+        list.update(None, Some(BTreeSet::from([0u32])), None, Some(1245))
             .unwrap();
         assert_eq!(list.get(0usize).unwrap(), false);
         assert_eq!(list.timestamp().unwrap(), 1245);
