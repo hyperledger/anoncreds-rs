@@ -91,6 +91,7 @@ impl RevocationStatusList {
         revoked: Option<BTreeSet<u32>>,
         timestamp: Option<u64>,
     ) -> Result<(), error::Error> {
+        // only update if input is Some
         if let Some(reg) = registry {
             self.registry = Some(reg)
         };
@@ -120,6 +121,7 @@ impl RevocationStatusList {
                 *bit = true;
             }
         }
+        // only update if input is Some
         if let Some(t) = timestamp {
             self.timestamp = Some(t);
         }
