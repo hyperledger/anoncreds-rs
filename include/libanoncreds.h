@@ -208,6 +208,11 @@ typedef struct FfiList_ObjectHandle {
   const ObjectHandle *data;
 } FfiList_ObjectHandle;
 
+typedef struct FfiList_i32 {
+  size_t count;
+  const int32_t *data;
+} FfiList_i32;
+
 typedef struct FfiRevocationEntry {
   int64_t def_entry_idx;
   ObjectHandle entry;
@@ -292,6 +297,12 @@ ErrorCode anoncreds_create_revocation_registry(ObjectHandle cred_def,
                                                ObjectHandle *reg_def_p,
                                                ObjectHandle *reg_def_private_p);
 
+ErrorCode anoncreds_create_revocation_statust_list(FfiStr rev_reg_def_id,
+                                                   ObjectHandle rev_reg_def,
+                                                   int64_t timestamp,
+                                                   bool issuance_by_default,
+                                                   ObjectHandle *rev_status_list_p);
+
 ErrorCode anoncreds_create_schema(FfiStr schema_name,
                                   FfiStr schema_version,
                                   FfiStr issuer_id,
@@ -326,6 +337,17 @@ ErrorCode anoncreds_revocation_registry_definition_get_attribute(ObjectHandle ha
                                                                  const char **result_p);
 
 ErrorCode anoncreds_set_default_logger(void);
+
+ErrorCode anoncreds_update_revocation_statust_list(int64_t timestamp,
+                                                   struct FfiList_i32 issued,
+                                                   struct FfiList_i32 revoked,
+                                                   ObjectHandle rev_reg_def,
+                                                   ObjectHandle rev_current_list,
+                                                   ObjectHandle *new_rev_status_list_p);
+
+ErrorCode anoncreds_update_revocation_statust_list_timestamp_only(int64_t timestamp,
+                                                                  ObjectHandle rev_current_list,
+                                                                  ObjectHandle *rev_status_list_p);
 
 ErrorCode anoncreds_verify_presentation(ObjectHandle presentation,
                                         ObjectHandle pres_req,
