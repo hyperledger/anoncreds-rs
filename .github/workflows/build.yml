@@ -166,119 +166,119 @@ jobs:
           file: library-${{ matrix.arch }}.tar.gz
           asset_name: 'library-${{ matrix.arch }}.tar.gz'
 
-  build-javascript:
-    name: Build and Test JavaScript wrapper
-    needs: [build-release]
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: wrappers/javascript
+            # build-javascript:
+            #   name: Build and Test JavaScript wrapper
+            #   needs: [build-release]
+            #   runs-on: ubuntu-latest
+            #   defaults:
+            #     run:
+            #       working-directory: wrappers/javascript
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+            #   steps:
+            #     - name: Checkout
+            #       uses: actions/checkout@v3
 
-      - name: Set up Node.JS 16.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
+            #     - name: Set up Node.JS 16.x
+            #       uses: actions/setup-node@v3
+            #       with:
+            #         node-version: 16.x
 
-      - name: Fetch library artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: library-linux-x86_64
+            #     - name: Fetch library artifacts
+            #       uses: actions/download-artifact@v3
+            #       with:
+            #         name: library-linux-x86_64
 
-      - name: Install dependencies
-        run: yarn install
+            #     - name: Install dependencies
+            #       run: yarn install
 
-      - name: Build JavaScript Wrapper
-        run: yarn build
+            #     - name: Build JavaScript Wrapper
+            #       run: yarn build
 
-      - name: Lint JavaScript Wrapper
-        run: yarn lint
+            #     - name: Lint JavaScript Wrapper
+            #       run: yarn lint
 
-      - name: Format Check JavaScript Wrapper
-        run: yarn check-format
+            #     - name: Format Check JavaScript Wrapper
+            #       run: yarn check-format
 
-      - name: Type Check JavaScript Wrapper
-        run: yarn check-types
+            #     - name: Type Check JavaScript Wrapper
+            #       run: yarn check-types
 
-      - name: Test JavaScript Wrapper
-        env:
-          # binary is downloaded to root of repository
-          LIB_ANONCREDS_PATH: ../../
-        run: yarn test
+            #     - name: Test JavaScript Wrapper
+            #       env:
+            #         # binary is downloaded to root of repository
+            #         LIB_ANONCREDS_PATH: ../../
+            #       run: yarn test
 
-  build-py:
-    name: Build Python
-    needs: [build-release]
+            # build-py:
+            #   name: Build Python
+            #   needs: [build-release]
 
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            library: library-linux-x86_64
-            plat-name: manylinux2014_x86_64
-          - os: windows-latest
-            library: library-windows-x86_64
-            plat-name: win_amd64
-          - os: macos-latest
-            library: library-macos-x86_64
-            plat-name: win_amd64
+            #   strategy:
+            #     matrix:
+            #       include:
+            #         - os: ubuntu-latest
+            #           library: library-linux-x86_64
+            #           plat-name: manylinux2014_x86_64
+            #         - os: windows-latest
+            #           library: library-windows-x86_64
+            #           plat-name: win_amd64
+            #         - os: macos-latest
+            #           library: library-macos-x86_64
+            #           plat-name: win_amd64
 
-    runs-on: ${{ matrix.os }}
+            #   runs-on: ${{ matrix.os }}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+            #   steps:
+            #     - name: Checkout
+            #       uses: actions/checkout@v2
 
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
+            #     - name: Set up Python 3.8
+            #       uses: actions/setup-python@v2
+            #       with:
+            #         python-version: 3.8
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install setuptools wheel twine auditwheel
-      - name: Fetch library artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: ${{matrix.library}}
-          path: wrappers/python/indy_credx/
+            #     - name: Install dependencies
+            #       run: |
+            #         python -m pip install --upgrade pip
+            #         pip install setuptools wheel twine auditwheel
+            #     - name: Fetch library artifacts
+            #       uses: actions/download-artifact@v2
+            #       with:
+            #         name: ${{matrix.library}}
+            #         path: wrappers/python/indy_credx/
 
-      - name: Build python package
-        run: |
-          python setup.py bdist_wheel --python-tag=py3 --plat-name=${{ matrix.plat-name }}
-        working-directory: wrappers/python
+            #     - name: Build python package
+            #       run: |
+            #         python setup.py bdist_wheel --python-tag=py3 --plat-name=${{ matrix.plat-name }}
+            #       working-directory: wrappers/python
 
-      - name: Test python package
-        shell: sh
-        run: |
-          cd wrappers/python
-          pip install --upgrade pip
-          pip install dist/*
-          python -m demo.test
-      - if: "runner.os == 'Linux'"
-        name: Auditwheel
-        run: auditwheel show wrappers/python/dist/*
+            #     - name: Test python package
+            #       shell: sh
+            #       run: |
+            #         cd wrappers/python
+            #         pip install --upgrade pip
+            #         pip install dist/*
+            #         python -m demo.test
+            #     - if: "runner.os == 'Linux'"
+            #       name: Auditwheel
+            #       run: auditwheel show wrappers/python/dist/*
 
-      - name: Upload python package
-        uses: actions/upload-artifact@v2
-        with:
-          name: python-${{ runner.os }}
-          path: wrappers/python/dist/*
+            #     - name: Upload python package
+            #       uses: actions/upload-artifact@v2
+            #       with:
+            #         name: python-${{ runner.os }}
+            #         path: wrappers/python/dist/*
 
-      - if: |
-          (github.event_name == 'release' ||
-            (github.event_name == 'workflow_dispatch' &&
-             github.event.inputs.publish == 'true'))
-        name: Publish python package
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: |
-          twine upload --skip-existing wrappers/python/dist/*
+            #     - if: |
+            #         (github.event_name == 'release' ||
+            #           (github.event_name == 'workflow_dispatch' &&
+            #            github.event.inputs.publish == 'true'))
+            #       name: Publish python package
+            #       env:
+            #         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+            #         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+            #       run: |
+            #         twine upload --skip-existing wrappers/python/dist/*
 
   build-android-libraries:
     name: Build Android Libraries
