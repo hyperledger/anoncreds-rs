@@ -94,7 +94,7 @@ jobs:
             target: x86_64-unknown-linux-gnu
             lib: libanoncreds.so
           - os: macos-latest
-            arch: darwin-x86_64
+            arch: macos-x86_64
             lib: libanoncreds.dylib
             target: x86_64-apple-darwin
           - os: macos-latest
