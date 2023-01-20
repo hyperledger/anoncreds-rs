@@ -233,10 +233,9 @@ ErrorCode anoncreds_create_credential(ObjectHandle cred_def,
                                       FfiStrList attr_raw_values,
                                       FfiStrList attr_enc_values,
                                       FfiStr rev_reg_id,
+                                      ObjectHandle rev_status_list,
                                       const struct FfiCredRevInfo *revocation,
-                                      ObjectHandle *cred_p,
-                                      ObjectHandle *rev_reg_p,
-                                      ObjectHandle *rev_delta_p);
+                                      ObjectHandle *cred_p);
 
 ErrorCode anoncreds_create_credential_definition(FfiStr schema_id,
                                                  ObjectHandle schema,
@@ -264,11 +263,11 @@ ErrorCode anoncreds_create_credential_request(FfiStr prover_did,
 ErrorCode anoncreds_create_master_secret(ObjectHandle *master_secret_p);
 
 ErrorCode anoncreds_create_or_update_revocation_state(ObjectHandle rev_reg_def,
-                                                      ObjectHandle rev_reg_list,
+                                                      ObjectHandle rev_status_list,
                                                       int64_t rev_reg_index,
                                                       FfiStr tails_path,
                                                       ObjectHandle rev_state,
-                                                      ObjectHandle old_rev_reg_list,
+                                                      ObjectHandle old_rev_status_list,
                                                       ObjectHandle *rev_state_p);
 
 ErrorCode anoncreds_create_presentation(ObjectHandle pres_req,
@@ -285,15 +284,13 @@ ErrorCode anoncreds_create_presentation(ObjectHandle pres_req,
 
 ErrorCode anoncreds_create_revocation_registry(ObjectHandle cred_def,
                                                FfiStr cred_def_id,
+                                               FfiStr issuer_id,
                                                FfiStr tag,
                                                FfiStr rev_reg_type,
-                                               FfiStr issuance_type,
                                                int64_t max_cred_num,
                                                FfiStr tails_dir_path,
                                                ObjectHandle *reg_def_p,
-                                               ObjectHandle *reg_def_private_p,
-                                               ObjectHandle *reg_entry_p,
-                                               ObjectHandle *reg_init_delta_p);
+                                               ObjectHandle *reg_def_private_p);
 
 ErrorCode anoncreds_create_schema(FfiStr schema_name,
                                   FfiStr schema_version,
@@ -310,10 +307,6 @@ ErrorCode anoncreds_encode_credential_attributes(FfiStrList attr_raw_values, con
 ErrorCode anoncreds_generate_nonce(const char **nonce_p);
 
 ErrorCode anoncreds_get_current_error(const char **error_json_p);
-
-ErrorCode anoncreds_merge_revocation_registry_deltas(ObjectHandle rev_reg_delta_1,
-                                                     ObjectHandle rev_reg_delta_2,
-                                                     ObjectHandle *rev_reg_delta_p);
 
 void anoncreds_object_free(ObjectHandle handle);
 
@@ -332,22 +325,7 @@ ErrorCode anoncreds_revocation_registry_definition_get_attribute(ObjectHandle ha
                                                                  FfiStr name,
                                                                  const char **result_p);
 
-ErrorCode anoncreds_revoke_credential(ObjectHandle rev_reg_def,
-                                      ObjectHandle rev_reg,
-                                      int64_t cred_rev_idx,
-                                      FfiStr tails_path,
-                                      ObjectHandle *rev_reg_p,
-                                      ObjectHandle *rev_reg_delta_p);
-
 ErrorCode anoncreds_set_default_logger(void);
-
-ErrorCode anoncreds_update_revocation_registry(ObjectHandle rev_reg_def,
-                                               ObjectHandle rev_reg,
-                                               struct FfiList_i64 issued,
-                                               struct FfiList_i64 revoked,
-                                               FfiStr tails_path,
-                                               ObjectHandle *rev_reg_p,
-                                               ObjectHandle *rev_reg_delta_p);
 
 ErrorCode anoncreds_verify_presentation(ObjectHandle presentation,
                                         ObjectHandle pres_req,

@@ -108,6 +108,7 @@ describe('bindings', () => {
     const { registryDefinition } = anoncreds.createRevocationRegistry({
       credentialDefinitionId: 'mock:uri',
       credentialDefinition,
+      issuerId: 'mock:uri',
       tag: 'default',
       revocationRegistryType: 'CL_ACCUM',
       maximumCredentialNumber: 100,
@@ -130,7 +131,6 @@ describe('bindings', () => {
 
     expect(JSON.parse(json).value).toEqual(
       expect.objectContaining({
-        issuanceType: 'ISSUANCE_BY_DEFAULT',
         maxCredNum: 100,
       })
     )
@@ -265,9 +265,10 @@ describe('bindings', () => {
       credentialOffer: credOfferObj,
     })
 
-    const { registryDefinition, registryEntry, registryDefinitionPrivate } = anoncreds.createRevocationRegistry({
+    const { registryDefinition, registryDefinitionPrivate } = anoncreds.createRevocationRegistry({
       credentialDefinitionId: 'mock:uri',
       credentialDefinition,
+      issuerId: 'mock:uri',
       tag: 'default',
       revocationRegistryType: 'CL_ACCUM',
       maximumCredentialNumber: 100,
@@ -284,14 +285,13 @@ describe('bindings', () => {
       credentialOffer: credOfferObj,
       credentialRequest: credentialRequest,
       attributeRawValues: { 'attr-1': 'test' },
-      attributeEncodedValues: undefined,
       revocationRegistryId: 'mock:uri',
       revocationConfiguration: {
         registryDefinition,
         registryDefinitionPrivate,
         registry: registryEntry,
         registryIndex: 1,
-        tailsPath: tailsPath,
+        tailsPath,
       },
     })
 

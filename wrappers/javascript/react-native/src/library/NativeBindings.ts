@@ -79,9 +79,9 @@ export interface NativeBindings {
   createRevocationRegistry(options: {
     credentialDefinition: number
     credentialDefinitionId: string
+    issuerId: string
     tag: string
     revocationRegistryType: string
-    issuanceType?: string
     maximumCredentialNumber: number
     tailsDirectoryPath?: string
   }): {

@@ -23,19 +23,6 @@ export class RevocationRegistry extends AnoncredsObject {
     return new RevocationRegistry(anoncreds.revocationRegistryFromJson({ json }).handle)
   }
 
-  public revokeCredential(options: RevokeCredentialOptions) {
-    const { revocationRegistry, revocationRegistryDelta } = anoncreds.revokeCredential({
-      revocationRegistryDefinition: options.revocationRegistryDefinition.handle,
-      revocationRegistry: this._handle,
-      credentialRevocationIndex: options.credentialRevocationIndex,
-      tailsPath: options.tailsPath,
-    })
-
-    this._handle = revocationRegistry
-
-    return new RevocationRegistryDelta(revocationRegistryDelta.handle)
-  }
-
   public update(options: UpdateRevocationRegistryOptions) {
     const { revocationRegistry, revocationRegistryDelta } = anoncreds.updateRevocationRegistry({
       revocationRegistryDefinition: options.revocationRegistryDefinition.handle,

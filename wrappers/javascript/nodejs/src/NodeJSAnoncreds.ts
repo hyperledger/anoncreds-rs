@@ -119,10 +119,10 @@ export class NodeJSAnoncreds implements Anoncreds {
     credentialOffer: ObjectHandle
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
-    attributeEncodedValues?: Record<string, string> | undefined
+    attributeEncodedValues?: Record<string, string>
     revocationRegistryId: string
-    revocationConfiguration?: NativeCredentialRevocationConfig | undefined
-  }): { credential: ObjectHandle; revocationRegistry: ObjectHandle; revocationDelta: ObjectHandle } {
+    revocationConfiguration?: NativeCredentialRevocationConfig
+  }): { credential: ObjectHandle } {
     const {
       credentialDefinition,
       credentialDefinitionPrivate,
@@ -170,17 +170,14 @@ export class NodeJSAnoncreds implements Anoncreds {
       revocationConfiguration = CredRevInfoStruct({
         reg_def: registryDefinition,
         reg_def_private: registryDefinitionPrivate,
-        registry: registry,
+        registry,
         reg_idx: registryIndex,
         reg_used: registryUsed,
-        // @ts-ignore
         tails_path: tailsPath,
       })
     }
-    const credentialPtr = allocatePointer()
-    const revocationRegistryPtr = allocatePointer()
-    const revocationDeltaPtr = allocatePointer()
 
+    const credentialPtr = allocatePointer()
     nativeAnoncreds.anoncreds_create_credential(
       credentialDefinition,
       credentialDefinitionPrivate,
@@ -192,16 +189,12 @@ export class NodeJSAnoncreds implements Anoncreds {
       attributeEncodedValues,
       revocationRegistryId,
       revocationConfiguration.ref(),
-      credentialPtr,
-      revocationRegistryPtr,
-      revocationDeltaPtr
+      credentialPtr
     )
     handleError()
 
     return {
       credential: new ObjectHandle(credentialPtr.deref() as number),
-      revocationDelta: new ObjectHandle(revocationDeltaPtr.deref() as number),
-      revocationRegistry: new ObjectHandle(revocationRegistryPtr.deref() as number),
     }
   }
 
@@ -243,33 +236,6 @@ export class NodeJSAnoncreds implements Anoncreds {
     handleError()
 
     return new ObjectHandle(ret.deref() as number)
-  }
-  public revokeCredential(options: {
-    revocationRegistryDefinition: ObjectHandle
-    revocationRegistry: ObjectHandle
-    credentialRevocationIndex: number
-    tailsPath: string
-  }): { revocationRegistry: ObjectHandle; revocationRegistryDelta: ObjectHandle } {
-    const { revocationRegistryDefinition, revocationRegistry, credentialRevocationIndex, tailsPath } =
-      serializeArguments(options)
-
-    const revocationRegistryPtr = allocatePointer()
-    const revocationRegistryDeltaPtr = allocatePointer()
-
-    nativeAnoncreds.anoncreds_revoke_credential(
-      revocationRegistryDefinition,
-      revocationRegistry,
-      credentialRevocationIndex,
-      tailsPath,
-      revocationRegistryPtr,
-      revocationRegistryDeltaPtr
-    )
-    handleError()
-
-    return {
-      revocationRegistry: new ObjectHandle(revocationRegistryPtr.deref() as number),
-      revocationRegistryDelta: new ObjectHandle(revocationRegistryDeltaPtr.deref() as number),
-    }
   }
 
   public createCredentialOffer(options: {
@@ -436,97 +402,42 @@ export class NodeJSAnoncreds implements Anoncreds {
   public createRevocationRegistry(options: {
     credentialDefinition: ObjectHandle
     credentialDefinitionId: string
+    issuerId: string
     tag: string
     revocationRegistryType: string
-    issuanceType?: string | undefined
     maximumCredentialNumber: number
     tailsDirectoryPath?: string | undefined
-  }): {
-    registryDefinition: ObjectHandle
-    registryDefinitionPrivate: ObjectHandle
-    registryEntry: ObjectHandle
-    registryInitDelta: ObjectHandle
-  } {
+  }) {
     const {
       credentialDefinition,
       credentialDefinitionId,
       tag,
       revocationRegistryType,
-      issuanceType,
+      issuerId,
       maximumCredentialNumber,
       tailsDirectoryPath,
     } = serializeArguments(options)
 
     const registryDefinitionPtr = allocatePointer()
     const registryDefinitionPrivate = allocatePointer()
-    const registryEntryPtr = allocatePointer()
-    const registryInitDeltaPtr = allocatePointer()
 
     nativeAnoncreds.anoncreds_create_revocation_registry(
       credentialDefinition,
       credentialDefinitionId,
+      issuerId,
       tag,
       revocationRegistryType,
-      issuanceType,
       maximumCredentialNumber,
       tailsDirectoryPath,
       registryDefinitionPtr,
-      registryDefinitionPrivate,
-      registryEntryPtr,
-      registryInitDeltaPtr
+      registryDefinitionPrivate
     )
     handleError()
 
     return {
       registryDefinition: new ObjectHandle(registryDefinitionPtr.deref() as number),
       registryDefinitionPrivate: new ObjectHandle(registryDefinitionPrivate.deref() as number),
-      registryEntry: new ObjectHandle(registryEntryPtr.deref() as number),
-      registryInitDelta: new ObjectHandle(registryInitDeltaPtr.deref() as number),
     }
-  }
-
-  public updateRevocationRegistry(options: {
-    revocationRegistryDefinition: ObjectHandle
-    revocationRegistry: ObjectHandle
-    issued: number[]
-    revoked: number[]
-    tailsDirectoryPath: string
-  }): { revocationRegistry: ObjectHandle; revocationRegistryDelta: ObjectHandle } {
-    const { revocationRegistryDefinition, revocationRegistry, tailsDirectoryPath, issued, revoked } =
-      serializeArguments(options)
-
-    const revocationRegistryPtr = allocatePointer()
-    const revocationRegistryDelta = allocatePointer()
-
-    nativeAnoncreds.anoncreds_update_revocation_registry(
-      revocationRegistryDefinition,
-      revocationRegistry,
-      // @ts-ignore
-      issued,
-      revoked,
-      tailsDirectoryPath,
-      revocationRegistryPtr,
-      revocationRegistryDelta
-    )
-    handleError()
-
-    return {
-      revocationRegistry: new ObjectHandle(revocationRegistryPtr.deref() as number),
-      revocationRegistryDelta: new ObjectHandle(revocationRegistryDelta.deref() as number),
-    }
-  }
-  public mergeRevocationRegistryDeltas(options: {
-    revocationRegistryDelta1: ObjectHandle
-    revocationRegistryDelta2: ObjectHandle
-  }): ObjectHandle {
-    const { revocationRegistryDelta1, revocationRegistryDelta2 } = serializeArguments(options)
-
-    const ret = allocatePointer()
-
-    nativeAnoncreds.anoncreds_merge_revocation_registry_deltas(revocationRegistryDelta1, revocationRegistryDelta2, ret)
-    handleError()
-
-    return new ObjectHandle(ret.deref() as number)
   }
 
   public createOrUpdateRevocationState(options: {

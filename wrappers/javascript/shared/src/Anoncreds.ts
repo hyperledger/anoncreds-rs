@@ -64,7 +64,7 @@ export interface Anoncreds {
     attributeEncodedValues?: Record<string, string>
     revocationRegistryId?: string
     revocationConfiguration?: NativeCredentialRevocationConfig
-  }): { credential: ObjectHandle; revocationRegistry: ObjectHandle; revocationDelta: ObjectHandle }
+  }): { credential: ObjectHandle }
 
   encodeCredentialAttributes(options: { attributeRawValues: Array<string> }): Array<string>
 
@@ -75,13 +75,6 @@ export interface Anoncreds {
     credentialDefinition: ObjectHandle
     revocationRegistryDefinition?: ObjectHandle
   }): ObjectHandle
-
-  revokeCredential(options: {
-    revocationRegistryDefinition: ObjectHandle
-    revocationRegistry: ObjectHandle
-    credentialRevocationIndex: number
-    tailsPath: string
-  }): { revocationRegistry: ObjectHandle; revocationRegistryDelta: ObjectHandle }
 
   createCredentialOffer(options: {
     schemaId: string
@@ -121,30 +114,15 @@ export interface Anoncreds {
   createRevocationRegistry(options: {
     credentialDefinition: ObjectHandle
     credentialDefinitionId: string
+    issuerId: string
     tag: string
     revocationRegistryType: string
-    issuanceType?: string
     maximumCredentialNumber: number
     tailsDirectoryPath?: string
   }): {
     registryDefinition: ObjectHandle
     registryDefinitionPrivate: ObjectHandle
-    registryEntry: ObjectHandle
-    registryInitDelta: ObjectHandle
   }
-
-  updateRevocationRegistry(options: {
-    revocationRegistryDefinition: ObjectHandle
-    revocationRegistry: ObjectHandle
-    issued: number[]
-    revoked: number[]
-    tailsDirectoryPath: string
-  }): { revocationRegistry: ObjectHandle; revocationRegistryDelta: ObjectHandle }
-
-  mergeRevocationRegistryDeltas(options: {
-    revocationRegistryDelta1: ObjectHandle
-    revocationRegistryDelta2: ObjectHandle
-  }): ObjectHandle
 
   createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: ObjectHandle
