@@ -3,7 +3,7 @@
 from enum import IntEnum
 
 
-class CredxErrorCode(IntEnum):
+class AnoncredsErrorCode(IntEnum):
     SUCCESS = 0
     INPUT = 1
     IO_ERROR = 2
@@ -16,8 +16,8 @@ class CredxErrorCode(IntEnum):
     WRAPPER = 99
 
 
-class CredxError(Exception):
-    def __init__(self, code: CredxErrorCode, message: str, extra: str = None):
+class AnoncredsError(Exception):
+    def __init__(self, code: AnoncredsErrorCode, message: str, extra: str = None):
         super().__init__(message)
         self.code = code
         self.extra = extra

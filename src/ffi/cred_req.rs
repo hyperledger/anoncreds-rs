@@ -25,18 +25,10 @@ pub extern "C" fn anoncreds_create_credential_request(
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing master secret ID"))?;
 
-        let prover_did = prover_did.as_opt_str();
-
-        // Here we check whether the identifiers inside the cred_def (schema_id, and issuer_id)
-        // are legacy or new. If they are new, it is not allowed to supply a `prover_did` and a
-        // random string will be chosen for you.
         let cred_def = cred_def.load()?;
         let cred_def: &CredentialDefinition = cred_def.cast_ref()?;
-        if (cred_def.schema_id.is_uri() || cred_def.issuer_id.is_uri()) && prover_did.is_some() {
-            return Err(err_msg!(
-                "Prover did must not be supplied when using new identifiers"
-            ));
-        }
+
+        let prover_did = prover_did.as_opt_str();
 
         let (cred_req, cred_req_metadata) = create_credential_request(
             prover_did,
