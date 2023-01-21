@@ -59,16 +59,6 @@ jobs:
       - name: Cache cargo resources
         uses: Swatinem/rust-cache@v2
 
-      - name: Debug build Windows
-        if: "runner.os == 'Windows'"
-        env:
-          OPENSSL_STATIC: 1
-        run: cargo build --package anoncreds --features vendored
-
-      - name: Debug build Linux and macOS
-        if: "runner.os != 'Windows'"
-        run: cargo build --package anoncreds --features vendored
-
       - name: Test Linux and macOS
         if: "runner.os != 'Windows'"
         run: cargo test --package anoncreds --features vendored
@@ -126,7 +116,7 @@ jobs:
           OPENSSL_STATIC: 1
         run: cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
 
-      - name: Build library for Windows
+      - name: Build library for macOS and Linux
         if: "runner.os != 'Windows'"
         run: cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
 
