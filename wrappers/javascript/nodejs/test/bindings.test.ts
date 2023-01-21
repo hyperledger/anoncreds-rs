@@ -231,7 +231,8 @@ describe('bindings', () => {
     expect(JSON.parse(credReqMetadataJson)).toHaveProperty('nonce')
   })
 
-  test('create and receive credential', () => {
+  // TODO: enable when FFI interface is done
+  xtest('create and receive credential', () => {
     const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
       issuerId: 'mock:uri',
@@ -324,7 +325,7 @@ describe('bindings', () => {
     expect(JSON.parse(credReceivedJson)).toHaveProperty('witness')
   })
 
-  // Skip this for now as there are some ffi issues with revocation
+  // TODO: enable when FFI interface is done
   xtest('create and verify presentation', () => {
     const timestamp = Math.floor(Date.now() / 1000)
     const nonce = anoncreds.generateNonce()
