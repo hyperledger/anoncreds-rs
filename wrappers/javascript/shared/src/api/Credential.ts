@@ -10,9 +10,6 @@ import type { RevocationRegistryDefinition } from './RevocationRegistryDefinitio
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
 
-import { RevocationRegistry } from './RevocationRegistry'
-import { RevocationRegistryDelta } from './RevocationRegistryDelta'
-
 export type CreateCredentialOptions = {
   credentialDefinition: CredentialDefinition
   credentialDefinitionPrivate: CredentialDefinitionPrivate
@@ -33,7 +30,7 @@ export type ProcessCredentialOptions = {
 
 export class Credential extends AnoncredsObject {
   public static create(options: CreateCredentialOptions) {
-    const { credential, revocationDelta, revocationRegistry } = anoncreds.createCredential({
+    const { credential } = anoncreds.createCredential({
       credentialDefinition: options.credentialDefinition.handle,
       credentialDefinitionPrivate: options.credentialDefinitionPrivate.handle,
       credentialOffer: options.credentialOffer.handle,
@@ -46,8 +43,6 @@ export class Credential extends AnoncredsObject {
 
     return {
       credential: new Credential(credential.handle),
-      revocationRegistry: revocationRegistry ? new RevocationRegistry(revocationRegistry.handle) : undefined,
-      revocationRegistryDelta: revocationDelta ? new RevocationRegistryDelta(revocationDelta.handle) : undefined,
     }
   }
 

@@ -164,7 +164,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     credentialDefinitionId: string
     tag: string
     revocationRegistryType: string
-    issuanceType?: string
+    issuerId: string
     maximumCredentialNumber: number
     tailsDirectoryPath?: string
   }): {
