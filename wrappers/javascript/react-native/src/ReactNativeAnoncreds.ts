@@ -161,9 +161,12 @@ export class ReactNativeAnoncreds implements Anoncreds {
     credentialsProve: NativeCredentialProve[]
     selfAttest: Record<string, string>
     masterSecret: ObjectHandle
-    schemas: ObjectHandle[]
-    credentialDefinitions: ObjectHandle[]
+    schemas: Record<string, ObjectHandle>
+    credentialDefinitions: Record<string, ObjectHandle>
   }): ObjectHandle {
+    // TODO
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     const handle = anoncredsReactNative.createPresentation(serializeArguments(options))
     return new ObjectHandle(handle)
   }
@@ -228,12 +231,14 @@ export class ReactNativeAnoncreds implements Anoncreds {
 
   public createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: ObjectHandle
-    revocationRegistryList: ObjectHandle
+    revocationStatusList: ObjectHandle
     revocationRegistryIndex: number
     tailsPath: string
-    revocationState: ObjectHandle
-    oldRevocationRegistryList: ObjectHandle
+    previousRevocationState?: ObjectHandle
   }): ObjectHandle {
+    // TODO
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     const handle = anoncredsReactNative.createOrUpdateRevocationState(serializeArguments(options))
     return new ObjectHandle(handle)
   }

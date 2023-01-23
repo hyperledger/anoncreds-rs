@@ -1,3 +1,4 @@
+import type { ObjectHandle } from '../ObjectHandle'
 import type { Credential } from './Credential'
 import type { CredentialDefinition } from './CredentialDefinition'
 import type { CredentialRevocationState } from './CredentialRevocationState'
@@ -37,8 +38,8 @@ export type CreatePresentationOptions = {
   credentialsProve: CredentialProve[]
   selfAttest: Record<string, string>
   masterSecret: MasterSecret
-  schemas: Schema[]
-  credentialDefinitions: CredentialDefinition[]
+  schemas: Record<string, Schema>
+  credentialDefinitions: Record<string, CredentialDefinition>
 }
 
 export type VerifyPresentationOptions = {
@@ -63,8 +64,17 @@ export class Presentation extends AnoncredsObject {
         credentialsProve: options.credentialsProve,
         selfAttest: options.selfAttest,
         masterSecret: options.masterSecret.handle,
-        schemas: options.schemas.map((object) => object.handle),
-        credentialDefinitions: options.credentialDefinitions.map((object) => object.handle),
+        schemas: Object.entries(options.schemas).reduce<Record<string, ObjectHandle>>((prev, [id, object]) => {
+          prev[id] = object.handle
+          return prev
+        }, {}),
+        credentialDefinitions: Object.entries(options.credentialDefinitions).reduce<Record<string, ObjectHandle>>(
+          (prev, [id, object]) => {
+            prev[id] = object.handle
+            return prev
+          },
+          {}
+        ),
       }).handle
     )
   }
