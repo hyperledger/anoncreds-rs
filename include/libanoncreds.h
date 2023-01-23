@@ -297,11 +297,11 @@ ErrorCode anoncreds_create_revocation_registry(ObjectHandle cred_def,
                                                ObjectHandle *reg_def_p,
                                                ObjectHandle *reg_def_private_p);
 
-ErrorCode anoncreds_create_revocation_statust_list(FfiStr rev_reg_def_id,
-                                                   ObjectHandle rev_reg_def,
-                                                   int64_t timestamp,
-                                                   bool issuance_by_default,
-                                                   ObjectHandle *rev_status_list_p);
+ErrorCode anoncreds_create_revocation_status_list(FfiStr rev_reg_def_id,
+                                                  ObjectHandle rev_reg_def,
+                                                  int64_t timestamp,
+                                                  int8_t issuance_by_default,
+                                                  ObjectHandle *rev_status_list_p);
 
 ErrorCode anoncreds_create_schema(FfiStr schema_name,
                                   FfiStr schema_version,
@@ -338,16 +338,16 @@ ErrorCode anoncreds_revocation_registry_definition_get_attribute(ObjectHandle ha
 
 ErrorCode anoncreds_set_default_logger(void);
 
-ErrorCode anoncreds_update_revocation_statust_list(int64_t timestamp,
-                                                   struct FfiList_i32 issued,
-                                                   struct FfiList_i32 revoked,
-                                                   ObjectHandle rev_reg_def,
-                                                   ObjectHandle rev_current_list,
-                                                   ObjectHandle *new_rev_status_list_p);
+ErrorCode anoncreds_update_revocation_status_list(int64_t timestamp,
+                                                  struct FfiList_i32 issued,
+                                                  struct FfiList_i32 revoked,
+                                                  ObjectHandle rev_reg_def,
+                                                  ObjectHandle rev_current_list,
+                                                  ObjectHandle *new_rev_status_list_p);
 
-ErrorCode anoncreds_update_revocation_statust_list_timestamp_only(int64_t timestamp,
-                                                                  ObjectHandle rev_current_list,
-                                                                  ObjectHandle *rev_status_list_p);
+ErrorCode anoncreds_update_revocation_status_list_timestamp_only(int64_t timestamp,
+                                                                 ObjectHandle rev_current_list,
+                                                                 ObjectHandle *rev_status_list_p);
 
 ErrorCode anoncreds_verify_presentation(ObjectHandle presentation,
                                         ObjectHandle pres_req,

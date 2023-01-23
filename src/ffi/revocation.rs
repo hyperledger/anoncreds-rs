@@ -20,11 +20,11 @@ use crate::services::tails::TailsFileWriter;
 use crate::services::types::CredentialRevocationState;
 
 #[no_mangle]
-pub extern "C" fn anoncreds_create_revocation_statust_list(
+pub extern "C" fn anoncreds_create_revocation_status_list(
     rev_reg_def_id: FfiStr,
     rev_reg_def: ObjectHandle,
     timestamp: i64,
-    issuance_by_default: bool,
+    issuance_by_default: i8,
     rev_status_list_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
@@ -42,7 +42,7 @@ pub extern "C" fn anoncreds_create_revocation_statust_list(
             rev_reg_def_id,
             rev_reg_def.load()?.cast_ref()?,
             timestamp,
-            issuance_by_default,
+            issuance_by_default != 0,
         )?;
 
         let rev_status_list_handle = ObjectHandle::create(rev_status_list)?;
@@ -54,7 +54,7 @@ pub extern "C" fn anoncreds_create_revocation_statust_list(
 }
 
 #[no_mangle]
-pub extern "C" fn anoncreds_update_revocation_statust_list(
+pub extern "C" fn anoncreds_update_revocation_status_list(
     timestamp: i64,
     issued: FfiList<i32>,
     revoked: FfiList<i32>,
@@ -97,7 +97,7 @@ pub extern "C" fn anoncreds_update_revocation_statust_list(
 }
 
 #[no_mangle]
-pub extern "C" fn anoncreds_update_revocation_statust_list_timestamp_only(
+pub extern "C" fn anoncreds_update_revocation_status_list_timestamp_only(
     timestamp: i64,
     rev_current_list: ObjectHandle,
     rev_status_list_p: *mut ObjectHandle,
@@ -121,7 +121,7 @@ pub extern "C" fn anoncreds_update_revocation_statust_list_timestamp_only(
 }
 
 #[no_mangle]
-pub extern "C" fn anoncreds_create_revocation_registry(
+pub extern "C" fn anoncreds_create_revocation_registry_def(
     cred_def: ObjectHandle,
     cred_def_id: FfiStr,
     issuer_id: FfiStr,

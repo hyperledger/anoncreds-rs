@@ -12,6 +12,32 @@ import { anoncredsReactNative } from './library'
 import { serializeArguments } from './utils'
 
 export class ReactNativeAnoncreds implements Anoncreds {
+  public createRevocationStatusList(options: {
+    revocationRegistryDefinitionId: string
+    revocationRegistryDefinition: ObjectHandle
+    timestamp?: number | undefined
+    issuanceByDefault: boolean
+  }): ObjectHandle {
+    throw new Error('Method not implemented.')
+  }
+
+  public updateRevocationStatusListTimestampOnly(options: {
+    timestamp: number
+    currentList: ObjectHandle
+  }): ObjectHandle {
+    throw new Error('Method not implemented.')
+  }
+
+  public updateRevocationStatusList(options: {
+    timestamp?: number | undefined
+    issued?: number[] | undefined
+    revoked?: number[] | undefined
+    revocationRegistryDefinition: ObjectHandle
+    currentList: ObjectHandle
+  }): ObjectHandle {
+    throw new Error('Method not implemented.')
+  }
+
   public version(): string {
     return anoncredsReactNative.version({})
   }
@@ -60,16 +86,10 @@ export class ReactNativeAnoncreds implements Anoncreds {
     attributeRawValues: Record<string, string>
     attributeEncodedValues?: Record<string, string>
     revocationConfiguration?: NativeCredentialRevocationConfig
-  }): { credential: ObjectHandle; revocationRegistry: ObjectHandle; revocationDelta: ObjectHandle } {
-    const { credential, revocationDelta, revocationRegistry } = anoncredsReactNative.createCredential(
-      serializeArguments(options)
-    )
+  }): ObjectHandle {
+    const { credential } = anoncredsReactNative.createCredential(serializeArguments(options))
 
-    return {
-      revocationRegistry: new ObjectHandle(revocationRegistry),
-      credential: new ObjectHandle(credential),
-      revocationDelta: new ObjectHandle(revocationDelta),
-    }
+    return new ObjectHandle(credential)
   }
 
   public encodeCredentialAttributes(options: { attributeRawValues: Array<string> }): Array<string> {
@@ -119,13 +139,13 @@ export class ReactNativeAnoncreds implements Anoncreds {
     masterSecret: ObjectHandle
     masterSecretId: string
     credentialOffer: ObjectHandle
-  }): { credentialRequest: ObjectHandle; credentialRequestMeta: ObjectHandle } {
-    const { credentialRequest, credentialRequestMeta } = anoncredsReactNative.createCredentialRequest(
+  }): { credentialRequest: ObjectHandle; credentialRequestMetadata: ObjectHandle } {
+    const { credentialRequest, credentialRequestMetadata } = anoncredsReactNative.createCredentialRequest(
       serializeArguments(options)
     )
 
     return {
-      credentialRequestMeta: new ObjectHandle(credentialRequestMeta),
+      credentialRequestMetadata: new ObjectHandle(credentialRequestMetadata),
       credentialRequest: new ObjectHandle(credentialRequest),
     }
   }
@@ -159,7 +179,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return anoncredsReactNative.verifyPresentation(serializeArguments(options))
   }
 
-  public createRevocationRegistry(options: {
+  public createRevocationRegistryDef(options: {
     credentialDefinition: ObjectHandle
     credentialDefinitionId: string
     tag: string
@@ -168,19 +188,16 @@ export class ReactNativeAnoncreds implements Anoncreds {
     maximumCredentialNumber: number
     tailsDirectoryPath?: string
   }): {
-    registryDefinition: ObjectHandle
-    registryDefinitionPrivate: ObjectHandle
-    registryEntry: ObjectHandle
-    registryInitDelta: ObjectHandle
+    revocationRegistryDefinition: ObjectHandle
+    revocationRegistryDefinitionPrivate: ObjectHandle
   } {
-    const { registryEntry, registryInitDelta, registryDefinition, registryDefinitionPrivate } =
-      anoncredsReactNative.createRevocationRegistry(serializeArguments(options))
+    const { registryDefinition, registryDefinitionPrivate } = anoncredsReactNative.createRevocationRegistry(
+      serializeArguments(options)
+    )
 
     return {
-      registryDefinitionPrivate: new ObjectHandle(registryDefinitionPrivate),
-      registryDefinition: new ObjectHandle(registryDefinition),
-      registryInitDelta: new ObjectHandle(registryInitDelta),
-      registryEntry: new ObjectHandle(registryEntry),
+      revocationRegistryDefinitionPrivate: new ObjectHandle(registryDefinitionPrivate),
+      revocationRegistryDefinition: new ObjectHandle(registryDefinition),
     }
   }
 

@@ -18,6 +18,7 @@ import {
   RevocationEntryListStruct,
   FFI_INT8_PTR,
   FFI_VOID,
+  I32ListStruct,
 } from '../ffi'
 
 export const nativeBindings = {
@@ -34,6 +35,7 @@ export const nativeBindings = {
       StringListStruct,
       StringListStruct,
       FFI_STRING,
+      FFI_OBJECT_HANDLE,
       refType(CredRevInfoStruct),
       FFI_OBJECT_HANDLE_PTR,
     ],
@@ -71,7 +73,15 @@ export const nativeBindings = {
   anoncreds_create_master_secret: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE_PTR]],
   anoncreds_create_or_update_revocation_state: [
     FFI_ERRORCODE,
-    [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_INT64, FFI_STRING, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
+    [
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE,
+      FFI_INT64,
+      FFI_STRING,
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE_PTR,
+    ],
   ],
   anoncreds_create_presentation: [
     FFI_ERRORCODE,
@@ -83,11 +93,13 @@ export const nativeBindings = {
       StringListStruct,
       FFI_OBJECT_HANDLE,
       ObjectHandleListStruct,
+      StringListStruct,
       ObjectHandleListStruct,
+      StringListStruct,
       FFI_OBJECT_HANDLE_PTR,
     ],
   ],
-  anoncreds_create_revocation_registry: [
+  anoncreds_create_revocation_registry_def: [
     FFI_ERRORCODE,
     [
       FFI_OBJECT_HANDLE,
@@ -140,6 +152,18 @@ export const nativeBindings = {
       RevocationEntryListStruct,
       FFI_INT8_PTR,
     ],
+  ],
+  anoncreds_create_revocation_status_list: [
+    FFI_ERRORCODE,
+    [FFI_STRING, FFI_OBJECT_HANDLE, FFI_INT64, FFI_INT8, FFI_OBJECT_HANDLE_PTR],
+  ],
+  anoncreds_update_revocation_status_list_timestamp_only: [
+    FFI_ERRORCODE,
+    [FFI_INT64, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
+  ],
+  anoncreds_update_revocation_status_list: [
+    FFI_ERRORCODE,
+    [FFI_INT64, I32ListStruct, I32ListStruct, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
   ],
   anoncreds_version: [FFI_STRING, []],
   anoncreds_master_secret_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],

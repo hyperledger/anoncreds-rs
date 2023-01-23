@@ -6,27 +6,23 @@ import { anoncreds } from '../register'
 
 export type CreateRevocationStateOptions = {
   revocationRegistryDefinition: RevocationRegistryDefinition
-  revocationRegistryList: RevocationRegistryDelta
+  revocationRegistryStatusList: RevocationRegistryDelta
   revocationRegistryIndex: number
   tailsPath: string
+  previousRevocationState?: CredentialRevocationState
 }
 
-export type UpdateRevocationStateOptions = {
-  revocationRegistryDefinition: RevocationRegistryDefinition
-  revocationRegistryList: RevocationRegistryDelta
-  revocationRegistryIndex: number
-  timestamp: number
-  tailsPath: string
-}
+export type UpdateRevocationStateOptions = CreateRevocationStateOptions
 
 export class CredentialRevocationState extends AnoncredsObject {
   public static create(options: CreateRevocationStateOptions) {
     return new CredentialRevocationState(
       anoncreds.createOrUpdateRevocationState({
         revocationRegistryDefinition: options.revocationRegistryDefinition.handle,
-        revocationRegistryList: options.revocationRegistryList.handle,
         revocationRegistryIndex: options.revocationRegistryIndex,
         tailsPath: options.tailsPath,
+        revocationStatusList: options.revocationRegistryStatusList.handle,
+        previousRevocationState: options.previousRevocationState?.handle,
       }).handle
     )
   }
@@ -36,12 +32,12 @@ export class CredentialRevocationState extends AnoncredsObject {
   }
 
   public update(options: UpdateRevocationStateOptions) {
-    this._handle = anoncreds.createOrUpdateRevocationState({
+    this.handle = anoncreds.createOrUpdateRevocationState({
       revocationRegistryDefinition: options.revocationRegistryDefinition.handle,
-      revocationRegistryList: options.revocationRegistryList.handle,
       revocationRegistryIndex: options.revocationRegistryIndex,
       tailsPath: options.tailsPath,
-      previousRevocationState: this.handle,
+      revocationStatusList: options.revocationRegistryStatusList.handle,
+      previousRevocationState: options.previousRevocationState?.handle,
     })
   }
 }

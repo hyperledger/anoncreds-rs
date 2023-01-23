@@ -18,7 +18,10 @@ export type CreateRevocationRegistryDefinitionOptions = {
 
 export class RevocationRegistryDefinition extends AnoncredsObject {
   public static create(options: CreateRevocationRegistryDefinitionOptions) {
-    const { registryDefinition, registryDefinitionPrivate } = anoncreds.createRevocationRegistry({
+    const {
+      revocationRegistryDefinition: registryDefinition,
+      revocationRegistryDefinitionPrivate: registryDefinitionPrivate,
+    } = anoncreds.createRevocationRegistryDef({
       ...options,
       credentialDefinition: options.credentialDefinition.handle,
     })

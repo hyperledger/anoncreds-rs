@@ -1,4 +1,4 @@
-import { anoncreds } from 'anoncreds-shared'
+import { anoncreds, AnoncredsObject } from 'anoncreds-shared'
 
 import { setup } from './utils'
 
@@ -92,7 +92,6 @@ describe('bindings', () => {
       name: 'schema-1',
       issuerId: 'mock:uri',
       version: '1',
-      sequenceNumber: 1,
       attributeNames: ['attr-1'],
     })
 
@@ -105,7 +104,7 @@ describe('bindings', () => {
       tag: 'TAG',
     })
 
-    const { registryDefinition } = anoncreds.createRevocationRegistry({
+    const { revocationRegistryDefinition: registryDefinition } = anoncreds.createRevocationRegistryDef({
       credentialDefinitionId: 'mock:uri',
       credentialDefinition,
       issuerId: 'mock:uri',
@@ -148,7 +147,6 @@ describe('bindings', () => {
       name: 'schema-1',
       issuerId: 'mock:uri',
       version: '1',
-      sequenceNumber: 1,
       attributeNames: ['attr-1'],
     })
 
@@ -183,7 +181,6 @@ describe('bindings', () => {
       name: 'schema-1',
       issuerId: 'mock:uri',
       version: '1',
-      sequenceNumber: 1,
       attributeNames: ['attr-1'],
     })
 
@@ -205,7 +202,7 @@ describe('bindings', () => {
     const masterSecret = anoncreds.createMasterSecret()
     const masterSecretId = 'master secret id'
 
-    const { credentialRequest, credentialRequestMeta } = anoncreds.createCredentialRequest({
+    const { credentialRequest, credentialRequestMetadata } = anoncreds.createCredentialRequest({
       credentialDefinition: credentialDefinition,
       masterSecret,
       masterSecretId,
@@ -221,7 +218,7 @@ describe('bindings', () => {
     expect(JSON.parse(credReqJson)).toHaveProperty('blinded_ms')
     expect(JSON.parse(credReqJson)).toHaveProperty('nonce')
 
-    const credReqMetadataJson = anoncreds.getJson({ objectHandle: credentialRequestMeta })
+    const credReqMetadataJson = anoncreds.getJson({ objectHandle: credentialRequestMetadata })
     expect(JSON.parse(credReqMetadataJson)).toEqual(
       expect.objectContaining({
         master_secret_name: masterSecretId,
@@ -231,13 +228,11 @@ describe('bindings', () => {
     expect(JSON.parse(credReqMetadataJson)).toHaveProperty('nonce')
   })
 
-  // TODO: enable when FFI interface is done
-  xtest('create and receive credential', () => {
+  test('create and receive credential', () => {
     const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
       issuerId: 'mock:uri',
       version: '1',
-      sequenceNumber: 1,
       attributeNames: ['attr-1'],
     })
 
@@ -250,7 +245,31 @@ describe('bindings', () => {
       tag: 'TAG',
     })
 
-    const credOfferObj = anoncreds.createCredentialOffer({
+    const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate } = anoncreds.createRevocationRegistryDef(
+      {
+        credentialDefinitionId: 'mock:uri',
+        credentialDefinition,
+        issuerId: 'mock:uri',
+        tag: 'some_tag',
+        revocationRegistryType: 'CL_ACCUM',
+        maximumCredentialNumber: 10,
+      }
+    )
+
+    const tailsPath = anoncreds.revocationRegistryDefinitionGetAttribute({
+      objectHandle: revocationRegistryDefinition,
+      name: 'tails_location',
+    })
+
+    const timeCreateRevStatusList = 12
+    const revocationStatusList = anoncreds.createRevocationStatusList({
+      timestamp: timeCreateRevStatusList,
+      issuanceByDefault: true,
+      revocationRegistryDefinition,
+      revocationRegistryDefinitionId: 'mock:uri',
+    })
+
+    const credentialOffer = anoncreds.createCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
       keyProof,
@@ -259,109 +278,98 @@ describe('bindings', () => {
     const masterSecret = anoncreds.createMasterSecret()
     const masterSecretId = 'master secret id'
 
-    const { credentialRequestMeta, credentialRequest } = anoncreds.createCredentialRequest({
+    const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
       credentialDefinition,
       masterSecret,
       masterSecretId,
-      credentialOffer: credOfferObj,
+      credentialOffer,
     })
 
-    const { registryDefinition, registryDefinitionPrivate } = anoncreds.createRevocationRegistry({
-      credentialDefinitionId: 'mock:uri',
+    const credential = anoncreds.createCredential({
       credentialDefinition,
-      issuerId: 'mock:uri',
-      tag: 'default',
-      revocationRegistryType: 'CL_ACCUM',
-      maximumCredentialNumber: 100,
+      credentialDefinitionPrivate,
+      credentialOffer,
+      credentialRequest,
+      attributeRawValues: { 'attr-1': 'test' },
+      revocationRegistryId: 'mock:uri',
+      revocationStatusList,
+      revocationConfiguration: {
+        revocationRegistryDefinition,
+        revocationRegistryDefinitionPrivate,
+        registryIndex: 9,
+        tailsPath,
+      },
     })
 
-    const tailsPath = anoncreds.revocationRegistryDefinitionGetAttribute({
-      objectHandle: registryDefinition,
-      name: 'tails_location',
+    const credReceived = anoncreds.processCredential({
+      credential,
+      credentialDefinition,
+      credentialRequestMetadata,
+      masterSecret,
+      revocationRegistryDefinition,
     })
 
-    // const { credential } = anoncreds.createCredential({
-    //   credentialDefinition,
-    //   credentialDefinitionPrivate,
-    //   credentialOffer: credOfferObj,
-    //   credentialRequest: credentialRequest,
-    //   attributeRawValues: { 'attr-1': 'test' },
-    //   revocationRegistryId: 'mock:uri',
-    //   revocationConfiguration: {
-    //     registryDefinition,
-    //     registryDefinitionPrivate,
-    //     registry: registryEntry,
-    //     registryIndex: 1,
-    //     tailsPath,
-    //   },
-    // })
+    const credJson = anoncreds.getJson({ objectHandle: credential })
+    expect(JSON.parse(credJson)).toEqual(
+      expect.objectContaining({
+        cred_def_id: 'mock:uri',
+        rev_reg_id: 'mock:uri',
+        schema_id: 'mock:uri',
+      })
+    )
 
-    // const credReceived = anoncreds.processCredential({
-    //   credential,
-    //   credentialDefinition,
-    //   credentialRequestMetadata: credentialRequestMeta,
-    //   masterSecret,
-    //   revocationRegistryDefinition: registryDefinition,
-    // })
-
-    // const credJson = anoncreds.getJson({ objectHandle: credential })
-    // expect(JSON.parse(credJson)).toEqual(
-    //   expect.objectContaining({
-    //     cred_def_id: 'mock:uri',
-    //     rev_reg_id: 'mock:uri',
-    //     schema_id: 'mock:uri',
-    //   })
-    // )
-
-    // const credReceivedJson = anoncreds.getJson({ objectHandle: credReceived })
-    // expect(JSON.parse(credReceivedJson)).toEqual(
-    //   expect.objectContaining({
-    //     cred_def_id: 'mock:uri',
-    //     rev_reg_id: 'mock:uri',
-    //     schema_id: 'mock:uri',
-    //   })
-    // )
-    // expect(JSON.parse(credReceivedJson)).toHaveProperty('signature')
-    // expect(JSON.parse(credReceivedJson)).toHaveProperty('witness')
+    const credReceivedJson = anoncreds.getJson({ objectHandle: credReceived })
+    expect(JSON.parse(credReceivedJson)).toEqual(
+      expect.objectContaining({
+        cred_def_id: 'mock:uri',
+        rev_reg_id: 'mock:uri',
+        schema_id: 'mock:uri',
+      })
+    )
+    expect(JSON.parse(credReceivedJson)).toHaveProperty('signature')
+    expect(JSON.parse(credReceivedJson)).toHaveProperty('witness')
   })
 
-  // TODO: enable when FFI interface is done
-  xtest('create and verify presentation', () => {
-    const timestamp = Math.floor(Date.now() / 1000)
+  test('create and verify presentation', () => {
     const nonce = anoncreds.generateNonce()
 
-    const presRequestObj = anoncreds.presentationRequestFromJson({
+    const presentationRequest = anoncreds.presentationRequestFromJson({
       json: JSON.stringify({
-        name: 'proof',
-        version: '1.0',
         nonce,
+        name: 'pres_req_1',
+        version: '1.0',
         requested_attributes: {
-          reft: {
-            name: 'attr-1',
-            non_revoked: { from: timestamp, to: timestamp },
-          },
-          name: {
+          attr1_referent: {
             name: 'name',
-            non_revoked: { from: timestamp, to: timestamp },
+            // issuer: 'mock:uri',
+          },
+          attr2_referent: {
+            name: 'sex',
+          },
+          attr3_referent: {
+            name: 'phone',
+          },
+          attr4_referent: {
+            names: ['name', 'height'],
           },
         },
-        requested_predicates: {},
-        non_revoked: { from: timestamp, to: timestamp },
-        ver: '1.0',
+        requested_predicates: {
+          predicate1_referent: { name: 'age', p_type: '>=', p_value: 18 },
+        },
+        non_revoked: { from: 10, to: 200 },
       }),
     })
 
-    expect(anoncreds.getTypeName({ objectHandle: presRequestObj })).toEqual('PresentationRequest')
+    expect(anoncreds.getTypeName({ objectHandle: presentationRequest })).toEqual('PresentationRequest')
 
     const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
       issuerId: 'mock:uri',
       version: '1',
-      sequenceNumber: 1,
-      attributeNames: ['attr-1'],
+      attributeNames: ['name', 'age', 'sex', 'height'],
     })
 
-    const { credentialDefinition, credentialDefinitionPrivate, keyProof } = anoncreds.createCredentialDefinition({
+    const { credentialDefinition, keyProof, credentialDefinitionPrivate } = anoncreds.createCredentialDefinition({
       schemaId: 'mock:uri',
       issuerId: 'mock:uri',
       schema: schemaObj,
@@ -370,7 +378,31 @@ describe('bindings', () => {
       tag: 'TAG',
     })
 
-    const credOfferObj = anoncreds.createCredentialOffer({
+    const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate } = anoncreds.createRevocationRegistryDef(
+      {
+        credentialDefinitionId: 'mock:uri',
+        credentialDefinition,
+        issuerId: 'mock:uri',
+        tag: 'some_tag',
+        revocationRegistryType: 'CL_ACCUM',
+        maximumCredentialNumber: 10,
+      }
+    )
+
+    const tailsPath = anoncreds.revocationRegistryDefinitionGetAttribute({
+      objectHandle: revocationRegistryDefinition,
+      name: 'tails_location',
+    })
+
+    const timeCreateRevStatusList = 12
+    const revocationStatusList = anoncreds.createRevocationStatusList({
+      timestamp: timeCreateRevStatusList,
+      issuanceByDefault: true,
+      revocationRegistryDefinition,
+      revocationRegistryDefinitionId: 'mock:uri',
+    })
+
+    const credentialOffer = anoncreds.createCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
       keyProof,
@@ -379,99 +411,104 @@ describe('bindings', () => {
     const masterSecret = anoncreds.createMasterSecret()
     const masterSecretId = 'master secret id'
 
-    const { credentialRequest, credentialRequestMeta } = anoncreds.createCredentialRequest({
+    const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
       credentialDefinition,
       masterSecret,
       masterSecretId,
-      credentialOffer: credOfferObj,
+      credentialOffer,
     })
 
-    // const { registryDefinition, registryEntry, registryDefinitionPrivate, registryInitDelta } =
-    //   anoncreds.createRevocationRegistry({
-    //     credentialDefinitionId: 'mock:uri',
-    //     credentialDefinition,
-    //     tag: 'default',
-    //     revocationRegistryType: 'CL_ACCUM',
-    //     maximumCredentialNumber: 100,
-    //   })
+    const credential = anoncreds.createCredential({
+      credentialDefinition,
+      credentialDefinitionPrivate,
+      credentialOffer,
+      credentialRequest,
+      attributeRawValues: { name: 'Alex', height: '175', age: '28', sex: 'male' },
+      revocationRegistryId: 'mock:uri',
+      revocationStatusList,
+      revocationConfiguration: {
+        revocationRegistryDefinition,
+        revocationRegistryDefinitionPrivate,
+        registryIndex: 9,
+        tailsPath,
+      },
+    })
 
-    // const tailsPath = anoncreds.revocationRegistryDefinitionGetAttribute({
-    //   objectHandle: registryDefinition,
-    //   name: 'tails_location',
-    // })
+    const credentialReceived = anoncreds.processCredential({
+      credential,
+      credentialDefinition,
+      credentialRequestMetadata,
+      masterSecret,
+      revocationRegistryDefinition,
+    })
 
-    // const { credential } = anoncreds.createCredential({
-    //   credentialDefinition,
-    //   credentialDefinitionPrivate,
-    //   credentialOffer: credOfferObj,
-    //   credentialRequest,
-    //   attributeRawValues: { 'attr-1': 'test' },
-    //   attributeEncodedValues: undefined,
-    //   revocationRegistryId: 'mock:uri',
-    //   revocationConfiguration: {
-    //     registryDefinition,
-    //     registryDefinitionPrivate,
-    //     registry: registryEntry,
-    //     registryIndex: 1,
-    //     tailsPath: tailsPath,
-    //   },
-    // })
+    const revRegIndex = anoncreds.credentialGetAttribute({
+      objectHandle: credentialReceived,
+      name: 'rev_reg_index',
+    })
 
-    // const credentialReceived = anoncreds.processCredential({
-    //   credential,
-    //   credentialDefinition,
-    //   credentialRequestMetadata: credentialRequestMeta,
-    //   masterSecret,
-    //   revocationRegistryDefinition: registryDefinition,
-    // })
+    const revocationRegistryIndex = revRegIndex === null ? 0 : parseInt(revRegIndex)
 
-    // const revRegIndex = anoncreds.credentialGetAttribute({
-    //   objectHandle: credentialReceived,
-    //   name: 'rev_reg_index',
-    // })
+    const revocationState = anoncreds.createOrUpdateRevocationState({
+      revocationRegistryDefinition,
+      revocationStatusList,
+      revocationRegistryIndex,
+      tailsPath,
+    })
 
-    // const revocationRegistryIndex = revRegIndex === null ? 0 : parseInt(revRegIndex)
+    const presentationObj = anoncreds.createPresentation({
+      presentationRequest,
+      credentials: [
+        {
+          credential: credentialReceived,
+          revocationState,
+          timestamp: timeCreateRevStatusList + 1,
+        },
+      ],
+      credentialDefinitions: { 'mock:uri': credentialDefinition },
+      credentialsProve: [
+        {
+          entryIndex: 0,
+          isPredicate: false,
+          referent: 'attr1_referent',
+          reveal: true,
+        },
+        {
+          entryIndex: 1,
+          isPredicate: false,
+          referent: 'attr2_referent',
+          reveal: false,
+        },
+        {
+          entryIndex: 2,
+          isPredicate: false,
+          referent: 'attr4_referent',
+          reveal: true,
+        },
+        {
+          entryIndex: 2,
+          isPredicate: true,
+          referent: 'predicate1_referent',
+          reveal: false,
+        },
+      ],
+      masterSecret,
+      schemas: { 'mock:uri': schemaObj },
+      selfAttest: { attr3_referent: '8-800-300' },
+    })
 
-    // const revocationState = anoncreds.createOrUpdateRevocationState({
-    //   revocationRegistryDefinition: registryDefinition,
-    //   revocationRegistryList: registryInitDelta,
-    //   revocationRegistryIndex,
-    //   tailsPath,
-    // })
-
-    // const presentationObj = anoncreds.createPresentation({
-    //   presentationRequest: presRequestObj,
-    //   credentials: [
-    //     {
-    //       credential: credentialReceived,
-    //       revocationState,
-    //       timestamp,
-    //     },
-    //   ],
-    //   credentialDefinitions: [credentialDefinition],
-    //   credentialsProve: [
-    //     {
-    //       entryIndex: 0,
-    //       isPredicate: false,
-    //       referent: 'reft',
-    //       reveal: true,
-    //     },
-    //   ],
-    //   masterSecret,
-    //   schemas: [schemaObj],
-    //   selfAttest: { name: 'value' },
-    // })
+    expect(presentationObj.handle).toStrictEqual(expect.any(Number))
 
     // const verify = anoncreds.verifyPresentation({
     //   presentation: presentationObj,
-    //   presentationRequest: presRequestObj,
+    //   presentationRequest,
     //   credentialDefinitions: [credentialDefinition],
-    //   revocationRegistryDefinitions: [registryDefinition],
+    //   revocationRegistryDefinitions: [revocationRegistryDefinition],
     //   revocationEntries: [
     //     {
     //       entry: registryEntry,
     //       revocationRegistryDefinitionEntryIndex: 0,
-    //       timestamp,
+    //       timestamp: timeCreateRevStatusList + 1,
     //     },
     //   ],
     //   schemas: [schemaObj],

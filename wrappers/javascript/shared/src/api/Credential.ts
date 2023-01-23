@@ -30,7 +30,7 @@ export type ProcessCredentialOptions = {
 
 export class Credential extends AnoncredsObject {
   public static create(options: CreateCredentialOptions) {
-    const { credential } = anoncreds.createCredential({
+    const credential = anoncreds.createCredential({
       credentialDefinition: options.credentialDefinition.handle,
       credentialDefinitionPrivate: options.credentialDefinitionPrivate.handle,
       credentialOffer: options.credentialOffer.handle,
@@ -41,9 +41,7 @@ export class Credential extends AnoncredsObject {
       revocationConfiguration: options.revocationConfiguration?.native,
     })
 
-    return {
-      credential: new Credential(credential.handle),
-    }
+    return new Credential(credential.handle)
   }
 
   public static load(json: string) {
@@ -62,19 +60,19 @@ export class Credential extends AnoncredsObject {
     return new Credential(credential.handle)
   }
 
-  public getSchemaId() {
+  public get schemaId() {
     return anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'schema_id' })
   }
 
-  public getCredentialDefinitionId() {
+  public get credentialDefinitionId() {
     return anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'cred_def_id' })
   }
 
-  public getRevocationRegistryId() {
+  public get revocationRegistryId() {
     return anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'rev_reg_id' })
   }
 
-  public getRevocationRegistryIndex() {
+  public get revocationRegistryIndex() {
     const index = anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'rev_reg_index' })
     return index ? Number(index) : undefined
   }

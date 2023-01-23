@@ -53,7 +53,7 @@ export interface NativeBindings {
     masterSecret: number
     masterSecretId: string
     credentialOffer: number
-  }): { credentialRequest: _Handle; credentialRequestMeta: _Handle }
+  }): { credentialRequest: _Handle; credentialRequestMetadata: _Handle }
 
   createMasterSecret(options: Record<never, never>): number
 

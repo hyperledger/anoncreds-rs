@@ -23,11 +23,9 @@ export type NativeRevocationEntry = {
 }
 
 export type NativeCredentialRevocationConfig = {
-  registryDefinition: ObjectHandle
-  registryDefinitionPrivate: ObjectHandle
-  registry: ObjectHandle
+  revocationRegistryDefinition: ObjectHandle
+  revocationRegistryDefinitionPrivate: ObjectHandle
   registryIndex: number
-  registryUsed?: number[]
   tailsPath: string
 }
 
@@ -38,13 +36,7 @@ export interface Anoncreds {
 
   generateNonce(): string
 
-  createSchema(options: {
-    name: string
-    version: string
-    issuerId: string
-    attributeNames: string[]
-    sequenceNumber?: number
-  }): ObjectHandle
+  createSchema(options: { name: string; version: string; issuerId: string; attributeNames: string[] }): ObjectHandle
 
   createCredentialDefinition(options: {
     schemaId: string
@@ -63,8 +55,9 @@ export interface Anoncreds {
     attributeRawValues: Record<string, string>
     attributeEncodedValues?: Record<string, string>
     revocationRegistryId?: string
+    revocationStatusList?: ObjectHandle
     revocationConfiguration?: NativeCredentialRevocationConfig
-  }): { credential: ObjectHandle }
+  }): ObjectHandle
 
   encodeCredentialAttributes(options: { attributeRawValues: Array<string> }): Array<string>
 
@@ -88,7 +81,7 @@ export interface Anoncreds {
     masterSecret: ObjectHandle
     masterSecretId: string
     credentialOffer: ObjectHandle
-  }): { credentialRequest: ObjectHandle; credentialRequestMeta: ObjectHandle }
+  }): { credentialRequest: ObjectHandle; credentialRequestMetadata: ObjectHandle }
 
   createMasterSecret(): ObjectHandle
 
@@ -98,8 +91,8 @@ export interface Anoncreds {
     credentialsProve: NativeCredentialProve[]
     selfAttest: Record<string, string>
     masterSecret: ObjectHandle
-    schemas: ObjectHandle[]
-    credentialDefinitions: ObjectHandle[]
+    schemas: Record<string, ObjectHandle>
+    credentialDefinitions: Record<string, ObjectHandle>
   }): ObjectHandle
 
   verifyPresentation(options: {
@@ -111,7 +104,7 @@ export interface Anoncreds {
     revocationEntries?: NativeRevocationEntry[]
   }): boolean
 
-  createRevocationRegistry(options: {
+  createRevocationRegistryDef(options: {
     credentialDefinition: ObjectHandle
     credentialDefinitionId: string
     issuerId: string
@@ -120,16 +113,33 @@ export interface Anoncreds {
     maximumCredentialNumber: number
     tailsDirectoryPath?: string
   }): {
-    registryDefinition: ObjectHandle
-    registryDefinitionPrivate: ObjectHandle
+    revocationRegistryDefinition: ObjectHandle
+    revocationRegistryDefinitionPrivate: ObjectHandle
   }
 
   createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: ObjectHandle
-    revocationRegistryList: ObjectHandle
+    revocationStatusList: ObjectHandle
     revocationRegistryIndex: number
     tailsPath: string
     previousRevocationState?: ObjectHandle
+  }): ObjectHandle
+
+  createRevocationStatusList(options: {
+    revocationRegistryDefinitionId: string
+    revocationRegistryDefinition: ObjectHandle
+    timestamp?: number
+    issuanceByDefault: boolean
+  }): ObjectHandle
+
+  updateRevocationStatusListTimestampOnly(options: { timestamp: number; currentList: ObjectHandle }): ObjectHandle
+
+  updateRevocationStatusList(options: {
+    timestamp?: number
+    issued?: Array<number>
+    revoked?: Array<number>
+    revocationRegistryDefinition: ObjectHandle
+    currentList: ObjectHandle
   }): ObjectHandle
 
   credentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string
