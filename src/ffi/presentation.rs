@@ -162,13 +162,13 @@ pub extern "C" fn anoncreds_create_presentation(
         }
 
         let mut schema_identifiers: Vec<SchemaId> = vec![];
-        for schema_id in schema_ids.as_slice().iter() {
+        for schema_id in schema_ids.to_string_vec()?.iter() {
             let s = SchemaId::new(schema_id.as_str())?;
             schema_identifiers.push(s);
         }
 
         let mut cred_def_identifiers: Vec<CredentialDefinitionId> = vec![];
-        for cred_def_id in cred_def_ids.as_slice().iter() {
+        for cred_def_id in cred_def_ids.to_string_vec()?.iter() {
             let cred_def_id = CredentialDefinitionId::new(cred_def_id.as_str())?;
             cred_def_identifiers.push(cred_def_id);
         }
@@ -188,6 +188,7 @@ pub extern "C" fn anoncreds_create_presentation(
             &schemas,
             &cred_defs,
         )?;
+
         let presentation = ObjectHandle::create(presentation)?;
         unsafe { *presentation_p = presentation };
         Ok(())

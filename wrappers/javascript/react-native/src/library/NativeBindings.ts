@@ -53,7 +53,7 @@ export interface NativeBindings {
     masterSecret: number
     masterSecretId: string
     credentialOffer: number
-  }): { credentialRequest: _Handle; credentialRequestMeta: _Handle }
+  }): { credentialRequest: _Handle; credentialRequestMetadata: _Handle }
 
   createMasterSecret(options: Record<never, never>): number
 
@@ -79,9 +79,9 @@ export interface NativeBindings {
   createRevocationRegistry(options: {
     credentialDefinition: number
     credentialDefinitionId: string
+    issuerId: string
     tag: string
     revocationRegistryType: string
-    issuanceType?: string
     maximumCredentialNumber: number
     tailsDirectoryPath?: string
   }): {

@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::os::raw::c_char;
 use std::str::FromStr;
 
@@ -5,22 +6,122 @@ use ffi_support::{rust_string_to_c, FfiStr};
 
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, ObjectHandle};
+use super::util::FfiList;
 use crate::data_types::{
     rev_reg::{RevocationRegistry, RevocationRegistryDelta, RevocationStatusList},
     rev_reg_def::{
         RegistryType, RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate,
     },
 };
+use crate::issuer;
 use crate::services::issuer::create_revocation_registry_def;
 use crate::services::prover::create_or_update_revocation_state;
 use crate::services::tails::TailsFileWriter;
 use crate::services::types::CredentialRevocationState;
 
-// TODO: interfaces to create
-//use crate::services::issuer::{create_revocation_status_list, update_revocation_status_list}
+#[no_mangle]
+pub extern "C" fn anoncreds_create_revocation_status_list(
+    rev_reg_def_id: FfiStr,
+    rev_reg_def: ObjectHandle,
+    timestamp: i64,
+    issuance_by_default: i8,
+    rev_status_list_p: *mut ObjectHandle,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(rev_status_list_p);
+        let rev_reg_def_id = rev_reg_def_id
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing rev_reg_def_id"))?;
+        let timestamp = if timestamp <= 0 {
+            None
+        } else {
+            Some(timestamp as u64)
+        };
+
+        let rev_status_list = issuer::create_revocation_status_list(
+            rev_reg_def_id,
+            rev_reg_def.load()?.cast_ref()?,
+            timestamp,
+            issuance_by_default != 0,
+        )?;
+
+        let rev_status_list_handle = ObjectHandle::create(rev_status_list)?;
+
+        unsafe { *rev_status_list_p = rev_status_list_handle };
+
+        Ok(())
+    })
+}
 
 #[no_mangle]
-pub extern "C" fn anoncreds_create_revocation_registry(
+pub extern "C" fn anoncreds_update_revocation_status_list(
+    timestamp: i64,
+    issued: FfiList<i32>,
+    revoked: FfiList<i32>,
+    rev_reg_def: ObjectHandle,
+    rev_current_list: ObjectHandle,
+    new_rev_status_list_p: *mut ObjectHandle,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(new_rev_status_list_p);
+        let timestamp = if timestamp <= 0 {
+            None
+        } else {
+            Some(timestamp as u64)
+        };
+        let revoked: Option<BTreeSet<u32>> = if revoked.is_empty() {
+            Some(revoked.as_slice().iter().map(|r| *r as u32).collect())
+        } else {
+            None
+        };
+        let issued: Option<BTreeSet<u32>> = if issued.is_empty() {
+            Some(issued.as_slice().iter().map(|r| *r as u32).collect())
+        } else {
+            None
+        };
+        let new_rev_status_list = issuer::update_revocation_status_list(
+            timestamp,
+            issued,
+            revoked,
+            rev_reg_def.load()?.cast_ref()?,
+            rev_current_list.load()?.cast_ref()?,
+        )?;
+
+        let new_rev_status_list = ObjectHandle::create(new_rev_status_list)?;
+        ObjectHandle::remove(&rev_current_list)?;
+
+        unsafe { *new_rev_status_list_p = new_rev_status_list };
+
+        Ok(())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn anoncreds_update_revocation_status_list_timestamp_only(
+    timestamp: i64,
+    rev_current_list: ObjectHandle,
+    rev_status_list_p: *mut ObjectHandle,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(rev_status_list_p);
+        let timestamp = timestamp as u64;
+
+        let new_rev_status_list = issuer::update_revocation_status_list_timestamp_only(
+            timestamp,
+            rev_current_list.load()?.cast_ref()?,
+        );
+
+        let new_rev_status_list_handle = ObjectHandle::create(new_rev_status_list)?;
+        ObjectHandle::remove(&rev_current_list)?;
+
+        unsafe { *rev_status_list_p = new_rev_status_list_handle };
+
+        Ok(())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn anoncreds_create_revocation_registry_def(
     cred_def: ObjectHandle,
     cred_def_id: FfiStr,
     issuer_id: FfiStr,

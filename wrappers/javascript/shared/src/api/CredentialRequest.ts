@@ -17,7 +17,7 @@ export type CreateCredentialRequestOptions = {
 
 export class CredentialRequest extends AnoncredsObject {
   public static create(options: CreateCredentialRequestOptions) {
-    const { credentialRequest, credentialRequestMeta } = anoncreds.createCredentialRequest({
+    const { credentialRequest, credentialRequestMetadata } = anoncreds.createCredentialRequest({
       proverDid: options.proverDid,
       credentialDefinition: options.credentialDefinition.handle,
       masterSecret: options.masterSecret.handle,
@@ -27,7 +27,7 @@ export class CredentialRequest extends AnoncredsObject {
 
     return {
       credentialRequest: new CredentialRequest(credentialRequest.handle),
-      credentialRequestMetadata: new CredentialRequestMetadata(credentialRequestMeta.handle),
+      credentialRequestMetadata: new CredentialRequestMetadata(credentialRequestMetadata.handle),
     }
   }
 

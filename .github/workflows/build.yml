@@ -59,16 +59,6 @@ jobs:
       - name: Cache cargo resources
         uses: Swatinem/rust-cache@v2
 
-      - name: Debug build Windows
-        if: "runner.os == 'Windows'"
-        env:
-          OPENSSL_STATIC: 1
-        run: cargo build --package anoncreds --features vendored
-
-      - name: Debug build Linux and macOS
-        if: "runner.os != 'Windows'"
-        run: cargo build --package anoncreds --features vendored
-
       - name: Test Linux and macOS
         if: "runner.os != 'Windows'"
         run: cargo test --package anoncreds --features vendored
@@ -126,7 +116,7 @@ jobs:
           OPENSSL_STATIC: 1
         run: cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
 
-      - name: Build library for Windows
+      - name: Build library for macOS and Linux
         if: "runner.os != 'Windows'"
         run: cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
 
@@ -163,48 +153,48 @@ jobs:
           file: library-${{ matrix.arch }}.tar.gz
           asset_name: 'library-${{ matrix.arch }}.tar.gz'
 
-            # build-javascript:
-            #   name: Build and Test JavaScript wrapper
-            #   needs: [build-release]
-            #   runs-on: ubuntu-latest
-            #   defaults:
-            #     run:
-            #       working-directory: wrappers/javascript
+  build-javascript:
+    name: Build and Test JavaScript wrapper
+    needs: [build-release]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wrappers/javascript
 
-            #   steps:
-            #     - name: Checkout
-            #       uses: actions/checkout@v3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-            #     - name: Set up Node.JS 16.x
-            #       uses: actions/setup-node@v3
-            #       with:
-            #         node-version: 16.x
+      - name: Set up Node.JS 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
 
-            #     - name: Fetch library artifacts
-            #       uses: actions/download-artifact@v3
-            #       with:
-            #         name: library-linux-x86_64
+      - name: Fetch library artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: library-linux-x86_64
 
-            #     - name: Install dependencies
-            #       run: yarn install
+      - name: Install dependencies
+        run: yarn install
 
-            #     - name: Build JavaScript Wrapper
-            #       run: yarn build
+      - name: Build JavaScript Wrapper
+        run: yarn build
 
-            #     - name: Lint JavaScript Wrapper
-            #       run: yarn lint
+      - name: Lint JavaScript Wrapper
+        run: yarn lint
 
-            #     - name: Format Check JavaScript Wrapper
-            #       run: yarn check-format
+      - name: Format Check JavaScript Wrapper
+        run: yarn check-format
 
-            #     - name: Type Check JavaScript Wrapper
-            #       run: yarn check-types
+      - name: Type Check JavaScript Wrapper
+        run: yarn check-types
 
-            #     - name: Test JavaScript Wrapper
-            #       env:
-            #         # binary is downloaded to root of repository
-            #         LIB_ANONCREDS_PATH: ../../
-            #       run: yarn test
+      - name: Test JavaScript Wrapper
+        env:
+          # binary is downloaded to root of repository
+          LIB_ANONCREDS_PATH: ../../
+        run: yarn test
 
             # build-py:
             #   name: Build Python

@@ -3,7 +3,7 @@ import type { ByteBufferStruct } from './structures'
 import { ObjectHandle } from 'anoncreds-shared'
 import { NULL } from 'ref-napi'
 
-import { ObjectHandleListStruct, StringListStruct, I64ListStruct, Int64Array } from './structures'
+import { ObjectHandleListStruct, StringListStruct, I32ListStruct, Int32Array } from './structures'
 
 type Argument =
   | Record<string, unknown>
@@ -30,7 +30,11 @@ export type SerializedOptions<Type> = Required<{
     : Type[Property] extends Record<string, unknown>
     ? string
     : Type[Property] extends Array<string>
-    ? typeof StringListStruct
+    ? Buffer
+    : Type[Property] extends Array<number>
+    ? Buffer
+    : Type[Property] extends Array<number> | undefined
+    ? Buffer
     : Type[Property] extends Array<unknown> | undefined
     ? string
     : Type[Property] extends Record<string, unknown> | undefined
@@ -86,7 +90,7 @@ const serialize = (arg: Argument): SerializedArgument => {
         } else if (arg.every((it) => typeof it === 'number')) {
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
-          return I64ListStruct({ count: arg.length, data: Int64Array(arg) })
+          return I32ListStruct({ count: arg.length, data: Int32Array(arg) })
         }
       }
       // TODO: add more serialization here for classes and uint8arrays

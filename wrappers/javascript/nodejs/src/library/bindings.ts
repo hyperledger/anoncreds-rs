@@ -15,10 +15,10 @@ import {
   ObjectHandleListStruct,
   FFI_STRING_PTR,
   ByteBufferStructPtr,
-  I64ListStruct,
   RevocationEntryListStruct,
   FFI_INT8_PTR,
   FFI_VOID,
+  I32ListStruct,
 } from '../ffi'
 
 export const nativeBindings = {
@@ -35,9 +35,8 @@ export const nativeBindings = {
       StringListStruct,
       StringListStruct,
       FFI_STRING,
+      FFI_OBJECT_HANDLE,
       refType(CredRevInfoStruct),
-      FFI_OBJECT_HANDLE_PTR,
-      FFI_OBJECT_HANDLE_PTR,
       FFI_OBJECT_HANDLE_PTR,
     ],
   ],
@@ -74,7 +73,15 @@ export const nativeBindings = {
   anoncreds_create_master_secret: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE_PTR]],
   anoncreds_create_or_update_revocation_state: [
     FFI_ERRORCODE,
-    [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_INT64, FFI_STRING, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
+    [
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE,
+      FFI_INT64,
+      FFI_STRING,
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE_PTR,
+    ],
   ],
   anoncreds_create_presentation: [
     FFI_ERRORCODE,
@@ -86,11 +93,13 @@ export const nativeBindings = {
       StringListStruct,
       FFI_OBJECT_HANDLE,
       ObjectHandleListStruct,
+      StringListStruct,
       ObjectHandleListStruct,
+      StringListStruct,
       FFI_OBJECT_HANDLE_PTR,
     ],
   ],
-  anoncreds_create_revocation_registry: [
+  anoncreds_create_revocation_registry_def: [
     FFI_ERRORCODE,
     [
       FFI_OBJECT_HANDLE,
@@ -100,8 +109,6 @@ export const nativeBindings = {
       FFI_STRING,
       FFI_INT64,
       FFI_STRING,
-      FFI_OBJECT_HANDLE_PTR,
-      FFI_OBJECT_HANDLE_PTR,
       FFI_OBJECT_HANDLE_PTR,
       FFI_OBJECT_HANDLE_PTR,
     ],
@@ -114,10 +121,6 @@ export const nativeBindings = {
   anoncreds_encode_credential_attributes: [FFI_ERRORCODE, [StringListStruct, FFI_STRING_PTR]],
   anoncreds_generate_nonce: [FFI_ERRORCODE, [FFI_STRING_PTR]],
   anoncreds_get_current_error: [FFI_ERRORCODE, [FFI_STRING_PTR]],
-  anoncreds_merge_revocation_registry_deltas: [
-    FFI_ERRORCODE,
-    [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
-  ],
   anoncreds_object_free: [FFI_VOID, [FFI_OBJECT_HANDLE]],
   anoncreds_object_get_json: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, ByteBufferStructPtr]],
   anoncreds_object_get_type_name: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING_PTR]],
@@ -137,23 +140,7 @@ export const nativeBindings = {
     FFI_ERRORCODE,
     [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR],
   ],
-  anoncreds_revoke_credential: [
-    FFI_ERRORCODE,
-    [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_INT64, FFI_STRING, FFI_OBJECT_HANDLE_PTR, FFI_OBJECT_HANDLE_PTR],
-  ],
   anoncreds_set_default_logger: [FFI_ERRORCODE, []],
-  anoncreds_update_revocation_registry: [
-    FFI_ERRORCODE,
-    [
-      FFI_OBJECT_HANDLE,
-      FFI_OBJECT_HANDLE,
-      I64ListStruct,
-      I64ListStruct,
-      FFI_STRING,
-      FFI_OBJECT_HANDLE_PTR,
-      FFI_OBJECT_HANDLE_PTR,
-    ],
-  ],
   anoncreds_verify_presentation: [
     FFI_ERRORCODE,
     [
@@ -165,6 +152,18 @@ export const nativeBindings = {
       RevocationEntryListStruct,
       FFI_INT8_PTR,
     ],
+  ],
+  anoncreds_create_revocation_status_list: [
+    FFI_ERRORCODE,
+    [FFI_STRING, FFI_OBJECT_HANDLE, FFI_INT64, FFI_INT8, FFI_OBJECT_HANDLE_PTR],
+  ],
+  anoncreds_update_revocation_status_list_timestamp_only: [
+    FFI_ERRORCODE,
+    [FFI_INT64, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
+  ],
+  anoncreds_update_revocation_status_list: [
+    FFI_ERRORCODE,
+    [FFI_INT64, I32ListStruct, I32ListStruct, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
   ],
   anoncreds_version: [FFI_STRING, []],
   anoncreds_master_secret_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],

@@ -1,4 +1,4 @@
-import { default as ref, refType } from 'ref-napi'
+import { types, refType } from 'ref-napi'
 
 // Primitives
 
@@ -9,7 +9,7 @@ export const FFI_UINT = 'uint'
 export const FFI_UINT8 = 'uint8'
 export const FFI_ERRORCODE = FFI_UINT
 export const FFI_OBJECT_HANDLE = FFI_ISIZE
-export const FFI_VOID = ref.types.void
+export const FFI_VOID = types.void
 export const FFI_STRING = 'string'
 
 // Pointers
