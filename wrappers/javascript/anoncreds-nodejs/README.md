@@ -1,6 +1,6 @@
-# anoncreds-nodejs
+# Anoncreds NodeJS
 
-Wrapper for Nodejs around Anoncreds
+Wrapper for Nodejs around anoncreds-rs
 
 ## Requirements
 
@@ -10,17 +10,29 @@ Older and newer versions might also work, but they have not been tested.
 ## Installation
 
 ```sh
-yarn add @hyperledger/anoncreds-nodejs @hyperledger/anoncreds-shared
+yarn add @hyperledger/anoncreds-nodejs
 ```
 
-## Setup
+## Usage
 
-In order to work with this module a function from `@hyperledger/anoncreds-shared` has to be
-called to register the native module (@hyperledger/anoncreds-nodejs)
+You can import all types and classes from the `@hyperledger/anoncreds-nodejs` library:
 
 ```typescript
-import { registerAnoncreds } from '@hyperledger/anoncreds-shared'
-import { AnoncredsNodeJS } from '@hyperledger/anoncreds-nodejs'
+import { Schema } from '@hyperledger/anoncreds-nodejs'
 
-registerAnoncreds({ anoncreds: AnoncredsNodeJS })
+const schema = Schema.create({
+  name: 'test',
+  version: '1.0',
+  issuerId: 'mock:uri',
+  attributeNames: ['name', 'age', 'address'],
+})
+
+// JSON representation
+const schemaJson = schema.toJson()
+
+// This can be used as a deconstructor to clear the internal reference to
+// the anoncreds object
+schema.handle.clear()
 ```
+
+> **Note**: If you want to use this library in a cross-platform environment you need to import methods from the `@hyperledger/anoncreds-shared` package instead. This is a platform independent package that allows to register the native bindings. The `@hyperledger/anoncreds-nodejs` package uses this package under the hood. See the [Anoncreds Shared README](https://github.com/hyperledger/indy-vdr/tree/main/wrappers/javascript/anoncreds-shared/README.md) for documentation on how to use this package.
