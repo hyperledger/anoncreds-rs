@@ -2544,17 +2544,10 @@
   dependencies:
     "@types/ref-napi" "*"
 
-"@types/ref-napi@*":
+"@types/ref-napi@*", "@types/ref-napi@3.0.6":
   version "3.0.6"
   resolved "https://registry.yarnpkg.com/@types/ref-napi/-/ref-napi-3.0.6.tgz#56f95b10e7698dced16e05b2bd10b6a46cf90f20"
   integrity sha512-yLbSiZkLQB9Bv6m46+c4Gdv5Xmw34ehdUagQCfc88FvqHLamaGpYInHbFQ3+sawFonAQ0GDysQIEdZmSOmMh3A==
-  dependencies:
-    "@types/node" "*"
-
-"@types/ref-napi@3.0.4":
-  version "3.0.4"
-  resolved "https://registry.yarnpkg.com/@types/ref-napi/-/ref-napi-3.0.4.tgz#d7edc063b244c85767867ce1167ec2d7051728a1"
-  integrity sha512-ng8SCmdZbz1GHaW3qgGoX9IaHoIvgMqgBHLe3sv18NbAkHVgnjRW8fJq51VTUm4lnJyLu60q9/002o7qjOg13g==
   dependencies:
     "@types/node" "*"
 
