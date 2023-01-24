@@ -308,7 +308,7 @@ impl<'a> Mock<'a> {
                 .unwrap();
             // Prover creates a Credential Request
             let cred_req_data = prover::create_credential_request(
-                Some(prover_id),
+                None,
                 &cred_def,
                 &self.prover_wallets[prover_id].master_secret,
                 "default",

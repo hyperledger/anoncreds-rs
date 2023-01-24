@@ -2,12 +2,15 @@ import RefArray from 'ref-array-di'
 import * as ref from 'ref-napi'
 import RefStruct from 'ref-struct-di'
 
-import { FFI_INT64, FFI_INT8, FFI_ISIZE, FFI_STRING } from './primitives'
+import { FFI_INT64, FFI_INT8, FFI_ISIZE, FFI_OBJECT_HANDLE, FFI_STRING } from './primitives'
 
 const CStruct = RefStruct(ref)
 const CArray = RefArray(ref)
 
 export const StringArray = CArray('string')
+
+const FFI_INT32_ARRAY = CArray('int32')
+const FFI_INT32_ARRAY_PTR = ref.refType(FFI_INT32_ARRAY)
 
 const FFI_INT64_ARRAY = CArray('int64')
 const FFI_INT64_ARRAY_PTR = ref.refType(FFI_INT64_ARRAY)
@@ -16,6 +19,7 @@ export const ByteBufferArray = CArray('uint8')
 export const ByteBufferArrayPtr = ref.refType(FFI_STRING)
 
 export const Int64Array = FFI_INT64_ARRAY
+export const Int32Array = FFI_INT32_ARRAY
 
 export const StringArrayPtr = ref.refType(StringArray)
 
@@ -38,12 +42,15 @@ export const I64ListStruct = CStruct({
   data: FFI_INT64_ARRAY_PTR,
 })
 
+export const I32ListStruct = CStruct({
+  count: FFI_ISIZE,
+  data: FFI_INT32_ARRAY_PTR,
+})
+
 export const CredRevInfoStruct = CStruct({
-  reg_def: FFI_ISIZE,
-  reg_def_private: FFI_ISIZE,
-  registry: FFI_ISIZE,
+  reg_def: FFI_OBJECT_HANDLE,
+  reg_def_private: FFI_OBJECT_HANDLE,
   reg_idx: FFI_INT64,
-  reg_used: I64ListStruct,
   tails_path: FFI_STRING,
 })
 
