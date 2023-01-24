@@ -1,5 +1,5 @@
 {
-  "name": "anoncreds-nodejs",
+  "name": "@hyperledger/anoncreds-nodejs",
   "version": "0.0.0",
   "license": "Apache-2.0",
   "description": "Nodejs wrapper for Anoncreds",
@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@mapbox/node-pre-gyp": "^1.0.10",
-    "anoncreds-shared": "*",
+    "@hyperledger/anoncreds-shared": "*",
     "ffi-napi": "4.0.3",
     "node-cache": "5.1.2",
     "ref-array-di": "1.2.2",

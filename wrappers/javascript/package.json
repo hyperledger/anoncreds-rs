@@ -1,5 +1,5 @@
 {
-  "name": "anoncreds-js",
+  "name": "@hyperledger/anoncreds-js",
   "private": true,
   "license": "Apache-2.0",
   "workspaces": {

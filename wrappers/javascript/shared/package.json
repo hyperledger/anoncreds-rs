@@ -1,5 +1,5 @@
 {
-  "name": "anoncreds-shared",
+  "name": "@hyperledger/anoncreds-shared",
   "version": "0.0.0",
   "license": "Apache-2.0",
   "description": "Anoncreds wrapper library with NodeJS and React Native",

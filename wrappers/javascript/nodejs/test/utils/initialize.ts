@@ -1,4 +1,4 @@
-import { registerAnoncreds } from 'anoncreds-shared'
+import { registerAnoncreds } from '@hyperledger/anoncreds-shared'
 
 import { NodeJSAnoncreds } from '../../src/NodeJSAnoncreds'
 import { nativeAnoncreds } from '../../src/library'

@@ -1,5 +1,5 @@
 {
-  "name": "anoncreds-react-native",
+  "name": "@hyperledger/anoncreds-react-native",
   "version": "0.0.0",
   "private": "true",
   "license": "Apache-2.0",
@@ -40,7 +40,7 @@
     "compile": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "anoncreds-shared": "*"
+    "@hyperledger/anoncreds-shared": "*"
   },
   "devDependencies": {
     "@types/react": "16.9.19",

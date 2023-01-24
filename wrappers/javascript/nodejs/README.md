@@ -10,17 +10,17 @@ Older and newer versions might also work, but they have not been tested.
 ## Installation
 
 ```sh
-yarn add anoncreds-nodejs anoncreds-shared
+yarn add @hyperledger/anoncreds-nodejs @hyperledger/anoncreds-shared
 ```
 
 ## Setup
 
-In order to work with this module a function from `anoncreds-shared` has to be
-called to register the native module (anoncreds-nodejs)
+In order to work with this module a function from `@hyperledger/anoncreds-shared` has to be
+called to register the native module (@hyperledger/anoncreds-nodejs)
 
 ```typescript
-import { registerAnoncreds } from 'anoncreds-shared'
-import { AnoncredsNodeJS } from 'anoncreds-nodejs'
+import { registerAnoncreds } from '@hyperledger/anoncreds-shared'
+import { AnoncredsNodeJS } from '@hyperledger/anoncreds-nodejs'
 
 registerAnoncreds({ anoncreds: AnoncredsNodeJS })
 ```

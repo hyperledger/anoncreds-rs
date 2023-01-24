@@ -5,9 +5,9 @@ import type {
   Anoncreds,
   NativeRevocationEntry,
   NativeCredentialRevocationConfig,
-} from 'anoncreds-shared'
+} from '@hyperledger/anoncreds-shared'
 
-import { ObjectHandle } from 'anoncreds-shared'
+import { ObjectHandle } from '@hyperledger/anoncreds-shared'
 import { TextDecoder, TextEncoder } from 'util'
 
 import { ByteBuffer } from '../../shared/src/types'

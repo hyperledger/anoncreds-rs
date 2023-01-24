@@ -1,4 +1,4 @@
-import { ObjectHandle } from 'anoncreds-shared'
+import { ObjectHandle } from '@hyperledger/anoncreds-shared'
 
 type Argument = SerializedArgument | Date | boolean | ObjectHandle
 

@@ -14,7 +14,7 @@ const config: Config.InitialOptions = {
     },
   },
   moduleNameMapper: {
-    'anoncreds-shared': '<rootDir>/../shared/src',
+    '@hyperledger/anoncreds-shared': '<rootDir>/../shared/src',
   },
 }
 

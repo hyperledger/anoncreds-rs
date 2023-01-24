@@ -3,9 +3,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "anoncreds-shared": ["shared/src"],
-      "anoncreds-react-native": ["react-native/src"],
-      "anoncreds-nodejs": ["nodejs/src"]
+      "@hyperledger/anoncreds-shared": ["shared/src"],
+      "@hyperledger/anoncreds-react-native": ["react-native/src"],
+      "@hyperledger/anoncreds-nodejs": ["nodejs/src"]
     }
   },
   "ts-node": {

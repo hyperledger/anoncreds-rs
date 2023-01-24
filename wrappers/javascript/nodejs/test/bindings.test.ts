@@ -1,4 +1,4 @@
-import { anoncreds } from 'anoncreds-shared'
+import { anoncreds } from '@hyperledger/anoncreds-shared'
 
 import { setup } from './utils'
 
