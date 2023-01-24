@@ -1,4 +1,4 @@
-import { anoncreds, AnoncredsObject } from 'anoncreds-shared'
+import { anoncreds } from 'anoncreds-shared'
 
 import { setup } from './utils'
 
