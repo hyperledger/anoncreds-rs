@@ -6,11 +6,11 @@
   "main": "build/index",
   "source": "src/index",
   "types": "build/index",
-  "homepage": "https://github.com/hyperledger/anoncreds/tree/main/wrappers/javascript/shared",
+  "homepage": "https://github.com/hyperledger/anoncreds/tree/main/wrappers/javascript/anoncreds-shared",
   "repository": {
     "url": "https://github.com/hyperledger/anoncreds",
     "type": "git",
-    "directory": "wrappers/javascript/shared"
+    "directory": "wrappers/javascript/anoncreds-shared"
   },
   "publishConfig": {
     "access": "public"

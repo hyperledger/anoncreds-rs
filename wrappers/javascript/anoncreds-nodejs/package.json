@@ -5,12 +5,12 @@
   "description": "Nodejs wrapper for Anoncreds",
   "main": "build/index",
   "source": "src/index",
-  "homepage": "https://github.com/hyperledger/anoncreds/tree/main/wrappers/javascript/nodejs",
+  "homepage": "https://github.com/hyperledger/anoncreds/tree/main/wrappers/javascript/anoncreds-nodejs",
   "author": "Hyperledger (https://github.com/hyperledger)",
   "repository": {
     "type": "git",
     "url": "https://github.com/hyperledger/anoncreds",
-    "directory": "wrappers/javascript/nodejs"
+    "directory": "wrappers/javascript/anoncreds-nodejs"
   },
   "publishConfig": {
     "access": "public"
