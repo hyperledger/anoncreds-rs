@@ -47,7 +47,7 @@
   "binary": {
     "module_name": "anoncreds",
     "module_path": "native",
-    "remote_path": "0.1.0-dev.1",
+    "remote_path": "v0.1.0-dev.1",
     "host": "https://github.com/hyperledger/anoncreds/release/download/",
     "package_name": "library-{platform}-{arch}.tar.gz"
   }
