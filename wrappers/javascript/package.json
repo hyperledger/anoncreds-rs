@@ -4,9 +4,9 @@
   "license": "Apache-2.0",
   "workspaces": {
     "packages": [
-      "shared",
-      "nodejs",
-      "react-native"
+      "anoncreds-shared",
+      "anoncreds-nodejs",
+      "anoncreds-react-native"
     ],
     "nohoist": [
       "**/react-native/**",
@@ -24,9 +24,9 @@
     "prettier": "prettier --ignore-path .gitignore '**/*.+(js|json|ts|md|yml|yaml)'",
     "format": "yarn prettier --write",
     "validate": "yarn lint && yarn check-types && yarn check-format",
-    "react-native": "yarn --cwd react-native",
-    "shared": "yarn --cwd shared",
-    "nodejs": "yarn --cwd nodejs",
+    "react-native": "yarn --cwd anoncreds-react-native",
+    "shared": "yarn --cwd anoncreds-shared",
+    "nodejs": "yarn --cwd anoncreds-nodejs",
     "test:local-build": "cross-env LIB_ANONCREDS_PATH=../../target/release yarn test",
     "set-version": "npx lerna version --exact --no-git-tag-version --no-push --yes"
   },
