@@ -16,8 +16,7 @@
     "access": "public"
   },
   "files": [
-    "build",
-    "README.md"
+    "build"
   ],
   "scripts": {
     "build": "yarn run clean && yarn run compile",

@@ -29,10 +29,7 @@
     "ios/Anoncreds.xcodeproj/project.pbxproj",
     "cpp/**/*.cpp",
     "cpp/**/*.h",
-    "anoncreds.podspec",
-    "README.md",
-    "LICENSE",
-    "package.json"
+    "anoncreds.podspec"
   ],
   "scripts": {
     "build": "yarn clean && yarn compile",

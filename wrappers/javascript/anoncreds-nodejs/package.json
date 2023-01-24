@@ -17,15 +17,13 @@
   },
   "files": [
     "build",
-    "scripts",
-    "README.md",
-    "package.json",
-    "../../../LICENSE"
+    "scripts"
   ],
   "scripts": {
     "build": "yarn clean && yarn compile",
     "clean": "rimraf -rf ./build",
-    "compile": "tsc -p tsconfig.build.json"
+    "compile": "tsc -p tsconfig.build.json",
+    "install": "node-pre-gyp install --target_arch=$(node scripts/arch.js)"
   },
   "dependencies": {
     "@mapbox/node-pre-gyp": "^1.0.10",
