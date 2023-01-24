@@ -64,6 +64,10 @@ impl From<&RevocationStatusList> for Option<RevocationRegistry> {
 }
 
 impl RevocationStatusList {
+    pub(crate) fn id(&self) -> Option<RevocationRegistryDefinitionId> {
+        self.rev_reg_def_id.clone()
+    }
+
     pub(crate) fn timestamp(&self) -> Option<u64> {
         self.timestamp
     }
@@ -82,6 +86,10 @@ impl RevocationStatusList {
 
     pub(crate) fn get(&self, idx: usize) -> Option<bool> {
         self.revocation_list.get(idx).as_deref().copied()
+    }
+
+    pub(crate) fn into_crypto_rev_reg(&self) -> Option<ursa::cl::RevocationRegistry> {
+        self.into()
     }
 
     pub(crate) fn update(
