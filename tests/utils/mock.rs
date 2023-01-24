@@ -76,16 +76,13 @@ impl<'a> Mock<'a> {
         let schemas: HashMap<&SchemaId, &Schema> = HashMap::from_iter(self.ledger.schemas.iter());
         let cred_defs: HashMap<&CredentialDefinitionId, &CredentialDefinition> =
             HashMap::from_iter(self.ledger.cred_defs.iter());
-        let rev_reg_map: HashMap<RevocationRegistryId, HashMap<u64, RevocationRegistry>> =
-            HashMap::from_iter(self.ledger.revcation_list.iter().map(|(&k, v)| {
-                (
-                    RevocationRegistryId::new_unchecked(k),
-                    HashMap::from_iter(v.iter().map(|(&time, v)| {
-                        let rev_reg: Option<RevocationRegistry> = v.into();
-                        (time, rev_reg.unwrap())
-                    })),
-                )
-            }));
+        let mut rev_status_lists = vec![];
+
+        self.ledger.revcation_list.iter().for_each(|(_, v)| {
+            v.iter()
+                .for_each(|(_, list)| rev_status_lists.push(list.clone()))
+        });
+
         let rev_reg_def_map = HashMap::from_iter(self.ledger.rev_reg_defs.iter());
 
         for (i, presentation) in presentations.iter().enumerate() {
@@ -95,12 +92,7 @@ impl<'a> Mock<'a> {
                 &schemas,
                 &cred_defs,
                 Some(&rev_reg_def_map),
-                Some(&HashMap::from_iter(rev_reg_map.iter().map(|(k, v)| {
-                    (
-                        k.clone(),
-                        HashMap::from_iter(v.iter().map(|(k, v)| (*k, v))),
-                    )
-                }))),
+                Some(rev_status_lists.clone()),
             )
             .expect("Error verifying presentation");
             results.push(valid);
@@ -308,7 +300,7 @@ impl<'a> Mock<'a> {
                 .unwrap();
             // Prover creates a Credential Request
             let cred_req_data = prover::create_credential_request(
-                Some(prover_id),
+                None,
                 &cred_def,
                 &self.prover_wallets[prover_id].master_secret,
                 "default",

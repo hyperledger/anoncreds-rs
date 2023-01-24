@@ -227,7 +227,7 @@ pub extern "C" fn anoncreds_verify_presentation(
     cred_def_ids: FfiStrList,
     rev_reg_defs: FfiList<ObjectHandle>,
     rev_reg_def_ids: FfiStrList,
-    rev_reg_entries: FfiList<FfiRevocationEntry>,
+    rev_reg_status_list: FfiList<FfiRevocationEntry>,
     result_p: *mut i8,
 ) -> ErrorCode {
     catch_error(|| {
@@ -245,28 +245,6 @@ pub extern "C" fn anoncreds_verify_presentation(
             return Err(err_msg!(
                 "Inconsistent lengths for rev reg defs and rev reg def ids"
             ));
-        }
-
-        let rev_reg_entries = {
-            let entries = rev_reg_entries.as_slice();
-            entries
-                .iter()
-                .try_fold(Vec::with_capacity(entries.len()), |mut r, ffi_entry| {
-                    r.push(ffi_entry.load()?);
-                    Result::Ok(r)
-                })?
-        };
-        let mut rev_regs = HashMap::new();
-        for (idx, entry, timestamp) in rev_reg_entries.iter() {
-            if *idx > rev_reg_defs.len() {
-                return Err(err_msg!("Invalid revocation registry entry index"));
-            }
-            let id = rev_reg_def_ids.as_slice()[*idx].as_str().to_owned();
-            let id = RevocationRegistryId::new(id)?;
-            rev_regs
-                .entry(id)
-                .or_insert_with(HashMap::new)
-                .insert(*timestamp, entry.cast_ref()?);
         }
 
         let mut schema_identifiers: Vec<SchemaId> = vec![];
@@ -306,7 +284,8 @@ pub extern "C" fn anoncreds_verify_presentation(
             &schemas,
             &cred_defs,
             Some(&rev_reg_defs),
-            Some(&rev_regs),
+            // TODO: issue 74 FFI
+            None,
         )?;
         unsafe { *result_p = verify as i8 };
         Ok(())

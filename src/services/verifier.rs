@@ -8,7 +8,6 @@ use super::types::*;
 use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
-use crate::data_types::rev_reg::RevocationRegistryId;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
 use crate::data_types::schema::SchemaId;
@@ -18,7 +17,10 @@ use crate::data_types::{
     presentation::{Identifier, RequestedProof, RevealedAttributeInfo},
 };
 use crate::error::Result;
-use crate::ursa::cl::{verifier::Verifier as CryptoVerifier, CredentialPublicKey};
+use crate::ursa::cl::{
+    verifier::Verifier as CryptoVerifier, CredentialPublicKey,
+    RevocationRegistry as CryptoRevocationRegistry,
+};
 use crate::utils::query::Query;
 use crate::utils::validation::LEGACY_IDENTIFIER;
 
@@ -41,10 +43,10 @@ pub fn verify_presentation(
     schemas: &HashMap<&SchemaId, &Schema>,
     cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
     rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
-    rev_regs: Option<&HashMap<RevocationRegistryId, HashMap<u64, &RevocationRegistry>>>,
+    rev_status_lists: Option<Vec<RevocationStatusList>>,
 ) -> Result<bool> {
-    trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_regs: {:?}",
-    presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_regs);
+    trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_list: {:?}",
+    presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
 
     let pres_req = pres_req.value();
     let received_revealed_attrs: HashMap<String, Identifier> =
@@ -103,6 +105,41 @@ pub fn verify_presentation(
             )
         })?;
 
+        let rev_reg_map = if let Some(ref lists) = rev_status_lists {
+            let mut map: HashMap<
+                RevocationRegistryDefinitionId,
+                HashMap<u64, CryptoRevocationRegistry>,
+            > = HashMap::new();
+
+            for list in lists.iter() {
+                let id = list
+                    .id()
+                    .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing Id"))?;
+
+                let timestamp = list
+                    .timestamp()
+                    .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing timestamp"))?;
+
+                let rev_reg = list
+                    .into_crypto_rev_reg()
+                    .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing Accum"))?;
+
+                if map.get(&id).map(|t| t.get(&timestamp)).flatten().is_some() {
+                    return Err(err_msg!(
+                        Unexpected,
+                        "Duplicated timestamp for Revocation Status List"
+                    ));
+                } else if map.get(&id).is_none() {
+                    map.insert(id, HashMap::from([(timestamp, rev_reg)]));
+                } else {
+                    map.get_mut(&id).unwrap().insert(timestamp, rev_reg);
+                }
+            }
+            Some(map)
+        } else {
+            None
+        };
+
         let (rev_reg_def, rev_reg) = if let Some(timestamp) = identifier.timestamp {
             let rev_reg_id = identifier.rev_reg_id.clone().ok_or_else(|| {
                 err_msg!("Timestamp provided but Revocation Registry Id not found")
@@ -112,7 +149,7 @@ pub fn verify_presentation(
                     "Timestamp provided but no Revocation Registry Definitions found"
                 ));
             }
-            if rev_regs.is_none() {
+            if rev_reg_map.is_none() {
                 return Err(err_msg!(
                     "Timestamp provided but no Revocation Registries found"
                 ));
@@ -134,10 +171,10 @@ pub fn verify_presentation(
             );
 
             let rev_reg = Some(
-                rev_regs
+                rev_reg_map
                     .as_ref()
                     .unwrap()
-                    .get(&rev_reg_id)
+                    .get(&rev_reg_def_id)
                     .and_then(|regs| regs.get(&timestamp))
                     .ok_or_else(|| {
                         err_msg!(
@@ -174,7 +211,6 @@ pub fn verify_presentation(
         )?;
 
         let rev_key_pub = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
-        let rev_reg = rev_reg.map(|r| &r.value);
 
         proof_verifier.add_sub_proof_request(
             &sub_pres_request,
@@ -936,6 +972,7 @@ fn is_attr_operator(key: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::data_types::rev_reg::RevocationRegistryId;
 
     pub const SCHEMA_ID: &str = "123";
     pub const SCHEMA_NAME: &str = "Schema Name";
