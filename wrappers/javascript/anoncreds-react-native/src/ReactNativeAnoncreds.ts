@@ -4,9 +4,9 @@ import type {
   NativeCredentialProve,
   NativeCredentialRevocationConfig,
   NativeRevocationEntry,
-} from 'anoncreds-shared'
+} from '@hyperledger/anoncreds-shared'
 
-import { ObjectHandle } from 'anoncreds-shared'
+import { ObjectHandle } from '@hyperledger/anoncreds-shared'
 
 import { anoncredsReactNative } from './library'
 import { serializeArguments } from './utils'

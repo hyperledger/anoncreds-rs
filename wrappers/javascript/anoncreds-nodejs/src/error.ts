@@ -1,6 +1,6 @@
-import type { AnoncredsErrorObject } from 'anoncreds-shared'
+import type { AnoncredsErrorObject } from '@hyperledger/anoncreds-shared'
 
-import { AnoncredsError } from 'anoncreds-shared'
+import { AnoncredsError } from '@hyperledger/anoncreds-shared'
 
 import { allocateStringBuffer } from './ffi'
 import { nativeAnoncreds } from './library'

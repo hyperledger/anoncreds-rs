@@ -1,35 +1,33 @@
 {
-  "name": "anoncreds-nodejs",
-  "version": "0.0.0",
+  "name": "@hyperledger/anoncreds-nodejs",
+  "version": "0.1.0-dev.1",
   "license": "Apache-2.0",
   "description": "Nodejs wrapper for Anoncreds",
   "main": "build/index",
   "source": "src/index",
-  "homepage": "https://github.com/hyperledger/anoncreds/tree/main/wrappers/javascript/nodejs",
+  "homepage": "https://github.com/hyperledger/anoncreds/tree/main/wrappers/javascript/anoncreds-nodejs",
   "author": "Hyperledger (https://github.com/hyperledger)",
   "repository": {
     "type": "git",
     "url": "https://github.com/hyperledger/anoncreds",
-    "directory": "wrappers/javascript/nodejs"
+    "directory": "wrappers/javascript/anoncreds-nodejs"
   },
   "publishConfig": {
     "access": "public"
   },
   "files": [
     "build",
-    "scripts",
-    "README.md",
-    "package.json",
-    "../../../LICENSE"
+    "scripts"
   ],
   "scripts": {
     "build": "yarn clean && yarn compile",
     "clean": "rimraf -rf ./build",
-    "compile": "tsc -p tsconfig.build.json"
+    "compile": "tsc -p tsconfig.build.json",
+    "install": "node-pre-gyp install --target_arch=$(node scripts/arch.js)"
   },
   "dependencies": {
     "@mapbox/node-pre-gyp": "^1.0.10",
-    "anoncreds-shared": "*",
+    "@hyperledger/anoncreds-shared": "0.1.0-dev.1",
     "ffi-napi": "4.0.3",
     "node-cache": "5.1.2",
     "ref-array-di": "1.2.2",
@@ -40,14 +38,14 @@
     "@types/ffi-napi": "4.0.5",
     "@types/node": "17.0.31",
     "@types/ref-array-di": "1.2.3",
-    "@types/ref-napi": "3.0.4",
+    "@types/ref-napi": "3.0.6",
     "@types/ref-struct-di": "1.1.6",
     "typescript": "4.5.5"
   },
   "binary": {
     "module_name": "anoncreds",
     "module_path": "native",
-    "remote_path": "v{version}",
+    "remote_path": "v0.1.0-dev.1",
     "host": "https://github.com/hyperledger/anoncreds/release/download/",
     "package_name": "library-{platform}-{arch}.tar.gz"
   }

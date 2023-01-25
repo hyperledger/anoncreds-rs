@@ -1,6 +1,6 @@
 import type { ByteBufferStruct } from './structures'
 
-import { ObjectHandle } from 'anoncreds-shared'
+import { ObjectHandle } from '@hyperledger/anoncreds-shared'
 import { NULL } from 'ref-napi'
 
 import { ObjectHandleListStruct, StringListStruct, I32ListStruct, Int32Array } from './structures'

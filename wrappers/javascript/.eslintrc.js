@@ -20,11 +20,11 @@ module.exports = {
     'import/resolver': {
       typescript: {
         extensions: ['.js', '.jsx', '.ts', '.tsx'],
-        project: ['shared/tsconfig.json', 'nodejs/tsconfig.json', 'react-native/tsconfig.json'],
+        project: ['anoncreds-*/tsconfig.json'],
         alwaysTryTypes: true,
       },
       node: {
-        project: ['shared/tsconfig.json', 'nodejs/tsconfig.json', 'react-native/tsconfig.json'],
+        project: ['anoncreds-*/tsconfig.json'],
         extensions: ['.js', '.jsx', '.ts', '.tsx'],
       },
     },

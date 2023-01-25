@@ -3,7 +3,7 @@ import type {
   NativeCredentialProve,
   NativeRevocationEntry,
   NativeCredentialRevocationConfig,
-} from 'anoncreds-shared'
+} from '@hyperledger/anoncreds-shared'
 
 // Alias for _Handle.handle
 type _Handle = number
