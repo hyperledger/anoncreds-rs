@@ -10,7 +10,7 @@ use anoncreds::{
         cred_offer::CredentialOffer,
         credential::Credential,
         presentation::Presentation,
-        rev_reg::{RevocationRegistry, RevocationRegistryId},
+        rev_reg::RevocationRegistryId,
         rev_reg_def::RevocationRegistryDefinitionId,
         schema::{Schema, SchemaId},
     },
