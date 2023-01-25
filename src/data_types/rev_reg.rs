@@ -55,7 +55,7 @@ impl From<&RevocationStatusList> for Option<ursa::cl::RevocationRegistry> {
 }
 
 impl From<&RevocationStatusList> for Option<RevocationRegistry> {
-    fn from(rev_status_list: &RevocationStatusList) -> Option<RevocationRegistry> {
+    fn from(rev_status_list: &RevocationStatusList) -> Self {
         rev_status_list
             .registry
             .clone()

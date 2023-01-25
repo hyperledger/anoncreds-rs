@@ -80,7 +80,7 @@ impl<'a> Mock<'a> {
 
         self.ledger.revcation_list.iter().for_each(|(_, v)| {
             v.iter()
-                .for_each(|(_, list)| rev_status_lists.push(list.clone()))
+                .for_each(|(_, list)| rev_status_lists.push(list))
         });
 
         let rev_reg_def_map = HashMap::from_iter(self.ledger.rev_reg_defs.iter());
