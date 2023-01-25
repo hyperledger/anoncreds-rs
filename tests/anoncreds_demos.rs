@@ -15,8 +15,7 @@ use anoncreds::{
     tails::{TailsFileReader, TailsFileWriter},
     types::{
         CredentialDefinitionConfig, CredentialRevocationConfig, CredentialRevocationState,
-        MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType,
-        RevocationRegistry, RevocationStatusList, SignatureType,
+        MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType, SignatureType,
     },
     verifier,
 };
@@ -412,6 +411,8 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let cred_def_id = CredentialDefinitionId::new_unchecked(CRED_DEF_ID);
     cred_defs.insert(&cred_def_id, &cred_def_pub);
 
+    let mut rev_status_list = vec![issued_rev_status_list.clone()];
+
     // Prover creates presentation
     let presentation = _create_presentation(
         &schemas,
@@ -424,19 +425,13 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
 
     // Verifier verifies presentation of not Revoked rev_state
     let rev_reg_def_map = HashMap::from([(&rev_reg_def_id, &rev_reg_def_pub)]);
-    // Create the map that containes the registries
-    let rev_reg =
-        <&RevocationStatusList as Into<Option<RevocationRegistry>>>::into(&issued_rev_status_list)
-            .unwrap();
-    let rev_timestamp_map = HashMap::from([(time_after_creating_cred, &rev_reg)]);
-    let mut rev_reg_map = HashMap::from([(rev_reg_id.clone(), rev_timestamp_map.clone())]);
     let valid = verifier::verify_presentation(
         &presentation,
         &pres_request,
         &schemas,
         &cred_defs,
         Some(&rev_reg_def_map),
-        Some(&rev_reg_map),
+        Some(rev_status_list.clone()),
     )
     .expect("Error verifying presentation");
     assert!(valid);
@@ -451,6 +446,9 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         &issued_rev_status_list,
     )
     .unwrap();
+
+    // update rev_status_lists
+    rev_status_list.push(revoked_status_list);
 
     let rev_state = prover::create_or_update_revocation_state(
         &rev_reg_def_pub.value.tails_location,
@@ -472,20 +470,13 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         Some(&rev_state),
     );
 
-    // Add the updated revocation registry to the map that contines the new registry of revoked state
-    let rev_reg =
-        <&RevocationStatusList as Into<Option<RevocationRegistry>>>::into(&revoked_status_list)
-            .unwrap();
-    let r = rev_reg_map.get_mut(&rev_reg_id).unwrap();
-    r.insert(time_revoke_cred, &rev_reg);
-
     let valid = verifier::verify_presentation(
         &presentation,
         &pres_request,
         &schemas,
         &cred_defs,
         Some(&rev_reg_def_map),
-        Some(&rev_reg_map),
+        Some(rev_status_list),
     )
     .expect("Error verifying presentation");
     assert!(!valid);

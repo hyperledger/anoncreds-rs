@@ -64,6 +64,10 @@ impl From<&RevocationStatusList> for Option<RevocationRegistry> {
 }
 
 impl RevocationStatusList {
+    pub(crate) fn id(&self) -> Option<RevocationRegistryDefinitionId> {
+        self.rev_reg_def_id.clone()
+    }
+
     pub(crate) fn timestamp(&self) -> Option<u64> {
         self.timestamp
     }
