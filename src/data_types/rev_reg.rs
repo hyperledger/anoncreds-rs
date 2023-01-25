@@ -88,10 +88,6 @@ impl RevocationStatusList {
         self.revocation_list.get(idx).as_deref().copied()
     }
 
-    pub(crate) fn into_crypto_rev_reg(&self) -> Option<ursa::cl::RevocationRegistry> {
-        self.into()
-    }
-
     pub(crate) fn update(
         &mut self,
         registry: Option<ursa::cl::RevocationRegistry>,

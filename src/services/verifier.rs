@@ -45,7 +45,7 @@ pub fn verify_presentation(
     rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
     rev_status_lists: Option<Vec<RevocationStatusList>>,
 ) -> Result<bool> {
-    trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_list: {:?}",
+    trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
 
     let pres_req = pres_req.value();
@@ -120,9 +120,9 @@ pub fn verify_presentation(
                     .timestamp()
                     .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing timestamp"))?;
 
-                let rev_reg = list
-                    .into_crypto_rev_reg()
-                    .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing Accum"))?;
+                let rev_reg: ursa::cl::RevocationRegistry =
+                    Into::<Option<ursa::cl::RevocationRegistry>>::into(list)
+                        .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing Accum"))?;
 
                 if map.get(&id).map(|t| t.get(&timestamp)).flatten().is_some() {
                     return Err(err_msg!(

@@ -15,8 +15,7 @@ use anoncreds::{
     tails::{TailsFileReader, TailsFileWriter},
     types::{
         CredentialDefinitionConfig, CredentialRevocationConfig, CredentialRevocationState,
-        MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType,
-        RevocationRegistry, RevocationStatusList, SignatureType,
+        MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType, SignatureType,
     },
     verifier,
 };
