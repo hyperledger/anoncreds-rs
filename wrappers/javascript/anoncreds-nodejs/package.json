@@ -1,6 +1,6 @@
 {
   "name": "@hyperledger/anoncreds-nodejs",
-  "version": "0.1.0-dev.2",
+  "version": "0.1.0-dev.3",
   "license": "Apache-2.0",
   "description": "Nodejs wrapper for Anoncreds",
   "main": "build/index",
@@ -26,8 +26,8 @@
     "install": "node-pre-gyp install --target_arch=$(node scripts/arch.js)"
   },
   "dependencies": {
+    "@hyperledger/anoncreds-shared": "0.1.0-dev.3",
     "@mapbox/node-pre-gyp": "^1.0.10",
-    "@hyperledger/anoncreds-shared": "0.1.0-dev.2",
     "ffi-napi": "4.0.3",
     "node-cache": "5.1.2",
     "ref-array-di": "1.2.2",
@@ -45,7 +45,7 @@
   "binary": {
     "module_name": "anoncreds",
     "module_path": "native",
-    "remote_path": "v0.1.0-dev.2",
+    "remote_path": "v0.1.0-dev.3",
     "host": "https://github.com/hyperledger/anoncreds-rs/releases/download/",
     "package_name": "library-{platform}-{arch}.tar.gz"
   }
