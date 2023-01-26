@@ -257,8 +257,8 @@ pub extern "C" fn anoncreds_verify_presentation(
             )?;
 
         let rev_reg_defs = match rev_reg_defs.is_empty() {
-            true => Some(&rev_reg_defs),
-            false => None,
+            false => Some(&rev_reg_defs),
+            true => None,
         };
 
         let rev_status_list: AnonCredsObjectList =
