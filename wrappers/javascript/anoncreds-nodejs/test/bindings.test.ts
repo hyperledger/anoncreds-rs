@@ -8,7 +8,7 @@ describe('bindings', () => {
   test('version', () => {
     const version = anoncreds.version()
 
-    expect(version).toEqual('0.1.0-dev.1')
+    expect(version).toEqual('0.1.0-dev.2')
   })
 
   test('current error', () => {
