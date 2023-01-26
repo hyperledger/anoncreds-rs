@@ -71,9 +71,12 @@ export interface NativeBindings {
     presentation: number
     presentationRequest: number
     schemas: number[]
+    schemaIds: string[]
     credentialDefinitions: number[]
-    revocationRegistryDefinitions: number[]
-    revocationEntries: NativeRevocationEntry[]
+    credentialDefinitionIds: string[]
+    revocationRegistryDefinitions?: number[]
+    revocationRegistryDefinitionIds?: string[]
+    revocationStatusLists?: number[]
   }): boolean
 
   createRevocationRegistry(options: {

@@ -17,6 +17,12 @@ export type SerializedOptions<Type> = {
     ? string | undefined
     : Type[Property] extends Array<ObjectHandle>
     ? Array<number>
+    : Type[Property] extends Array<ObjectHandle> | undefined
+    ? Array<number>
+    : Type[Property] extends Array<string>
+    ? Array<string>
+    : Type[Property] extends Array<string> | undefined
+    ? Array<string>
     : Type[Property] extends Date
     ? number
     : Type[Property] extends Date | undefined
