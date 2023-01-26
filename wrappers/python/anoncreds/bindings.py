@@ -20,7 +20,7 @@ from ctypes import (
 )
 from ctypes.util import find_library
 from io import BytesIO
-from typing import Optional, Mapping, Sequence, Union
+from typing import Optional, Mapping, Sequence, Tuple, Union
 
 from .error import AnoncredsError, AnoncredsErrorCode
 
@@ -505,7 +505,7 @@ def create_credential_definition(
     issuer_id: str,
     signature_type: str,
     support_revocation: bool,
-) -> (ObjectHandle, ObjectHandle, ObjectHandle):
+) -> Tuple[ObjectHandle, ObjectHandle, ObjectHandle]:
     cred_def, cred_def_pvt, key_proof = ObjectHandle(), ObjectHandle(), ObjectHandle()
     do_call(
         "anoncreds_create_credential_definition",
@@ -531,7 +531,7 @@ def create_credential(
     attr_enc_values: Optional[Mapping[str, str]],
     rev_reg_id: Optional[str],
     revocation_config: Optional[RevocationConfig],
-) -> (ObjectHandle, ObjectHandle, ObjectHandle):
+) -> Tuple[ObjectHandle, ObjectHandle, ObjectHandle]:
     cred = ObjectHandle()
     rev_reg = ObjectHandle()
     rev_delta = ObjectHandle()
@@ -555,7 +555,9 @@ def create_credential(
         raw_values_list,
         enc_values_list,
         encode_str(rev_reg_id),
-        pointer(revocation_config) if revocation_config else POINTER(RevocationConfig)(),
+        pointer(revocation_config)
+        if revocation_config
+        else POINTER(RevocationConfig)(),
         byref(cred),
         byref(rev_reg),
         byref(rev_delta),
@@ -598,7 +600,7 @@ def revoke_credential(
     rev_reg: ObjectHandle,
     cred_rev_idx: int,
     tails_path: str,
-) -> (ObjectHandle, ObjectHandle):
+) -> Tuple[ObjectHandle, ObjectHandle]:
     upd_rev_reg = ObjectHandle()
     rev_delta = ObjectHandle()
     do_call(
@@ -633,7 +635,7 @@ def create_credential_request(
     master_secret: ObjectHandle,
     master_secret_id: str,
     cred_offer: ObjectHandle,
-) -> (ObjectHandle, ObjectHandle):
+) -> Tuple[ObjectHandle, ObjectHandle]:
     cred_req, cred_req_metadata = ObjectHandle(), ObjectHandle()
     do_call(
         "anoncreds_create_credential_request",
@@ -726,7 +728,7 @@ def create_revocation_registry(
     issuance_type: Optional[str],
     max_cred_num: int,
     tails_dir_path: Optional[str],
-) -> (ObjectHandle, ObjectHandle, ObjectHandle, ObjectHandle):
+) -> Tuple[ObjectHandle, ObjectHandle, ObjectHandle, ObjectHandle]:
     reg_def = ObjectHandle()
     reg_def_private = ObjectHandle()
     reg_entry = ObjectHandle()
@@ -754,7 +756,7 @@ def update_revocation_registry(
     issued: Sequence[int],
     revoked: Sequence[int],
     tails_path: str,
-) -> (ObjectHandle, ObjectHandle):
+) -> Tuple[ObjectHandle, ObjectHandle]:
     upd_rev_reg = ObjectHandle()
     rev_delta = ObjectHandle()
     do_call(
@@ -801,6 +803,6 @@ def create_or_update_revocation_state(
         encode_str(tails_path),
         rev_state,
         old_rev_reg_list,
-        byref(rev_state)
+        byref(rev_state),
     )
     return rev_state
