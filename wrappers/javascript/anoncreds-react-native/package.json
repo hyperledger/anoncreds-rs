@@ -1,6 +1,6 @@
 {
   "name": "@hyperledger/anoncreds-react-native",
-  "version": "0.1.0-dev.1",
+  "version": "0.1.0-dev.2",
   "private": "true",
   "license": "Apache-2.0",
   "description": "React Native wrapper for Anoncreds",
@@ -37,7 +37,7 @@
     "compile": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@hyperledger/anoncreds-shared": "0.1.0-dev.1"
+    "@hyperledger/anoncreds-shared": "0.1.0-dev.2"
   },
   "devDependencies": {
     "@types/react": "16.9.19",
