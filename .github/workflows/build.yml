@@ -40,8 +40,6 @@ jobs:
       - name: Cargo fmt
         run: cargo fmt --all -- --check
 
-  
-
   check:
     strategy:
       matrix:
@@ -196,76 +194,92 @@ jobs:
           LIB_ANONCREDS_PATH: ../../
         run: yarn test
 
-            # build-py:
-            #   name: Build Python
-            #   needs: [build-release]
+      - name: Set NPM config
+        if: |
+          github.event_name == 'release' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-wrappers == 'true')
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> .npmrc
+          echo "registry=https://registry.npmjs.org/" >> .npmrc
+          echo "always-auth=true" >> .npmrc
 
-            #   strategy:
-            #     matrix:
-            #       include:
-            #         - os: ubuntu-latest
-            #           library: library-linux-x86_64
-            #           plat-name: manylinux2014_x86_64
-            #         - os: windows-latest
-            #           library: library-windows-x86_64
-            #           plat-name: win_amd64
-            #         - os: macos-latest
-            #           library: library-macos-x86_64
-            #           plat-name: win_amd64
+      - name: Publish JavaScript Wrapper
+        if: |
+          github.event_name == 'release' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-wrappers == 'true')
+        run:
+          npx lerna publish from-package --no-push --no-private --yes --no-git-tag-version
 
-            #   runs-on: ${{ matrix.os }}
+          # build-py:
+          #   name: Build Python
+          #   needs: [build-release]
 
-            #   steps:
-            #     - name: Checkout
-            #       uses: actions/checkout@v2
+          #   strategy:
+          #     matrix:
+          #       include:
+          #         - os: ubuntu-latest
+          #           library: library-linux-x86_64
+          #           plat-name: manylinux2014_x86_64
+          #         - os: windows-latest
+          #           library: library-windows-x86_64
+          #           plat-name: win_amd64
+          #         - os: macos-latest
+          #           library: library-macos-x86_64
+          #           plat-name: win_amd64
 
-            #     - name: Set up Python 3.8
-            #       uses: actions/setup-python@v2
-            #       with:
-            #         python-version: 3.8
+          #   runs-on: ${{ matrix.os }}
 
-            #     - name: Install dependencies
-            #       run: |
-            #         python -m pip install --upgrade pip
-            #         pip install setuptools wheel twine auditwheel
-            #     - name: Fetch library artifacts
-            #       uses: actions/download-artifact@v2
-            #       with:
-            #         name: ${{matrix.library}}
-            #         path: wrappers/python/indy_credx/
+          #   steps:
+          #     - name: Checkout
+          #       uses: actions/checkout@v2
 
-            #     - name: Build python package
-            #       run: |
-            #         python setup.py bdist_wheel --python-tag=py3 --plat-name=${{ matrix.plat-name }}
-            #       working-directory: wrappers/python
+          #     - name: Set up Python 3.8
+          #       uses: actions/setup-python@v2
+          #       with:
+          #         python-version: 3.8
 
-            #     - name: Test python package
-            #       shell: sh
-            #       run: |
-            #         cd wrappers/python
-            #         pip install --upgrade pip
-            #         pip install dist/*
-            #         python -m demo.test
-            #     - if: "runner.os == 'Linux'"
-            #       name: Auditwheel
-            #       run: auditwheel show wrappers/python/dist/*
+          #     - name: Install dependencies
+          #       run: |
+          #         python -m pip install --upgrade pip
+          #         pip install setuptools wheel twine auditwheel
+          #     - name: Fetch library artifacts
+          #       uses: actions/download-artifact@v2
+          #       with:
+          #         name: ${{matrix.library}}
+          #         path: wrappers/python/indy_credx/
 
-            #     - name: Upload python package
-            #       uses: actions/upload-artifact@v2
-            #       with:
-            #         name: python-${{ runner.os }}
-            #         path: wrappers/python/dist/*
+          #     - name: Build python package
+          #       run: |
+          #         python setup.py bdist_wheel --python-tag=py3 --plat-name=${{ matrix.plat-name }}
+          #       working-directory: wrappers/python
 
-            #     - if: |
-            #         (github.event_name == 'release' ||
-            #           (github.event_name == 'workflow_dispatch' &&
-            #            github.event.inputs.publish == 'true'))
-            #       name: Publish python package
-            #       env:
-            #         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-            #         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-            #       run: |
-            #         twine upload --skip-existing wrappers/python/dist/*
+          #     - name: Test python package
+          #       shell: sh
+          #       run: |
+          #         cd wrappers/python
+          #         pip install --upgrade pip
+          #         pip install dist/*
+          #         python -m demo.test
+          #     - if: "runner.os == 'Linux'"
+          #       name: Auditwheel
+          #       run: auditwheel show wrappers/python/dist/*
+
+          #     - name: Upload python package
+          #       uses: actions/upload-artifact@v2
+          #       with:
+          #         name: python-${{ runner.os }}
+          #         path: wrappers/python/dist/*
+
+          #     - if: |
+          #         (github.event_name == 'release' ||
+          #           (github.event_name == 'workflow_dispatch' &&
+          #            github.event.inputs.publish == 'true'))
+          #       name: Publish python package
+          #       env:
+          #         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          #         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          #       run: |
+          #         twine upload --skip-existing wrappers/python/dist/*
 
   build-android-libraries:
     name: Build Android Libraries
