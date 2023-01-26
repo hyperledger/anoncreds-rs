@@ -256,6 +256,11 @@ pub extern "C" fn anoncreds_verify_presentation(
                 &rev_reg_def_identifiers,
             )?;
 
+        let rev_reg_defs = match rev_reg_defs.is_empty() {
+            true => Some(&rev_reg_defs),
+            false => None,
+        };
+
         let rev_status_list: AnonCredsObjectList =
             AnonCredsObjectList::load(rev_status_list.as_slice())?;
         let rev_status_list: Result<Vec<&RevocationStatusList>> = rev_status_list.refs();
@@ -266,7 +271,7 @@ pub extern "C" fn anoncreds_verify_presentation(
             pres_req.load()?.cast_ref()?,
             &schemas,
             &cred_defs,
-            Some(&rev_reg_defs),
+            rev_reg_defs,
             rev_status_list,
         )?;
         unsafe { *result_p = verify as i8 };
