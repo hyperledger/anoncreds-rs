@@ -124,7 +124,7 @@ pub fn verify_presentation(
                     Into::<Option<ursa::cl::RevocationRegistry>>::into(*list)
                         .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing Accum"))?;
 
-                if map.get(&id).map(|t| t.get(&timestamp)).flatten().is_some() {
+                if map.get(&id).and_then(|t| t.get(&timestamp)).is_some() {
                     return Err(err_msg!(
                         Unexpected,
                         "Duplicated timestamp for Revocation Status List"

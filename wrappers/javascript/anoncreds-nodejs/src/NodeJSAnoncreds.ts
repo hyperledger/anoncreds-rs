@@ -3,7 +3,6 @@ import type {
   NativeCredentialEntry,
   NativeCredentialProve,
   Anoncreds,
-  NativeRevocationEntry,
   NativeCredentialRevocationConfig,
 } from '@hyperledger/anoncreds-shared'
 
@@ -21,8 +20,6 @@ import {
   CredentialProveStruct,
   CredentialEntryListStruct,
   CredentialProveListStruct,
-  RevocationEntryListStruct,
-  RevocationEntryStruct,
   allocateInt8Buffer,
   CredRevInfoStruct,
   allocateByteBuffer,
@@ -50,7 +47,6 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     const ret = allocatePointer()
 
-    // @ts-ignore
     nativeAnoncreds.anoncreds_create_schema(name, version, issuerId, attributeNames, ret)
     handleError()
 
@@ -174,10 +170,9 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialDefinitionPrivate,
       credentialOffer,
       credentialRequest,
-      // @ts-ignore
-      attributeNames,
-      attributeRawValues,
-      attributeEncodedValues,
+      attributeNames as unknown as Buffer,
+      attributeRawValues as unknown as Buffer,
+      attributeEncodedValues as unknown as Buffer,
       revocationRegistryId,
       revocationStatusList,
       revocationConfiguration.ref(),
@@ -193,7 +188,6 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     const ret = allocateStringBuffer()
 
-    // @ts-ignore
     nativeAnoncreds.anoncreds_encode_credential_attributes(attributeRawValues, ret)
     handleError()
 
@@ -219,7 +213,6 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialRequestMetadata,
       masterSecret,
       credentialDefinition,
-      // @ts-ignore
       revocationRegistryDefinition,
       ret
     )
@@ -306,7 +299,6 @@ export class NodeJSAnoncreds implements Anoncreds {
     const credentialProves = options.credentialsProve.map((value) => {
       const { entryIndex: entry_idx, isPredicate: is_predictable, reveal, referent } = serializeArguments(value)
 
-      // @ts-ignore
       return CredentialProveStruct({ entry_idx, referent, is_predictable, reveal })
     })
 
@@ -360,16 +352,15 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     nativeAnoncreds.anoncreds_create_presentation(
       presentationRequest,
-      // @ts-ignore
-      credentialEntryList,
-      credentialProveList,
-      selfAttestNames,
-      selfAttestValues,
+      credentialEntryList as unknown as Buffer,
+      credentialProveList as unknown as Buffer,
+      selfAttestNames as unknown as Buffer,
+      selfAttestValues as unknown as Buffer,
       masterSecret,
-      schemas,
-      schemaIds,
-      credentialDefinitions,
-      credentialDefinitionIds,
+      schemas as unknown as Buffer,
+      schemaIds as unknown as Buffer,
+      credentialDefinitions as unknown as Buffer,
+      credentialDefinitionIds as unknown as Buffer,
       ret
     )
     handleError()
@@ -380,38 +371,37 @@ export class NodeJSAnoncreds implements Anoncreds {
     presentation: ObjectHandle
     presentationRequest: ObjectHandle
     schemas: ObjectHandle[]
+    schemaIds: string[]
     credentialDefinitions: ObjectHandle[]
-    revocationRegistryDefinitions: ObjectHandle[]
-    revocationEntries: NativeRevocationEntry[]
+    credentialDefinitionIds: string[]
+    revocationRegistryDefinitions?: ObjectHandle[]
+    revocationRegistryDefinitionIds?: string[]
+    revocationStatusLists?: ObjectHandle[]
   }): boolean {
-    const { presentation, presentationRequest, schemas, credentialDefinitions, revocationRegistryDefinitions } =
-      serializeArguments(options)
-
-    const revocationRegistries =
-      options.revocationEntries.length > 0
-        ? RevocationEntryListStruct({
-            count: options.revocationEntries.length,
-            // @ts-ignore
-            data: options.revocationEntries.map(({ revocationRegistryDefinitionEntryIndex, entry, timestamp }) => {
-              return RevocationEntryStruct({
-                def_entry_idx: revocationRegistryDefinitionEntryIndex,
-                entry: entry.handle,
-                timestamp: timestamp,
-              })
-            }),
-          })
-        : undefined
+    const {
+      presentation,
+      presentationRequest,
+      schemas,
+      credentialDefinitions,
+      revocationRegistryDefinitions,
+      revocationStatusLists,
+      revocationRegistryDefinitionIds,
+      schemaIds,
+      credentialDefinitionIds,
+    } = serializeArguments(options)
 
     const ret = allocateInt8Buffer()
 
     nativeAnoncreds.anoncreds_verify_presentation(
       presentation,
       presentationRequest,
-      // @ts-ignore
       schemas,
+      schemaIds,
       credentialDefinitions,
+      credentialDefinitionIds,
       revocationRegistryDefinitions,
-      revocationRegistries,
+      revocationRegistryDefinitionIds,
+      revocationStatusLists,
       ret
     )
     handleError()
