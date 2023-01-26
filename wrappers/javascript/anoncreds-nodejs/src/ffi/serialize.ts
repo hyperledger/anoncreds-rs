@@ -14,7 +14,13 @@ type Argument =
   | boolean
   | ObjectHandle
 
-type SerializedArgument = string | number | ArrayBuffer | Buffer | typeof StringListStruct
+type SerializedArgument =
+  | string
+  | number
+  | ArrayBuffer
+  | Buffer
+  | typeof StringListStruct
+  | typeof ObjectHandleListStruct
 
 type SerializedArguments = Record<string, SerializedArgument>
 
@@ -31,14 +37,12 @@ export type SerializedOptions<Type> = Required<{
     ? string
     : Type[Property] extends Array<string>
     ? Buffer
+    : Type[Property] extends Array<string> | undefined
+    ? Buffer
     : Type[Property] extends Array<number>
     ? Buffer
     : Type[Property] extends Array<number> | undefined
     ? Buffer
-    : Type[Property] extends Array<unknown> | undefined
-    ? string
-    : Type[Property] extends Record<string, unknown> | undefined
-    ? string
     : Type[Property] extends Date
     ? number
     : Type[Property] extends Date | undefined
@@ -51,12 +55,20 @@ export type SerializedOptions<Type> = Required<{
     ? Buffer
     : Type[Property] extends ObjectHandle
     ? number
+    : Type[Property] extends Array<ObjectHandle>
+    ? Buffer
+    : Type[Property] extends Array<ObjectHandle> | undefined
+    ? Buffer
     : Type[Property] extends ObjectHandle | undefined
     ? number
     : Type[Property] extends Uint8Array
     ? typeof ByteBufferStruct
     : Type[Property] extends Uint8Array | undefined
     ? typeof ByteBufferStruct
+    : Type[Property] extends Array<unknown> | undefined
+    ? string
+    : Type[Property] extends Record<string, unknown> | undefined
+    ? string
     : unknown
 }>
 
