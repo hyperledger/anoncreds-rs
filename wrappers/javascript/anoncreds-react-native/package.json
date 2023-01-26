@@ -6,11 +6,11 @@
   "description": "React Native wrapper for Anoncreds",
   "main": "build/index",
   "source": "src/index",
-  "homepage": "https://github.com/hyperledger/anoncreds/tree/main/wrappers/javascript/anoncreds-react-native",
+  "homepage": "https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/javascript/anoncreds-react-native",
   "author": "Hyperledger (https://github.com/hyperledger)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hyperledger/anoncreds",
+    "url": "https://github.com/hyperledger/anoncreds-rs",
     "directory": "wrappers/javascript/anoncreds-react-native"
   },
   "publishConfig": {
