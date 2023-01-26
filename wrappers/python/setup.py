@@ -19,14 +19,14 @@ if __name__ == "__main__":
         author_email="indy@lists.hyperledger.org",
         long_description=long_description,
         long_description_content_type="text/markdown",
-        url="https://github.com/hyperledger/indy-shared-rs",
+        url="https://github.com/hyperledger/anoncreds-rs",
         packages=find_packages(),
         include_package_data=True,
         package_data={
             "": [
                 "anoncreds.dll",
-                "anoncreds.dylib",
-                "anoncreds.so",
+                "libanoncreds.dylib",
+                "libanoncreds.so",
             ]
         },
         python_requires=">=3.6.3",

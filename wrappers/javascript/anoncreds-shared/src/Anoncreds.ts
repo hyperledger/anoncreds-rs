@@ -99,9 +99,12 @@ export interface Anoncreds {
     presentation: ObjectHandle
     presentationRequest: ObjectHandle
     schemas: ObjectHandle[]
+    schemaIds: string[]
     credentialDefinitions: ObjectHandle[]
+    credentialDefinitionIds: string[]
     revocationRegistryDefinitions?: ObjectHandle[]
-    revocationEntries?: NativeRevocationEntry[]
+    revocationRegistryDefinitionIds?: string[]
+    revocationStatusLists?: ObjectHandle[]
   }): boolean
 
   createRevocationRegistryDef(options: {

@@ -175,9 +175,12 @@ export class ReactNativeAnoncreds implements Anoncreds {
     presentation: ObjectHandle
     presentationRequest: ObjectHandle
     schemas: ObjectHandle[]
+    schemaIds: string[]
     credentialDefinitions: ObjectHandle[]
-    revocationRegistryDefinitions: ObjectHandle[]
-    revocationEntries: NativeRevocationEntry[]
+    credentialDefinitionIds: string[]
+    revocationRegistryDefinitions?: ObjectHandle[]
+    revocationRegistryDefinitionIds: string[]
+    revocationStatusLists: ObjectHandle[]
   }): boolean {
     return anoncredsReactNative.verifyPresentation(serializeArguments(options))
   }

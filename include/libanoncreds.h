@@ -166,17 +166,10 @@ typedef struct FfiList_FfiStr {
 
 typedef struct FfiList_FfiStr FfiStrList;
 
-typedef struct FfiList_i64 {
-  size_t count;
-  const int64_t *data;
-} FfiList_i64;
-
 typedef struct FfiCredRevInfo {
   ObjectHandle reg_def;
   ObjectHandle reg_def_private;
-  ObjectHandle registry;
   int64_t reg_idx;
-  struct FfiList_i64 reg_used;
   FfiStr tails_path;
 } FfiCredRevInfo;
 
@@ -212,17 +205,6 @@ typedef struct FfiList_i32 {
   size_t count;
   const int32_t *data;
 } FfiList_i32;
-
-typedef struct FfiRevocationEntry {
-  int64_t def_entry_idx;
-  ObjectHandle entry;
-  int64_t timestamp;
-} FfiRevocationEntry;
-
-typedef struct FfiList_FfiRevocationEntry {
-  size_t count;
-  const struct FfiRevocationEntry *data;
-} FfiList_FfiRevocationEntry;
 
 #ifdef __cplusplus
 extern "C" {
@@ -287,15 +269,15 @@ ErrorCode anoncreds_create_presentation(ObjectHandle pres_req,
                                         FfiStrList cred_def_ids,
                                         ObjectHandle *presentation_p);
 
-ErrorCode anoncreds_create_revocation_registry(ObjectHandle cred_def,
-                                               FfiStr cred_def_id,
-                                               FfiStr issuer_id,
-                                               FfiStr tag,
-                                               FfiStr rev_reg_type,
-                                               int64_t max_cred_num,
-                                               FfiStr tails_dir_path,
-                                               ObjectHandle *reg_def_p,
-                                               ObjectHandle *reg_def_private_p);
+ErrorCode anoncreds_create_revocation_registry_def(ObjectHandle cred_def,
+                                                   FfiStr cred_def_id,
+                                                   FfiStr issuer_id,
+                                                   FfiStr tag,
+                                                   FfiStr rev_reg_type,
+                                                   int64_t max_cred_num,
+                                                   FfiStr tails_dir_path,
+                                                   ObjectHandle *reg_def_p,
+                                                   ObjectHandle *reg_def_private_p);
 
 ErrorCode anoncreds_create_revocation_status_list(FfiStr rev_reg_def_id,
                                                   ObjectHandle rev_reg_def,
@@ -357,7 +339,7 @@ ErrorCode anoncreds_verify_presentation(ObjectHandle presentation,
                                         FfiStrList cred_def_ids,
                                         struct FfiList_ObjectHandle rev_reg_defs,
                                         FfiStrList rev_reg_def_ids,
-                                        struct FfiList_FfiRevocationEntry rev_reg_entries,
+                                        struct FfiList_ObjectHandle rev_status_list,
                                         int8_t *result_p);
 
 char *anoncreds_version(void);

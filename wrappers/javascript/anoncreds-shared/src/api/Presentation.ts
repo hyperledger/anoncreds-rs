@@ -6,6 +6,7 @@ import type { MasterSecret } from './MasterSecret'
 import type { PresentationRequest } from './PresentationRequest'
 import type { RevocationRegistry } from './RevocationRegistry'
 import type { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
+import type { RevocationStatusList } from './RevocationStatusList'
 import type { Schema } from './Schema'
 
 import { AnoncredsObject } from '../AnoncredsObject'
@@ -45,10 +46,10 @@ export type CreatePresentationOptions = {
 export type VerifyPresentationOptions = {
   presentation: Presentation
   presentationRequest: PresentationRequest
-  schemas: Schema[]
-  credentialDefinitions: CredentialDefinition[]
-  revocationRegistryDefinitions: RevocationRegistryDefinition[]
-  revocationEntries: RevocationEntry[]
+  schemas: Record<string, Schema>
+  credentialDefinitions: Record<string, CredentialDefinition>
+  revocationRegistryDefinitions?: Record<string, RevocationRegistryDefinition>
+  revocationStatusLists?: RevocationStatusList[]
 }
 
 export class Presentation extends AnoncredsObject {
@@ -84,17 +85,30 @@ export class Presentation extends AnoncredsObject {
   }
 
   public verify(options: VerifyPresentationOptions) {
+    const schemas = Object.values(options.schemas)
+    const schemaIds = Object.keys(options.schemas)
+
+    const credentialDefinitions = Object.values(options.credentialDefinitions)
+    const credentialDefinitionIds = Object.keys(options.credentialDefinitions)
+
+    const revocationRegistryDefinitions = options.revocationRegistryDefinitions
+      ? Object.values(options.revocationRegistryDefinitions)
+      : undefined
+
+    const revocationRegistryDefinitionIds = options.revocationRegistryDefinitions
+      ? Object.keys(options.revocationRegistryDefinitions)
+      : undefined
+
     return anoncreds.verifyPresentation({
       presentation: options.presentation.handle,
       presentationRequest: options.presentationRequest.handle,
-      schemas: options.schemas.map((object) => object.handle),
-      credentialDefinitions: options.credentialDefinitions.map((object) => object.handle),
-      revocationRegistryDefinitions: options.revocationRegistryDefinitions.map((object) => object.handle),
-      revocationEntries: options.revocationEntries.map((item) => ({
-        entry: item.entry.handle,
-        revocationRegistryDefinitionEntryIndex: item.revocationRegistryDefinitionEntryIndex,
-        timestamp: item.timestamp,
-      })),
+      schemas: schemas.map((object) => object.handle),
+      schemaIds,
+      credentialDefinitions: credentialDefinitions.map((o) => o.handle),
+      credentialDefinitionIds,
+      revocationRegistryDefinitions: revocationRegistryDefinitions?.map((o) => o.handle),
+      revocationRegistryDefinitionIds,
+      revocationStatusLists: options.revocationStatusLists?.map((o) => o.handle),
     })
   }
 }

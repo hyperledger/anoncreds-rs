@@ -7,7 +7,7 @@ use super::object::{AnonCredsObject, AnonCredsObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
 use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
 use crate::data_types::presentation::Presentation;
-use crate::data_types::rev_reg::RevocationRegistryId;
+use crate::data_types::rev_reg::RevocationStatusList;
 use crate::data_types::rev_reg_def::{
     RevocationRegistryDefinition, RevocationRegistryDefinitionId,
 };
@@ -195,29 +195,6 @@ pub extern "C" fn anoncreds_create_presentation(
     })
 }
 
-#[derive(Debug)]
-#[repr(C)]
-pub struct FfiRevocationEntry {
-    def_entry_idx: i64,
-    entry: ObjectHandle,
-    timestamp: i64,
-}
-
-impl FfiRevocationEntry {
-    fn load(&self) -> Result<(usize, AnonCredsObject, u64)> {
-        let def_entry_idx = self
-            .def_entry_idx
-            .try_into()
-            .map_err(|_| err_msg!("Invalid revocation registry entry index"))?;
-        let entry = self.entry.load()?;
-        let timestamp = self
-            .timestamp
-            .try_into()
-            .map_err(|_| err_msg!("Invalid timestamp for revocation entry"))?;
-        Ok((def_entry_idx, entry, timestamp))
-    }
-}
-
 #[no_mangle]
 pub extern "C" fn anoncreds_verify_presentation(
     presentation: ObjectHandle,
@@ -228,7 +205,7 @@ pub extern "C" fn anoncreds_verify_presentation(
     cred_def_ids: FfiStrList,
     rev_reg_defs: FfiList<ObjectHandle>,
     rev_reg_def_ids: FfiStrList,
-    rev_reg_status_list: FfiList<FfiRevocationEntry>,
+    rev_status_list: FfiList<ObjectHandle>,
     result_p: *mut i8,
 ) -> ErrorCode {
     catch_error(|| {
@@ -279,14 +256,23 @@ pub extern "C" fn anoncreds_verify_presentation(
                 &rev_reg_def_identifiers,
             )?;
 
+        let rev_reg_defs = match rev_reg_defs.is_empty() {
+            false => Some(&rev_reg_defs),
+            true => None,
+        };
+
+        let rev_status_list: AnonCredsObjectList =
+            AnonCredsObjectList::load(rev_status_list.as_slice())?;
+        let rev_status_list: Result<Vec<&RevocationStatusList>> = rev_status_list.refs();
+        let rev_status_list = rev_status_list.ok();
+
         let verify = verify_presentation(
             presentation.load()?.cast_ref()?,
             pres_req.load()?.cast_ref()?,
             &schemas,
             &cred_defs,
-            Some(&rev_reg_defs),
-            // TODO: issue 74 FFI
-            None,
+            rev_reg_defs,
+            rev_status_list,
         )?;
         unsafe { *result_p = verify as i8 };
         Ok(())

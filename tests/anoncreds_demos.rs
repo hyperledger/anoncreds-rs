@@ -411,7 +411,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let cred_def_id = CredentialDefinitionId::new_unchecked(CRED_DEF_ID);
     cred_defs.insert(&cred_def_id, &cred_def_pub);
 
-    let mut rev_status_list = vec![issued_rev_status_list.clone()];
+    let mut rev_status_list = vec![&issued_rev_status_list];
 
     // Prover creates presentation
     let presentation = _create_presentation(
@@ -448,7 +448,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     .unwrap();
 
     // update rev_status_lists
-    rev_status_list.push(revoked_status_list);
+    rev_status_list.push(&revoked_status_list);
 
     let rev_state = prover::create_or_update_revocation_state(
         &rev_reg_def_pub.value.tails_location,

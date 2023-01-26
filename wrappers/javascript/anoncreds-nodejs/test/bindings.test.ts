@@ -337,11 +337,11 @@ describe('bindings', () => {
       json: JSON.stringify({
         nonce,
         name: 'pres_req_1',
-        version: '1.0',
+        version: '0.1',
         requested_attributes: {
           attr1_referent: {
             name: 'name',
-            // issuer: 'mock:uri',
+            issuer: 'mock:uri',
           },
           attr2_referent: {
             name: 'sex',
@@ -456,13 +456,13 @@ describe('bindings', () => {
       tailsPath,
     })
 
-    const presentationObj = anoncreds.createPresentation({
+    const presentation = anoncreds.createPresentation({
       presentationRequest,
       credentials: [
         {
           credential: credentialReceived,
           revocationState,
-          timestamp: timeCreateRevStatusList + 1,
+          timestamp: timeCreateRevStatusList,
         },
       ],
       credentialDefinitions: { 'mock:uri': credentialDefinition },
@@ -474,22 +474,22 @@ describe('bindings', () => {
           reveal: true,
         },
         {
-          entryIndex: 1,
+          entryIndex: 0,
           isPredicate: false,
           referent: 'attr2_referent',
           reveal: false,
         },
         {
-          entryIndex: 2,
+          entryIndex: 0,
           isPredicate: false,
           referent: 'attr4_referent',
           reveal: true,
         },
         {
-          entryIndex: 2,
+          entryIndex: 0,
           isPredicate: true,
           referent: 'predicate1_referent',
-          reveal: false,
+          reveal: true,
         },
       ],
       masterSecret,
@@ -497,23 +497,20 @@ describe('bindings', () => {
       selfAttest: { attr3_referent: '8-800-300' },
     })
 
-    expect(presentationObj.handle).toStrictEqual(expect.any(Number))
+    expect(presentation.handle).toStrictEqual(expect.any(Number))
 
-    // const verify = anoncreds.verifyPresentation({
-    //   presentation: presentationObj,
-    //   presentationRequest,
-    //   credentialDefinitions: [credentialDefinition],
-    //   revocationRegistryDefinitions: [revocationRegistryDefinition],
-    //   revocationEntries: [
-    //     {
-    //       entry: registryEntry,
-    //       revocationRegistryDefinitionEntryIndex: 0,
-    //       timestamp: timeCreateRevStatusList + 1,
-    //     },
-    //   ],
-    //   schemas: [schemaObj],
-    // })
+    const verify = anoncreds.verifyPresentation({
+      presentation,
+      presentationRequest,
+      schemas: [schemaObj],
+      schemaIds: ['mock:uri'],
+      credentialDefinitions: [credentialDefinition],
+      credentialDefinitionIds: ['mock:uri'],
+      revocationRegistryDefinitions: [revocationRegistryDefinition],
+      revocationRegistryDefinitionIds: ['mock:uri'],
+      revocationStatusLists: [revocationStatusList],
+    })
 
-    // expect(verify).toBeTruthy()
+    expect(verify).toBeTruthy()
   })
 })

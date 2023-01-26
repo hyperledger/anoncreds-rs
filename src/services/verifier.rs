@@ -43,7 +43,7 @@ pub fn verify_presentation(
     schemas: &HashMap<&SchemaId, &Schema>,
     cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
     rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
-    rev_status_lists: Option<Vec<RevocationStatusList>>,
+    rev_status_lists: Option<Vec<&RevocationStatusList>>,
 ) -> Result<bool> {
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
@@ -121,10 +121,10 @@ pub fn verify_presentation(
                     .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing timestamp"))?;
 
                 let rev_reg: ursa::cl::RevocationRegistry =
-                    Into::<Option<ursa::cl::RevocationRegistry>>::into(list)
+                    Into::<Option<ursa::cl::RevocationRegistry>>::into(*list)
                         .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing Accum"))?;
 
-                if map.get(&id).map(|t| t.get(&timestamp)).flatten().is_some() {
+                if map.get(&id).and_then(|t| t.get(&timestamp)).is_some() {
                     return Err(err_msg!(
                         Unexpected,
                         "Duplicated timestamp for Revocation Status List"
