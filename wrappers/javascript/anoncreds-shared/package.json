@@ -1,14 +1,14 @@
 {
   "name": "@hyperledger/anoncreds-shared",
-  "version": "0.1.0-dev.2",
+  "version": "0.1.0-dev.3",
   "license": "Apache-2.0",
   "description": "Anoncreds wrapper library with NodeJS and React Native",
   "main": "build/index",
   "source": "src/index",
   "types": "build/index",
-  "homepage": "https://github.com/hyperledger/anoncreds/tree/main/wrappers/javascript/anoncreds-shared",
+  "homepage": "https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/javascript/anoncreds-shared",
   "repository": {
-    "url": "https://github.com/hyperledger/anoncreds",
+    "url": "https://github.com/hyperledger/anoncreds-rs",
     "type": "git",
     "directory": "wrappers/javascript/anoncreds-shared"
   },

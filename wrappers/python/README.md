@@ -10,10 +10,10 @@ The initial implementation of `anoncreds` / `indy-shared-rs` was developed by th
 
 ## Contributing
 
-Pull requests are welcome! Please read our [contributions guide](https://github.com/hyperledger/anoncreds/blob/main/CONTRIBUTING.md) and submit your PRs. We enforce [developer certificate of origin](https://developercertificate.org/) (DCO) commit signing. See guidance [here](https://github.com/apps/dco).
+Pull requests are welcome! Please read our [contributions guide](https://github.com/hyperledger/anoncreds-rs/blob/main/CONTRIBUTING.md) and submit your PRs. We enforce [developer certificate of origin](https://developercertificate.org/) (DCO) commit signing. See guidance [here](https://github.com/apps/dco).
 
 We also welcome issues submitted about problems you encounter in using `anoncreds`.
 
 ## License
 
-[Apache License Version 2.0](https://github.com/hyperledger/anoncreds/blob/main/LICENSE)
+[Apache License Version 2.0](https://github.com/hyperledger/anoncreds-rs/blob/main/LICENSE)
