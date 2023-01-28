@@ -15,3 +15,5 @@ export * from './RevocationRegistry'
 export * from './RevocationRegistryDefinition'
 export * from './RevocationRegistryDefinitionPrivate'
 export * from './RevocationRegistryDelta'
+export * from './RevocationStatusList'
+

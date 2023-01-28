@@ -44,7 +44,6 @@ export type CreatePresentationOptions = {
 }
 
 export type VerifyPresentationOptions = {
-  presentation: Presentation
   presentationRequest: PresentationRequest
   schemas: Record<string, Schema>
   credentialDefinitions: Record<string, CredentialDefinition>
@@ -100,7 +99,7 @@ export class Presentation extends AnoncredsObject {
       : undefined
 
     return anoncreds.verifyPresentation({
-      presentation: options.presentation.handle,
+      presentation: this.handle,
       presentationRequest: options.presentationRequest.handle,
       schemas: schemas.map((object) => object.handle),
       schemaIds,
