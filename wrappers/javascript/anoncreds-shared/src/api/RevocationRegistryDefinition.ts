@@ -33,7 +33,7 @@ export class RevocationRegistryDefinition extends AnoncredsObject {
   }
 
   public static load(json: string) {
-    anoncreds.credentialFromJson({ json })
+    return new RevocationRegistryDefinition(anoncreds.revocationRegistryDefinitionFromJson({ json }).handle)
   }
 
   public getId() {
