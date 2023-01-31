@@ -366,7 +366,7 @@ jobs:
         name: Save library
         with:
           name: ${{matrix.architecture}}
-          path: target/${{matrix.architecture}}/release/libanoncreds.dylib
+          path: target/${{matrix.architecture}}/release/libanoncreds.a
 
   create-ios-xcframework:
     name: Create ios xcframework
@@ -381,13 +381,13 @@ jobs:
       - name: Fetch static libraries
         uses: actions/download-artifact@v3
       - run: >
-          lipo -create aarch64-apple-ios-sim/libanoncreds.dylib \
-                       x86_64-apple-ios/libanoncreds.dylib \
-               -output libanoncreds.dylib
+          lipo -create aarch64-apple-ios-sim/libanoncreds.a \
+                       x86_64-apple-ios/libanoncreds.a \
+               -output libanoncreds.a
       - run: >
           xcodebuild -create-xcframework \
-            -library aarch64-apple-ios/libanoncreds.dylib -headers include/libanoncreds.h \
-            -library libanoncreds.dylib                   -headers include/libanoncreds.h \
+            -library aarch64-apple-ios/libanoncreds.a -headers include/libanoncreds.h \
+            -library libanoncreds.a                   -headers include/libanoncreds.h \
             -output anoncreds.xcframework
       - name: Save xcframework
         uses: actions/upload-artifact@v3

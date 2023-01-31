@@ -23,36 +23,27 @@ FunctionMap TurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
                               &anoncreds::createOrUpdateRevocationState));
   fMap.insert(
       std::make_tuple("createPresentation", &anoncreds::createPresentation));
-  fMap.insert(std::make_tuple("createRevocationRegistry",
-                              &anoncreds::createRevocationRegistry));
+  fMap.insert(std::make_tuple("createRevocationRegistryDefinition",
+                              &anoncreds::createRevocationRegistryDefinition));
   fMap.insert(std::make_tuple("createSchema", &anoncreds::createSchema));
-  fMap.insert(std::make_tuple("credentialDefinitionGetAttribute",
-                              &anoncreds::credentialDefinitionGetAttribute));
   fMap.insert(std::make_tuple("credentialGetAttribute",
-                                &anoncreds::credentialGetAttribute));
+                              &anoncreds::credentialGetAttribute));
   fMap.insert(std::make_tuple("encodeCredentialAttributes",
                               &anoncreds::encodeCredentialAttributes));
   fMap.insert(std::make_tuple("generateNonce", &anoncreds::generateNonce));
-  fMap.insert(std::make_tuple("mergeRevocationRegistryDeltas",
-                              &anoncreds::mergeRevocationRegistryDeltas));
   fMap.insert(std::make_tuple("getJson", &anoncreds::getJson));
-  fMap.insert(
-      std::make_tuple("getTypeName", &anoncreds::getTypeName));
+  fMap.insert(std::make_tuple("getTypeName", &anoncreds::getTypeName));
   fMap.insert(
       std::make_tuple("processCredential", &anoncreds::processCredential));
   fMap.insert(
       std::make_tuple("revocationRegistryDefinitionGetAttribute",
                       &anoncreds::revocationRegistryDefinitionGetAttribute));
   fMap.insert(
-      std::make_tuple("revokeCredential", &anoncreds::revokeCredential));
-  fMap.insert(
-      std::make_tuple("schemaGetAttribute", &anoncreds::schemaGetAttribute));
-  fMap.insert(
       std::make_tuple("setDefaultLogger", &anoncreds::setDefaultLogger));
   fMap.insert(
       std::make_tuple("verifyPresentation", &anoncreds::verifyPresentation));
-  fMap.insert(std::make_tuple("updateRevocationRegistry",
-                              &anoncreds::updateRevocationRegistry));
+  fMap.insert(std::make_tuple("updateRevocationStatusList",
+                              &anoncreds::updateRevocationStatusList));
   fMap.insert(std::make_tuple("objectFree", &anoncreds::objectFree));
 
   return fMap;
