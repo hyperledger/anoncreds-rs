@@ -8,7 +8,7 @@ import { anoncreds } from '../register'
 import { CredentialRequestMetadata } from './CredentialRequestMetadata'
 
 export type CreateCredentialRequestOptions = {
-  proverDid: string
+  proverDid?: string
   credentialDefinition: CredentialDefinition
   masterSecret: MasterSecret
   masterSecretId: string

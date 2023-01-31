@@ -48,7 +48,7 @@ export interface NativeBindings {
   createCredentialOffer(options: { schemaId: string; credentialDefinitionId: string; keyProof: number }): _Handle
 
   createCredentialRequest(options: {
-    proverDid: string
+    proverDid?: string
     credentialDefinition: number
     masterSecret: number
     masterSecretId: string
