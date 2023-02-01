@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
   s.authors      = package["author"]
 
   s.platforms    = { :ios => "12.0" }
-  s.source       = { :git => "https://github.com/hyperledger/anoncreds", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/hyperledger/anoncreds-rs", :tag => "#{s.version}" }
 
   s.header_mappings_dir = "cpp"
 
@@ -19,7 +19,7 @@ Pod::Spec.new do |s|
     :USE_HEADERMAP => "No"
   }
 
-  s.ios.vendored_frameworks = "ios/Frameworks/anoncreds.xcframework"
+  s.ios.vendored_frameworks = "native/mobile/ios/anoncreds.xcframework"
 
   s.source_files = "ios/**/*.{h,m,mm}", "cpp/**/*.{h,cpp}"
   

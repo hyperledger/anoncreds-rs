@@ -8,7 +8,7 @@ type Module = {
 }
 
 const module = NativeModules.Anoncreds as Module
-if (!module.install()) throw Error('Unable to install the turboModule: Anoncreds')
+if (!module || !module.install || !module.install()) throw Error('Unable to install the turboModule: Anoncreds')
 
 export * from '@hyperledger/anoncreds-shared'
 

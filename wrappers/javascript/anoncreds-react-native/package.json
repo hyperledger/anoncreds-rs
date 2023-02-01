@@ -1,7 +1,6 @@
 {
   "name": "@hyperledger/anoncreds-react-native",
   "version": "0.1.0-dev.3",
-  "private": "true",
   "license": "Apache-2.0",
   "description": "React Native wrapper for Anoncreds",
   "main": "build/index",
@@ -19,13 +18,11 @@
   "files": [
     "build",
     "android/src",
-    "android/libs",
     "android/build.gradle",
     "android/CMakeLists.txt",
     "android/cpp-adapter.cpp",
     "ios/**/*.h",
     "ios/**/*.mm",
-    "ios/Frameworks",
     "ios/Anoncreds.xcodeproj/project.pbxproj",
     "cpp/**/*.cpp",
     "cpp/**/*.h",
@@ -34,10 +31,12 @@
   "scripts": {
     "build": "yarn clean && yarn compile",
     "clean": "rimraf -rf ./build",
-    "compile": "tsc -p tsconfig.build.json"
+    "compile": "tsc -p tsconfig.build.json",
+    "install": "node-pre-gyp install"
   },
   "dependencies": {
-    "@hyperledger/anoncreds-shared": "0.1.0-dev.3"
+    "@hyperledger/anoncreds-shared": "0.1.0-dev.3",
+    "@mapbox/node-pre-gyp": "^1.0.10"
   },
   "devDependencies": {
     "@types/react": "16.9.19",
@@ -49,5 +48,12 @@
   "peerDependencies": {
     "react": ">= 16",
     "react-native": ">= 0.66.0"
+  },
+  "binary": {
+    "module_name": "anoncreds",
+    "module_path": "native",
+    "remote_path": "v0.1.0-dev.3",
+    "host": "https://github.com/hyperledger/anoncreds-rs/releases/download/",
+    "package_name": "library-ios-android.tar.gz"
   }
 }
