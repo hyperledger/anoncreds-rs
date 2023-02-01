@@ -31,7 +31,8 @@
   "scripts": {
     "build": "yarn clean && yarn compile",
     "clean": "rimraf -rf ./build",
-    "compile": "tsc -p tsconfig.build.json"
+    "compile": "tsc -p tsconfig.build.json",
+    "install": "node-pre-gyp install"
   },
   "dependencies": {
     "@hyperledger/anoncreds-shared": "0.1.0-dev.3",

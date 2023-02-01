@@ -401,3 +401,39 @@ jobs:
             aarch64-apple-ios-sim
             x86_64-apple-ios
           failOnError: false
+
+  create-ios-android-release-asset:
+    name: Create iOS and Android Release Assets
+    runs-on: ubuntu-latest
+    needs:
+      - create-ios-xcframework
+      - create-android-library
+    if: |
+      (github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.inputs.publish == 'true'))
+
+    steps:
+      - name: Fetch Android libraries
+        uses: actions/download-artifact@v3
+        with:
+          name: android-libraries
+          path: mobile/android/
+
+      - name: Fetch iOS Framework
+        uses: actions/download-artifact@v3
+        with:
+          name: anoncreds.xcframework
+          path: mobile/ios/
+
+      - uses: a7ul/tar-action@v1.1.2
+        with:
+          command: c
+          files: ./mobile
+          outPath: "library-ios-android.tar.gz"
+
+      - name: Add library artifacts to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: library-ios-android.tar.gz
+          asset_name: "library-ios-android.tar.gz"

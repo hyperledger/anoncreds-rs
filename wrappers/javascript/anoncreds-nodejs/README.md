@@ -35,4 +35,4 @@ const schemaJson = schema.toJson()
 schema.handle.clear()
 ```
 
-> **Note**: If you want to use this library in a cross-platform environment you need to import methods from the `@hyperledger/anoncreds-shared` package instead. This is a platform independent package that allows to register the native bindings. The `@hyperledger/anoncreds-nodejs` package uses this package under the hood. See the [Anoncreds Shared README](https://github.com/hyperledger/indy-vdr/tree/main/wrappers/javascript/anoncreds-shared/README.md) for documentation on how to use this package.
+> **Note**: If you want to use this library in a cross-platform environment you need to import methods from the `@hyperledger/anoncreds-shared` package instead. This is a platform independent package that allows to register the native bindings. The `@hyperledger/anoncreds-nodejs` package uses this package under the hood. See the [Anoncreds Shared README](https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/javascript/anoncreds-shared/README.md) for documentation on how to use this package.
