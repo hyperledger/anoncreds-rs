@@ -7,7 +7,7 @@ set (BUILD_DIR ${CMAKE_SOURCE_DIR}/build)
 
 file (GLOB LIBFBJNI_INCLUDE_DIR "${BUILD_DIR}/fbjni-*-headers.jar/")
 file (GLOB LIBRN_DIR "${BUILD_DIR}/react-native-0*/jni/${ANDROID_ABI}")
-file (GLOB LIBANONCREDS_DIR "${CMAKE_SOURCE_DIR}/libs/${ANDROID_ABI}")
+file (GLOB LIBANONCREDS_DIR "${CMAKE_SOURCE_DIR}/../native/mobile/android/${ANDROID_ABI}")
 
 include_directories(
   ../cpp

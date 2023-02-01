@@ -97,34 +97,8 @@ int64_t jsiToValue(jsi::Runtime &rt, jsi::Object &options, const char *name,
 };
 
 template <>
-uint64_t jsiToValue(jsi::Runtime &rt, jsi::Object &options, const char *name,
-                    bool optional) {
-  jsi::Value value = options.getProperty(rt, name);
-  if ((value.isNull() || value.isUndefined()) && optional)
-    return 0;
-
-  if (value.isNumber())
-    return value.asNumber();
-
-  throw jsi::JSError(rt, errorPrefix + name + errorInfix + "number");
-};
-
-template <>
 int32_t jsiToValue(jsi::Runtime &rt, jsi::Object &options, const char *name,
                    bool optional) {
-  jsi::Value value = options.getProperty(rt, name);
-  if ((value.isNull() || value.isUndefined()) && optional)
-    return 0;
-
-  if (value.isNumber())
-    return value.asNumber();
-
-  throw jsi::JSError(rt, errorPrefix + name + errorInfix + "number");
-};
-
-template <>
-uint32_t jsiToValue(jsi::Runtime &rt, jsi::Object &options, const char *name,
-                    bool optional) {
   jsi::Value value = options.getProperty(rt, name);
   if ((value.isNull() || value.isUndefined()) && optional)
     return 0;
