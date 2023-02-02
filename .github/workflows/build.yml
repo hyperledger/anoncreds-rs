@@ -381,19 +381,15 @@ jobs:
       - name: Fetch static libraries
         uses: actions/download-artifact@v3
       - run: >
-          lipo -create aarch64-apple-ios-sim/libanoncreds.a \
-                       x86_64-apple-ios/libanoncreds.a \
-               -output libanoncreds.a
-      - run: >
-          xcodebuild -create-xcframework \
-            -library aarch64-apple-ios/libanoncreds.a -headers include/libanoncreds.h \
-            -library libanoncreds.a                   -headers include/libanoncreds.h \
-            -output anoncreds.xcframework
+          ./build-xcframework.sh aarch64-apple-ios \
+                                 aarch64-apple-ios-sim \
+                                 x86_64-apple-ios \
+                                 include
       - name: Save xcframework
         uses: actions/upload-artifact@v3
         with:
           name: anoncreds.xcframework
-          path: anoncreds.xcframework
+          path: out
       - uses: geekyeggo/delete-artifact@v1
         with:
           name: |
@@ -430,10 +426,10 @@ jobs:
         with:
           command: c
           files: ./mobile
-          outPath: "library-ios-android.tar.gz"
+          outPath: 'library-ios-android.tar.gz'
 
       - name: Add library artifacts to release
         uses: svenstaro/upload-release-action@v2
         with:
           file: library-ios-android.tar.gz
-          asset_name: "library-ios-android.tar.gz"
+          asset_name: 'library-ios-android.tar.gz'
