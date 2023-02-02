@@ -1,11 +1,4 @@
-#!/bin/sh
-
-# NOTE:
-# MacOS universal build currently requires MacOS 11 (Big Sur) for the appropriate SDK,
-# and `sudo xcode-select --install` must be run to install the command line utilities.
-# Rust's `beta` channel must be installed because aarch64 is still a tier-2 target:
-# `rustup toolchain install beta`.
-# The build command becomes `BUILD_TARGET=apple-darwin BUILD_TOOLCHAIN=beta ./build.sh`
+#!/usr/bin/env sh
 
 RUSTUP=${RUSTUP:-`command -v rustup`}
 PROJECT=anoncreds
