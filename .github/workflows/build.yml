@@ -331,7 +331,7 @@ jobs:
       - name: Save Android library
         uses: actions/upload-artifact@v2
         with:
-          name: android-libs
+          name: android-libraries
           path: ./libs
       - uses: geekyeggo/delete-artifact@v1
         with:
