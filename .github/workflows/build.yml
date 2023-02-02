@@ -366,7 +366,7 @@ jobs:
         name: Save library
         with:
           name: ${{matrix.architecture}}
-          path: target/${{matrix.architecture}}/release/libanoncreds.a
+          path: target/${{matrix.architecture}}/release/libanoncreds.dylib
 
   create-ios-xcframework:
     name: Create ios xcframework
@@ -378,7 +378,7 @@ jobs:
        github.event.inputs.publish == 'true'))
     steps:
       - uses: actions/checkout@v2
-      - name: Fetch static libraries
+      - name: Fetch dynamic libraries
         uses: actions/download-artifact@v3
       - run: >
           ./build-xcframework.sh aarch64-apple-ios \
