@@ -182,4 +182,8 @@ xcodebuild -create-xcframework \
 echo "cleaning up..."
 rm -rf $FRAMEWORK_NAME real sim
 
+echo "Fixing the identifiers of the dylib..."
+install_name_tool -id  @rpath/$NAME.framework/$FRAMEWORK_LIBRARY_NAME $XC_FRAMEWORK_NAME/ios-arm64/$FRAMEWORK_NAME/$FRAMEWORK_LIBRARY_NAME
+install_name_tool -id  @rpath/$NAME.framework/$FRAMEWORK_LIBRARY_NAME $XC_FRAMEWORK_NAME/ios-arm64_x86_64-simulator/$FRAMEWORK_NAME/$FRAMEWORK_LIBRARY_NAME
+
 echo "Framework written to $OUT_PATH/$XC_FRAMEWORK_NAME"
