@@ -449,7 +449,7 @@ describe('bindings', () => {
 
     const revocationState = anoncreds.createOrUpdateRevocationState({
       revocationRegistryDefinition,
-      oldRevocationStatusList: revocationStatusList,
+      revocationStatusList,
       revocationRegistryIndex,
       tailsPath,
     })
