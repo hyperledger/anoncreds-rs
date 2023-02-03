@@ -3,7 +3,6 @@ import type {
   NativeCredentialEntry,
   NativeCredentialProve,
   NativeCredentialRevocationConfig,
-  NativeRevocationEntry,
 } from '@hyperledger/anoncreds-shared'
 
 import { ObjectHandle } from '@hyperledger/anoncreds-shared'
@@ -15,27 +14,30 @@ export class ReactNativeAnoncreds implements Anoncreds {
   public createRevocationStatusList(options: {
     revocationRegistryDefinitionId: string
     revocationRegistryDefinition: ObjectHandle
-    timestamp?: number | undefined
+    timestamp?: number
     issuanceByDefault: boolean
   }): ObjectHandle {
-    throw new Error('Method not implemented.')
+    const handle = anoncredsReactNative.createRevocationStatusList(serializeArguments(options))
+    return new ObjectHandle(handle)
   }
 
   public updateRevocationStatusListTimestampOnly(options: {
     timestamp: number
-    currentList: ObjectHandle
+    currentRevocationStatusList: ObjectHandle
   }): ObjectHandle {
-    throw new Error('Method not implemented.')
+    const handle = anoncredsReactNative.updateRevocationStatusListTimestampOnly(serializeArguments(options))
+    return new ObjectHandle(handle)
   }
 
   public updateRevocationStatusList(options: {
-    timestamp?: number | undefined
-    issued?: number[] | undefined
-    revoked?: number[] | undefined
+    timestamp?: number
+    issued?: number[]
+    revoked?: number[]
     revocationRegistryDefinition: ObjectHandle
-    currentList: ObjectHandle
+    currentRevocationStatusList: ObjectHandle
   }): ObjectHandle {
-    throw new Error('Method not implemented.')
+    const handle = anoncredsReactNative.updateRevocationStatusList(serializeArguments(options))
+    return new ObjectHandle(handle)
   }
 
   public version(): string {
@@ -108,22 +110,6 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return new ObjectHandle(handle)
   }
 
-  public revokeCredential(options: {
-    revocationRegistryDefinition: ObjectHandle
-    revocationRegistry: ObjectHandle
-    credentialRevocationIndex: number
-    tailsPath: string
-  }): { revocationRegistry: ObjectHandle; revocationRegistryDelta: ObjectHandle } {
-    const { revocationRegistry, revocationRegistryDelta } = anoncredsReactNative.revokeCredential(
-      serializeArguments(options)
-    )
-
-    return {
-      revocationRegistryDelta: new ObjectHandle(revocationRegistryDelta),
-      revocationRegistry: new ObjectHandle(revocationRegistry),
-    }
-  }
-
   public createCredentialOffer(options: {
     schemaId: string
     credentialDefinitionId: string
@@ -164,10 +150,17 @@ export class ReactNativeAnoncreds implements Anoncreds {
     schemas: Record<string, ObjectHandle>
     credentialDefinitions: Record<string, ObjectHandle>
   }): ObjectHandle {
-    // TODO
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const handle = anoncredsReactNative.createPresentation(serializeArguments(options))
+    const schemaKeys = Object.keys(options.schemas)
+    const schemaValues = Object.values(options.schemas).map((o) => o.handle)
+    const credentialDefinitionKeys = Object.keys(options.credentialDefinitions)
+    const credentialDefinitionValues = Object.values(options.credentialDefinitions).map((o) => o.handle)
+    const handle = anoncredsReactNative.createPresentation({
+      ...serializeArguments(options),
+      schemas: schemaValues,
+      schemaIds: schemaKeys,
+      credentialDefinitions: credentialDefinitionValues,
+      credentialDefinitionIds: credentialDefinitionKeys,
+    })
     return new ObjectHandle(handle)
   }
 
@@ -185,7 +178,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return anoncredsReactNative.verifyPresentation(serializeArguments(options))
   }
 
-  public createRevocationRegistryDef(options: {
+  public createRevocationRegistryDefinition(options: {
     credentialDefinition: ObjectHandle
     credentialDefinitionId: string
     tag: string
@@ -197,7 +190,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     revocationRegistryDefinition: ObjectHandle
     revocationRegistryDefinitionPrivate: ObjectHandle
   } {
-    const { registryDefinition, registryDefinitionPrivate } = anoncredsReactNative.createRevocationRegistry(
+    const { registryDefinition, registryDefinitionPrivate } = anoncredsReactNative.createRevocationRegistryDefinition(
       serializeArguments(options)
     )
 
@@ -207,41 +200,13 @@ export class ReactNativeAnoncreds implements Anoncreds {
     }
   }
 
-  public updateRevocationRegistry(options: {
-    revocationRegistryDefinition: ObjectHandle
-    revocationRegistry: ObjectHandle
-    issued: number[]
-    revoked: number[]
-    tailsDirectoryPath: string
-  }): { revocationRegistry: ObjectHandle; revocationRegistryDelta: ObjectHandle } {
-    const { revocationRegistry, revocationRegistryDelta } = anoncredsReactNative.updateRevocationRegistry(
-      serializeArguments(options)
-    )
-
-    return {
-      revocationRegistryDelta: new ObjectHandle(revocationRegistryDelta),
-      revocationRegistry: new ObjectHandle(revocationRegistry),
-    }
-  }
-
-  public mergeRevocationRegistryDeltas(options: {
-    revocationRegistryDelta1: ObjectHandle
-    revocationRegistryDelta2: ObjectHandle
-  }): ObjectHandle {
-    const handle = anoncredsReactNative.mergeRevocationRegistryDeltas(serializeArguments(options))
-    return new ObjectHandle(handle)
-  }
-
   public createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: ObjectHandle
-    revocationStatusList: ObjectHandle
     revocationRegistryIndex: number
     tailsPath: string
-    previousRevocationState?: ObjectHandle
+    revocationState?: number
+    oldRevocationStatusList?: ObjectHandle
   }): ObjectHandle {
-    // TODO
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     const handle = anoncredsReactNative.createOrUpdateRevocationState(serializeArguments(options))
     return new ObjectHandle(handle)
   }

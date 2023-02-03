@@ -70,7 +70,7 @@ export const CredentialEntryListStruct = CStruct({
 export const CredentialProveStruct = CStruct({
   entry_idx: FFI_INT64,
   referent: FFI_STRING,
-  is_predictable: FFI_INT8,
+  is_predicate: FFI_INT8,
   reveal: FFI_INT8,
 })
 

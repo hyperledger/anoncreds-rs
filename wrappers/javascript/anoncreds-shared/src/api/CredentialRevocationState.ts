@@ -6,13 +6,16 @@ import { anoncreds } from '../register'
 
 export type CreateRevocationStateOptions = {
   revocationRegistryDefinition: RevocationRegistryDefinition
-  revocationRegistryStatusList: RevocationRegistryDelta
   revocationRegistryIndex: number
   tailsPath: string
+  oldRevocationStatusList?: RevocationRegistryDelta
   previousRevocationState?: CredentialRevocationState
 }
 
-export type UpdateRevocationStateOptions = CreateRevocationStateOptions
+export type UpdateRevocationStateOptions = Required<
+  Pick<CreateRevocationStateOptions, 'oldRevocationStatusList' | 'previousRevocationState'>
+> &
+  Omit<CreateRevocationStateOptions, 'oldRevocationStatusList' | 'previousRevocationState'>
 
 export class CredentialRevocationState extends AnoncredsObject {
   public static create(options: CreateRevocationStateOptions) {
@@ -21,8 +24,8 @@ export class CredentialRevocationState extends AnoncredsObject {
         revocationRegistryDefinition: options.revocationRegistryDefinition.handle,
         revocationRegistryIndex: options.revocationRegistryIndex,
         tailsPath: options.tailsPath,
-        revocationStatusList: options.revocationRegistryStatusList.handle,
-        previousRevocationState: options.previousRevocationState?.handle,
+        oldRevocationStatusList: undefined,
+        previousRevocationState: undefined,
       }).handle
     )
   }
@@ -36,8 +39,8 @@ export class CredentialRevocationState extends AnoncredsObject {
       revocationRegistryDefinition: options.revocationRegistryDefinition.handle,
       revocationRegistryIndex: options.revocationRegistryIndex,
       tailsPath: options.tailsPath,
-      revocationStatusList: options.revocationRegistryStatusList.handle,
-      previousRevocationState: options.previousRevocationState?.handle,
+      oldRevocationStatusList: options.oldRevocationStatusList.handle,
+      previousRevocationState: options.previousRevocationState.handle,
     })
   }
 }

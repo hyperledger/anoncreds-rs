@@ -1,7 +1,6 @@
 import type {
   NativeCredentialEntry,
   NativeCredentialProve,
-  NativeRevocationEntry,
   NativeCredentialRevocationConfig,
 } from '@hyperledger/anoncreds-shared'
 
@@ -13,6 +12,20 @@ export interface NativeBindings {
   getCurrentError(options: Record<never, never>): string
   generateNonce(options: Record<never, never>): string
   createSchema(options: { name: string; version: string; issuerId: string; attributeNames: string[] }): _Handle
+  createRevocationStatusList(options: {
+    revocationRegistryDefinitionId: string
+    revocationRegistryDefinition: _Handle
+    timestamp?: number
+    issuanceByDefault: number
+  }): _Handle
+  updateRevocationStatusList(options: {
+    timestamp?: number
+    issued?: number[]
+    revoked?: number[]
+    revocationRegistryDefinition: _Handle
+    currentRevocationStatusList: _Handle
+  }): _Handle
+  updateRevocationStatusListTimestampOnly(options: { timestamp: number; currentRevocationStatusList: _Handle }): _Handle
   createCredentialDefinition(options: {
     schemaId: string
     schema: number
@@ -38,15 +51,7 @@ export interface NativeBindings {
     credentialDefinition: number
     revocationRegistryDefinition?: number
   }): _Handle
-  revokeCredential(options: {
-    revocationRegistryDefinition: number
-    revocationRegistry: number
-    credentialRevocationIndex: number
-    tailsPath: string
-  }): { revocationRegistry: _Handle; revocationRegistryDelta: _Handle }
-
   createCredentialOffer(options: { schemaId: string; credentialDefinitionId: string; keyProof: number }): _Handle
-
   createCredentialRequest(options: {
     proverDid?: string
     credentialDefinition: number
@@ -54,19 +59,18 @@ export interface NativeBindings {
     masterSecretId: string
     credentialOffer: number
   }): { credentialRequest: _Handle; credentialRequestMetadata: _Handle }
-
   createMasterSecret(options: Record<never, never>): number
-
   createPresentation(options: {
     presentationRequest: number
     credentials: NativeCredentialEntry[]
     credentialsProve: NativeCredentialProve[]
     selfAttest: string
     masterSecret: number
+    schemaIds: string[]
     schemas: number[]
+    credentialDefinitionIds: string[]
     credentialDefinitions: number[]
   }): _Handle
-
   verifyPresentation(options: {
     presentation: number
     presentationRequest: number
@@ -78,8 +82,7 @@ export interface NativeBindings {
     revocationRegistryDefinitionIds?: string[]
     revocationStatusLists?: number[]
   }): boolean
-
-  createRevocationRegistry(options: {
+  createRevocationRegistryDefinition(options: {
     credentialDefinition: number
     credentialDefinitionId: string
     issuerId: string
@@ -93,27 +96,12 @@ export interface NativeBindings {
     registryEntry: _Handle
     registryInitDelta: _Handle
   }
-
-  updateRevocationRegistry(options: {
-    revocationRegistryDefinition: number
-    revocationRegistry: number
-    issued: number[]
-    revoked: number[]
-    tailsDirectoryPath: string
-  }): { revocationRegistry: _Handle; revocationRegistryDelta: _Handle }
-
-  mergeRevocationRegistryDeltas(options: {
-    revocationRegistryDelta1: number
-    revocationRegistryDelta2: number
-  }): _Handle
-
   createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: number
-    revocationRegistryList: number
     revocationRegistryIndex: number
     tailsPath: string
-    revocationState: number
-    oldRevocationRegistryList: number
+    revocationState?: number
+    oldRevocationStatusList?: number
   }): _Handle
   presentationRequestFromJson(options: { json: string }): _Handle
   schemaGetAttribute(options: { objectHandle: number; name: string }): string

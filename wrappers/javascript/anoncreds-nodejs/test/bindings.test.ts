@@ -104,7 +104,7 @@ describe('bindings', () => {
       tag: 'TAG',
     })
 
-    const { revocationRegistryDefinition: registryDefinition } = anoncreds.createRevocationRegistryDef({
+    const { revocationRegistryDefinition } = anoncreds.createRevocationRegistryDefinition({
       credentialDefinitionId: 'mock:uri',
       credentialDefinition,
       issuerId: 'mock:uri',
@@ -114,12 +114,12 @@ describe('bindings', () => {
     })
 
     const maximumCredentialNumber = anoncreds.revocationRegistryDefinitionGetAttribute({
-      objectHandle: registryDefinition,
+      objectHandle: revocationRegistryDefinition,
       name: 'max_cred_num',
     })
 
     expect(maximumCredentialNumber).toEqual('100')
-    const json = anoncreds.getJson({ objectHandle: registryDefinition })
+    const json = anoncreds.getJson({ objectHandle: revocationRegistryDefinition })
     expect(JSON.parse(json)).toEqual(
       expect.objectContaining({
         credDefId: 'mock:uri',
@@ -245,16 +245,15 @@ describe('bindings', () => {
       tag: 'TAG',
     })
 
-    const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate } = anoncreds.createRevocationRegistryDef(
-      {
+    const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate } =
+      anoncreds.createRevocationRegistryDefinition({
         credentialDefinitionId: 'mock:uri',
         credentialDefinition,
         issuerId: 'mock:uri',
         tag: 'some_tag',
         revocationRegistryType: 'CL_ACCUM',
         maximumCredentialNumber: 10,
-      }
-    )
+      })
 
     const tailsPath = anoncreds.revocationRegistryDefinitionGetAttribute({
       objectHandle: revocationRegistryDefinition,
@@ -378,16 +377,15 @@ describe('bindings', () => {
       tag: 'TAG',
     })
 
-    const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate } = anoncreds.createRevocationRegistryDef(
-      {
+    const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate } =
+      anoncreds.createRevocationRegistryDefinition({
         credentialDefinitionId: 'mock:uri',
         credentialDefinition,
         issuerId: 'mock:uri',
         tag: 'some_tag',
         revocationRegistryType: 'CL_ACCUM',
         maximumCredentialNumber: 10,
-      }
-    )
+      })
 
     const tailsPath = anoncreds.revocationRegistryDefinitionGetAttribute({
       objectHandle: revocationRegistryDefinition,
@@ -451,7 +449,7 @@ describe('bindings', () => {
 
     const revocationState = anoncreds.createOrUpdateRevocationState({
       revocationRegistryDefinition,
-      revocationStatusList,
+      oldRevocationStatusList: revocationStatusList,
       revocationRegistryIndex,
       tailsPath,
     })

@@ -107,7 +107,7 @@ export interface Anoncreds {
     revocationStatusLists?: ObjectHandle[]
   }): boolean
 
-  createRevocationRegistryDef(options: {
+  createRevocationRegistryDefinition(options: {
     credentialDefinition: ObjectHandle
     credentialDefinitionId: string
     issuerId: string
@@ -122,10 +122,10 @@ export interface Anoncreds {
 
   createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: ObjectHandle
-    revocationStatusList: ObjectHandle
     revocationRegistryIndex: number
     tailsPath: string
     previousRevocationState?: ObjectHandle
+    oldRevocationStatusList?: ObjectHandle
   }): ObjectHandle
 
   createRevocationStatusList(options: {
@@ -135,14 +135,17 @@ export interface Anoncreds {
     issuanceByDefault: boolean
   }): ObjectHandle
 
-  updateRevocationStatusListTimestampOnly(options: { timestamp: number; currentList: ObjectHandle }): ObjectHandle
+  updateRevocationStatusListTimestampOnly(options: {
+    timestamp: number
+    currentRevocationStatusList: ObjectHandle
+  }): ObjectHandle
 
   updateRevocationStatusList(options: {
     timestamp?: number
     issued?: Array<number>
     revoked?: Array<number>
     revocationRegistryDefinition: ObjectHandle
-    currentList: ObjectHandle
+    currentRevocationStatusList: ObjectHandle
   }): ObjectHandle
 
   credentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string
