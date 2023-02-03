@@ -1,4 +1,7 @@
 import type { ByteBufferStruct } from './structures'
+import type { TypedArray } from 'ref-array-di'
+import type { Pointer } from 'ref-napi'
+import type { StructObject } from 'ref-struct-di'
 
 import { ObjectHandle } from '@hyperledger/anoncreds-shared'
 import { NULL } from 'ref-napi'
@@ -19,8 +22,8 @@ type SerializedArgument =
   | number
   | ArrayBuffer
   | Buffer
-  | typeof StringListStruct
-  | typeof ObjectHandleListStruct
+  | StructObject<{ count: number | string; data: TypedArray<string | number | null> }>
+  | StructObject<{ count: number | string; data: Pointer<TypedArray<string | number | null>> }>
 
 type SerializedArguments = Record<string, SerializedArgument>
 
@@ -92,17 +95,17 @@ const serialize = (arg: Argument): SerializedArgument => {
         return arg.handle
       } else if (Array.isArray(arg)) {
         if (arg.every((it) => typeof it === 'string')) {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          return StringListStruct({ count: arg.length, data: arg })
+          return StringListStruct({ count: arg.length, data: arg as unknown as TypedArray<string> })
         } else if (arg.every((it) => it instanceof ObjectHandle)) {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          return ObjectHandleListStruct({ count: arg.length, data: arg.map((item: ObjectHandle) => item.handle) })
+          return ObjectHandleListStruct({
+            count: arg.length,
+            data: (arg as Array<ObjectHandle>).map((i: ObjectHandle) => i.handle) as unknown as TypedArray<number>,
+          })
         } else if (arg.every((it) => typeof it === 'number')) {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          return I32ListStruct({ count: arg.length, data: Int32Array(arg) })
+          return I32ListStruct({
+            count: arg.length,
+            data: Int32Array(arg as Array<number>) as unknown as Pointer<TypedArray<number>>,
+          })
         }
       }
       // TODO: add more serialization here for classes and uint8arrays

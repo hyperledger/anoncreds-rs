@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import type {
   NativeCredentialEntry,
   NativeCredentialProve,
   Anoncreds,
   NativeCredentialRevocationConfig,
 } from '@hyperledger/anoncreds-shared'
+import type { TypedArray } from 'ref-array-di'
+import type { StructObject } from 'ref-struct-di'
 
 import { ByteBuffer, ObjectHandle } from '@hyperledger/anoncreds-shared'
 import { TextDecoder, TextEncoder } from 'util'
@@ -129,21 +130,18 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     const attributeNames = StringListStruct({
       count: Object.keys(options.attributeRawValues).length,
-      // @ts-ignore
-      data: Object.keys(options.attributeRawValues),
+      data: Object.keys(options.attributeRawValues) as unknown as TypedArray<string>,
     })
 
     const attributeRawValues = StringListStruct({
       count: Object.keys(options.attributeRawValues).length,
-      // @ts-ignore
-      data: Object.values(options.attributeRawValues),
+      data: Object.values(options.attributeRawValues) as unknown as TypedArray<string>,
     })
 
     const attributeEncodedValues = options.attributeEncodedValues
       ? StringListStruct({
           count: Object.keys(options.attributeEncodedValues).length,
-          // @ts-ignore
-          data: Object.values(options.attributeEncodedValues),
+          data: Object.values(options.attributeEncodedValues) as unknown as TypedArray<string>,
         })
       : undefined
 
@@ -292,59 +290,64 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     const credentialEntryList = CredentialEntryListStruct({
       count: credentialEntries.length,
-      // @ts-ignore
-      data: credentialEntries,
+      data: credentialEntries as unknown as TypedArray<
+        StructObject<{
+          credential: number
+          timestamp: number
+          rev_state: number
+        }>
+      >,
     })
 
     const credentialProves = options.credentialsProve.map((value) => {
-      const { entryIndex: entry_idx, isPredicate: is_predictable, reveal, referent } = serializeArguments(value)
+      const { entryIndex: entry_idx, isPredicate: is_predicate, reveal, referent } = serializeArguments(value)
 
-      return CredentialProveStruct({ entry_idx, referent, is_predictable, reveal })
+      return CredentialProveStruct({ entry_idx, referent, is_predicate, reveal })
     })
 
     const credentialProveList = CredentialProveListStruct({
       count: credentialProves.length,
-      // @ts-ignore
-      data: credentialProves,
+      data: credentialProves as unknown as TypedArray<
+        StructObject<{
+          entry_idx: string | number
+          referent: string
+          is_predicate: number
+          reveal: number
+        }>
+      >,
     })
 
     const selfAttestNames = StringListStruct({
       count: Object.keys(options.selfAttest).length,
-      // @ts-ignore
-      data: Object.keys(options.selfAttest),
+      data: Object.keys(options.selfAttest) as unknown as TypedArray<string>,
     })
 
     const selfAttestValues = StringListStruct({
       count: Object.values(options.selfAttest).length,
-      // @ts-ignore
-      data: Object.values(options.selfAttest),
+      data: Object.values(options.selfAttest) as unknown as TypedArray<string>,
     })
 
     const schemaKeys = Object.keys(options.schemas)
     const schemaIds = StringListStruct({
       count: schemaKeys.length,
-      // @ts-ignore
-      data: schemaKeys,
+      data: schemaKeys as unknown as TypedArray<string>,
     })
 
     const schemaValues = Object.values(options.schemas)
     const schemas = ObjectHandleListStruct({
       count: schemaValues.length,
-      // @ts-ignore
       data: ObjectHandleArray(schemaValues.map((o) => o.handle)),
     })
 
     const credentialDefinitionKeys = Object.keys(options.credentialDefinitions)
     const credentialDefinitionIds = StringListStruct({
       count: credentialDefinitionKeys.length,
-      // @ts-ignore
-      data: credentialDefinitionKeys,
+      data: credentialDefinitionKeys as unknown as TypedArray<string>,
     })
 
     const credentialDefinitionValues = Object.values(options.credentialDefinitions)
     const credentialDefinitions = ObjectHandleListStruct({
       count: credentialDefinitionValues.length,
-      // @ts-ignore
       data: ObjectHandleArray(credentialDefinitionValues.map((o) => o.handle)),
     })
 
@@ -434,12 +437,12 @@ export class NodeJSAnoncreds implements Anoncreds {
 
   public updateRevocationStatusListTimestampOnly(options: {
     timestamp: number
-    currentList: ObjectHandle
+    currentRevocationStatusList: ObjectHandle
   }): ObjectHandle {
-    const { currentList, timestamp } = serializeArguments(options)
+    const { currentRevocationStatusList, timestamp } = serializeArguments(options)
     const ret = allocatePointer()
 
-    nativeAnoncreds.anoncreds_update_revocation_status_list_timestamp_only(timestamp, currentList, ret)
+    nativeAnoncreds.anoncreds_update_revocation_status_list_timestamp_only(timestamp, currentRevocationStatusList, ret)
     handleError()
 
     return new ObjectHandle(ret.deref() as number)
@@ -450,9 +453,10 @@ export class NodeJSAnoncreds implements Anoncreds {
     issued?: number[]
     revoked?: number[]
     revocationRegistryDefinition: ObjectHandle
-    currentList: ObjectHandle
+    currentRevocationStatusList: ObjectHandle
   }): ObjectHandle {
-    const { currentList, timestamp, revocationRegistryDefinition, revoked, issued } = serializeArguments(options)
+    const { currentRevocationStatusList, timestamp, revocationRegistryDefinition, revoked, issued } =
+      serializeArguments(options)
     const ret = allocatePointer()
 
     nativeAnoncreds.anoncreds_update_revocation_status_list(
@@ -460,7 +464,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       issued,
       revoked,
       revocationRegistryDefinition,
-      currentList,
+      currentRevocationStatusList,
       ret
     )
     handleError()
@@ -468,7 +472,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     return new ObjectHandle(ret.deref() as number)
   }
 
-  public createRevocationRegistryDef(options: {
+  public createRevocationRegistryDefinition(options: {
     credentialDefinition: ObjectHandle
     credentialDefinitionId: string
     issuerId: string
@@ -556,8 +560,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     const byteBuffer = ByteBuffer.fromUint8Array(new TextEncoder().encode(options.json))
     handleError()
 
-    // @ts-ignore
-    method(byteBuffer, ret)
+    method(byteBuffer as unknown as Buffer, ret)
 
     return new ObjectHandle(ret.deref() as number)
   }

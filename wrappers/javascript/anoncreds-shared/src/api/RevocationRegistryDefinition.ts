@@ -21,7 +21,7 @@ export class RevocationRegistryDefinition extends AnoncredsObject {
     const {
       revocationRegistryDefinition: registryDefinition,
       revocationRegistryDefinitionPrivate: registryDefinitionPrivate,
-    } = anoncreds.createRevocationRegistryDef({
+    } = anoncreds.createRevocationRegistryDefinition({
       ...options,
       credentialDefinition: options.credentialDefinition.handle,
     })

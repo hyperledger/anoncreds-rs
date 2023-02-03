@@ -35,7 +35,7 @@ export class RevocationStatusList extends AnoncredsObject {
   public updateTimestamp(options: UpdateRevocationStatusListTimestampOptions) {
     const updatedRevocationStatusList = anoncreds.updateRevocationStatusListTimestampOnly({
       timestamp: options.timestamp,
-      currentList: this.handle,
+      currentRevocationStatusList: this.handle,
     })
 
     this.handle = updatedRevocationStatusList
@@ -45,7 +45,7 @@ export class RevocationStatusList extends AnoncredsObject {
     const updatedRevocationStatusList = anoncreds.updateRevocationStatusList({
       ...options,
       revocationRegistryDefinition: options.revocationRegstryDefinition.handle,
-      currentList: this.handle,
+      currentRevocationStatusList: this.handle,
     })
 
     this.handle = updatedRevocationStatusList
