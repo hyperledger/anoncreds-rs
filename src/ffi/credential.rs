@@ -125,7 +125,8 @@ pub extern "C" fn anoncreds_create_credential(
             cred_request.load()?.cast_ref()?,
             cred_values.into(),
             rev_reg_id,
-            rev_status_list.opt_load()?
+            rev_status_list
+                .opt_load()?
                 .as_ref()
                 .map(AnonCredsObject::cast_ref)
                 .transpose()?,
