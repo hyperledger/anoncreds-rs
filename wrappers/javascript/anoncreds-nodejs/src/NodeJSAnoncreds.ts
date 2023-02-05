@@ -211,7 +211,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialRequestMetadata,
       masterSecret,
       credentialDefinition,
-      revocationRegistryDefinition,
+      revocationRegistryDefinition ?? 0,
       ret
     )
     handleError()
