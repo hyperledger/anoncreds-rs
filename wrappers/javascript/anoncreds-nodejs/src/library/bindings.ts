@@ -35,7 +35,7 @@ export const nativeBindings = {
       StringListStruct,
       FFI_STRING,
       FFI_OBJECT_HANDLE,
-      refType(CredRevInfoStruct),
+      FFI_OBJECT_HANDLE,
       FFI_OBJECT_HANDLE_PTR,
     ],
   ],

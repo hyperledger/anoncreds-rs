@@ -511,4 +511,71 @@ describe('bindings', () => {
 
     expect(verify).toBeTruthy()
   })
+
+  test('create and receive credential without revocation', () => {
+    const schemaObj = anoncreds.createSchema({
+      name: 'schema-1',
+      issuerId: 'mock:uri',
+      version: '1',
+      attributeNames: ['attr-1'],
+    })
+
+    const { credentialDefinition, keyProof, credentialDefinitionPrivate } = anoncreds.createCredentialDefinition({
+      schemaId: 'mock:uri',
+      issuerId: 'mock:uri',
+      schema: schemaObj,
+      signatureType: 'CL',
+      supportRevocation: false,
+      tag: 'TAG',
+    })
+
+    const credentialOffer = anoncreds.createCredentialOffer({
+      schemaId: 'mock:uri',
+      credentialDefinitionId: 'mock:uri',
+      keyProof,
+    })
+
+    const masterSecret = anoncreds.createMasterSecret()
+    const masterSecretId = 'master secret id'
+
+    const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
+      credentialDefinition,
+      masterSecret,
+      masterSecretId,
+      credentialOffer,
+    })
+
+    const credential = anoncreds.createCredential({
+      credentialDefinition,
+      credentialDefinitionPrivate,
+      credentialOffer,
+      credentialRequest,
+      attributeRawValues: { 'attr-1': 'test' },
+    })
+
+    const credReceived = anoncreds.processCredential({
+      credential,
+      credentialDefinition,
+      credentialRequestMetadata,
+      masterSecret,
+    })
+
+    const credJson = anoncreds.getJson({ objectHandle: credential })
+    expect(JSON.parse(credJson)).toEqual(
+      expect.objectContaining({
+        cred_def_id: 'mock:uri',
+        schema_id: 'mock:uri',
+      })
+    )
+
+    const credReceivedJson = anoncreds.getJson({ objectHandle: credReceived })
+    expect(JSON.parse(credReceivedJson)).toEqual(
+      expect.objectContaining({
+        cred_def_id: 'mock:uri',
+        schema_id: 'mock:uri',
+      })
+    )
+    expect(JSON.parse(credReceivedJson)).toHaveProperty('signature')
+    expect(JSON.parse(credReceivedJson)).toHaveProperty('witness')
+  })
 })

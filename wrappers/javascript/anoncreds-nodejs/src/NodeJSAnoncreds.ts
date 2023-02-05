@@ -145,7 +145,7 @@ export class NodeJSAnoncreds implements Anoncreds {
         })
       : undefined
 
-    let revocationConfiguration = CredRevInfoStruct()
+    let revocationConfiguration
     if (options.revocationConfiguration) {
       const {
         revocationRegistryDefinition: registryDefinition,
@@ -172,8 +172,8 @@ export class NodeJSAnoncreds implements Anoncreds {
       attributeRawValues as unknown as Buffer,
       attributeEncodedValues as unknown as Buffer,
       revocationRegistryId,
-      revocationStatusList,
-      revocationConfiguration.ref(),
+      revocationStatusList ?? 0,
+      revocationConfiguration ? revocationConfiguration.ref().address() : 0,
       credentialPtr
     )
     handleError()
