@@ -285,7 +285,7 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     const credentialEntries = options.credentials.map((value) => {
       const { credential, timestamp, revocationState: rev_state } = serializeArguments(value)
-      return CredentialEntryStruct({ credential, timestamp, rev_state })
+      return CredentialEntryStruct({ credential, timestamp: timestamp ?? -1, rev_state: rev_state ?? 0 })
     })
 
     const credentialEntryList = CredentialEntryListStruct({
