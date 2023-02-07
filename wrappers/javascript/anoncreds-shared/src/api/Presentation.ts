@@ -16,8 +16,8 @@ import { anoncreds } from '../register'
 
 export type CredentialEntry = {
   credential: Credential
-  timestamp: number
-  revocationState: CredentialRevocationState
+  timestamp?: number
+  revocationState?: CredentialRevocationState
 }
 
 export type CredentialProve = {
@@ -58,7 +58,7 @@ export class Presentation extends AnoncredsObject {
         presentationRequest: options.presentationRequest.handle,
         credentials: options.credentials.map((item) => ({
           credential: item.credential.handle,
-          revocationState: item.revocationState.handle,
+          revocationState: item.revocationState?.handle,
           timestamp: item.timestamp,
         })),
         credentialsProve: options.credentialsProve,
