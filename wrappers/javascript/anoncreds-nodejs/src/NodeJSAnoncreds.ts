@@ -125,7 +125,6 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialOffer,
       credentialRequest,
       revocationRegistryId,
-      revocationStatusList,
     } = serializeArguments(options)
 
     const attributeNames = StringListStruct({
@@ -172,8 +171,8 @@ export class NodeJSAnoncreds implements Anoncreds {
       attributeRawValues as unknown as Buffer,
       attributeEncodedValues as unknown as Buffer,
       revocationRegistryId,
-      revocationStatusList ?? 0,
-      revocationConfiguration ? revocationConfiguration.ref().address() : 0,
+      options.revocationStatusList?.handle ?? 0,
+      revocationConfiguration?.ref().address() ?? 0,
       credentialPtr
     )
     handleError()
@@ -201,8 +200,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     credentialDefinition: ObjectHandle
     revocationRegistryDefinition?: ObjectHandle | undefined
   }): ObjectHandle {
-    const { credential, credentialRequestMetadata, masterSecret, credentialDefinition, revocationRegistryDefinition } =
-      serializeArguments(options)
+    const { credential, credentialRequestMetadata, masterSecret, credentialDefinition } = serializeArguments(options)
 
     const ret = allocatePointer()
 
@@ -211,7 +209,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialRequestMetadata,
       masterSecret,
       credentialDefinition,
-      revocationRegistryDefinition ?? 0,
+      options.revocationRegistryDefinition?.handle ?? 0,
       ret
     )
     handleError()
@@ -283,10 +281,13 @@ export class NodeJSAnoncreds implements Anoncreds {
   }): ObjectHandle {
     const { presentationRequest, masterSecret } = serializeArguments(options)
 
-    const credentialEntries = options.credentials.map((value) => {
-      const { credential, timestamp, revocationState: rev_state } = serializeArguments(value)
-      return CredentialEntryStruct({ credential, timestamp: timestamp ?? -1, rev_state: rev_state ?? 0 })
-    })
+    const credentialEntries = options.credentials.map((value) =>
+      CredentialEntryStruct({
+        credential: value.credential.handle,
+        timestamp: value.timestamp ?? -1,
+        rev_state: value.revocationState?.handle ?? 0,
+      })
+    )
 
     const credentialEntryList = CredentialEntryListStruct({
       count: credentialEntries.length,
@@ -301,7 +302,6 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     const credentialProves = options.credentialsProve.map((value) => {
       const { entryIndex: entry_idx, isPredicate: is_predicate, reveal, referent } = serializeArguments(value)
-
       return CredentialProveStruct({ entry_idx, referent, is_predicate, reveal })
     })
 
