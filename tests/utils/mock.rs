@@ -93,6 +93,7 @@ impl<'a> Mock<'a> {
                 &cred_defs,
                 Some(&rev_reg_def_map),
                 Some(rev_status_lists.clone()),
+                None,
             )
             .expect("Error verifying presentation");
             results.push(valid);

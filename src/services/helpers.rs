@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::data_types::{
     credential::AttributeValues,
     nonce::Nonce,
-    pres_request::{AttributeInfo, NonRevocedInterval, PredicateInfo},
+    pres_request::{AttributeInfo, PredicateInfo},
 };
 use crate::utils::hash::SHA256;
 
@@ -134,55 +134,6 @@ pub fn build_sub_proof_request(
     Ok(res)
 }
 
-pub fn get_non_revoc_interval(
-    global_interval: &Option<NonRevocedInterval>,
-    local_interval: &Option<NonRevocedInterval>,
-) -> Option<NonRevocedInterval> {
-    trace!(
-        "get_non_revoc_interval >>> global_interval: {:?}, local_interval: {:?}",
-        global_interval,
-        local_interval
-    );
-
-    let interval = local_interval
-        .clone()
-        .or_else(|| global_interval.clone().or(None));
-
-    trace!("get_non_revoc_interval <<< interval: {:?}", interval);
-
-    interval
-}
-
 pub fn new_nonce() -> Result<Nonce> {
     Nonce::new().map_err(err_map!(Unexpected))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn _interval() -> NonRevocedInterval {
-        NonRevocedInterval {
-            from: None,
-            to: Some(123),
-        }
-    }
-
-    #[test]
-    fn get_non_revoc_interval_for_global() {
-        let res = get_non_revoc_interval(&Some(_interval()), &None).unwrap();
-        assert_eq!(_interval(), res);
-    }
-
-    #[test]
-    fn get_non_revoc_interval_for_local() {
-        let res = get_non_revoc_interval(&None, &Some(_interval())).unwrap();
-        assert_eq!(_interval(), res);
-    }
-
-    #[test]
-    fn get_non_revoc_interval_for_none() {
-        let res = get_non_revoc_interval(&None, &None);
-        assert_eq!(None, res);
-    }
 }

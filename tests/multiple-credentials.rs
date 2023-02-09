@@ -28,9 +28,6 @@ static CRED_DEF_ID_2: &'static str = "mock:uri:2";
 static REV_REG_ID_1: &'static str = "mock:uri:revregid1";
 static REV_REG_ID_2: &'static str = "mock:uri:revregid2";
 
-// Credential 1 is revocable
-// Credential 2 is non-revocable
-// There are 2 definitions, issued by 2 issuers
 fn test_2_different_revoke_reqs() -> Vec<PresentationRequest> {
     let nonce_1 = verifier::generate_nonce().expect("Error generating presentation request nonce");
     let nonce_2 = verifier::generate_nonce().expect("Error generating presentation request nonce");
@@ -91,6 +88,9 @@ fn anoncreds_with_multiple_credentials_per_request() {
     let mut mock = utils::Mock::new(&[ISSUER_ID], &[PROVER_ID], TF_PATH, MAX_CRED_NUM);
 
     // These are what the issuer knows
+    // Credential 1 is revocable
+    // Credential 2 is non-revocable
+    // There are 2 definitions, issued by 1 issuer
     let issuer1_creds: utils::IsserValues = HashMap::from([
         (
             CRED_DEF_ID_1,
@@ -116,9 +116,7 @@ fn anoncreds_with_multiple_credentials_per_request() {
                     ("house", "Hufflepuff"),
                     ("year", "1990"),
                 ]),
-                // Issue 42 addresses if it is not revocable,
-                // revocation should still pass
-                true,
+                false,
                 REV_REG_ID_2,
                 REV_IDX_2,
             ),
@@ -138,9 +136,9 @@ fn anoncreds_with_multiple_credentials_per_request() {
 
     mock.ledger.schemas = schemas;
 
-    // This is out of range of revoke interval, should get warning
-    let time_initial_rev_reg = 123u64;
-    let time_after_credential = 124u64;
+    // These are within interval
+    let time_initial_rev_reg = 8u64;
+    let time_after_credential = 10u64;
     let issuance_by_default = true;
 
     // To test:

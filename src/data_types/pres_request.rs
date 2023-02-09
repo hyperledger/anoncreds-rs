@@ -122,10 +122,57 @@ impl Serialize for PresentationRequest {
 #[allow(unused)]
 pub type PresentationRequestExtraQuery = HashMap<String, Query>;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[derive(Clone, Default, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct NonRevocedInterval {
     pub from: Option<u64>,
     pub to: Option<u64>,
+}
+
+impl NonRevocedInterval {
+    // Returns the most stringent interval,
+    // i.e. the latest from and the earliest to
+    pub fn compare_and_set(&mut self, to_compare: &NonRevocedInterval) {
+        // Update if
+        // - the new `from` value is later, smaller interval
+        // - the new `from` value is Some if previouly was None
+        match (self.from, to_compare.from) {
+            (Some(old_from), Some(new_from)) => {
+                if old_from.lt(&new_from) {
+                    self.from = to_compare.from
+                }
+            }
+            (None, Some(_)) => self.from = to_compare.from,
+            _ => (),
+        }
+        // Update if
+        // - the new `to` value is earlier, smaller interval
+        // - the new `to` value is Some if previouly was None
+        match (self.to, to_compare.to) {
+            (Some(old_to), Some(new_to)) => {
+                if new_to.lt(&old_to) {
+                    self.to = to_compare.to
+                }
+            }
+            (None, Some(_)) => self.to = to_compare.to,
+            _ => (),
+        }
+    }
+
+    pub fn update_with_override(&mut self, override_map: &HashMap<u64, u64>) {
+        self.from.map(|from| {
+            override_map
+                .get(&from)
+                .map(|&override_timestamp| self.from = Some(override_timestamp))
+        });
+    }
+
+    pub fn is_valid(&self, timestamp: u64) -> Result<(), ValidationError> {
+        if timestamp.lt(&self.from.unwrap_or(0)) || timestamp.gt(&self.to.unwrap_or(u64::MAX)) {
+            Err(invalid!("Invalid timestamp"))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
@@ -329,5 +376,15 @@ mod tests {
 
             serde_json::from_str::<PresentationRequest>(&req_json).unwrap_err();
         }
+    }
+
+    #[test]
+    fn override_works() {
+        let mut interval = NonRevocedInterval::default();
+        let override_map = HashMap::from([(10u64, 5u64)]);
+
+        interval.from = Some(10);
+        interval.update_with_override(&override_map);
+        assert_eq!(interval.from.unwrap(), 5u64);
     }
 }

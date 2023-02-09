@@ -202,10 +202,13 @@ pub extern "C" fn anoncreds_create_presentation(
 /// E.g. if the ledger has Revocation Status List at timestamps [0, 100, 200],
 /// let's call them List0, List100, List200. Then:  
 ///
+/// ```txt
+///
 ///       List0 is valid  List100 is valid
 ///        ______|_______ _______|_______
 ///       |              |               |
 /// List  0 ----------- 100 ----------- 200
+/// ```
 ///
 /// A `nonrevoked_interval = {from: 50, to: 150}` should accept both List0 and
 /// List100.  
@@ -310,7 +313,7 @@ pub extern "C" fn anoncreds_verify_presentation(
 
         let override_entries = {
             let override_ffi_entries = nonrevoked_interval_override.as_slice();
-            override_ffi_entries.into_iter().try_fold(
+            override_ffi_entries.iter().try_fold(
                 Vec::with_capacity(override_ffi_entries.len()),
                 |mut v, entry| -> Result<Vec<(RevocationRegistryDefinitionId, u64, u64)>> {
                     v.push(entry.load()?);
