@@ -44,6 +44,9 @@ pub fn verify_presentation(
     cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
     rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
     rev_status_lists: Option<Vec<&RevocationStatusList>>,
+    nonrevoke_interval_override: Option<
+        &HashMap<&RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+    >,
 ) -> Result<bool> {
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
