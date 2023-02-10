@@ -1,14 +1,11 @@
 import type { NativeCredentialRevocationConfig } from '../Anoncreds'
-import type { RevocationRegistry } from './RevocationRegistry'
 import type { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
 import type { RevocationRegistryDefinitionPrivate } from './RevocationRegistryDefinitionPrivate'
 
 export type CredentialRevocationConfigOptions = {
   registryDefinition: RevocationRegistryDefinition
   registryDefinitionPrivate: RevocationRegistryDefinitionPrivate
-  registry: RevocationRegistry
   registryIndex: number
-  registryUsed?: number[]
   tailsPath: string
 }
 

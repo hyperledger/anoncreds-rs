@@ -1,11 +1,8 @@
-import { refType } from 'ref-napi'
-
 import {
   ByteBufferStruct,
   FFI_ERRORCODE,
   FFI_OBJECT_HANDLE,
   StringListStruct,
-  CredRevInfoStruct,
   FFI_OBJECT_HANDLE_PTR,
   FFI_STRING,
   FFI_INT8,
@@ -35,7 +32,7 @@ export const nativeBindings = {
       StringListStruct,
       FFI_STRING,
       FFI_OBJECT_HANDLE,
-      refType(CredRevInfoStruct),
+      FFI_OBJECT_HANDLE,
       FFI_OBJECT_HANDLE_PTR,
     ],
   ],
