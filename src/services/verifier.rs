@@ -144,12 +144,20 @@ pub fn verify_presentation(
             pres_req,
         )?;
 
-        // Collaspe to the most stringent interval,
+        // Collaspe to the most stringent local interval for the attributes / predicates,
         // we can do this because there is only 1 revocation status list for this credential
         // if it satsifies the most stringent interval, it will satisfy all intervals
         let mut cred_nonrevoked_interval = attrs_nonrevoked_interval;
         cred_nonrevoked_interval.compare_and_set(&pred_nonrevoked_interval);
-        if let Some(interval) = pres_req.non_revoked.as_ref() {
+
+        // Global interval is override by the local one,
+        // we only need to update if local is None and Global is Some,
+        // do not need to update if global is more stringent
+        if let (Some(interval), None, None) = (
+            pres_req.non_revoked.as_ref(),
+            cred_nonrevoked_interval.from,
+            cred_nonrevoked_interval.to,
+        ) {
             cred_nonrevoked_interval.compare_and_set(interval);
         };
 
@@ -1262,12 +1270,5 @@ mod tests {
             },
         );
         res
-    }
-
-    fn _interval() -> NonRevocedInterval {
-        NonRevocedInterval {
-            from: None,
-            to: Some(1234),
-        }
     }
 }

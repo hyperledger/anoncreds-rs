@@ -26,7 +26,7 @@ use anoncreds::{
 // {cred_def_id: {
 //       schema_id, credential_values, support_revocation, rev_reg_id, rev_idx
 // }}
-pub type IsserValues<'a> =
+pub type IssuerValues<'a> =
     HashMap<&'a str, (&'a str, HashMap<&'a str, &'a str>, bool, &'a str, u32)>;
 
 // {cred_def_id: {
@@ -109,7 +109,7 @@ impl<'a> Mock<'a> {
         &mut self,
         issuer_id: &'static str,
         prover_id: &'static str,
-        values: &'a IsserValues,
+        values: &'a IssuerValues,
         time_now: u64,
         issuance_by_default: bool,
     ) {
@@ -288,7 +288,7 @@ impl<'a> Mock<'a> {
         &mut self,
         issuer_id: &'static str,
         prover_id: &'static str,
-        values: &'a IsserValues,
+        values: &'a IssuerValues,
         time_prev_rev_reg: u64,
         time_new_rev_reg: u64,
     ) {

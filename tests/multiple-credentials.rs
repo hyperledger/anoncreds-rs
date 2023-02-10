@@ -19,6 +19,16 @@ pub static REV_IDX_1: u32 = 9;
 pub static REV_IDX_2: u32 = 9;
 pub static MAX_CRED_NUM: u32 = 10;
 pub static TF_PATH: &str = "../.tmp";
+
+// NonRevoked Interval consts
+const GLOBAL_FROM: u64 = 5;
+const GLOBAL_TO: u64 = 25;
+const LOCAL_FROM: u64 = 10;
+const OVERRIDE_LOCAL_FROM: u64 = 8;
+const LOCAL_TO: u32 = 20;
+const TS_WITHIN_LOCAL_OVERRIDE: u32 = 9;
+const TS_WITHIN_GLOBAL_ONLY: u32 = 7;
+
 const SCHEMA_ID_1: &str = "mock:uri:schema1";
 const SCHEMA_ID_2: &str = "mock:uri:schema2";
 const SCHEMA_1: &str = r#"{"name":"gvt","version":"1.0","attrNames":["name","sex","age","height"],"issuerId":"mock:issuer_id/path&q=bar"}"#;
@@ -28,9 +38,14 @@ static CRED_DEF_ID_2: &'static str = "mock:uri:2";
 static REV_REG_ID_1: &'static str = "mock:uri:revregid1";
 static REV_REG_ID_2: &'static str = "mock:uri:revregid2";
 
+// This returns Presentation Requests with following nonrevoked intervals
+// [0]: Global
+// [1]: Local for attributes belonging to both credentials
+// [2]: Global and Local, where local is more stringent
 fn test_2_different_revoke_reqs() -> Vec<PresentationRequest> {
     let nonce_1 = verifier::generate_nonce().expect("Error generating presentation request nonce");
     let nonce_2 = verifier::generate_nonce().expect("Error generating presentation request nonce");
+    let nonce_3 = verifier::generate_nonce().expect("Error generating presentation request nonce");
 
     let json = json!({
         "nonce": nonce_1,
@@ -57,22 +72,23 @@ fn test_2_different_revoke_reqs() -> Vec<PresentationRequest> {
     });
 
     let mut p1: PresentationRequestPayload = serde_json::from_value(json.clone()).unwrap();
-    let mut p2: PresentationRequestPayload = serde_json::from_value(json).unwrap();
+    let mut p2: PresentationRequestPayload = serde_json::from_value(json.clone()).unwrap();
+    let mut p3: PresentationRequestPayload = serde_json::from_value(json).unwrap();
 
     // Global non_revoked
-    p1.non_revoked = Some(NonRevocedInterval {
-        from: Some(10),
-        to: Some(20),
-    });
+    p1.non_revoked = Some(NonRevocedInterval::new(Some(5), Some(25)));
     p1.nonce = nonce_1;
     p2.nonce = nonce_2;
+    p3.nonce = nonce_3;
 
     // Local non_revoked
-    if let Some(at) = p2.requested_attributes.get_mut("attr4_referent") {
-        at.non_revoked = Some(NonRevocedInterval {
-            from: Some(10),
-            to: Some(20),
-        })
+    if let Some(at1) = p2.requested_attributes.get_mut("attr4_referent") {
+        at1.non_revoked = Some(NonRevocedInterval::new(Some(10), Some(20)));
+    } else {
+        panic!("Cannot add non_revoke to attri");
+    }
+    if let Some(at2) = p2.requested_attributes.get_mut("attr5_referent") {
+        at2.non_revoked = Some(NonRevocedInterval::new(Some(10), Some(20)));
     } else {
         panic!("Cannot add non_revoke to attri");
     }
@@ -83,15 +99,12 @@ fn test_2_different_revoke_reqs() -> Vec<PresentationRequest> {
     ]
 }
 
-#[test]
-fn anoncreds_with_multiple_credentials_per_request() {
-    let mut mock = utils::Mock::new(&[ISSUER_ID], &[PROVER_ID], TF_PATH, MAX_CRED_NUM);
-
+fn create_issuer_data<'a>() -> utils::IssuerValues<'a> {
     // These are what the issuer knows
     // Credential 1 is revocable
     // Credential 2 is non-revocable
     // There are 2 definitions, issued by 1 issuer
-    let issuer1_creds: utils::IsserValues = HashMap::from([
+    let issuer1_creds: utils::IssuerValues = HashMap::from([
         (
             CRED_DEF_ID_1,
             (
@@ -122,6 +135,14 @@ fn anoncreds_with_multiple_credentials_per_request() {
             ),
         ),
     ]);
+    issuer1_creds
+}
+
+#[test]
+fn anoncreds_with_multiple_credentials_per_request() {
+    let mut mock = utils::Mock::new(&[ISSUER_ID], &[PROVER_ID], TF_PATH, MAX_CRED_NUM);
+
+    let issuer1_creds = create_issuer_data();
 
     let schemas = HashMap::from([
         (

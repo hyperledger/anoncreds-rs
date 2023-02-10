@@ -129,6 +129,9 @@ pub struct NonRevocedInterval {
 }
 
 impl NonRevocedInterval {
+    pub fn new(from: Option<u64>, to: Option<u64>) -> Self {
+        Self { from, to }
+    }
     // Returns the most stringent interval,
     // i.e. the latest from and the earliest to
     pub fn compare_and_set(&mut self, to_compare: &NonRevocedInterval) {
@@ -386,5 +389,35 @@ mod tests {
         interval.from = Some(10);
         interval.update_with_override(&override_map);
         assert_eq!(interval.from.unwrap(), 5u64);
+    }
+
+    #[test]
+    fn compare_and_set_works() {
+        let mut int = NonRevocedInterval::default();
+        let wide_int = NonRevocedInterval::new(Some(1), Some(100));
+        let mid_int = NonRevocedInterval::new(Some(5), Some(80));
+        let narrow_int = NonRevocedInterval::new(Some(10), Some(50));
+
+        assert_eq!(int.from, None);
+        assert_eq!(int.to, None);
+
+        // From None to Some
+        int.compare_and_set(&wide_int);
+        assert_eq!(int.from, wide_int.from);
+        assert_eq!(int.to, wide_int.to);
+
+        // Update when more narrow
+        int.compare_and_set(&mid_int);
+        assert_eq!(int.from, mid_int.from);
+        assert_eq!(int.to, mid_int.to);
+
+        // Do Not Update when wider
+        int.compare_and_set(&wide_int);
+        assert_eq!(int.from, mid_int.from);
+        assert_eq!(int.to, mid_int.to);
+
+        int.compare_and_set(&narrow_int);
+        assert_eq!(int.from, narrow_int.from);
+        assert_eq!(int.to, narrow_int.to);
     }
 }
