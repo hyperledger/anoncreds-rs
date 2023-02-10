@@ -338,7 +338,7 @@ jsi::Value createRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle revocationStatusListP;
 
   ErrorCode code = anoncreds_create_revocation_status_list(
-      revocationRegistryDefinitionId, revocationRegistryDefinition, timestamp,
+      revocationRegistryDefinitionId.c_str(), revocationRegistryDefinition, timestamp,
       issuanceByDefault, &revocationStatusListP);
   handleError(rt, code);
 
