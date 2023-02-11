@@ -2,7 +2,7 @@
 
 #include <include/libanoncreds.h>
 
-using namespace turboModuleUtility;
+using namespace anoncredsTurboModuleUtility;
 
 namespace anoncreds {
 

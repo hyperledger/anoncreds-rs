@@ -25,7 +25,7 @@ private:
     auto runtime = reinterpret_cast<jsi::Runtime*>(jsiRuntimePointer);
     auto jsCallInvoker = jsCallInvokerHolder->cthis()->getCallInvoker();
 
-    turboModuleUtility::registerTurboModule(*runtime, jsCallInvoker);
+    anoncredsTurboModuleUtility::registerTurboModule(*runtime, jsCallInvoker);
   }
 };
 
