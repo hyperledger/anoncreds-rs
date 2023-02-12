@@ -6,6 +6,7 @@ import type { CredentialRequestMetadata } from './CredentialRequestMetadata'
 import type { CredentialRevocationConfig } from './CredentialRevocationConfig'
 import type { MasterSecret } from './MasterSecret'
 import type { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
+import type { RevocationStatusList } from './RevocationStatusList'
 
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
@@ -19,6 +20,7 @@ export type CreateCredentialOptions = {
   attributeEncodedValues?: Record<string, string>
   revocationRegistryId?: string
   revocationConfiguration?: CredentialRevocationConfig
+  revocationStatusList?: RevocationStatusList
 }
 
 export type ProcessCredentialOptions = {
@@ -39,6 +41,7 @@ export class Credential extends AnoncredsObject {
       attributeEncodedValues: options.attributeEncodedValues,
       revocationRegistryId: options.revocationRegistryId,
       revocationConfiguration: options.revocationConfiguration?.native,
+      revocationStatusList: options.revocationStatusList?.handle,
     })
 
     return new Credential(credential.handle)

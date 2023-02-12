@@ -2,7 +2,7 @@
 
 #include <include/libanoncreds.h>
 
-using namespace turboModuleUtility;
+using namespace anoncredsTurboModuleUtility;
 
 namespace anoncreds {
 
@@ -321,14 +321,14 @@ jsi::Value createOrUpdateRevocationState(jsi::Runtime &rt,
   ErrorCode code = anoncreds_create_or_update_revocation_state(
       revocationRegistryDefinition, revocationStatusList,
       revocationRegistryIndex, tailsPath.c_str(), revocationState,
-      oldRevocationStatusList, &revStateP);
+      oldRevocationStatusList, &revocationStateP);
   handleError(rt, code);
 
   return jsi::Value(int(revocationStateP));
 };
 
-jsi::value createRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
-  auto revocationRegistryDefinitionid =
+jsi::Value createRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
+  auto revocationRegistryDefinitionId =
       jsiToValue<std::string>(rt, options, "revocationRegistryDefinitionId");
   auto revocationRegistryDefinition =
       jsiToValue<ObjectHandle>(rt, options, "revocationRegistryDefinition");
@@ -338,8 +338,8 @@ jsi::value createRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle revocationStatusListP;
 
   ErrorCode code = anoncreds_create_revocation_status_list(
-      revocationRegistryDefinitionId, revocationRegistryDefinition, timestamp,
-      issuanceByDefault);
+      revocationRegistryDefinitionId.c_str(), revocationRegistryDefinition, timestamp,
+      issuanceByDefault, &revocationStatusListP);
   handleError(rt, code);
 
   return jsi::Value(int(revocationStatusListP));

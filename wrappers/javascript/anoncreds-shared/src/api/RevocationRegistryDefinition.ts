@@ -6,7 +6,6 @@ import { anoncreds } from '../register'
 import { RevocationRegistryDefinitionPrivate } from './RevocationRegistryDefinitionPrivate'
 
 export type CreateRevocationRegistryDefinitionOptions = {
-  originDid: string
   credentialDefinition: CredentialDefinition
   credentialDefinitionId: string
   tag: string

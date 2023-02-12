@@ -8,7 +8,7 @@
 
 using namespace facebook;
 
-namespace turboModuleUtility {
+namespace anoncredsturboModuleUtility {
 static const int32_t arrayMaxSize = 255;
 static const std::string errorPrefix = "Value `";
 static const std::string errorInfix = "` is not of type ";
@@ -36,4 +36,4 @@ T jsiToValue(jsi::Runtime &rt, jsi::Object &options, const char *name,
 // Handles an error from within the module and sends it back to the js side
 void handleError(jsi::Runtime &rt, ErrorCode code);
 
-} // namespace turboModuleUtility
+} // namespace anoncredsTurboModuleUtility

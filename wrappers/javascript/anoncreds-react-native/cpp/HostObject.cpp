@@ -2,9 +2,9 @@
 #include <algorithm>
 #include <vector>
 
-TurboModuleHostObject::TurboModuleHostObject(jsi::Runtime &rt) { return; }
+AnoncredsTurboModuleHostObject::AnoncredsTurboModuleHostObject(jsi::Runtime &rt) { return; }
 
-FunctionMap TurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
+FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   FunctionMap fMap;
 
   fMap.insert(std::make_tuple("version", &anoncreds::version));
@@ -49,7 +49,7 @@ FunctionMap TurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   return fMap;
 }
 
-jsi::Function TurboModuleHostObject::call(jsi::Runtime &rt, const char *name,
+jsi::Function AnoncredsTurboModuleHostObject::call(jsi::Runtime &rt, const char *name,
                                           Cb cb) {
   return jsi::Function::createFromHostFunction(
       rt, jsi::PropNameID::forAscii(rt, name), 1,
@@ -62,8 +62,8 @@ jsi::Function TurboModuleHostObject::call(jsi::Runtime &rt, const char *name,
 };
 
 std::vector<jsi::PropNameID>
-TurboModuleHostObject::getPropertyNames(jsi::Runtime &rt) {
-  auto fMap = TurboModuleHostObject::functionMapping(rt);
+AnoncredsTurboModuleHostObject::getPropertyNames(jsi::Runtime &rt) {
+  auto fMap = AnoncredsTurboModuleHostObject::functionMapping(rt);
   std::vector<jsi::PropNameID> result;
   for (FunctionMap::iterator it = fMap.begin(); it != fMap.end(); ++it) {
     result.push_back(jsi::PropNameID::forUtf8(rt, it->first));
@@ -72,13 +72,13 @@ TurboModuleHostObject::getPropertyNames(jsi::Runtime &rt) {
   return result;
 }
 
-jsi::Value TurboModuleHostObject::get(jsi::Runtime &rt,
+jsi::Value AnoncredsTurboModuleHostObject::get(jsi::Runtime &rt,
                                       const jsi::PropNameID &propNameId) {
   auto propName = propNameId.utf8(rt);
-  auto fMap = TurboModuleHostObject::functionMapping(rt);
+  auto fMap = AnoncredsTurboModuleHostObject::functionMapping(rt);
   for (FunctionMap::iterator it = fMap.begin(); it != fMap.end(); ++it) {
     if (it->first == propName) {
-      return TurboModuleHostObject::call(rt, it->first, it->second);
+      return AnoncredsTurboModuleHostObject::call(rt, it->first, it->second);
     }
   }
 

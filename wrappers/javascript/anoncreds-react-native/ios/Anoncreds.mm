@@ -26,7 +26,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install)
     }
     
     auto callInvoker = bridge.jsCallInvoker;
-    turboModuleUtility::registerTurboModule(*jsiRuntime, callInvoker);
+    anoncredsTurboModuleUtility::registerTurboModule(*jsiRuntime, callInvoker);
     return @true;
 }
 
