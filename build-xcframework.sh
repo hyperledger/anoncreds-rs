@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 NAME="anoncreds"
-VERSION="0.1.0-dev.4"
+VERSION="0.1.0-dev.5"
 BUNDLE_IDENTIFIER="org.hyperledger.$NAME"
 LIBRARY_NAME="lib$NAME.dylib"
 XC_FRAMEWORK_NAME="$NAME.xcframework"
