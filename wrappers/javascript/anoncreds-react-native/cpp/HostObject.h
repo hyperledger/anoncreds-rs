@@ -12,9 +12,9 @@ using namespace facebook;
 typedef jsi::Value (*Cb)(jsi::Runtime &rt, jsi::Object options);
 typedef std::map<const char *, Cb> FunctionMap;
 
-class JSI_EXPORT TurboModuleHostObject : public jsi::HostObject {
+class JSI_EXPORT AnoncredsTurboModuleHostObject : public jsi::HostObject {
 public:
-  TurboModuleHostObject(jsi::Runtime &rt);
+  AnoncredsTurboModuleHostObject(jsi::Runtime &rt);
   jsi::Function call(jsi::Runtime &rt, const char *name, Cb cb);
   FunctionMap functionMapping(jsi::Runtime &rt);
 
