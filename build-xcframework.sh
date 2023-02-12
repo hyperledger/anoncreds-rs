@@ -1,7 +1,16 @@
 #!/usr/bin/env sh
 
+set -eo pipefail
+
+# Check if lipo and xcodebuild exist
+if [ -z `command -v lipo` ] || [ -z `command -v xcodebuild` ] || [ -z `command -v jq` ]
+then
+    echo "!!! lipo, xcodebuild or jq could not be found !!!"
+    help
+fi
+
 NAME="anoncreds"
-VERSION="0.1.0-dev.5"
+VERSION=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[]  | select(.name == "anoncreds") | .version')
 BUNDLE_IDENTIFIER="org.hyperledger.$NAME"
 LIBRARY_NAME="lib$NAME.dylib"
 XC_FRAMEWORK_NAME="$NAME.xcframework"
@@ -20,6 +29,7 @@ HEADER_PATH="./include"
 Help() {
   echo "required dependencies:"
   echo "  - lipo"
+  echo "  - jq"
   echo "  - xcodebuild"
   echo "To build an xcframework with underlying Frameworks"
   echo "the following can be passed in as positional arguments"
@@ -31,19 +41,6 @@ Help() {
   echo "release build."
   exit
 }
-
-# Fail on execution error
-# Print all commands
-# Fail on undefined variables
-# Do not mask piping errors
-set -eo pipefail
-
-# Check if lipo and xcodebuild exist
-if [ -z `command -v lipo` ] || [ -z `command -v xcodebuild` ]
-then
-    echo "!!! lipo or xcodebuild could not be found !!!"
-    help
-fi
 
 # override if its provided
 if [ ! -z "$1" ]
@@ -156,7 +153,7 @@ cat <<EOT >> Info.plist
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
-	<string>0.1.0</string>
+	<string>$VERSION</string>
 	<key>NSPrincipalClass</key>
 	<string></string>
 </dict>
