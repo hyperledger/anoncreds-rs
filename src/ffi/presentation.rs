@@ -218,24 +218,24 @@ pub extern "C" fn anoncreds_create_presentation(
 pub struct FfiNonrevokedIntervalOverride<'a> {
     rev_reg_def_id: FfiStr<'a>,
     /// Timestamp in the `PresentationRequest`
-    req_timestamp: i64,
+    requested_from_ts: i64,
     /// Timestamp from which verifier accepts,
     /// should be less than `req_timestamp`
-    override_timestamp: i64,
+    override_rev_status_list_ts: i64,
 }
 
 impl<'a> FfiNonrevokedIntervalOverride<'a> {
     fn load(&self) -> Result<(RevocationRegistryDefinitionId, u64, u64)> {
         let id = RevocationRegistryDefinitionId::new(self.rev_reg_def_id.as_str().to_owned())?;
-        let req_timestamp = self
-            .req_timestamp
+        let requested_from_ts = self
+            .requested_from_ts
             .try_into()
             .map_err(|_| err_msg!("Invalid req timestamp "))?;
-        let override_timestamp = self
-            .override_timestamp
+        let override_rev_status_list_ts = self
+            .override_rev_status_list_ts
             .try_into()
             .map_err(|_| err_msg!("Invalid override timestamp "))?;
-        Ok((id, req_timestamp, override_timestamp))
+        Ok((id, requested_from_ts, override_rev_status_list_ts))
     }
 }
 

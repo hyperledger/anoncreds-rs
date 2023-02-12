@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use anoncreds::{
     data_types::{
-        pres_request::{NonRevocedInterval, PresentationRequestPayload},
+        pres_request::{NonRevokedInterval, PresentationRequestPayload},
+        rev_reg_def::RevocationRegistryDefinitionId,
         schema::SchemaId,
     },
     types::PresentationRequest,
@@ -25,9 +26,8 @@ const GLOBAL_FROM: u64 = 5;
 const GLOBAL_TO: u64 = 25;
 const LOCAL_FROM: u64 = 10;
 const OVERRIDE_LOCAL_FROM: u64 = 8;
-const LOCAL_TO: u32 = 20;
-const TS_WITHIN_LOCAL_OVERRIDE: u32 = 9;
-const TS_WITHIN_GLOBAL_ONLY: u32 = 7;
+const LOCAL_TO: u64 = 20;
+const TS_WITHIN_LOCAL_OVERRIDE: u64 = 9;
 
 const SCHEMA_ID_1: &str = "mock:uri:schema1";
 const SCHEMA_ID_2: &str = "mock:uri:schema2";
@@ -38,23 +38,16 @@ static CRED_DEF_ID_2: &'static str = "mock:uri:2";
 static REV_REG_ID_1: &'static str = "mock:uri:revregid1";
 static REV_REG_ID_2: &'static str = "mock:uri:revregid2";
 
-// This returns Presentation Requests with following nonrevoked intervals
-// [0]: Global
-// [1]: Local for attributes belonging to both credentials
-// [2]: Global and Local, where local is more stringent
-fn test_2_different_revoke_reqs() -> Vec<PresentationRequest> {
-    let nonce_1 = verifier::generate_nonce().expect("Error generating presentation request nonce");
-    let nonce_2 = verifier::generate_nonce().expect("Error generating presentation request nonce");
-    let nonce_3 = verifier::generate_nonce().expect("Error generating presentation request nonce");
-
+fn create_request(input: &ReqInput) -> PresentationRequest {
+    let nonce = verifier::generate_nonce().unwrap();
     let json = json!({
-        "nonce": nonce_1,
-        "name":"pres_req_1",
+        "nonce": nonce,
+        "name":input.req_name ,
         "version":"0.1",
         "requested_attributes":{
             "attr1_referent":{
                 "name":"name",
-                "issuer_id": ISSUER_ID
+                "issuer_id": input.issuer,
             },
             "attr2_referent":{
                 "name":"sex"
@@ -71,32 +64,21 @@ fn test_2_different_revoke_reqs() -> Vec<PresentationRequest> {
         },
     });
 
-    let mut p1: PresentationRequestPayload = serde_json::from_value(json.clone()).unwrap();
-    let mut p2: PresentationRequestPayload = serde_json::from_value(json.clone()).unwrap();
-    let mut p3: PresentationRequestPayload = serde_json::from_value(json).unwrap();
+    let mut presentation: PresentationRequestPayload = serde_json::from_value(json).unwrap();
+    presentation.non_revoked = input.global_nonrevoke.clone();
 
-    // Global non_revoked
-    p1.non_revoked = Some(NonRevocedInterval::new(Some(5), Some(25)));
-    p1.nonce = nonce_1;
-    p2.nonce = nonce_2;
-    p3.nonce = nonce_3;
-
-    // Local non_revoked
-    if let Some(at1) = p2.requested_attributes.get_mut("attr4_referent") {
-        at1.non_revoked = Some(NonRevocedInterval::new(Some(10), Some(20)));
-    } else {
-        panic!("Cannot add non_revoke to attri");
-    }
-    if let Some(at2) = p2.requested_attributes.get_mut("attr5_referent") {
-        at2.non_revoked = Some(NonRevocedInterval::new(Some(10), Some(20)));
-    } else {
-        panic!("Cannot add non_revoke to attri");
+    for ni in input.attr_nonrevoke.iter() {
+        let at = presentation.requested_attributes.get_mut(ni.0).unwrap();
+        at.non_revoked = Some(ni.1.clone());
     }
 
-    vec![
-        PresentationRequest::PresentationRequestV1(p1),
-        PresentationRequest::PresentationRequestV1(p2),
-    ]
+    for ni in input.pred_nonrevoke.iter() {
+        let at = presentation.requested_predicates.get_mut(ni.0).unwrap();
+        at.non_revoked = Some(ni.1.clone());
+    }
+
+    log::info!("\n Request: {:?}", presentation);
+    PresentationRequest::PresentationRequestV1(presentation)
 }
 
 fn create_issuer_data<'a>() -> utils::IssuerValues<'a> {
@@ -138,8 +120,78 @@ fn create_issuer_data<'a>() -> utils::IssuerValues<'a> {
     issuer1_creds
 }
 
+pub struct ReqInput<'a> {
+    pub req_name: &'a str,
+    pub issuer: &'a str,
+    pub global_nonrevoke: Option<NonRevokedInterval>,
+    pub attr_nonrevoke: Vec<(&'a str, NonRevokedInterval)>,
+    pub pred_nonrevoke: Vec<(&'a str, NonRevokedInterval)>,
+}
+
+fn test_requests_generate<'a>() -> Vec<ReqInput<'a>> {
+    let r0 = ReqInput {
+        req_name: "global_rev",
+        issuer: ISSUER_ID,
+        global_nonrevoke: Some(NonRevokedInterval::new(Some(GLOBAL_FROM), Some(GLOBAL_TO))),
+        attr_nonrevoke: vec![],
+        pred_nonrevoke: vec![],
+    };
+    let r1 = ReqInput {
+        req_name: "local_rev",
+        issuer: ISSUER_ID,
+        global_nonrevoke: None,
+        attr_nonrevoke: vec![
+            (
+                "attr2_referent",
+                NonRevokedInterval::new(Some(LOCAL_FROM), Some(LOCAL_TO)),
+            ),
+            (
+                "attr5_referent",
+                NonRevokedInterval::new(Some(LOCAL_FROM), Some(LOCAL_TO)),
+            ),
+        ],
+        pred_nonrevoke: vec![],
+    };
+    let r2 = ReqInput {
+        req_name: "both_rev_attr",
+        issuer: ISSUER_ID,
+        global_nonrevoke: Some(NonRevokedInterval::new(Some(GLOBAL_FROM), Some(GLOBAL_TO))),
+        attr_nonrevoke: vec![
+            (
+                "attr2_referent",
+                NonRevokedInterval::new(Some(LOCAL_FROM), Some(LOCAL_TO)),
+            ),
+            (
+                "attr5_referent",
+                NonRevokedInterval::new(Some(LOCAL_FROM), Some(LOCAL_TO)),
+            ),
+        ],
+        pred_nonrevoke: vec![],
+    };
+    let r3 = ReqInput {
+        req_name: "both_rev_pred",
+        issuer: ISSUER_ID,
+        global_nonrevoke: Some(NonRevokedInterval::new(Some(GLOBAL_FROM), Some(GLOBAL_TO))),
+        attr_nonrevoke: vec![],
+        pred_nonrevoke: vec![(
+            "predicate1_referent",
+            NonRevokedInterval::new(Some(LOCAL_FROM), Some(LOCAL_TO)),
+        )],
+    };
+    let r4 = ReqInput {
+        req_name: "no_rev",
+        issuer: ISSUER_ID,
+        global_nonrevoke: None,
+        attr_nonrevoke: vec![],
+        pred_nonrevoke: vec![],
+    };
+
+    vec![r0, r1, r2, r3, r4]
+}
+
 #[test]
 fn anoncreds_with_multiple_credentials_per_request() {
+    env_logger::init();
     let mut mock = utils::Mock::new(&[ISSUER_ID], &[PROVER_ID], TF_PATH, MAX_CRED_NUM);
 
     let issuer1_creds = create_issuer_data();
@@ -159,14 +211,19 @@ fn anoncreds_with_multiple_credentials_per_request() {
 
     // These are within interval
     let time_initial_rev_reg = 8u64;
-    let time_after_credential = 10u64;
+    let time_after_credential = TS_WITHIN_LOCAL_OVERRIDE;
     let issuance_by_default = true;
 
-    // To test:
-    // pres_request_1: global interval; Tests verification for revocable credentials only
-    // pres_request_2: local intervals for both credential; Tests verification for revocable credentials only
-    // Verifier creates a presentation request for each
-    let reqs = test_2_different_revoke_reqs();
+    // This returns Presentation Requests with following nonrevoked intervals
+    // [0]: Global
+    // [1]: Local for attributes belonging to both credentials
+    // [2]: Global and Local attributes , where local is more stringent
+    // [3]: Global and Local predeicate, where local is more stringent
+    // [4]: no NRP required
+    let reqs: Vec<PresentationRequest> = test_requests_generate()
+        .iter()
+        .map(|x| create_request(&x))
+        .collect();
 
     // 1: Issuer setup (credate cred defs, rev defs(optional), cred_offers)
     mock.issuer_setup(
@@ -213,9 +270,32 @@ fn anoncreds_with_multiple_credentials_per_request() {
         );
         presentations.push(p)
     }
-    // 5. Verifier verifies one presentation per request
-    let results = mock.verifer_verifies_presentations_for_requests(presentations, &reqs);
 
-    assert!(results[0]);
-    assert!(results[1]);
+    // 5. Verifier verifies one presentation per request
+    //
+    // Without override fails
+    let overrides = vec![None; 5];
+    let results =
+        mock.verifer_verifies_presentations_for_requests(&presentations, &reqs, &overrides);
+    assert!(results[0].is_ok());
+    assert!(results[4].is_ok());
+    assert!(results[1].is_err());
+    assert!(results[2].is_err());
+    assert!(results[3].is_err());
+
+    // Create overrides for timestamps
+    let id = RevocationRegistryDefinitionId::new_unchecked(REV_REG_ID_1);
+    let override_rev1 = HashMap::from([(&id, HashMap::from([(LOCAL_FROM, OVERRIDE_LOCAL_FROM)]))]);
+    let overrides = vec![
+        None,
+        Some(&override_rev1),
+        Some(&override_rev1),
+        Some(&override_rev1),
+        None,
+    ];
+    let results =
+        mock.verifer_verifies_presentations_for_requests(&presentations, &reqs, &overrides);
+    assert!(results[1].is_ok());
+    assert!(results[2].is_ok());
+    assert!(results[3].is_ok());
 }

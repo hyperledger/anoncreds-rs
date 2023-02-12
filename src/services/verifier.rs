@@ -13,7 +13,7 @@ use crate::data_types::schema::Schema;
 use crate::data_types::schema::SchemaId;
 use crate::data_types::{
     nonce::Nonce,
-    pres_request::{AttributeInfo, NonRevocedInterval, PredicateInfo, PresentationRequestPayload},
+    pres_request::{AttributeInfo, NonRevokedInterval, PresentationRequestPayload},
     presentation::{Identifier, RequestedProof, RevealedAttributeInfo},
 };
 use crate::error::Result;
@@ -71,10 +71,10 @@ pub fn verify_presentation(
         &received_predicates,
     )?;
 
-    // This ensures the encoded values are same as request
+    // Ensures the encoded values are same as request
     verify_revealed_attribute_values(pres_req, presentation)?;
 
-    // This does not verify non-revoked requirements
+    // Ensures the restrictinos set out in the request is met
     verify_requested_restrictions(
         pres_req,
         schemas,
@@ -147,28 +147,35 @@ pub fn verify_presentation(
         // Collaspe to the most stringent local interval for the attributes / predicates,
         // we can do this because there is only 1 revocation status list for this credential
         // if it satsifies the most stringent interval, it will satisfy all intervals
-        let mut cred_nonrevoked_interval = attrs_nonrevoked_interval;
-        cred_nonrevoked_interval.compare_and_set(&pred_nonrevoked_interval);
+        let mut cred_nonrevoked_interval: Option<NonRevokedInterval> =
+            match (attrs_nonrevoked_interval, pred_nonrevoked_interval) {
+                (Some(attr), None) => Some(attr),
+                (None, Some(pred)) => Some(pred),
+                (Some(mut attr), Some(pred)) => {
+                    attr.compare_and_set(&pred);
+                    Some(attr)
+                }
+                _ => None,
+            };
 
         // Global interval is override by the local one,
         // we only need to update if local is None and Global is Some,
         // do not need to update if global is more stringent
-        if let (Some(interval), None, None) = (
-            pres_req.non_revoked.as_ref(),
-            cred_nonrevoked_interval.from,
-            cred_nonrevoked_interval.to,
+        if let (Some(global), None) = (
+            pres_req.non_revoked.clone(),
+            cred_nonrevoked_interval.as_mut(),
         ) {
-            cred_nonrevoked_interval.compare_and_set(interval);
+            cred_nonrevoked_interval = Some(global);
         };
 
         // Revocation checks is required iff both conditions are met:
-        // - Credential is revokable (cred_defs is input by the verifier, trustable)
+        // - Credential is revokable (input from verifier, trustable)
         // - PresentationReq has asked for NRP* (input from verifier, trustable)
         //
         // * This is done by setting a NonRevokedInterval either for attr / predicate / global
         let (rev_reg_def, rev_reg) = if let (Some(_), true) = (
             cred_def.value.revocation.as_ref(),
-            cred_nonrevoked_interval.from.is_some() || cred_nonrevoked_interval.to.is_some(),
+            cred_nonrevoked_interval.is_some(),
         ) {
             let timestamp = identifier
                 .timestamp
@@ -195,11 +202,17 @@ pub fn verify_presentation(
 
             // Override Interval if an earlier `from` value is accepted by the verifier
             nonrevoke_interval_override.map(|maps| {
-                maps.get(&rev_reg_def_id)
-                    .map(|map| cred_nonrevoked_interval.update_with_override(map))
+                maps.get(&rev_reg_def_id).map(|map| {
+                    cred_nonrevoked_interval
+                        .as_mut()
+                        .map(|int| int.update_with_override(map))
+                })
             });
 
-            cred_nonrevoked_interval.is_valid(timestamp)?;
+            // Validate timestamp
+            cred_nonrevoked_interval
+                .map(|int| int.is_valid(timestamp))
+                .transpose()?;
 
             let rev_reg_def = Some(
                 rev_reg_defs
@@ -264,92 +277,6 @@ pub fn verify_presentation(
 
 pub fn generate_nonce() -> Result<Nonce> {
     new_nonce()
-}
-
-fn get_revealed_attributes_for_credential(
-    sub_proof_index: usize,
-    requested_proof: &RequestedProof,
-    pres_req: &PresentationRequestPayload,
-) -> Result<(Vec<AttributeInfo>, NonRevocedInterval)> {
-    trace!("_get_revealed_attributes_for_credential >>> sub_proof_index: {:?}, requested_credentials: {:?}, pres_req: {:?}",
-           sub_proof_index, requested_proof, pres_req);
-
-    let mut nonrevoked_interval = NonRevocedInterval::default();
-    let mut revealed_attrs_for_credential = requested_proof
-        .revealed_attrs
-        .iter()
-        .filter(|&(attr_referent, revealed_attr_info)| {
-            sub_proof_index == revealed_attr_info.sub_proof_index as usize
-                && pres_req.requested_attributes.contains_key(attr_referent)
-        })
-        .map(|(attr_referent, _)| {
-            let info = pres_req.requested_attributes[attr_referent].clone();
-            if info.non_revoked.is_some() {
-                nonrevoked_interval.compare_and_set(info.non_revoked.as_ref().unwrap());
-            }
-            info
-        })
-        .collect::<Vec<AttributeInfo>>();
-
-    revealed_attrs_for_credential.append(
-        &mut requested_proof
-            .revealed_attr_groups
-            .iter()
-            .filter(|&(attr_referent, revealed_attr_info)| {
-                sub_proof_index == revealed_attr_info.sub_proof_index as usize
-                    && pres_req.requested_attributes.contains_key(attr_referent)
-            })
-            .map(|(attr_referent, _)| {
-                let info = pres_req.requested_attributes[attr_referent].clone();
-                if info.non_revoked.is_some() {
-                    nonrevoked_interval.compare_and_set(info.non_revoked.as_ref().unwrap());
-                }
-                info
-            })
-            .collect::<Vec<AttributeInfo>>(),
-    );
-
-    trace!(
-        "_get_revealed_attributes_for_credential <<< revealed_attrs_for_credential: {:?}",
-        revealed_attrs_for_credential
-    );
-
-    Ok((revealed_attrs_for_credential, nonrevoked_interval))
-}
-
-fn get_predicates_for_credential(
-    sub_proof_index: usize,
-    requested_proof: &RequestedProof,
-    pres_req: &PresentationRequestPayload,
-) -> Result<(Vec<PredicateInfo>, NonRevocedInterval)> {
-    trace!("_get_predicates_for_credential >>> sub_proof_index: {:?}, requested_credentials: {:?}, pres_req: {:?}",
-           sub_proof_index, requested_proof, pres_req);
-
-    let mut nonrevoked_interval = NonRevocedInterval::default();
-    let predicates_for_credential = requested_proof
-        .predicates
-        .iter()
-        .filter(|&(predicate_referent, requested_referent)| {
-            sub_proof_index == requested_referent.sub_proof_index as usize
-                && pres_req
-                    .requested_predicates
-                    .contains_key(predicate_referent)
-        })
-        .map(|(predicate_referent, _)| {
-            let info = pres_req.requested_predicates[predicate_referent].clone();
-            if info.non_revoked.is_some() {
-                nonrevoked_interval.compare_and_set(info.non_revoked.as_ref().unwrap());
-            }
-            info
-        })
-        .collect::<Vec<PredicateInfo>>();
-
-    trace!(
-        "_get_predicates_for_credential <<< predicates_for_credential: {:?}",
-        predicates_for_credential
-    );
-
-    Ok((predicates_for_credential, nonrevoked_interval))
 }
 
 fn compare_attr_from_proof_and_request(

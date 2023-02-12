@@ -22,7 +22,7 @@ pub struct PresentationRequestPayload {
     pub requested_attributes: HashMap<String, AttributeInfo>,
     #[serde(default)]
     pub requested_predicates: HashMap<String, PredicateInfo>,
-    pub non_revoked: Option<NonRevocedInterval>,
+    pub non_revoked: Option<NonRevokedInterval>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -123,18 +123,18 @@ impl Serialize for PresentationRequest {
 pub type PresentationRequestExtraQuery = HashMap<String, Query>;
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct NonRevocedInterval {
+pub struct NonRevokedInterval {
     pub from: Option<u64>,
     pub to: Option<u64>,
 }
 
-impl NonRevocedInterval {
+impl NonRevokedInterval {
     pub fn new(from: Option<u64>, to: Option<u64>) -> Self {
         Self { from, to }
     }
     // Returns the most stringent interval,
     // i.e. the latest from and the earliest to
-    pub fn compare_and_set(&mut self, to_compare: &NonRevocedInterval) {
+    pub fn compare_and_set(&mut self, to_compare: &NonRevokedInterval) {
         // Update if
         // - the new `from` value is later, smaller interval
         // - the new `from` value is Some if previouly was None
@@ -185,7 +185,7 @@ pub struct AttributeInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub names: Option<Vec<String>>,
     pub restrictions: Option<Query>,
-    pub non_revoked: Option<NonRevocedInterval>,
+    pub non_revoked: Option<NonRevokedInterval>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
@@ -194,7 +194,7 @@ pub struct PredicateInfo {
     pub p_type: PredicateTypes,
     pub p_value: i32,
     pub restrictions: Option<Query>,
-    pub non_revoked: Option<NonRevocedInterval>,
+    pub non_revoked: Option<NonRevokedInterval>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
@@ -383,7 +383,7 @@ mod tests {
 
     #[test]
     fn override_works() {
-        let mut interval = NonRevocedInterval::default();
+        let mut interval = NonRevokedInterval::default();
         let override_map = HashMap::from([(10u64, 5u64)]);
 
         interval.from = Some(10);
@@ -393,10 +393,10 @@ mod tests {
 
     #[test]
     fn compare_and_set_works() {
-        let mut int = NonRevocedInterval::default();
-        let wide_int = NonRevocedInterval::new(Some(1), Some(100));
-        let mid_int = NonRevocedInterval::new(Some(5), Some(80));
-        let narrow_int = NonRevocedInterval::new(Some(10), Some(50));
+        let mut int = NonRevokedInterval::default();
+        let wide_int = NonRevokedInterval::new(Some(1), Some(100));
+        let mid_int = NonRevokedInterval::new(Some(5), Some(80));
+        let narrow_int = NonRevokedInterval::new(Some(10), Some(50));
 
         assert_eq!(int.from, None);
         assert_eq!(int.to, None);

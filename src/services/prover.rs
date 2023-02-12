@@ -203,6 +203,52 @@ pub fn create_presentation(
         )?;
         let sub_proof_request = build_sub_proof_request(&req_attrs, &req_predicates)?;
 
+        update_requested_proof(
+            req_attrs,
+            req_predicates,
+            pres_req_val,
+            credential,
+            sub_proof_index,
+            &mut requested_proof,
+        )?;
+
+        // Checks conditions to add revocation proof
+        let (rev_reg, witness) = if pres_req_val.non_revoked.is_some() {
+            // Global revocation request
+            (
+                present.rev_state.as_ref().map(|r_info| &r_info.rev_reg),
+                present.rev_state.as_ref().map(|r_info| &r_info.witness),
+            )
+        } else {
+            // There exists at least 1 local revocation request
+            let ((_, nonrevoked_attr), (_, nonrevoked_preds)) = (
+                get_revealed_attributes_for_credential(
+                    sub_proof_index as usize,
+                    &requested_proof,
+                    pres_req_val,
+                )?,
+                get_predicates_for_credential(
+                    sub_proof_index as usize,
+                    &requested_proof,
+                    pres_req_val,
+                )?,
+            );
+            if nonrevoked_attr.is_some() || nonrevoked_preds.is_some() {
+                (
+                    present.rev_state.as_ref().map(|r_info| &r_info.rev_reg),
+                    present.rev_state.as_ref().map(|r_info| &r_info.witness),
+                )
+            } else {
+                // Neither global nor local is required
+                (None, None)
+            }
+        };
+
+        // if `present.rev_state` is available,
+        // then it will create an init_proof that contains NRP.
+        //
+        // Therefore, this will have to be part of the finalised `aggregated_proof`.
+        // Regardless if nonrevoke_interval is requested by the verifier
         proof_builder.add_sub_proof_request(
             &sub_proof_request,
             &credential_schema,
@@ -210,8 +256,8 @@ pub fn create_presentation(
             &credential.signature,
             &credential_values,
             &credential_pub_key,
-            present.rev_state.as_ref().map(|r_info| &r_info.rev_reg),
-            present.rev_state.as_ref().map(|r_info| &r_info.witness),
+            rev_reg,
+            witness,
         )?;
 
         let identifier = match pres_req {
@@ -230,15 +276,6 @@ pub fn create_presentation(
         };
 
         identifiers.push(identifier);
-
-        update_requested_proof(
-            req_attrs,
-            req_predicates,
-            pres_req_val,
-            credential,
-            sub_proof_index,
-            &mut requested_proof,
-        )?;
 
         sub_proof_index += 1;
     }
