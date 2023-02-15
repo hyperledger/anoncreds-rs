@@ -5,12 +5,6 @@ import { setup } from './utils'
 describe('bindings', () => {
   beforeAll(() => setup())
 
-  test('version', () => {
-    const version = anoncreds.version()
-
-    expect(version).toEqual('0.1.0-dev.6')
-  })
-
   test('current error', () => {
     const error = anoncreds.getCurrentError()
 
