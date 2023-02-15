@@ -56,7 +56,7 @@ jsi::Function AnoncredsTurboModuleHostObject::call(jsi::Runtime &rt, const char 
       [this, cb](jsi::Runtime &rt, const jsi::Value &thisValue,
                  const jsi::Value *arguments, size_t count) -> jsi::Value {
         const jsi::Value *val = &arguments[0];
-        turboModuleUtility::assertValueIsObject(rt, val);
+        anoncredsTurboModuleUtility::assertValueIsObject(rt, val);
         return (*cb)(rt, val->getObject(rt));
       });
 };
