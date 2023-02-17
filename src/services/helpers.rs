@@ -146,7 +146,7 @@ pub fn get_revealed_attributes_for_credential(
 ) -> Result<(Vec<AttributeInfo>, Option<NonRevokedInterval>)> {
     trace!("_get_revealed_attributes_for_credential >>> sub_proof_index: {:?}, requested_credentials: {:?}, pres_req: {:?}",
            sub_proof_index, requested_proof, pres_req);
-    let mut nonrevoked_interval: Option<NonRevokedInterval> = None;
+    let mut non_revoked_interval: Option<NonRevokedInterval> = None;
     let mut revealed_attrs_for_credential = requested_proof
         .revealed_attrs
         .iter()
@@ -157,11 +157,11 @@ pub fn get_revealed_attributes_for_credential(
         .map(|(attr_referent, _)| {
             let info = pres_req.requested_attributes[attr_referent].clone();
             if let Some(int) = &info.non_revoked {
-                match nonrevoked_interval.as_mut() {
+                match non_revoked_interval.as_mut() {
                     Some(ni) => {
                         ni.compare_and_set(int);
                     }
-                    None => nonrevoked_interval = Some(int.clone()),
+                    None => non_revoked_interval = Some(int.clone()),
                 }
             };
 
@@ -180,11 +180,11 @@ pub fn get_revealed_attributes_for_credential(
             .map(|(attr_referent, _)| {
                 let info = pres_req.requested_attributes[attr_referent].clone();
                 if let Some(int) = &info.non_revoked {
-                    match nonrevoked_interval.as_mut() {
+                    match non_revoked_interval.as_mut() {
                         Some(ni) => {
                             ni.compare_and_set(int);
                         }
-                        None => nonrevoked_interval = Some(NonRevokedInterval::default()),
+                        None => non_revoked_interval = Some(NonRevokedInterval::default()),
                     }
                 };
                 info
@@ -197,7 +197,7 @@ pub fn get_revealed_attributes_for_credential(
         revealed_attrs_for_credential
     );
 
-    Ok((revealed_attrs_for_credential, nonrevoked_interval))
+    Ok((revealed_attrs_for_credential, non_revoked_interval))
 }
 
 pub fn get_predicates_for_credential(
@@ -208,7 +208,7 @@ pub fn get_predicates_for_credential(
     trace!("_get_predicates_for_credential >>> sub_proof_index: {:?}, requested_credentials: {:?}, pres_req: {:?}",
            sub_proof_index, requested_proof, pres_req);
 
-    let mut nonrevoked_interval: Option<NonRevokedInterval> = None;
+    let mut non_revoked_interval: Option<NonRevokedInterval> = None;
     let predicates_for_credential = requested_proof
         .predicates
         .iter()
@@ -221,11 +221,11 @@ pub fn get_predicates_for_credential(
         .map(|(predicate_referent, _)| {
             let info = pres_req.requested_predicates[predicate_referent].clone();
             if let Some(int) = &info.non_revoked {
-                match nonrevoked_interval.as_mut() {
+                match non_revoked_interval.as_mut() {
                     Some(ni) => {
                         ni.compare_and_set(int);
                     }
-                    None => nonrevoked_interval = Some(int.clone()),
+                    None => non_revoked_interval = Some(int.clone()),
                 }
             };
 
@@ -238,5 +238,5 @@ pub fn get_predicates_for_credential(
         predicates_for_credential
     );
 
-    Ok((predicates_for_credential, nonrevoked_interval))
+    Ok((predicates_for_credential, non_revoked_interval))
 }

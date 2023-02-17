@@ -1,4 +1,4 @@
-use super::anoncreds::{IssuerWallet, Ledger, ProverWallet, StoredCredDef, StoredRevDef};
+use super::storage::{IssuerWallet, Ledger, ProverWallet, StoredCredDef, StoredRevDef};
 use std::{
     collections::{BTreeSet, HashMap},
     fs::create_dir,

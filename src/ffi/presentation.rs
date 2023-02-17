@@ -24,7 +24,7 @@ impl_anoncreds_object_from_json!(Presentation, anoncreds_presentation_from_json)
 #[repr(C)]
 pub struct FfiCredentialEntry {
     credential: ObjectHandle,
-    timestamp: i64,
+    timestamp: i32,
     rev_state: ObjectHandle,
 }
 
@@ -218,10 +218,10 @@ pub extern "C" fn anoncreds_create_presentation(
 pub struct FfiNonrevokedIntervalOverride<'a> {
     rev_reg_def_id: FfiStr<'a>,
     /// Timestamp in the `PresentationRequest`
-    requested_from_ts: i64,
+    requested_from_ts: i32,
     /// Timestamp from which verifier accepts,
     /// should be less than `req_timestamp`
-    override_rev_status_list_ts: i64,
+    override_rev_status_list_ts: i32,
 }
 
 impl<'a> FfiNonrevokedIntervalOverride<'a> {

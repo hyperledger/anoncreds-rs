@@ -22,8 +22,7 @@ use anoncreds::{
 
 use serde_json::json;
 
-use self::utils::anoncreds::ProverWallet;
-
+use utils::*;
 mod utils;
 
 pub static SCHEMA_ID: &str = "mock:uri";
