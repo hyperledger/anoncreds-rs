@@ -139,6 +139,12 @@ where
     let cred_def_id = cred_def_id.try_into()?;
     let issuer_id = issuer_id.try_into()?;
 
+    if issuer_id != cred_def.issuer_id {
+        return Err(err_msg!(
+            "Issuer id must be the same as the issuer id in the credential definition"
+        ));
+    }
+
     let credential_pub_key = cred_def.get_public_key().map_err(err_map!(
         Unexpected,
         "Error fetching public key from credential definition"
@@ -441,7 +447,73 @@ pub fn create_credential(
 
 #[cfg(test)]
 mod tests {
+    use crate::tails::TailsFileWriter;
+
     use super::*;
+
+    #[test]
+    fn test_issuer_id_equal_in_revocation_registry_definiton_and_credential_definition(
+    ) -> Result<()> {
+        let credential_definition_issuer_id = "sample:id";
+        let revocation_registry_definition_issuer_id = credential_definition_issuer_id;
+
+        let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
+        let schema = create_schema("schema:name", "1.0", "sample:uri", attr_names)?;
+        let cred_def = create_credential_definition(
+            "schema:id",
+            &schema,
+            credential_definition_issuer_id,
+            "default",
+            SignatureType::CL,
+            CredentialDefinitionConfig {
+                support_revocation: true,
+            },
+        )?;
+        let res = create_revocation_registry_def(
+            &cred_def.0,
+            "sample:uri",
+            revocation_registry_definition_issuer_id,
+            "default",
+            RegistryType::CL_ACCUM,
+            1,
+            &mut TailsFileWriter::new(None),
+        );
+
+        assert!(res.is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn test_issuer_id_unequal_in_revocation_registry_definiton_and_credential_definition(
+    ) -> Result<()> {
+        let credential_definition_issuer_id = "sample:id";
+        let revocation_registry_definition_issuer_id = "another:id";
+
+        let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
+        let schema = create_schema("schema:name", "1.0", "sample:uri", attr_names)?;
+        let cred_def = create_credential_definition(
+            "schema:id",
+            &schema,
+            credential_definition_issuer_id,
+            "default",
+            SignatureType::CL,
+            CredentialDefinitionConfig {
+                support_revocation: true,
+            },
+        )?;
+        let res = create_revocation_registry_def(
+            &cred_def.0,
+            "sample:uri",
+            revocation_registry_definition_issuer_id,
+            "default",
+            RegistryType::CL_ACCUM,
+            1,
+            &mut TailsFileWriter::new(None),
+        );
+
+        assert!(res.is_err());
+        Ok(())
+    }
 
     #[test]
     fn test_encode_attribute() {
