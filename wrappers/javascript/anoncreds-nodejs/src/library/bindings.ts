@@ -154,7 +154,7 @@ export const nativeBindings = {
   ],
   anoncreds_create_revocation_status_list: [
     FFI_ERRORCODE,
-    [FFI_STRING, FFI_OBJECT_HANDLE, FFI_INT64, FFI_INT8, FFI_OBJECT_HANDLE_PTR],
+    [FFI_STRING, FFI_OBJECT_HANDLE, FFI_STRING, FFI_INT64, FFI_INT8, FFI_OBJECT_HANDLE_PTR],
   ],
   anoncreds_update_revocation_status_list_timestamp_only: [
     FFI_ERRORCODE,

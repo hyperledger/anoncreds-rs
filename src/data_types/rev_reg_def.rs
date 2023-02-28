@@ -2,10 +2,7 @@ use std::str::FromStr;
 
 use crate::{error::ConversionError, impl_anoncreds_object_identifier};
 
-use super::{
-    cred_def::{CredentialDefinition, CredentialDefinitionId},
-    issuer_id::IssuerId,
-};
+use super::{cred_def::CredentialDefinitionId, issuer_id::IssuerId};
 
 pub const CL_ACCUM: &str = "CL_ACCUM";
 

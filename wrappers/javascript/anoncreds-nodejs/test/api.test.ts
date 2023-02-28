@@ -78,6 +78,7 @@ describe('API', () => {
 
     const timeCreateRevStatusList = 12
     const revocationStatusList = RevocationStatusList.create({
+      issuerId: 'mock:uri',
       timestamp: timeCreateRevStatusList,
       issuanceByDefault: true,
       revocationRegistryDefinition,

@@ -415,10 +415,11 @@ export class NodeJSAnoncreds implements Anoncreds {
   public createRevocationStatusList(options: {
     revocationRegistryDefinitionId: string
     revocationRegistryDefinition: ObjectHandle
+    issuerId: string
     timestamp?: number
     issuanceByDefault: boolean
   }): ObjectHandle {
-    const { timestamp, issuanceByDefault, revocationRegistryDefinition, revocationRegistryDefinitionId } =
+    const { timestamp, issuanceByDefault, revocationRegistryDefinition, revocationRegistryDefinitionId, issuerId } =
       serializeArguments(options)
 
     const ret = allocatePointer()
@@ -426,6 +427,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     nativeAnoncreds.anoncreds_create_revocation_status_list(
       revocationRegistryDefinitionId,
       revocationRegistryDefinition,
+      issuerId,
       timestamp,
       issuanceByDefault,
       ret

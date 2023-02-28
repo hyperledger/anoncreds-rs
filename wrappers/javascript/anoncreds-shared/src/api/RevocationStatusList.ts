@@ -6,6 +6,7 @@ import { anoncreds } from '../register'
 export type CreateRevocationStatusListOptions = {
   revocationRegistryDefinitionId: string
   revocationRegistryDefinition: RevocationRegistryDefinition
+  issuerId: string
   timestamp?: number
   issuanceByDefault: boolean
 }
@@ -15,10 +16,10 @@ export type UpdateRevocationStatusListTimestampOptions = {
 }
 
 export type UpdateRevocationStatusListOptions = {
+  revocationRegstryDefinition: RevocationRegistryDefinition
   timestamp?: number
   issued?: Array<number>
   revoked?: Array<number>
-  revocationRegstryDefinition: RevocationRegistryDefinition
 }
 
 export class RevocationStatusList extends AnoncredsObject {

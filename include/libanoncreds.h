@@ -286,6 +286,7 @@ ErrorCode anoncreds_create_revocation_registry_def(ObjectHandle cred_def,
 
 ErrorCode anoncreds_create_revocation_status_list(FfiStr rev_reg_def_id,
                                                   ObjectHandle rev_reg_def,
+                                                  FfiStr issuer_id,
                                                   int64_t timestamp,
                                                   int8_t issuance_by_default,
                                                   ObjectHandle *rev_status_list_p);
