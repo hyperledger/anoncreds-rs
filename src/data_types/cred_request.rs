@@ -5,8 +5,7 @@ use super::{cred_def::CredentialDefinitionId, nonce::Nonce};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialRequest {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub prover_did: Option<String>,
+    pub entropy: String,
     pub cred_def_id: CredentialDefinitionId,
     pub blinded_ms: ursa::cl::BlindedCredentialSecrets,
     pub blinded_ms_correctness_proof: ursa::cl::BlindedCredentialSecretsCorrectnessProof,
