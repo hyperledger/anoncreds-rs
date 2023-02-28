@@ -1,11 +1,13 @@
 use bitvec::vec::BitVec;
 use serde::{
-    de::{Deserializer, Error as DeError, SeqAccess, Visitor},
+    de::{self, Deserializer, Error as DeError, MapAccess, SeqAccess, Visitor},
     ser::{SerializeSeq, Serializer},
+    Deserialize, Serialize,
 };
 use std::collections::{BTreeSet, HashSet};
+use ursa::cl::Accumulator;
 
-use crate::{error, impl_anoncreds_object_identifier};
+use crate::{error, impl_anoncreds_object_identifier, Error};
 
 use super::{issuer_id::IssuerId, rev_reg_def::RevocationRegistryDefinitionId};
 
@@ -35,6 +37,130 @@ pub struct RevocationRegistryDelta {
 
 impl Validatable for RevocationRegistryDelta {}
 
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct UrsaRevocationRegistry(Accumulator);
+
+impl TryFrom<&str> for UrsaRevocationRegistry {
+    type Error = Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let accum = Accumulator::from_string(value)?;
+        Ok(UrsaRevocationRegistry(accum))
+    }
+}
+
+impl From<ursa::cl::RevocationRegistry> for UrsaRevocationRegistry {
+    fn from(value: ursa::cl::RevocationRegistry) -> Self {
+        let s = serde_json::to_string(&value).unwrap();
+        serde_json::from_str(&s).unwrap()
+    }
+}
+
+impl From<UrsaRevocationRegistry> for ursa::cl::RevocationRegistry {
+    fn from(value: UrsaRevocationRegistry) -> Self {
+        let s = serde_json::to_string(&value).unwrap();
+        let json = format!("{{\"accum\": {s}}}");
+        serde_json::from_str(&json).unwrap()
+    }
+}
+
+// impl TryFrom<ursa::cl::RevocationRegistry> for UrsaRevocationRegistry {
+//     type Error = Error;
+//
+//     fn try_from(value: ursa::cl::RevocationRegistry) -> Result<Self, Self::Error> {
+//         let s = serde_json::to_string(&value)?;
+//         Ok(serde_json::from_str(&s)?)
+//     }
+// }
+//
+// impl TryFrom<UrsaRevocationRegistry> for ursa::cl::RevocationRegistry{
+//     type Error = Error;
+//
+//     fn try_from(value: UrsaRevocationRegistry) -> Result<Self, Self::Error> {
+//         let s = serde_json::to_string(&value)?;
+//         Ok(serde_json::from_str(&s)?)
+//     }
+// }
+
+// impl Serialize for UrsaRevocationRegistry {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: Serializer,
+//     {
+//         let mut state = serializer.serialize_tuple_struct("UrsaRevocationRegistry", 1)?;
+//         state.serialize_field(&self.0)?;
+//         state.end()
+//     }
+// }
+
+impl<'de> Deserialize<'de> for UrsaRevocationRegistry {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct UrsaRevocationRegistryVisitor;
+
+        impl<'de> Visitor<'de> for UrsaRevocationRegistryVisitor {
+            type Value = UrsaRevocationRegistry;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(formatter, "string or map")
+            }
+
+            fn visit_str<E: serde::de::Error>(
+                self,
+                value: &str,
+            ) -> Result<UrsaRevocationRegistry, E> {
+                let accum = Accumulator::from_string(value).map_err(de::Error::custom)?;
+                Ok(UrsaRevocationRegistry(accum))
+            }
+
+            // fn visit_seq<V>(self, mut seq: V) -> Result<UrsaRevocationRegistry, V::Error>
+            // where
+            //     V: SeqAccess<'de>,
+            // {
+            //     let accum: Accumulator = seq
+            //         .next_element()?
+            //         .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+
+            //     Ok(UrsaRevocationRegistry(accum))
+            // }
+
+            fn visit_map<V>(self, mut map: V) -> Result<UrsaRevocationRegistry, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut accum = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        "accum" => {
+                            if accum.is_some() {
+                                return Err(de::Error::duplicate_field(
+                                    "(accum|currentAccumulator)",
+                                ));
+                            }
+                            accum = Some(map.next_value()?);
+                        }
+                        "currentAccumulator" => {
+                            if accum.is_some() {
+                                return Err(de::Error::duplicate_field(
+                                    "(accum|currentAccumulator)",
+                                ));
+                            }
+                            accum = Some(map.next_value()?);
+                        }
+                        _ => (),
+                    }
+                }
+                let accum: Accumulator =
+                    accum.ok_or_else(|| de::Error::missing_field("(accum|currentAccumulator)"))?;
+                Ok(UrsaRevocationRegistry(accum))
+            }
+        }
+        deserializer.deserialize_any(UrsaRevocationRegistryVisitor)
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RevocationStatusList {
@@ -43,15 +169,15 @@ pub struct RevocationStatusList {
     issuer_id: IssuerId,
     #[serde(with = "serde_revocation_list")]
     revocation_list: bitvec::vec::BitVec,
-    #[serde(flatten, skip_serializing_if = "Option::is_none")]
-    registry: Option<ursa::cl::RevocationRegistry>,
+    #[serde(rename = "currentAccumulator", skip_serializing_if = "Option::is_none")]
+    registry: Option<UrsaRevocationRegistry>,
     #[serde(skip_serializing_if = "Option::is_none")]
     timestamp: Option<u64>,
 }
 
 impl From<&RevocationStatusList> for Option<ursa::cl::RevocationRegistry> {
     fn from(rev_status_list: &RevocationStatusList) -> Option<ursa::cl::RevocationRegistry> {
-        rev_status_list.registry.clone()
+        rev_status_list.registry.clone().map(Into::into)
     }
 }
 
@@ -60,7 +186,7 @@ impl From<&RevocationStatusList> for Option<RevocationRegistry> {
         rev_status_list
             .registry
             .clone()
-            .map(|v| RevocationRegistry { value: v })
+            .map(|v| RevocationRegistry { value: v.into() })
     }
 }
 
@@ -78,7 +204,7 @@ impl RevocationStatusList {
     }
 
     pub fn set_registry(&mut self, registry: ursa::cl::RevocationRegistry) {
-        self.registry = Some(registry)
+        self.registry = Some(registry.into())
     }
 
     pub(crate) fn state_owned(&self) -> bitvec::vec::BitVec {
@@ -98,7 +224,7 @@ impl RevocationStatusList {
     ) -> Result<(), error::Error> {
         // only update if input is Some
         if let Some(reg) = registry {
-            self.registry = Some(reg)
+            self.registry = Some(reg.into())
         };
         if let Some(issued) = issued {
             // issued credentials are assigned `false`
@@ -137,7 +263,7 @@ impl RevocationStatusList {
         rev_reg_def_id: Option<&str>,
         issuer_id: IssuerId,
         revocation_list: bitvec::vec::BitVec,
-        registry: Option<ursa::cl::RevocationRegistry>,
+        registry: Option<UrsaRevocationRegistry>,
         timestamp: Option<u64>,
     ) -> Result<Self, error::Error> {
         Ok(RevocationStatusList {
@@ -178,7 +304,7 @@ pub mod serde_revocation_list {
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 write!(
                     formatter,
-                    "a seq containing revoation state, i.e. [1, 0, 1]"
+                    "a seq containing revocation state, i.e. [1, 0, 1]"
                 )
             }
 
@@ -205,7 +331,7 @@ pub mod serde_revocation_list {
 }
 
 #[cfg(test)]
-mod tests {
+mod rev_reg_tests {
     use super::*;
     use bitvec::prelude::*;
 

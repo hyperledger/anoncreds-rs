@@ -5,7 +5,7 @@ use super::types::*;
 
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
-use crate::data_types::rev_reg::RevocationRegistryId;
+use crate::data_types::rev_reg::{RevocationRegistryId, UrsaRevocationRegistry};
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
 use crate::data_types::{
@@ -25,7 +25,7 @@ use bitvec::bitvec;
 
 use super::tails::{TailsFileReader, TailsWriter};
 
-const ACCUM_NO_ISSUED: &str = "{\"accum\":\"1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000 2 095E45DDF417D05FB10933FFC63D474548B7FFFF7888802F07FFFFFF7D07A8A8 1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000\"}";
+const ACCUM_NO_ISSUED: &str = "1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000 2 095E45DDF417D05FB10933FFC63D474548B7FFFF7888802F07FFFFFF7D07A8A8 1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000";
 
 pub fn create_schema<II>(
     schema_name: &str,
@@ -194,7 +194,7 @@ pub fn create_revocation_status_list(
     timestamp: Option<u64>,
     issuance_by_default: bool,
 ) -> Result<RevocationStatusList> {
-    let mut rev_reg: ursa::cl::RevocationRegistry = serde_json::from_str(ACCUM_NO_ISSUED)?;
+    let rev_reg = UrsaRevocationRegistry::try_from(ACCUM_NO_ISSUED)?;
     let max_cred_num = rev_reg_def.value.max_cred_num;
     let rev_reg_def_id = rev_reg_def_id.try_into()?;
     let issuer_id = issuer_id.try_into()?;
@@ -210,7 +210,7 @@ pub fn create_revocation_status_list(
         let issued = BTreeSet::from_iter(1..=max_cred_num);
 
         CryptoIssuer::update_revocation_registry(
-            &mut rev_reg,
+            &mut rev_reg.into(),
             max_cred_num,
             issued,
             BTreeSet::new(),
