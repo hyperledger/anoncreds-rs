@@ -24,7 +24,7 @@ impl_anoncreds_object_from_json!(Presentation, anoncreds_presentation_from_json)
 #[repr(C)]
 pub struct FfiCredentialEntry {
     credential: ObjectHandle,
-    timestamp: i64,
+    timestamp: i32,
     rev_state: ObjectHandle,
 }
 
@@ -195,6 +195,50 @@ pub extern "C" fn anoncreds_create_presentation(
     })
 }
 
+/// Optional value for overriding the non-revoked interval in the PresentationRequest
+/// This only overrides the `from` value as a Revocation Status List is deemed valid until the next
+/// entry.
+///
+/// E.g. if the ledger has Revocation Status List at timestamps [0, 100, 200],
+/// let's call them List0, List100, List200. Then:  
+///
+/// ```txt
+///
+///       List0 is valid  List100 is valid
+///        ______|_______ _______|_______
+///       |              |               |
+/// List  0 ----------- 100 ----------- 200
+/// ```
+///
+/// A `nonrevoked_interval = {from: 50, to: 150}` should accept both List0 and
+/// List100.  
+///
+#[derive(Debug)]
+#[repr(C)]
+pub struct FfiNonrevokedIntervalOverride<'a> {
+    rev_reg_def_id: FfiStr<'a>,
+    /// Timestamp in the `PresentationRequest`
+    requested_from_ts: i32,
+    /// Timestamp from which verifier accepts,
+    /// should be less than `req_timestamp`
+    override_rev_status_list_ts: i32,
+}
+
+impl<'a> FfiNonrevokedIntervalOverride<'a> {
+    fn load(&self) -> Result<(RevocationRegistryDefinitionId, u64, u64)> {
+        let id = RevocationRegistryDefinitionId::new(self.rev_reg_def_id.as_str().to_owned())?;
+        let requested_from_ts = self
+            .requested_from_ts
+            .try_into()
+            .map_err(|_| err_msg!("Invalid req timestamp "))?;
+        let override_rev_status_list_ts = self
+            .override_rev_status_list_ts
+            .try_into()
+            .map_err(|_| err_msg!("Invalid override timestamp "))?;
+        Ok((id, requested_from_ts, override_rev_status_list_ts))
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn anoncreds_verify_presentation(
     presentation: ObjectHandle,
@@ -206,6 +250,7 @@ pub extern "C" fn anoncreds_verify_presentation(
     rev_reg_defs: FfiList<ObjectHandle>,
     rev_reg_def_ids: FfiStrList,
     rev_status_list: FfiList<ObjectHandle>,
+    nonrevoked_interval_override: FfiList<FfiNonrevokedIntervalOverride>,
     result_p: *mut i8,
 ) -> ErrorCode {
     catch_error(|| {
@@ -266,6 +311,24 @@ pub extern "C" fn anoncreds_verify_presentation(
         let rev_status_list: Result<Vec<&RevocationStatusList>> = rev_status_list.refs();
         let rev_status_list = rev_status_list.ok();
 
+        let override_entries = {
+            let override_ffi_entries = nonrevoked_interval_override.as_slice();
+            override_ffi_entries.iter().try_fold(
+                Vec::with_capacity(override_ffi_entries.len()),
+                |mut v, entry| -> Result<Vec<(RevocationRegistryDefinitionId, u64, u64)>> {
+                    v.push(entry.load()?);
+                    Ok(v)
+                },
+            )?
+        };
+        let mut map_nonrevoked_interval_override = HashMap::new();
+        for (id, req_timestamp, override_timestamp) in override_entries.iter() {
+            map_nonrevoked_interval_override
+                .entry(id)
+                .or_insert_with(HashMap::new)
+                .insert(*req_timestamp, *override_timestamp);
+        }
+
         let verify = verify_presentation(
             presentation.load()?.cast_ref()?,
             pres_req.load()?.cast_ref()?,
@@ -273,6 +336,7 @@ pub extern "C" fn anoncreds_verify_presentation(
             &cred_defs,
             rev_reg_defs,
             rev_status_list,
+            Some(&map_nonrevoked_interval_override),
         )?;
         unsafe { *result_p = verify as i8 };
         Ok(())

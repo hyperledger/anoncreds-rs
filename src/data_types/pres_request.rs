@@ -22,7 +22,7 @@ pub struct PresentationRequestPayload {
     pub requested_attributes: HashMap<String, AttributeInfo>,
     #[serde(default)]
     pub requested_predicates: HashMap<String, PredicateInfo>,
-    pub non_revoked: Option<NonRevocedInterval>,
+    pub non_revoked: Option<NonRevokedInterval>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -122,10 +122,60 @@ impl Serialize for PresentationRequest {
 #[allow(unused)]
 pub type PresentationRequestExtraQuery = HashMap<String, Query>;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct NonRevocedInterval {
+#[derive(Clone, Default, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct NonRevokedInterval {
     pub from: Option<u64>,
     pub to: Option<u64>,
+}
+
+impl NonRevokedInterval {
+    pub fn new(from: Option<u64>, to: Option<u64>) -> Self {
+        Self { from, to }
+    }
+    // Returns the most stringent interval,
+    // i.e. the latest from and the earliest to
+    pub fn compare_and_set(&mut self, to_compare: &NonRevokedInterval) {
+        // Update if
+        // - the new `from` value is later, smaller interval
+        // - the new `from` value is Some if previouly was None
+        match (self.from, to_compare.from) {
+            (Some(old_from), Some(new_from)) => {
+                if old_from.lt(&new_from) {
+                    self.from = to_compare.from
+                }
+            }
+            (None, Some(_)) => self.from = to_compare.from,
+            _ => (),
+        }
+        // Update if
+        // - the new `to` value is earlier, smaller interval
+        // - the new `to` value is Some if previouly was None
+        match (self.to, to_compare.to) {
+            (Some(old_to), Some(new_to)) => {
+                if new_to.lt(&old_to) {
+                    self.to = to_compare.to
+                }
+            }
+            (None, Some(_)) => self.to = to_compare.to,
+            _ => (),
+        }
+    }
+
+    pub fn update_with_override(&mut self, override_map: &HashMap<u64, u64>) {
+        self.from.map(|from| {
+            override_map
+                .get(&from)
+                .map(|&override_timestamp| self.from = Some(override_timestamp))
+        });
+    }
+
+    pub fn is_valid(&self, timestamp: u64) -> Result<(), ValidationError> {
+        if timestamp.lt(&self.from.unwrap_or(0)) || timestamp.gt(&self.to.unwrap_or(u64::MAX)) {
+            Err(invalid!("Invalid timestamp"))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
@@ -135,7 +185,7 @@ pub struct AttributeInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub names: Option<Vec<String>>,
     pub restrictions: Option<Query>,
-    pub non_revoked: Option<NonRevocedInterval>,
+    pub non_revoked: Option<NonRevokedInterval>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
@@ -144,7 +194,7 @@ pub struct PredicateInfo {
     pub p_type: PredicateTypes,
     pub p_value: i32,
     pub restrictions: Option<Query>,
-    pub non_revoked: Option<NonRevocedInterval>,
+    pub non_revoked: Option<NonRevokedInterval>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
@@ -329,5 +379,45 @@ mod tests {
 
             serde_json::from_str::<PresentationRequest>(&req_json).unwrap_err();
         }
+    }
+
+    #[test]
+    fn override_works() {
+        let mut interval = NonRevokedInterval::default();
+        let override_map = HashMap::from([(10u64, 5u64)]);
+
+        interval.from = Some(10);
+        interval.update_with_override(&override_map);
+        assert_eq!(interval.from.unwrap(), 5u64);
+    }
+
+    #[test]
+    fn compare_and_set_works() {
+        let mut int = NonRevokedInterval::default();
+        let wide_int = NonRevokedInterval::new(Some(1), Some(100));
+        let mid_int = NonRevokedInterval::new(Some(5), Some(80));
+        let narrow_int = NonRevokedInterval::new(Some(10), Some(50));
+
+        assert_eq!(int.from, None);
+        assert_eq!(int.to, None);
+
+        // From None to Some
+        int.compare_and_set(&wide_int);
+        assert_eq!(int.from, wide_int.from);
+        assert_eq!(int.to, wide_int.to);
+
+        // Update when more narrow
+        int.compare_and_set(&mid_int);
+        assert_eq!(int.from, mid_int.from);
+        assert_eq!(int.to, mid_int.to);
+
+        // Do Not Update when wider
+        int.compare_and_set(&wide_int);
+        assert_eq!(int.from, mid_int.from);
+        assert_eq!(int.to, mid_int.to);
+
+        int.compare_and_set(&narrow_int);
+        assert_eq!(int.from, narrow_int.from);
+        assert_eq!(int.to, narrow_int.to);
     }
 }

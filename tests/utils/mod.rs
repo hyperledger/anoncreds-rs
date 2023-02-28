@@ -1,4 +1,5 @@
-pub mod anoncreds;
 pub mod mock;
+pub mod storage;
 
-pub use mock::{IsserValues, Mock, ProverValues};
+pub use mock::*;
+pub use storage::*;

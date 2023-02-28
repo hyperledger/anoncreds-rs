@@ -13,7 +13,7 @@ use crate::data_types::schema::Schema;
 use crate::data_types::schema::SchemaId;
 use crate::data_types::{
     nonce::Nonce,
-    pres_request::{AttributeInfo, NonRevocedInterval, PredicateInfo, PresentationRequestPayload},
+    pres_request::{AttributeInfo, NonRevokedInterval, PresentationRequestPayload},
     presentation::{Identifier, RequestedProof, RevealedAttributeInfo},
 };
 use crate::error::Result;
@@ -44,11 +44,15 @@ pub fn verify_presentation(
     cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
     rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
     rev_status_lists: Option<Vec<&RevocationStatusList>>,
+    // Override Map: HashMap<req_timestamp, override_timestamp>
+    nonrevoke_interval_override: Option<
+        &HashMap<&RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+    >,
 ) -> Result<bool> {
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
 
-    let pres_req = pres_req.value();
+    // These values are from the prover and cannot be trusted
     let received_revealed_attrs: HashMap<String, Identifier> =
         received_revealed_attrs(presentation)?;
     let received_unrevealed_attrs: HashMap<String, Identifier> =
@@ -56,6 +60,9 @@ pub fn verify_presentation(
     let received_predicates: HashMap<String, Identifier> = received_predicates(presentation)?;
     let received_self_attested_attrs: HashSet<String> = received_self_attested_attrs(presentation);
 
+    let pres_req = pres_req.value();
+
+    // Ensures that all attributes in the request is also in the presentation
     compare_attr_from_proof_and_request(
         pres_req,
         &received_revealed_attrs,
@@ -64,8 +71,10 @@ pub fn verify_presentation(
         &received_predicates,
     )?;
 
+    // Ensures the encoded values are same as request
     verify_revealed_attribute_values(pres_req, presentation)?;
 
+    // Ensures the restrictinos set out in the request is met
     verify_requested_restrictions(
         pres_req,
         schemas,
@@ -75,16 +84,6 @@ pub fn verify_presentation(
         &received_unrevealed_attrs,
         &received_predicates,
         &received_self_attested_attrs,
-    )?;
-
-    // makes sure the for revocable request or attribute,
-    // there is a timestamp in the `Identifier`
-    compare_timestamps_from_proof_and_request(
-        pres_req,
-        &received_revealed_attrs,
-        &received_unrevealed_attrs,
-        &received_self_attested_attrs,
-        &received_predicates,
     )?;
 
     let mut proof_verifier = CryptoVerifier::new_proof_verifier()?;
@@ -124,26 +123,64 @@ pub fn verify_presentation(
                     Into::<Option<ursa::cl::RevocationRegistry>>::into(*list)
                         .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing Accum"))?;
 
-                if map.get(&id).and_then(|t| t.get(&timestamp)).is_some() {
-                    return Err(err_msg!(
-                        Unexpected,
-                        "Duplicated timestamp for Revocation Status List"
-                    ));
-                } else if map.get(&id).is_none() {
-                    map.insert(id, HashMap::from([(timestamp, rev_reg)]));
-                } else {
-                    map.get_mut(&id).unwrap().insert(timestamp, rev_reg);
-                }
+                map.entry(id)
+                    .or_insert_with(HashMap::new)
+                    .insert(timestamp, rev_reg);
             }
             Some(map)
         } else {
             None
         };
 
-        let (rev_reg_def, rev_reg) = if let Some(timestamp) = identifier.timestamp {
-            let rev_reg_id = identifier.rev_reg_id.clone().ok_or_else(|| {
-                err_msg!("Timestamp provided but Revocation Registry Id not found")
-            })?;
+        let (attrs_for_credential, attrs_nonrevoked_interval) =
+            get_revealed_attributes_for_credential(
+                sub_proof_index,
+                &presentation.requested_proof,
+                pres_req,
+            )?;
+        let (predicates_for_credential, pred_nonrevoked_interval) = get_predicates_for_credential(
+            sub_proof_index,
+            &presentation.requested_proof,
+            pres_req,
+        )?;
+
+        // Collaspe to the most stringent local interval for the attributes / predicates,
+        // we can do this because there is only 1 revocation status list for this credential
+        // if it satsifies the most stringent interval, it will satisfy all intervals
+        let mut cred_nonrevoked_interval: Option<NonRevokedInterval> =
+            match (attrs_nonrevoked_interval, pred_nonrevoked_interval) {
+                (Some(attr), None) => Some(attr),
+                (None, Some(pred)) => Some(pred),
+                (Some(mut attr), Some(pred)) => {
+                    attr.compare_and_set(&pred);
+                    Some(attr)
+                }
+                _ => None,
+            };
+
+        // Global interval is override by the local one,
+        // we only need to update if local is None and Global is Some,
+        // do not need to update if global is more stringent
+        if let (Some(global), None) = (
+            pres_req.non_revoked.clone(),
+            cred_nonrevoked_interval.as_mut(),
+        ) {
+            cred_nonrevoked_interval = Some(global);
+        };
+
+        // Revocation checks is required iff both conditions are met:
+        // - Credential is revokable (input from verifier, trustable)
+        // - PresentationReq has asked for NRP* (input from verifier, trustable)
+        //
+        // * This is done by setting a NonRevokedInterval either for attr / predicate / global
+        let (rev_reg_def, rev_reg) = if let (Some(_), true) = (
+            cred_def.value.revocation.as_ref(),
+            cred_nonrevoked_interval.is_some(),
+        ) {
+            let timestamp = identifier
+                .timestamp
+                .ok_or_else(|| err_msg!("Identifier timestamp not found for revocation check"))?;
+
             if rev_reg_defs.is_none() {
                 return Err(err_msg!(
                     "Timestamp provided but no Revocation Registry Definitions found"
@@ -155,8 +192,28 @@ pub fn verify_presentation(
                 ));
             }
 
+            let rev_reg_id = identifier
+                .rev_reg_id
+                .clone()
+                .ok_or_else(|| err_msg!("Revocation Registry Id not found for revocation check"))?;
+
             // Revocation registry definition id is the same as the rev reg id
             let rev_reg_def_id = RevocationRegistryDefinitionId::new(rev_reg_id.clone())?;
+
+            // Override Interval if an earlier `from` value is accepted by the verifier
+            nonrevoke_interval_override.map(|maps| {
+                maps.get(&rev_reg_def_id).map(|map| {
+                    cred_nonrevoked_interval
+                        .as_mut()
+                        .map(|int| int.update_with_override(map))
+                })
+            });
+
+            // Validate timestamp
+            cred_nonrevoked_interval
+                .map(|int| int.is_valid(timestamp))
+                .transpose()?;
+
             let rev_reg_def = Some(
                 rev_reg_defs
                     .as_ref()
@@ -190,17 +247,6 @@ pub fn verify_presentation(
             (None, None)
         };
 
-        let attrs_for_credential = get_revealed_attributes_for_credential(
-            sub_proof_index,
-            &presentation.requested_proof,
-            pres_req,
-        )?;
-        let predicates_for_credential = get_predicates_for_credential(
-            sub_proof_index,
-            &presentation.requested_proof,
-            pres_req,
-        )?;
-
         let credential_schema = build_credential_schema(&schema.attr_names.0)?;
         let sub_pres_request =
             build_sub_proof_request(&attrs_for_credential, &predicates_for_credential)?;
@@ -231,72 +277,6 @@ pub fn verify_presentation(
 
 pub fn generate_nonce() -> Result<Nonce> {
     new_nonce()
-}
-
-fn get_revealed_attributes_for_credential(
-    sub_proof_index: usize,
-    requested_proof: &RequestedProof,
-    pres_req: &PresentationRequestPayload,
-) -> Result<Vec<AttributeInfo>> {
-    trace!("_get_revealed_attributes_for_credential >>> sub_proof_index: {:?}, requested_credentials: {:?}, pres_req: {:?}",
-           sub_proof_index, requested_proof, pres_req);
-
-    let mut revealed_attrs_for_credential = requested_proof
-        .revealed_attrs
-        .iter()
-        .filter(|&(attr_referent, revealed_attr_info)| {
-            sub_proof_index == revealed_attr_info.sub_proof_index as usize
-                && pres_req.requested_attributes.contains_key(attr_referent)
-        })
-        .map(|(attr_referent, _)| pres_req.requested_attributes[attr_referent].clone())
-        .collect::<Vec<AttributeInfo>>();
-
-    revealed_attrs_for_credential.append(
-        &mut requested_proof
-            .revealed_attr_groups
-            .iter()
-            .filter(|&(attr_referent, revealed_attr_info)| {
-                sub_proof_index == revealed_attr_info.sub_proof_index as usize
-                    && pres_req.requested_attributes.contains_key(attr_referent)
-            })
-            .map(|(attr_referent, _)| pres_req.requested_attributes[attr_referent].clone())
-            .collect::<Vec<AttributeInfo>>(),
-    );
-
-    trace!(
-        "_get_revealed_attributes_for_credential <<< revealed_attrs_for_credential: {:?}",
-        revealed_attrs_for_credential
-    );
-
-    Ok(revealed_attrs_for_credential)
-}
-
-fn get_predicates_for_credential(
-    sub_proof_index: usize,
-    requested_proof: &RequestedProof,
-    pres_req: &PresentationRequestPayload,
-) -> Result<Vec<PredicateInfo>> {
-    trace!("_get_predicates_for_credential >>> sub_proof_index: {:?}, requested_credentials: {:?}, pres_req: {:?}",
-           sub_proof_index, requested_proof, pres_req);
-
-    let predicates_for_credential = requested_proof
-        .predicates
-        .iter()
-        .filter(|&(predicate_referent, requested_referent)| {
-            sub_proof_index == requested_referent.sub_proof_index as usize
-                && pres_req
-                    .requested_predicates
-                    .contains_key(predicate_referent)
-        })
-        .map(|(predicate_referent, _)| pres_req.requested_predicates[predicate_referent].clone())
-        .collect::<Vec<PredicateInfo>>();
-
-    trace!(
-        "_get_predicates_for_credential <<< predicates_for_credential: {:?}",
-        predicates_for_credential
-    );
-
-    Ok(predicates_for_credential)
 }
 
 fn compare_attr_from_proof_and_request(
@@ -335,92 +315,6 @@ fn compare_attr_from_proof_and_request(
             requested_predicates,
             received_predicates
         ));
-    }
-
-    Ok(())
-}
-
-// This does not actually compare the non_revoke interval
-// see `validate_timestamp` function comments
-fn compare_timestamps_from_proof_and_request(
-    pres_req: &PresentationRequestPayload,
-    received_revealed_attrs: &HashMap<String, Identifier>,
-    received_unrevealed_attrs: &HashMap<String, Identifier>,
-    received_self_attested_attrs: &HashSet<String>,
-    received_predicates: &HashMap<String, Identifier>,
-) -> Result<()> {
-    pres_req
-        .requested_attributes
-        .iter()
-        .map(|(referent, info)| {
-            validate_timestamp(
-                received_revealed_attrs,
-                referent,
-                &pres_req.non_revoked,
-                &info.non_revoked,
-            )
-            .or_else(|_| {
-                validate_timestamp(
-                    received_unrevealed_attrs,
-                    referent,
-                    &pres_req.non_revoked,
-                    &info.non_revoked,
-                )
-            })
-            .or_else(|_| {
-                received_self_attested_attrs
-                    .get(referent)
-                    .map(|_| ())
-                    .ok_or_else(|| err_msg!("Missing referent: {}", referent))
-            })
-        })
-        .collect::<Result<Vec<()>>>()?;
-
-    pres_req
-        .requested_predicates
-        .iter()
-        .map(|(referent, info)| {
-            validate_timestamp(
-                received_predicates,
-                referent,
-                &pres_req.non_revoked,
-                &info.non_revoked,
-            )
-        })
-        .collect::<Result<Vec<()>>>()?;
-
-    Ok(())
-}
-
-// This validates that a timestamp is given if either:
-// - the `global_interval` rev requirement
-// - the `local_interval` rev requirement
-// from the PresentationRequest are satisfied.
-//
-// If either the attribute nor the request has a revocation internal
-// i.e. they are non-revocable, then `OK` is returned directly.
-//
-// Otherwise the Identifier for the referent (attribute) has to have a timestamp,
-// which was added by the prover when creating `PresentCredentials`,
-// an arg for `create_presentation`.
-//
-// TODO: this timestamp should be compared with the provided interval
-fn validate_timestamp(
-    received_: &HashMap<String, Identifier>,
-    referent: &str,
-    global_interval: &Option<NonRevocedInterval>,
-    local_interval: &Option<NonRevocedInterval>,
-) -> Result<()> {
-    if get_non_revoc_interval(global_interval, local_interval).is_none() {
-        return Ok(());
-    }
-
-    if !received_
-        .get(referent)
-        .map(|attr| attr.timestamp.is_some())
-        .unwrap_or(false)
-    {
-        return Err(err_msg!("Missing timestamp"));
     }
 
     Ok(())
@@ -597,6 +491,7 @@ fn verify_revealed_attribute_value(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn verify_requested_restrictions(
     pres_req: &PresentationRequestPayload,
     schemas: &HashMap<&SchemaId, &Schema>,
@@ -891,7 +786,7 @@ fn process_filter(
         }
         tag_ @ "schema_name" => precess_filed(tag_, &filter.schema_name, tag_value),
         tag_ @ "schema_version" => precess_filed(tag_, &filter.schema_version, tag_value),
-        tag_ @ "cred_def_id" => precess_filed(tag_, &filter.cred_def_id.to_string(), tag_value),
+        tag_ @ "cred_def_id" => precess_filed(tag_, filter.cred_def_id.to_string(), tag_value),
         tag_ @ "issuer_did" => precess_filed(tag_, filter.issuer_id.to_owned(), tag_value),
         tag_ @ "issuer_id" => precess_filed(tag_, filter.issuer_id.to_owned(), tag_value),
         x if is_attr_internal_tag(x, attr_value_map) => {
@@ -1302,26 +1197,5 @@ mod tests {
             },
         );
         res
-    }
-
-    fn _interval() -> NonRevocedInterval {
-        NonRevocedInterval {
-            from: None,
-            to: Some(1234),
-        }
-    }
-
-    #[test]
-    fn validate_timestamp_works() {
-        validate_timestamp(&_received(), "referent_1", &None, &None).unwrap();
-        validate_timestamp(&_received(), "referent_1", &Some(_interval()), &None).unwrap();
-        validate_timestamp(&_received(), "referent_1", &None, &Some(_interval())).unwrap();
-    }
-
-    #[test]
-    fn validate_timestamp_not_work() {
-        validate_timestamp(&_received(), "referent_2", &Some(_interval()), &None).unwrap_err();
-        validate_timestamp(&_received(), "referent_2", &None, &Some(_interval())).unwrap_err();
-        validate_timestamp(&_received(), "referent_3", &None, &Some(_interval())).unwrap_err();
     }
 }
