@@ -201,6 +201,12 @@ pub fn create_revocation_status_list(
     let rev_reg_def_id = rev_reg_def_id.try_into()?;
     let issuer_id = issuer_id.try_into()?;
 
+    if issuer_id != rev_reg_def.issuer_id {
+        return Err(err_msg!(
+            "Issuer id must be the same as the issuer id in the revocation registry definition"
+        ));
+    }
+
     let list = if issuance_by_default {
         let tails_reader = TailsFileReader::new_tails_reader(&rev_reg_def.value.tails_location);
         let issued = BTreeSet::from_iter(1..=max_cred_num);
