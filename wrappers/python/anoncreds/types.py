@@ -10,7 +10,7 @@ class CredentialDefinition(bindings.AnoncredsObject):
     def create(
         cls,
         schema_id: str,
-        schema: Union[str, "Schema"],
+        schema: Union[dict, str, "Schema"],
         issuer_id: str,
         tag: str,
         signature_type: str,
