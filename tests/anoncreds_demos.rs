@@ -22,8 +22,7 @@ use anoncreds::{
 
 use serde_json::json;
 
-use self::utils::anoncreds::ProverWallet;
-
+use utils::*;
 mod utils;
 
 pub static SCHEMA_ID: &str = "mock:uri";
@@ -218,6 +217,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
         &pres_request,
         &schemas,
         &cred_defs,
+        None,
         None,
         None,
     )
@@ -432,6 +432,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         &cred_defs,
         Some(&rev_reg_def_map),
         Some(rev_status_list.clone()),
+        None,
     )
     .expect("Error verifying presentation");
     assert!(valid);
@@ -477,6 +478,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         &cred_defs,
         Some(&rev_reg_def_map),
         Some(rev_status_list),
+        None,
     )
     .expect("Error verifying presentation");
     assert!(!valid);
