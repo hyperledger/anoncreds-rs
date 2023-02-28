@@ -192,13 +192,15 @@ where
 pub fn create_revocation_status_list(
     rev_reg_def_id: impl TryInto<RevocationRegistryDefinitionId, Error = ValidationError>,
     rev_reg_def: &RevocationRegistryDefinition,
+    issuer_id: impl TryInto<IssuerId, Error = ValidationError>,
     timestamp: Option<u64>,
     issuance_by_default: bool,
-) -> Result<RevocationStatusList> {
+) -> Result<RevocationStatusList>
+{
     let mut rev_reg: ursa::cl::RevocationRegistry = serde_json::from_str(ACCUM_NO_ISSUED)?;
     let max_cred_num = rev_reg_def.value.max_cred_num;
-    let validated_rev_reg_def_id = rev_reg_def_id.try_into()?;
-    validated_rev_reg_def_id.validate()?;
+    let rev_reg_def_id = rev_reg_def_id.try_into()?;
+    let issuer_id = issuer_id.try_into()?;
 
     let list = if issuance_by_default {
         let tails_reader = TailsFileReader::new_tails_reader(&rev_reg_def.value.tails_location);
@@ -217,7 +219,8 @@ pub fn create_revocation_status_list(
     };
 
     RevocationStatusList::new(
-        Some(validated_rev_reg_def_id.to_string().as_str()),
+        Some(rev_reg_def_id.to_string().as_str()),
+        issuer_id,
         list,
         Some(rev_reg),
         timestamp,

@@ -7,7 +7,7 @@ use std::collections::{BTreeSet, HashSet};
 
 use crate::{error, impl_anoncreds_object_identifier};
 
-use super::rev_reg_def::RevocationRegistryDefinitionId;
+use super::{issuer_id::IssuerId, rev_reg_def::RevocationRegistryDefinitionId};
 
 impl_anoncreds_object_identifier!(RevocationRegistryId);
 
@@ -40,6 +40,7 @@ impl Validatable for RevocationRegistryDelta {}
 pub struct RevocationStatusList {
     #[serde(skip_serializing_if = "Option::is_none")]
     rev_reg_def_id: Option<RevocationRegistryDefinitionId>,
+    issuer_id: IssuerId,
     #[serde(with = "serde_revocation_list")]
     revocation_list: bitvec::vec::BitVec,
     #[serde(flatten, skip_serializing_if = "Option::is_none")]
@@ -134,6 +135,7 @@ impl RevocationStatusList {
 
     pub fn new(
         rev_reg_def_id: Option<&str>,
+        issuer_id: IssuerId,
         revocation_list: bitvec::vec::BitVec,
         registry: Option<ursa::cl::RevocationRegistry>,
         timestamp: Option<u64>,
@@ -142,6 +144,7 @@ impl RevocationStatusList {
             rev_reg_def_id: rev_reg_def_id
                 .map(RevocationRegistryDefinitionId::new)
                 .transpose()?,
+            issuer_id,
             revocation_list,
             registry,
             timestamp,
@@ -210,6 +213,7 @@ mod tests {
         {
             "revRegDefId": "reg",
             "revocationList": [1, 1, 1, 1],
+            "issuerId": "mock:uri",
             "accum":  "1 1379509F4D411630D308A5ABB4F422FCE6737B330B1C5FD286AA5C26F2061E60 1 235535CC45D4816C7686C5A402A230B35A62DDE82B4A652E384FD31912C4E4BB 1 0C94B61595FCAEFC892BB98A27D524C97ED0B7ED1CC49AD6F178A59D4199C9A4 1 172482285606DEE8500FC8A13E6A35EC071F8B84F0EB4CD3DD091C0B4CD30E5E 2 095E45DDF417D05FB10933FFC63D474548B7FFFF7888802F07FFFFFF7D07A8A8 1 0000000000000000000000000000000000000000000000000000000000000000",
 			 "timestamp": 1234
         }"#;
