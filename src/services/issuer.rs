@@ -195,8 +195,7 @@ pub fn create_revocation_status_list(
     issuer_id: impl TryInto<IssuerId, Error = ValidationError>,
     timestamp: Option<u64>,
     issuance_by_default: bool,
-) -> Result<RevocationStatusList>
-{
+) -> Result<RevocationStatusList> {
     let mut rev_reg: ursa::cl::RevocationRegistry = serde_json::from_str(ACCUM_NO_ISSUED)?;
     let max_cred_num = rev_reg_def.value.max_cred_num;
     let rev_reg_def_id = rev_reg_def_id.try_into()?;
