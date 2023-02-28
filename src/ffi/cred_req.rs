@@ -10,7 +10,7 @@ use crate::services::{
 
 #[no_mangle]
 pub extern "C" fn anoncreds_create_credential_request(
-    prover_did: FfiStr, // optional
+    entropy: FfiStr,
     cred_def: ObjectHandle,
     master_secret: ObjectHandle,
     master_secret_id: FfiStr,
@@ -24,14 +24,15 @@ pub extern "C" fn anoncreds_create_credential_request(
         let master_secret_id = master_secret_id
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing master secret ID"))?;
+        let entropy = entropy
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing entropy"))?;
 
         let cred_def = cred_def.load()?;
         let cred_def: &CredentialDefinition = cred_def.cast_ref()?;
 
-        let prover_did = prover_did.as_opt_str();
-
         let (cred_req, cred_req_metadata) = create_credential_request(
-            prover_did,
+            entropy,
             cred_def,
             master_secret.load()?.cast_ref()?,
             master_secret_id,
