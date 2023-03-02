@@ -283,6 +283,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     let revocation_status_list = issuer::create_revocation_status_list(
         REV_REG_DEF_ID,
         &rev_reg_def_pub,
+        ISSUER_ID,
         Some(time_create_rev_status_list),
         true,
     )

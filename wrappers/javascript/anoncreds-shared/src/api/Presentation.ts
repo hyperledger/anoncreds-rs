@@ -14,6 +14,13 @@ import { anoncreds } from '../register'
 
 // TODO: Simplify Presentation API (see PresentCredentials object in python wrapper))
 
+// TODO: define whether what is undefined and what is defined
+export type NonRevokedIntervalOverride = {
+  revocationRegistryDefinitionId: string
+  requestedFromTimestamp: number
+  overrideRevocationStatusListTimestamp: number
+}
+
 export type CredentialEntry = {
   credential: Credential
   timestamp?: number
@@ -49,6 +56,7 @@ export type VerifyPresentationOptions = {
   credentialDefinitions: Record<string, CredentialDefinition>
   revocationRegistryDefinitions?: Record<string, RevocationRegistryDefinition>
   revocationStatusLists?: RevocationStatusList[]
+  nonRevokedIntervalOverride?: NonRevokedIntervalOverride[]
 }
 
 export class Presentation extends AnoncredsObject {
@@ -108,6 +116,7 @@ export class Presentation extends AnoncredsObject {
       revocationRegistryDefinitions: revocationRegistryDefinitions?.map((o) => o.handle),
       revocationRegistryDefinitionIds,
       revocationStatusLists: options.revocationStatusLists?.map((o) => o.handle),
+      nonRevokedIntervalOverride: options.nonRevokedIntervalOverride,
     })
   }
 }

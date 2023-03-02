@@ -2,7 +2,7 @@ import RefArray from 'ref-array-di'
 import * as ref from 'ref-napi'
 import RefStruct from 'ref-struct-di'
 
-import { FFI_INT64, FFI_INT8, FFI_ISIZE, FFI_OBJECT_HANDLE, FFI_STRING } from './primitives'
+import { FFI_INT64, FFI_INT8, FFI_ISIZE, FFI_OBJECT_HANDLE, FFI_STRING, FFI_INT32 } from './primitives'
 
 const CStruct = RefStruct(ref)
 const CArray = RefArray(ref)
@@ -99,4 +99,17 @@ export const RevocationEntryArray = CArray(RevocationEntryStruct)
 export const RevocationEntryListStruct = CStruct({
   count: FFI_ISIZE,
   data: RevocationEntryArray,
+})
+
+export const NonRevokedIntervalOverrideStruct = CStruct({
+  rev_reg_def_id: FFI_STRING,
+  requested_from_ts: FFI_INT32,
+  override_rev_status_list_ts: FFI_INT32,
+})
+
+export const NonRevokedIntervalOverrideArray = CArray(NonRevokedIntervalOverrideStruct)
+
+export const NonRevokedIntervalOverrideListStruct = CStruct({
+  count: FFI_ISIZE,
+  data: NonRevokedIntervalOverrideArray,
 })

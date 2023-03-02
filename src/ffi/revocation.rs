@@ -23,6 +23,7 @@ use crate::services::types::CredentialRevocationState;
 pub extern "C" fn anoncreds_create_revocation_status_list(
     rev_reg_def_id: FfiStr,
     rev_reg_def: ObjectHandle,
+    issuer_id: FfiStr,
     timestamp: i64,
     issuance_by_default: i8,
     rev_status_list_p: *mut ObjectHandle,
@@ -32,6 +33,9 @@ pub extern "C" fn anoncreds_create_revocation_status_list(
         let rev_reg_def_id = rev_reg_def_id
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing rev_reg_def_id"))?;
+        let issuer_id = issuer_id
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing issuer_id"))?;
         let timestamp = if timestamp <= 0 {
             None
         } else {
@@ -41,6 +45,7 @@ pub extern "C" fn anoncreds_create_revocation_status_list(
         let rev_status_list = issuer::create_revocation_status_list(
             rev_reg_def_id,
             rev_reg_def.load()?.cast_ref()?,
+            issuer_id,
             timestamp,
             issuance_by_default != 0,
         )?;

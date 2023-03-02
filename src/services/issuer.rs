@@ -139,6 +139,12 @@ where
     let cred_def_id = cred_def_id.try_into()?;
     let issuer_id = issuer_id.try_into()?;
 
+    if issuer_id != cred_def.issuer_id {
+        return Err(err_msg!(
+            "Issuer id must be the same as the issuer id in the credential definition"
+        ));
+    }
+
     let credential_pub_key = cred_def.get_public_key().map_err(err_map!(
         Unexpected,
         "Error fetching public key from credential definition"
@@ -186,13 +192,20 @@ where
 pub fn create_revocation_status_list(
     rev_reg_def_id: impl TryInto<RevocationRegistryDefinitionId, Error = ValidationError>,
     rev_reg_def: &RevocationRegistryDefinition,
+    issuer_id: impl TryInto<IssuerId, Error = ValidationError>,
     timestamp: Option<u64>,
     issuance_by_default: bool,
 ) -> Result<RevocationStatusList> {
     let mut rev_reg: ursa::cl::RevocationRegistry = serde_json::from_str(ACCUM_NO_ISSUED)?;
     let max_cred_num = rev_reg_def.value.max_cred_num;
-    let validated_rev_reg_def_id = rev_reg_def_id.try_into()?;
-    validated_rev_reg_def_id.validate()?;
+    let rev_reg_def_id = rev_reg_def_id.try_into()?;
+    let issuer_id = issuer_id.try_into()?;
+
+    if issuer_id != rev_reg_def.issuer_id {
+        return Err(err_msg!(
+            "Issuer id must be the same as the issuer id in the revocation registry definition"
+        ));
+    }
 
     let list = if issuance_by_default {
         let tails_reader = TailsFileReader::new_tails_reader(&rev_reg_def.value.tails_location);
@@ -211,7 +224,8 @@ pub fn create_revocation_status_list(
     };
 
     RevocationStatusList::new(
-        Some(validated_rev_reg_def_id.to_string().as_str()),
+        Some(rev_reg_def_id.to_string().as_str()),
+        issuer_id,
         list,
         Some(rev_reg),
         timestamp,
@@ -441,7 +455,73 @@ pub fn create_credential(
 
 #[cfg(test)]
 mod tests {
+    use crate::tails::TailsFileWriter;
+
     use super::*;
+
+    #[test]
+    fn test_issuer_id_equal_in_revocation_registry_definiton_and_credential_definition(
+    ) -> Result<()> {
+        let credential_definition_issuer_id = "sample:id";
+        let revocation_registry_definition_issuer_id = credential_definition_issuer_id;
+
+        let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
+        let schema = create_schema("schema:name", "1.0", "sample:uri", attr_names)?;
+        let cred_def = create_credential_definition(
+            "schema:id",
+            &schema,
+            credential_definition_issuer_id,
+            "default",
+            SignatureType::CL,
+            CredentialDefinitionConfig {
+                support_revocation: true,
+            },
+        )?;
+        let res = create_revocation_registry_def(
+            &cred_def.0,
+            "sample:uri",
+            revocation_registry_definition_issuer_id,
+            "default",
+            RegistryType::CL_ACCUM,
+            1,
+            &mut TailsFileWriter::new(None),
+        );
+
+        assert!(res.is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn test_issuer_id_unequal_in_revocation_registry_definiton_and_credential_definition(
+    ) -> Result<()> {
+        let credential_definition_issuer_id = "sample:id";
+        let revocation_registry_definition_issuer_id = "another:id";
+
+        let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
+        let schema = create_schema("schema:name", "1.0", "sample:uri", attr_names)?;
+        let cred_def = create_credential_definition(
+            "schema:id",
+            &schema,
+            credential_definition_issuer_id,
+            "default",
+            SignatureType::CL,
+            CredentialDefinitionConfig {
+                support_revocation: true,
+            },
+        )?;
+        let res = create_revocation_registry_def(
+            &cred_def.0,
+            "sample:uri",
+            revocation_registry_definition_issuer_id,
+            "default",
+            RegistryType::CL_ACCUM,
+            1,
+            &mut TailsFileWriter::new(None),
+        );
+
+        assert!(res.is_err());
+        Ok(())
+    }
 
     #[test]
     fn test_encode_attribute() {
