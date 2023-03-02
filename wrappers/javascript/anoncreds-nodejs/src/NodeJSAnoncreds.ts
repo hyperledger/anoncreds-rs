@@ -235,20 +235,19 @@ export class NodeJSAnoncreds implements Anoncreds {
   }
 
   public createCredentialRequest(options: {
-    proverDid?: string
+    entropy: string
     credentialDefinition: ObjectHandle
     masterSecret: ObjectHandle
     masterSecretId: string
     credentialOffer: ObjectHandle
   }): { credentialRequest: ObjectHandle; credentialRequestMetadata: ObjectHandle } {
-    const { proverDid, credentialDefinition, masterSecret, masterSecretId, credentialOffer } =
-      serializeArguments(options)
+    const { entropy, credentialDefinition, masterSecret, masterSecretId, credentialOffer } = serializeArguments(options)
 
     const credentialRequestPtr = allocatePointer()
     const credentialRequestMetadataPtr = allocatePointer()
 
     nativeAnoncreds.anoncreds_create_credential_request(
-      proverDid,
+      entropy,
       credentialDefinition,
       masterSecret,
       masterSecretId,
