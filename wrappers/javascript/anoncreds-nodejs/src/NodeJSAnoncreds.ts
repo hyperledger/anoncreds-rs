@@ -3,6 +3,7 @@ import type {
   NativeCredentialProve,
   Anoncreds,
   NativeCredentialRevocationConfig,
+  NativeNonRevokedIntervalOverride,
 } from '@hyperledger/anoncreds-shared'
 import type { TypedArray } from 'ref-array-di'
 import type { StructObject } from 'ref-struct-di'
@@ -26,6 +27,8 @@ import {
   allocateByteBuffer,
   ObjectHandleListStruct,
   ObjectHandleArray,
+  NonRevokedIntervalOverrideStruct,
+  NonRevokedIntervalOverrideListStruct,
 } from './ffi'
 import { nativeAnoncreds } from './library'
 
@@ -380,6 +383,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     revocationRegistryDefinitions?: ObjectHandle[]
     revocationRegistryDefinitionIds?: string[]
     revocationStatusLists?: ObjectHandle[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
   }): boolean {
     const {
       presentation,
@@ -393,6 +397,27 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialDefinitionIds,
     } = serializeArguments(options)
 
+    const nativeNonRevokedIntervalOverride = options.nonRevokedIntervalOverrides?.map((value) => {
+      const { requestedFromTimestamp, revocationRegistryDefinitionId, overrideRevocationStatusListTimestamp } =
+        serializeArguments(value)
+      return NonRevokedIntervalOverrideStruct({
+        rev_reg_def_id: revocationRegistryDefinitionId,
+        requested_from_ts: requestedFromTimestamp,
+        override_rev_status_list_ts: overrideRevocationStatusListTimestamp,
+      })
+    })
+
+    const nonRevokedIntervalOverrideList = NonRevokedIntervalOverrideListStruct({
+      count: options.nonRevokedIntervalOverrides?.length ?? 0,
+      data: nativeNonRevokedIntervalOverride as unknown as TypedArray<
+        StructObject<{
+          rev_reg_def_id: string
+          requested_from_ts: number
+          override_rev_status_list_ts: number
+        }>
+      >,
+    })
+
     const ret = allocateInt8Buffer()
 
     nativeAnoncreds.anoncreds_verify_presentation(
@@ -405,6 +430,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       revocationRegistryDefinitions,
       revocationRegistryDefinitionIds,
       revocationStatusLists,
+      nonRevokedIntervalOverrideList as unknown as Buffer,
       ret
     )
     handleError()

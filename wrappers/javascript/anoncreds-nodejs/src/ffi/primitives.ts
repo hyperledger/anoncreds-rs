@@ -4,6 +4,7 @@ import { types, refType } from 'ref-napi'
 
 export const FFI_ISIZE = 'size_t'
 export const FFI_INT8 = 'int8'
+export const FFI_INT32 = 'int32'
 export const FFI_INT64 = 'int64'
 export const FFI_UINT = 'uint'
 export const FFI_UINT8 = 'uint8'

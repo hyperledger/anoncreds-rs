@@ -15,6 +15,7 @@ import {
   FFI_INT8_PTR,
   FFI_VOID,
   I32ListStruct,
+  NonRevokedIntervalOverrideListStruct,
 } from '../ffi'
 
 export const nativeBindings = {
@@ -149,6 +150,7 @@ export const nativeBindings = {
       ObjectHandleListStruct,
       StringListStruct,
       ObjectHandleListStruct,
+      NonRevokedIntervalOverrideListStruct,
       FFI_INT8_PTR,
     ],
   ],
