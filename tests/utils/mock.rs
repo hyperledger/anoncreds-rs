@@ -168,6 +168,7 @@ impl<'a> Mock<'a> {
                 let revocation_status_list = issuer::create_revocation_status_list(
                     *rev_reg_id,
                     &rev_reg_def_pub,
+                    issuer_id,
                     Some(time_now),
                     issuance_by_default,
                 )

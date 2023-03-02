@@ -256,6 +256,7 @@ describe('bindings', () => {
 
     const timeCreateRevStatusList = 12
     const revocationStatusList = anoncreds.createRevocationStatusList({
+      issuerId: 'mock:uri',
       timestamp: timeCreateRevStatusList,
       issuanceByDefault: true,
       revocationRegistryDefinition,
@@ -388,6 +389,7 @@ describe('bindings', () => {
 
     const timeCreateRevStatusList = 12
     const revocationStatusList = anoncreds.createRevocationStatusList({
+      issuerId: 'mock:uri',
       timestamp: timeCreateRevStatusList,
       issuanceByDefault: true,
       revocationRegistryDefinition,

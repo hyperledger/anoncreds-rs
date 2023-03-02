@@ -16,6 +16,12 @@ export type NativeCredentialProve = {
   reveal: boolean
 }
 
+export type NativeNonRevokedIntervalOverride = {
+  revocationRegistryDefinitionId: string
+  requestedFromTimestamp: number
+  overrideRevocationStatusListTimestamp: number
+}
+
 export type NativeRevocationEntry = {
   revocationRegistryDefinitionEntryIndex: number
   entry: ObjectHandle
@@ -105,6 +111,7 @@ export interface Anoncreds {
     revocationRegistryDefinitions?: ObjectHandle[]
     revocationRegistryDefinitionIds?: string[]
     revocationStatusLists?: ObjectHandle[]
+    nonRevokedIntervalOverride?: NativeNonRevokedIntervalOverride[]
   }): boolean
 
   createRevocationRegistryDefinition(options: {
@@ -132,6 +139,7 @@ export interface Anoncreds {
   createRevocationStatusList(options: {
     revocationRegistryDefinitionId: string
     revocationRegistryDefinition: ObjectHandle
+    issuerId: string
     timestamp?: number
     issuanceByDefault: boolean
   }): ObjectHandle
