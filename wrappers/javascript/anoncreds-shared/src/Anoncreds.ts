@@ -39,6 +39,7 @@ export interface Anoncreds {
   version(): string
 
   getCurrentError(): string
+  setDefaultLogger(): void
 
   generateNonce(): string
 
