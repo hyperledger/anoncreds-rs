@@ -82,7 +82,8 @@ export interface Anoncreds {
   }): ObjectHandle
 
   createCredentialRequest(options: {
-    entropy: string
+    entropy?: string
+    proverDid?: string
     credentialDefinition: ObjectHandle
     masterSecret: ObjectHandle
     masterSecretId: string

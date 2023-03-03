@@ -230,7 +230,8 @@ jsi::Value createCredentialOffer(jsi::Runtime &rt, jsi::Object options) {
 };
 
 jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
-  auto entropy = jsiToValue<std::string>(rt, options, "entropy");
+  auto entropy = jsiToValue<std::string>(rt, options, "entropy", true);
+  auto proverDid = jsiToValue<std::string>(rt, options, "proverDid", true);
   auto credentialDefinition =
       jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
   auto masterSecret = jsiToValue<ObjectHandle>(rt, options, "masterSecret");
@@ -242,7 +243,7 @@ jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle credReqMetaP;
 
   ErrorCode code = anoncreds_create_credential_request(
-      entropy.c_str(), credentialDefinition, masterSecret,
+      entropy.c_str(), prover_did.c_str(), credentialDefinition, masterSecret,
       masterSecretId.c_str(), credentialOffer, &credReqP, &credReqMetaP);
   handleError(rt, code);
 
@@ -336,8 +337,8 @@ jsi::Value createRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle revocationStatusListP;
 
   ErrorCode code = anoncreds_create_revocation_status_list(
-      revocationRegistryDefinitionId.c_str(), revocationRegistryDefinition, timestamp,
-      issuanceByDefault, &revocationStatusListP);
+      revocationRegistryDefinitionId.c_str(), revocationRegistryDefinition,
+      timestamp, issuanceByDefault, &revocationStatusListP);
   handleError(rt, code);
 
   return jsi::Value(int(revocationStatusListP));

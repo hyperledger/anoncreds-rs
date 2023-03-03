@@ -120,7 +120,8 @@ export class ReactNativeAnoncreds implements Anoncreds {
   }
 
   public createCredentialRequest(options: {
-    entropy: string
+    entropy?: string
+    proverDid?: string
     credentialDefinition: ObjectHandle
     masterSecret: ObjectHandle
     masterSecretId: string
