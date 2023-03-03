@@ -44,6 +44,10 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return anoncredsReactNative.version({})
   }
 
+  public setDefaultLogger(): void {
+    anoncredsReactNative.setDefaultLogger({})
+  }
+
   public getCurrentError(): string {
     return anoncredsReactNative.getCurrentError({})
   }

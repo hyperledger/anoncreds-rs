@@ -10,6 +10,7 @@ type _Handle = number
 export interface NativeBindings {
   version(options: Record<never, never>): string
   getCurrentError(options: Record<never, never>): string
+  setDefaultLogger(options: Record<never, never>): null
   generateNonce(options: Record<never, never>): string
   createSchema(options: { name: string; version: string; issuerId: string; attributeNames: string[] }): _Handle
   createRevocationStatusList(options: {

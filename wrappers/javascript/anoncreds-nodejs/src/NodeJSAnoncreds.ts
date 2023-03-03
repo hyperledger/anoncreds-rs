@@ -573,6 +573,11 @@ export class NodeJSAnoncreds implements Anoncreds {
     return nativeAnoncreds.anoncreds_version()
   }
 
+  public setDefaultLogger(): void {
+    nativeAnoncreds.anoncreds_set_default_logger()
+    handleError()
+  }
+
   // This should be called when a function returns a non-zero code
   public getCurrentError(): string {
     const ret = allocateStringBuffer()

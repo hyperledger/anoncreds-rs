@@ -43,7 +43,9 @@ jsi::Value getTypeName(jsi::Runtime &rt, jsi::Object options) {
 };
 
 jsi::Value setDefaultLogger(jsi::Runtime &rt, jsi::Object options) {
-  anoncreds_set_default_logger();
+  ErrorCode code = anoncreds_set_default_logger();
+  handleError(rt, code);
+  
   return jsi::Value::null();
 };
 
