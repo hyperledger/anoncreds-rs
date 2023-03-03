@@ -45,7 +45,7 @@ jsi::Value getTypeName(jsi::Runtime &rt, jsi::Object options) {
 jsi::Value setDefaultLogger(jsi::Runtime &rt, jsi::Object options) {
   ErrorCode code = anoncreds_set_default_logger();
   handleError(rt, code);
-  
+
   return jsi::Value::null();
 };
 
@@ -164,11 +164,14 @@ jsi::Value verifyPresentation(jsi::Runtime &rt, jsi::Object options) {
   auto credentialDefinitionIds =
       jsiToValue<FfiList_FfiStr>(rt, options, "credentialDefinitionIds");
   auto revocationRegistryDefinitions = jsiToValue<FfiList_ObjectHandle>(
-      rt, options, "revocationRegistryDefinitions");
+      rt, options, "revocationRegistryDefinitions", true);
   auto revocationRegistryDefinitionIds = jsiToValue<FfiList_FfiStr>(
-      rt, options, "revocationRegistryDefinitionIds");
-  auto revocationStatusLists =
-      jsiToValue<FfiList_ObjectHandle>(rt, options, "revocationStatusLists");
+      rt, options, "revocationRegistryDefinitionIds", true);
+  auto revocationStatusLists = jsiToValue<FfiList_ObjectHandle>(
+      rt, options, "revocationStatusLists", true);
+  auto nonrevokedIntervalOverride =
+      jsiToValue<FfiList_FfiNonrevokedIntervalOverride>(
+          rt, options, "nonRevokedIntervalOverride", true);
 
   int8_t resultP;
 
@@ -176,7 +179,7 @@ jsi::Value verifyPresentation(jsi::Runtime &rt, jsi::Object options) {
       presentation, presentationRequest, schemas, schemaIds,
       credentialDefinitions, credentialDefinitionIds,
       revocationRegistryDefinitions, revocationRegistryDefinitionIds,
-      revocationStatusLists, &resultP);
+      revocationStatusLists, nonrevokedIntervalOverride, &resultP);
   handleError(rt, code);
 
   return jsi::Value(int(resultP));
@@ -338,8 +341,8 @@ jsi::Value createRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle revocationStatusListP;
 
   ErrorCode code = anoncreds_create_revocation_status_list(
-      revocationRegistryDefinitionId.c_str(), revocationRegistryDefinition, timestamp,
-      issuanceByDefault, &revocationStatusListP);
+      revocationRegistryDefinitionId.c_str(), revocationRegistryDefinition,
+      timestamp, issuanceByDefault, &revocationStatusListP);
   handleError(rt, code);
 
   return jsi::Value(int(revocationStatusListP));
