@@ -81,6 +81,10 @@ jobs:
             arch: linux-x86_64
             target: x86_64-unknown-linux-gnu
             lib: libanoncreds.so
+          - os: ubuntu-latest
+            arch: linux-aarch64
+            target: aarch64-unknown-linux-gnu
+            lib: libanoncreds.so
           - os: macos-latest
             arch: darwin-x86_64
             lib: libanoncreds.dylib
