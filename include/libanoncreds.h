@@ -180,7 +180,7 @@ typedef struct FfiCredRevInfo {
 
 typedef struct FfiCredentialEntry {
   ObjectHandle credential;
-  int64_t timestamp;
+  int32_t timestamp;
   ObjectHandle rev_state;
 } FfiCredentialEntry;
 
@@ -210,6 +210,44 @@ typedef struct FfiList_i32 {
   size_t count;
   const int32_t *data;
 } FfiList_i32;
+
+/**
+ * Optional value for overriding the non-revoked interval in the PresentationRequest
+ * This only overrides the `from` value as a Revocation Status List is deemed valid until the next
+ * entry.
+ *
+ * E.g. if the ledger has Revocation Status List at timestamps [0, 100, 200],
+ * let's call them List0, List100, List200. Then:
+ *
+ * ```txt
+ *
+ *       List0 is valid  List100 is valid
+ *        ______|_______ _______|_______
+ *       |              |               |
+ * List  0 ----------- 100 ----------- 200
+ * ```
+ *
+ * A `nonrevoked_interval = {from: 50, to: 150}` should accept both List0 and
+ * List100.
+ *
+ */
+typedef struct FfiNonrevokedIntervalOverride {
+  FfiStr rev_reg_def_id;
+  /**
+   * Timestamp in the `PresentationRequest`
+   */
+  int32_t requested_from_ts;
+  /**
+   * Timestamp from which verifier accepts,
+   * should be less than `req_timestamp`
+   */
+  int32_t override_rev_status_list_ts;
+} FfiNonrevokedIntervalOverride;
+
+typedef struct FfiList_FfiNonrevokedIntervalOverride {
+  size_t count;
+  const struct FfiNonrevokedIntervalOverride *data;
+} FfiList_FfiNonrevokedIntervalOverride;
 
 #ifdef __cplusplus
 extern "C" {
@@ -244,7 +282,8 @@ ErrorCode anoncreds_create_credential_offer(FfiStr schema_id,
                                             ObjectHandle key_proof,
                                             ObjectHandle *cred_offer_p);
 
-ErrorCode anoncreds_create_credential_request(FfiStr prover_did,
+ErrorCode anoncreds_create_credential_request(FfiStr entropy,
+                                              FfiStr prover_did,
                                               ObjectHandle cred_def,
                                               ObjectHandle master_secret,
                                               FfiStr master_secret_id,
@@ -346,6 +385,7 @@ ErrorCode anoncreds_verify_presentation(ObjectHandle presentation,
                                         struct FfiList_ObjectHandle rev_reg_defs,
                                         FfiStrList rev_reg_def_ids,
                                         struct FfiList_ObjectHandle rev_status_list,
+                                        struct FfiList_FfiNonrevokedIntervalOverride nonrevoked_interval_override,
                                         int8_t *result_p);
 
 char *anoncreds_version(void);

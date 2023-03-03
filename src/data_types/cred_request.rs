@@ -27,7 +27,7 @@ impl Validatable for CredentialRequest {
                 } else {
                     Ok(())
                 }
-            },
+            }
             None => {
                 if self.cred_def_id.is_legacy() {
                     if let Some(prover_did) = self.prover_did.clone() {
@@ -89,10 +89,19 @@ pub struct CredentialRequestMetadata {
 
 impl Validatable for CredentialRequestMetadata {}
 
-
 #[cfg(test)]
 mod cred_req_tests {
-    use crate::{prover::create_credential_request, data_types::{schema::AttributeNames, cred_def::{SignatureType, CredentialDefinition, CredentialKeyCorrectnessProof}, master_secret::MasterSecret, cred_offer::CredentialOffer}, issuer::{create_schema, create_credential_definition, create_credential_offer}, types::CredentialDefinitionConfig};
+    use crate::{
+        data_types::{
+            cred_def::{CredentialDefinition, CredentialKeyCorrectnessProof, SignatureType},
+            cred_offer::CredentialOffer,
+            master_secret::MasterSecret,
+            schema::AttributeNames,
+        },
+        issuer::{create_credential_definition, create_credential_offer, create_schema},
+        prover::create_credential_request,
+        types::CredentialDefinitionConfig,
+    };
 
     use super::*;
 
@@ -126,11 +135,14 @@ mod cred_req_tests {
         MasterSecret::new().unwrap()
     }
 
-    fn credential_offer(correctness_proof: CredentialKeyCorrectnessProof, is_legacy: bool) -> Result<CredentialOffer> {
+    fn credential_offer(
+        correctness_proof: CredentialKeyCorrectnessProof,
+        is_legacy: bool,
+    ) -> Result<CredentialOffer> {
         if is_legacy {
             create_credential_offer(LEGACY_IDENTIFIER, LEGACY_IDENTIFIER, &correctness_proof)
         } else {
-        create_credential_offer(NEW_IDENTIFIER, NEW_IDENTIFIER, &correctness_proof)
+            create_credential_offer(NEW_IDENTIFIER, NEW_IDENTIFIER, &correctness_proof)
         }
     }
 
@@ -138,9 +150,16 @@ mod cred_req_tests {
     fn create_credential_request_with_valid_input() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
         let master_secret = master_secret();
-        let  credential_offer = credential_offer(correctness_proof, false)?;
+        let credential_offer = credential_offer(correctness_proof, false)?;
 
-        let res = create_credential_request(ENTROPY, None, &cred_def, &master_secret, MASTER_SERCET_ID, &credential_offer);
+        let res = create_credential_request(
+            ENTROPY,
+            None,
+            &cred_def,
+            &master_secret,
+            MASTER_SERCET_ID,
+            &credential_offer,
+        );
 
         assert!(res.is_ok());
 
@@ -151,9 +170,16 @@ mod cred_req_tests {
     fn create_credential_request_with_valid_input_legacy() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
         let master_secret = master_secret();
-        let  credential_offer = credential_offer(correctness_proof, true)?;
+        let credential_offer = credential_offer(correctness_proof, true)?;
 
-        let res = create_credential_request(None, PROVER_DID, &cred_def, &master_secret, MASTER_SERCET_ID, &credential_offer);
+        let res = create_credential_request(
+            None,
+            PROVER_DID,
+            &cred_def,
+            &master_secret,
+            MASTER_SERCET_ID,
+            &credential_offer,
+        );
 
         assert!(res.is_ok());
 
@@ -164,9 +190,16 @@ mod cred_req_tests {
     fn create_credential_request_with_invalid_new_identifiers_and_prover_did() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
         let master_secret = master_secret();
-        let  credential_offer = credential_offer(correctness_proof, false)?;
+        let credential_offer = credential_offer(correctness_proof, false)?;
 
-        let res = create_credential_request(None, PROVER_DID, &cred_def, &master_secret, MASTER_SERCET_ID, &credential_offer);
+        let res = create_credential_request(
+            None,
+            PROVER_DID,
+            &cred_def,
+            &master_secret,
+            MASTER_SERCET_ID,
+            &credential_offer,
+        );
 
         assert!(res.is_err());
 
@@ -177,9 +210,16 @@ mod cred_req_tests {
     fn create_credential_request_with_invalid_prover_did_and_entropy() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
         let master_secret = master_secret();
-        let  credential_offer = credential_offer(correctness_proof, true)?;
+        let credential_offer = credential_offer(correctness_proof, true)?;
 
-        let res = create_credential_request(ENTROPY, PROVER_DID, &cred_def, &master_secret, MASTER_SERCET_ID, &credential_offer);
+        let res = create_credential_request(
+            ENTROPY,
+            PROVER_DID,
+            &cred_def,
+            &master_secret,
+            MASTER_SERCET_ID,
+            &credential_offer,
+        );
 
         assert!(res.is_err());
 
@@ -190,9 +230,16 @@ mod cred_req_tests {
     fn create_credential_request_with_invalid_prover_did() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
         let master_secret = master_secret();
-        let  credential_offer = credential_offer(correctness_proof, true)?;
+        let credential_offer = credential_offer(correctness_proof, true)?;
 
-        let res = create_credential_request(None, ENTROPY, &cred_def, &master_secret, MASTER_SERCET_ID, &credential_offer);
+        let res = create_credential_request(
+            None,
+            ENTROPY,
+            &cred_def,
+            &master_secret,
+            MASTER_SERCET_ID,
+            &credential_offer,
+        );
 
         assert!(res.is_err());
 
@@ -203,9 +250,16 @@ mod cred_req_tests {
     fn create_credential_request_with_no_entropy_or_prover_did() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
         let master_secret = master_secret();
-        let  credential_offer = credential_offer(correctness_proof, true)?;
+        let credential_offer = credential_offer(correctness_proof, true)?;
 
-        let res = create_credential_request(None, None, &cred_def, &master_secret, MASTER_SERCET_ID, &credential_offer);
+        let res = create_credential_request(
+            None,
+            None,
+            &cred_def,
+            &master_secret,
+            MASTER_SERCET_ID,
+            &credential_offer,
+        );
 
         assert!(res.is_err());
 
@@ -216,9 +270,17 @@ mod cred_req_tests {
     fn create_credential_request_json_contains_entropy() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
         let master_secret = master_secret();
-        let  credential_offer = credential_offer(correctness_proof, false)?;
+        let credential_offer = credential_offer(correctness_proof, false)?;
 
-        let res = create_credential_request(ENTROPY, None, &cred_def, &master_secret, MASTER_SERCET_ID, &credential_offer).unwrap();
+        let res = create_credential_request(
+            ENTROPY,
+            None,
+            &cred_def,
+            &master_secret,
+            MASTER_SERCET_ID,
+            &credential_offer,
+        )
+        .unwrap();
 
         let s = serde_json::to_string(&res)?;
 
@@ -231,9 +293,17 @@ mod cred_req_tests {
     fn create_credential_request_json_contains_prover_did_with_legacy_identifiers() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
         let master_secret = master_secret();
-        let  credential_offer = credential_offer(correctness_proof, true)?;
+        let credential_offer = credential_offer(correctness_proof, true)?;
 
-        let res = create_credential_request(None, PROVER_DID, &cred_def, &master_secret, MASTER_SERCET_ID, &credential_offer).unwrap();
+        let res = create_credential_request(
+            None,
+            PROVER_DID,
+            &cred_def,
+            &master_secret,
+            MASTER_SERCET_ID,
+            &credential_offer,
+        )
+        .unwrap();
 
         let s = serde_json::to_string(&res)?;
 
@@ -246,9 +316,17 @@ mod cred_req_tests {
     fn create_credential_request_json_contains_entropy_with_legacy_identifiers() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
         let master_secret = master_secret();
-        let  credential_offer = credential_offer(correctness_proof, false)?;
+        let credential_offer = credential_offer(correctness_proof, false)?;
 
-        let res = create_credential_request(ENTROPY, None, &cred_def, &master_secret, MASTER_SERCET_ID, &credential_offer).unwrap();
+        let res = create_credential_request(
+            ENTROPY,
+            None,
+            &cred_def,
+            &master_secret,
+            MASTER_SERCET_ID,
+            &credential_offer,
+        )
+        .unwrap();
 
         let s = serde_json::to_string(&res)?;
 
