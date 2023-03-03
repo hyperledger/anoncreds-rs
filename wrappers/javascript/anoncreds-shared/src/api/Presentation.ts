@@ -1,16 +1,19 @@
 import type { ObjectHandle } from '../ObjectHandle'
-import type { Credential } from './Credential'
-import type { CredentialDefinition } from './CredentialDefinition'
-import type { CredentialRevocationState } from './CredentialRevocationState'
-import type { MasterSecret } from './MasterSecret'
-import type { PresentationRequest } from './PresentationRequest'
+import type { JsonObject } from '../types'
 import type { RevocationRegistry } from './RevocationRegistry'
-import type { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
 import type { RevocationStatusList } from './RevocationStatusList'
-import type { Schema } from './Schema'
 
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
+
+import { Credential } from './Credential'
+import { CredentialDefinition } from './CredentialDefinition'
+import { CredentialRevocationState } from './CredentialRevocationState'
+import { MasterSecret } from './MasterSecret'
+import { PresentationRequest } from './PresentationRequest'
+import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
+import { Schema } from './Schema'
+import { pushToArray } from './utils'
 
 // TODO: Simplify Presentation API (see PresentCredentials object in python wrapper))
 
@@ -22,9 +25,9 @@ export type NonRevokedIntervalOverride = {
 }
 
 export type CredentialEntry = {
-  credential: Credential
+  credential: Credential | JsonObject
   timestamp?: number
-  revocationState?: CredentialRevocationState
+  revocationState?: CredentialRevocationState | JsonObject
 }
 
 export type CredentialProve = {
@@ -41,54 +44,87 @@ export type RevocationEntry = {
 }
 
 export type CreatePresentationOptions = {
-  presentationRequest: PresentationRequest
+  presentationRequest: PresentationRequest | JsonObject
   credentials: CredentialEntry[]
   credentialsProve: CredentialProve[]
   selfAttest: Record<string, string>
-  masterSecret: MasterSecret
-  schemas: Record<string, Schema>
-  credentialDefinitions: Record<string, CredentialDefinition>
+  masterSecret: MasterSecret | JsonObject
+  schemas: Record<string, Schema | JsonObject>
+  credentialDefinitions: Record<string, CredentialDefinition | JsonObject>
 }
 
 export type VerifyPresentationOptions = {
-  presentationRequest: PresentationRequest
-  schemas: Record<string, Schema>
-  credentialDefinitions: Record<string, CredentialDefinition>
-  revocationRegistryDefinitions?: Record<string, RevocationRegistryDefinition>
+  presentationRequest: PresentationRequest | JsonObject
+  schemas: Record<string, Schema | JsonObject>
+  credentialDefinitions: Record<string, CredentialDefinition | JsonObject>
+  revocationRegistryDefinitions?: Record<string, RevocationRegistryDefinition | JsonObject>
   revocationStatusLists?: RevocationStatusList[]
   nonRevokedIntervalOverride?: NonRevokedIntervalOverride[]
 }
 
 export class Presentation extends AnoncredsObject {
   public static create(options: CreatePresentationOptions) {
-    return new Presentation(
-      anoncreds.createPresentation({
-        presentationRequest: options.presentationRequest.handle,
-        credentials: options.credentials.map((item) => ({
-          credential: item.credential.handle,
-          revocationState: item.revocationState?.handle,
-          timestamp: item.timestamp,
-        })),
-        credentialsProve: options.credentialsProve,
-        selfAttest: options.selfAttest,
-        masterSecret: options.masterSecret.handle,
-        schemas: Object.entries(options.schemas).reduce<Record<string, ObjectHandle>>((prev, [id, object]) => {
-          prev[id] = object.handle
-          return prev
-        }, {}),
-        credentialDefinitions: Object.entries(options.credentialDefinitions).reduce<Record<string, ObjectHandle>>(
-          (prev, [id, object]) => {
-            prev[id] = object.handle
+    const objectHandles: ObjectHandle[] = []
+    try {
+      const presentationRequest =
+        options.presentationRequest instanceof PresentationRequest
+          ? options.presentationRequest.handle
+          : pushToArray(PresentationRequest.fromJson(options.presentationRequest).handle, objectHandles)
+
+      const masterSecret =
+        options.masterSecret instanceof MasterSecret
+          ? options.masterSecret.handle
+          : pushToArray(MasterSecret.fromJson(options.masterSecret).handle, objectHandles)
+
+      const presentation = new Presentation(
+        anoncreds.createPresentation({
+          presentationRequest,
+          credentials: options.credentials.map((item) => ({
+            credential:
+              item.credential instanceof Credential
+                ? item.credential.handle
+                : pushToArray(Credential.fromJson(item.credential).handle, objectHandles),
+            revocationState:
+              item.revocationState instanceof CredentialRevocationState
+                ? item.revocationState.handle
+                : item.revocationState !== undefined
+                ? pushToArray(CredentialRevocationState.fromJson(item.revocationState).handle, objectHandles)
+                : undefined,
+
+            timestamp: item.timestamp,
+          })),
+          credentialsProve: options.credentialsProve,
+          selfAttest: options.selfAttest,
+          masterSecret,
+          schemas: Object.entries(options.schemas).reduce<Record<string, ObjectHandle>>((prev, [id, object]) => {
+            const objectHandle =
+              object instanceof Schema ? object.handle : pushToArray(Schema.fromJson(object).handle, objectHandles)
+
+            prev[id] = objectHandle
             return prev
-          },
-          {}
-        ),
-      }).handle
-    )
+          }, {}),
+          credentialDefinitions: Object.entries(options.credentialDefinitions).reduce<Record<string, ObjectHandle>>(
+            (prev, [id, object]) => {
+              const objectHandle =
+                object instanceof CredentialDefinition
+                  ? object.handle
+                  : pushToArray(CredentialDefinition.fromJson(object).handle, objectHandles)
+
+              prev[id] = objectHandle
+              return prev
+            },
+            {}
+          ),
+        }).handle
+      )
+      return presentation
+    } finally {
+      objectHandles.forEach((handle) => handle.clear())
+    }
   }
 
-  public static load(json: string) {
-    return new Presentation(anoncreds.presentationFromJson({ json }).handle)
+  public static fromJson(json: JsonObject) {
+    return new Presentation(anoncreds.presentationFromJson({ json: JSON.stringify(json) }).handle)
   }
 
   public verify(options: VerifyPresentationOptions) {
@@ -106,17 +142,37 @@ export class Presentation extends AnoncredsObject {
       ? Object.keys(options.revocationRegistryDefinitions)
       : undefined
 
-    return anoncreds.verifyPresentation({
-      presentation: this.handle,
-      presentationRequest: options.presentationRequest.handle,
-      schemas: schemas.map((object) => object.handle),
-      schemaIds,
-      credentialDefinitions: credentialDefinitions.map((o) => o.handle),
-      credentialDefinitionIds,
-      revocationRegistryDefinitions: revocationRegistryDefinitions?.map((o) => o.handle),
-      revocationRegistryDefinitionIds,
-      revocationStatusLists: options.revocationStatusLists?.map((o) => o.handle),
-      nonRevokedIntervalOverride: options.nonRevokedIntervalOverride,
-    })
+    const objectHandles: ObjectHandle[] = []
+    try {
+      const presentationRequest =
+        options.presentationRequest instanceof PresentationRequest
+          ? options.presentationRequest.handle
+          : pushToArray(PresentationRequest.fromJson(options.presentationRequest).handle, objectHandles)
+
+      return anoncreds.verifyPresentation({
+        presentation: this.handle,
+        presentationRequest,
+        schemas: schemas.map((o) =>
+          o instanceof Schema ? o.handle : pushToArray(Schema.fromJson(o).handle, objectHandles)
+        ),
+        schemaIds,
+        credentialDefinitions: credentialDefinitions.map((o) =>
+          o instanceof CredentialDefinition
+            ? o.handle
+            : pushToArray(CredentialDefinition.fromJson(o).handle, objectHandles)
+        ),
+        credentialDefinitionIds,
+        revocationRegistryDefinitions: revocationRegistryDefinitions?.map((o) =>
+          o instanceof RevocationRegistryDefinition
+            ? o.handle
+            : pushToArray(RevocationRegistryDefinition.fromJson(o).handle, objectHandles)
+        ),
+        revocationRegistryDefinitionIds,
+        revocationStatusLists: options.revocationStatusLists?.map((o) => o.handle),
+        nonRevokedIntervalOverride: options.nonRevokedIntervalOverride,
+      })
+    } finally {
+      objectHandles.forEach((handle) => handle.clear())
+    }
   }
 }

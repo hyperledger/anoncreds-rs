@@ -1,66 +1,136 @@
-import type { CredentialDefinition } from './CredentialDefinition'
-import type { CredentialDefinitionPrivate } from './CredentialDefinitionPrivate'
-import type { CredentialOffer } from './CredentialOffer'
-import type { CredentialRequest } from './CredentialRequest'
-import type { CredentialRequestMetadata } from './CredentialRequestMetadata'
+import type { ObjectHandle } from '../ObjectHandle'
+import type { JsonObject } from '../types'
 import type { CredentialRevocationConfig } from './CredentialRevocationConfig'
-import type { MasterSecret } from './MasterSecret'
-import type { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
-import type { RevocationStatusList } from './RevocationStatusList'
 
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
 
+import { CredentialDefinition } from './CredentialDefinition'
+import { CredentialDefinitionPrivate } from './CredentialDefinitionPrivate'
+import { CredentialOffer } from './CredentialOffer'
+import { CredentialRequest } from './CredentialRequest'
+import { CredentialRequestMetadata } from './CredentialRequestMetadata'
+import { MasterSecret } from './MasterSecret'
+import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
+import { RevocationStatusList } from './RevocationStatusList'
+import { pushToArray } from './utils'
+
 export type CreateCredentialOptions = {
-  credentialDefinition: CredentialDefinition
-  credentialDefinitionPrivate: CredentialDefinitionPrivate
-  credentialOffer: CredentialOffer
-  credentialRequest: CredentialRequest
+  credentialDefinition: CredentialDefinition | JsonObject
+  credentialDefinitionPrivate: CredentialDefinitionPrivate | JsonObject
+  credentialOffer: CredentialOffer | JsonObject
+  credentialRequest: CredentialRequest | JsonObject
   attributeRawValues: Record<string, string>
   attributeEncodedValues?: Record<string, string>
   revocationRegistryId?: string
   revocationConfiguration?: CredentialRevocationConfig
-  revocationStatusList?: RevocationStatusList
+  revocationStatusList?: RevocationStatusList | JsonObject
 }
 
 export type ProcessCredentialOptions = {
-  credentialRequestMetadata: CredentialRequestMetadata
-  masterSecret: MasterSecret
-  credentialDefinition: CredentialDefinition
-  revocationRegistryDefinition?: RevocationRegistryDefinition
+  credentialRequestMetadata: CredentialRequestMetadata | JsonObject
+  masterSecret: MasterSecret | JsonObject
+  credentialDefinition: CredentialDefinition | JsonObject
+  revocationRegistryDefinition?: RevocationRegistryDefinition | JsonObject
 }
 
 export class Credential extends AnoncredsObject {
   public static create(options: CreateCredentialOptions) {
-    const credential = anoncreds.createCredential({
-      credentialDefinition: options.credentialDefinition.handle,
-      credentialDefinitionPrivate: options.credentialDefinitionPrivate.handle,
-      credentialOffer: options.credentialOffer.handle,
-      credentialRequest: options.credentialRequest.handle,
-      attributeRawValues: options.attributeRawValues,
-      attributeEncodedValues: options.attributeEncodedValues,
-      revocationRegistryId: options.revocationRegistryId,
-      revocationConfiguration: options.revocationConfiguration?.native,
-      revocationStatusList: options.revocationStatusList?.handle,
-    })
+    const objectHandles: ObjectHandle[] = []
+    try {
+      const credentialDefinition =
+        options.credentialDefinition instanceof CredentialDefinition
+          ? options.credentialDefinition.handle
+          : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
 
-    return new Credential(credential.handle)
+      const credentialDefinitionPrivate =
+        options.credentialDefinitionPrivate instanceof CredentialDefinitionPrivate
+          ? options.credentialDefinitionPrivate.handle
+          : pushToArray(CredentialDefinitionPrivate.fromJson(options.credentialDefinitionPrivate).handle, objectHandles)
+
+      const credentialOffer =
+        options.credentialOffer instanceof CredentialOffer
+          ? options.credentialOffer.handle
+          : pushToArray(CredentialOffer.fromJson(options.credentialOffer).handle, objectHandles)
+
+      const credentialRequest =
+        options.credentialRequest instanceof CredentialRequest
+          ? options.credentialRequest.handle
+          : pushToArray(CredentialRequest.fromJson(options.credentialRequest).handle, objectHandles)
+
+      const revocationStatusList =
+        options.revocationStatusList instanceof RevocationStatusList
+          ? options.revocationStatusList.handle
+          : options.revocationStatusList !== undefined
+          ? pushToArray(RevocationStatusList.fromJson(options.revocationStatusList).handle, objectHandles)
+          : undefined
+
+      const credential = anoncreds.createCredential({
+        credentialDefinition,
+        credentialDefinitionPrivate,
+        credentialOffer,
+        credentialRequest,
+        attributeRawValues: options.attributeRawValues,
+        attributeEncodedValues: options.attributeEncodedValues,
+        revocationRegistryId: options.revocationRegistryId,
+        revocationConfiguration: options.revocationConfiguration?.native,
+        revocationStatusList,
+      })
+      return new Credential(credential.handle)
+    } finally {
+      objectHandles.forEach((handle) => handle.clear())
+    }
   }
 
-  public static load(json: string) {
-    return new Credential(anoncreds.credentialFromJson({ json }).handle)
+  public static fromJson(json: JsonObject) {
+    return new Credential(anoncreds.credentialFromJson({ json: JSON.stringify(json) }).handle)
   }
 
   public process(options: ProcessCredentialOptions) {
-    const credential = anoncreds.processCredential({
-      credential: this.handle,
-      credentialDefinition: options.credentialDefinition.handle,
-      credentialRequestMetadata: options.credentialRequestMetadata.handle,
-      masterSecret: options.masterSecret.handle,
-      revocationRegistryDefinition: options.revocationRegistryDefinition?.handle,
-    })
+    // Objects created within this method must be freed up
+    const objectHandles: ObjectHandle[] = []
+    try {
+      const credentialDefinition =
+        options.credentialDefinition instanceof CredentialDefinition
+          ? options.credentialDefinition.handle
+          : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
 
-    return new Credential(credential.handle)
+      const credentialRequestMetadata =
+        options.credentialRequestMetadata instanceof CredentialRequestMetadata
+          ? options.credentialRequestMetadata.handle
+          : pushToArray(CredentialRequestMetadata.fromJson(options.credentialRequestMetadata).handle, objectHandles)
+
+      const masterSecret =
+        options.masterSecret instanceof MasterSecret
+          ? options.masterSecret.handle
+          : pushToArray(MasterSecret.fromJson(options.masterSecret).handle, objectHandles)
+
+      const revocationRegistryDefinition =
+        options.revocationRegistryDefinition instanceof RevocationRegistryDefinition
+          ? options.revocationRegistryDefinition.handle
+          : options.revocationRegistryDefinition !== undefined
+          ? pushToArray(
+              RevocationRegistryDefinition.fromJson(options.revocationRegistryDefinition).handle,
+              objectHandles
+            )
+          : undefined
+
+      const credential = anoncreds.processCredential({
+        credential: this.handle,
+        credentialDefinition,
+        credentialRequestMetadata,
+        masterSecret,
+        revocationRegistryDefinition,
+      })
+
+      // We can discard previous handle and store the new one
+      this.handle.clear()
+      this.handle = credential
+
+      return this
+    } finally {
+      objectHandles.forEach((handle) => handle.clear())
+    }
   }
 
   public get schemaId() {

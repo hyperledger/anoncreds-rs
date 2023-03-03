@@ -1,3 +1,5 @@
+import type { JsonObject } from '../types'
+
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
 
@@ -6,7 +8,7 @@ export class MasterSecret extends AnoncredsObject {
     return new MasterSecret(anoncreds.createMasterSecret().handle)
   }
 
-  public static load(json: string) {
-    return new MasterSecret(anoncreds.masterSecretFromJson({ json }).handle)
+  public static fromJson(json: JsonObject) {
+    return new MasterSecret(anoncreds.masterSecretFromJson({ json: JSON.stringify(json) }).handle)
   }
 }

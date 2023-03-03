@@ -22,6 +22,11 @@ export class CredentialRevocationConfig {
     this.tailsPath = options.tailsPath
   }
 
+  public clear() {
+    this.registryDefinition.handle.clear()
+    this.registryDefinitionPrivate.handle.clear()
+  }
+
   public get native(): NativeCredentialRevocationConfig {
     return {
       revocationRegistryDefinition: this.registryDefinition.handle,

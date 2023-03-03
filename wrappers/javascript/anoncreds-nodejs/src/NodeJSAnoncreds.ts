@@ -84,12 +84,16 @@ export class NodeJSAnoncreds implements Anoncreds {
     tag: string
     signatureType: string
     supportRevocation: boolean
-  }): { credentialDefinition: ObjectHandle; credentialDefinitionPrivate: ObjectHandle; keyProof: ObjectHandle } {
+  }): {
+    credentialDefinition: ObjectHandle
+    credentialDefinitionPrivate: ObjectHandle
+    keyCorrectnessProof: ObjectHandle
+  } {
     const { schemaId, issuerId, schema, tag, signatureType, supportRevocation } = serializeArguments(options)
 
     const credentialDefinitionPtr = allocatePointer()
     const credentialDefinitionPrivatePtr = allocatePointer()
-    const keyProofPtr = allocatePointer()
+    const keyCorrectnessProofPtr = allocatePointer()
 
     nativeAnoncreds.anoncreds_create_credential_definition(
       schemaId,
@@ -100,14 +104,14 @@ export class NodeJSAnoncreds implements Anoncreds {
       supportRevocation,
       credentialDefinitionPtr,
       credentialDefinitionPrivatePtr,
-      keyProofPtr
+      keyCorrectnessProofPtr
     )
     handleError()
 
     return {
       credentialDefinition: new ObjectHandle(credentialDefinitionPtr.deref() as number),
       credentialDefinitionPrivate: new ObjectHandle(credentialDefinitionPrivatePtr.deref() as number),
-      keyProof: new ObjectHandle(keyProofPtr.deref() as number),
+      keyCorrectnessProof: new ObjectHandle(keyCorrectnessProofPtr.deref() as number),
     }
   }
 
@@ -223,12 +227,12 @@ export class NodeJSAnoncreds implements Anoncreds {
   public createCredentialOffer(options: {
     schemaId: string
     credentialDefinitionId: string
-    keyProof: ObjectHandle
+    keyCorrectnessProof: ObjectHandle
   }): ObjectHandle {
-    const { schemaId, credentialDefinitionId, keyProof } = serializeArguments(options)
+    const { schemaId, credentialDefinitionId, keyCorrectnessProof } = serializeArguments(options)
 
     const ret = allocatePointer()
-    nativeAnoncreds.anoncreds_create_credential_offer(schemaId, credentialDefinitionId, keyProof, ret)
+    nativeAnoncreds.anoncreds_create_credential_offer(schemaId, credentialDefinitionId, keyCorrectnessProof, ret)
     handleError()
 
     return new ObjectHandle(ret.deref() as number)

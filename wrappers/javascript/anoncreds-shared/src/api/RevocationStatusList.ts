@@ -1,11 +1,15 @@
-import type { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
+import type { ObjectHandle } from '../ObjectHandle'
+import type { JsonObject } from '../types'
 
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
 
+import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
+import { pushToArray } from './utils'
+
 export type CreateRevocationStatusListOptions = {
   revocationRegistryDefinitionId: string
-  revocationRegistryDefinition: RevocationRegistryDefinition
+  revocationRegistryDefinition: RevocationRegistryDefinition | JsonObject
   issuerId: string
   timestamp?: number
   issuanceByDefault: boolean
@@ -24,13 +28,42 @@ export type UpdateRevocationStatusListOptions = {
 
 export class RevocationStatusList extends AnoncredsObject {
   public static create(options: CreateRevocationStatusListOptions) {
-    const revocationRegistryDefinitionObjectHandle = options.revocationRegistryDefinition.handle
-    const revocationStatusList = anoncreds.createRevocationStatusList({
-      ...options,
-      revocationRegistryDefinition: revocationRegistryDefinitionObjectHandle,
-    })
+    const objectHandles: ObjectHandle[] = []
+    try {
+      const revocationRegistryDefinition =
+        options.revocationRegistryDefinition instanceof RevocationRegistryDefinition
+          ? options.revocationRegistryDefinition.handle
+          : pushToArray(
+              RevocationRegistryDefinition.fromJson(options.revocationRegistryDefinition).handle,
+              objectHandles
+            )
 
-    return new RevocationStatusList(revocationStatusList.handle)
+      const revocationStatusList = anoncreds.createRevocationStatusList({
+        ...options,
+        revocationRegistryDefinition,
+      })
+      return new RevocationStatusList(revocationStatusList.handle)
+    } finally {
+      objectHandles.forEach((handle) => handle.clear())
+    }
+  }
+  public static fromJson(json: JsonObject) {
+    let revocationRegistryDefinition: RevocationRegistryDefinition | undefined = undefined
+    try {
+      revocationRegistryDefinition = RevocationRegistryDefinition.fromJson(
+        json.revocationRegistryDefinition as JsonObject
+      )
+      const revocationStatusList = RevocationStatusList.create({
+        issuanceByDefault: json.issuanceByDefault as boolean,
+        issuerId: json.issuerId as string,
+        revocationRegistryDefinitionId: json.revocationRegistryDefinitionId as string,
+        timestamp: json.timestamp as number,
+        revocationRegistryDefinition,
+      })
+      return revocationStatusList
+    } finally {
+      revocationRegistryDefinition?.handle.clear()
+    }
   }
 
   public updateTimestamp(options: UpdateRevocationStatusListTimestampOptions) {

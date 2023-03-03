@@ -1,12 +1,15 @@
-import type { CredentialDefinition } from './CredentialDefinition'
+import type { ObjectHandle } from '../ObjectHandle'
+import type { JsonObject } from '../types'
 
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
 
+import { CredentialDefinition } from './CredentialDefinition'
 import { RevocationRegistryDefinitionPrivate } from './RevocationRegistryDefinitionPrivate'
+import { pushToArray } from './utils'
 
 export type CreateRevocationRegistryDefinitionOptions = {
-  credentialDefinition: CredentialDefinition
+  credentialDefinition: CredentialDefinition | JsonObject
   credentialDefinitionId: string
   tag: string
   issuerId: string
@@ -17,22 +20,34 @@ export type CreateRevocationRegistryDefinitionOptions = {
 
 export class RevocationRegistryDefinition extends AnoncredsObject {
   public static create(options: CreateRevocationRegistryDefinitionOptions) {
-    const {
-      revocationRegistryDefinition: registryDefinition,
-      revocationRegistryDefinitionPrivate: registryDefinitionPrivate,
-    } = anoncreds.createRevocationRegistryDefinition({
-      ...options,
-      credentialDefinition: options.credentialDefinition.handle,
-    })
+    const objectHandles: ObjectHandle[] = []
+    try {
+      const credentialDefinition =
+        options.credentialDefinition instanceof CredentialDefinition
+          ? options.credentialDefinition.handle
+          : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
 
-    return {
-      revocationRegistryDefinition: new RevocationRegistryDefinition(registryDefinition.handle),
-      revocationRegistryDefinitionPrivate: new RevocationRegistryDefinitionPrivate(registryDefinitionPrivate.handle),
+      const {
+        revocationRegistryDefinition: registryDefinition,
+        revocationRegistryDefinitionPrivate: registryDefinitionPrivate,
+      } = anoncreds.createRevocationRegistryDefinition({
+        ...options,
+        credentialDefinition,
+      })
+
+      return {
+        revocationRegistryDefinition: new RevocationRegistryDefinition(registryDefinition.handle),
+        revocationRegistryDefinitionPrivate: new RevocationRegistryDefinitionPrivate(registryDefinitionPrivate.handle),
+      }
+    } finally {
+      objectHandles.forEach((handle) => handle.clear())
     }
   }
 
-  public static load(json: string) {
-    return new RevocationRegistryDefinition(anoncreds.revocationRegistryDefinitionFromJson({ json }).handle)
+  public static fromJson(json: JsonObject) {
+    return new RevocationRegistryDefinition(
+      anoncreds.revocationRegistryDefinitionFromJson({ json: JSON.stringify(json) }).handle
+    )
   }
 
   public getId() {
