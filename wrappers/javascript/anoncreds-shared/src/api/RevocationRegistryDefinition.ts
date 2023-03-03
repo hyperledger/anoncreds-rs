@@ -20,6 +20,12 @@ export type CreateRevocationRegistryDefinitionOptions = {
 
 export class RevocationRegistryDefinition extends AnoncredsObject {
   public static create(options: CreateRevocationRegistryDefinitionOptions) {
+    let createReturnObj: {
+      revocationRegistryDefinition: ObjectHandle
+      revocationRegistryDefinitionPrivate: ObjectHandle
+    }
+    // Objects created within this method must be freed up
+
     const objectHandles: ObjectHandle[] = []
     try {
       const credentialDefinition =
@@ -27,20 +33,20 @@ export class RevocationRegistryDefinition extends AnoncredsObject {
           ? options.credentialDefinition.handle
           : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
 
-      const {
-        revocationRegistryDefinition: registryDefinition,
-        revocationRegistryDefinitionPrivate: registryDefinitionPrivate,
-      } = anoncreds.createRevocationRegistryDefinition({
+      createReturnObj = anoncreds.createRevocationRegistryDefinition({
         ...options,
         credentialDefinition,
       })
-
-      return {
-        revocationRegistryDefinition: new RevocationRegistryDefinition(registryDefinition.handle),
-        revocationRegistryDefinitionPrivate: new RevocationRegistryDefinitionPrivate(registryDefinitionPrivate.handle),
-      }
     } finally {
       objectHandles.forEach((handle) => handle.clear())
+    }
+    return {
+      revocationRegistryDefinition: new RevocationRegistryDefinition(
+        createReturnObj.revocationRegistryDefinition.handle
+      ),
+      revocationRegistryDefinitionPrivate: new RevocationRegistryDefinitionPrivate(
+        createReturnObj.revocationRegistryDefinitionPrivate.handle
+      ),
     }
   }
 

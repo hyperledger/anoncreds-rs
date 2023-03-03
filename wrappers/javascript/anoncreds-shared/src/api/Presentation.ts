@@ -64,6 +64,8 @@ export type VerifyPresentationOptions = {
 
 export class Presentation extends AnoncredsObject {
   public static create(options: CreatePresentationOptions) {
+    let presentationHandle
+    // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
     try {
       const presentationRequest =
@@ -76,51 +78,49 @@ export class Presentation extends AnoncredsObject {
           ? options.masterSecret.handle
           : pushToArray(MasterSecret.fromJson(options.masterSecret).handle, objectHandles)
 
-      const presentation = new Presentation(
-        anoncreds.createPresentation({
-          presentationRequest,
-          credentials: options.credentials.map((item) => ({
-            credential:
-              item.credential instanceof Credential
-                ? item.credential.handle
-                : pushToArray(Credential.fromJson(item.credential).handle, objectHandles),
-            revocationState:
-              item.revocationState instanceof CredentialRevocationState
-                ? item.revocationState.handle
-                : item.revocationState !== undefined
-                ? pushToArray(CredentialRevocationState.fromJson(item.revocationState).handle, objectHandles)
-                : undefined,
+      presentationHandle = anoncreds.createPresentation({
+        presentationRequest,
+        credentials: options.credentials.map((item) => ({
+          credential:
+            item.credential instanceof Credential
+              ? item.credential.handle
+              : pushToArray(Credential.fromJson(item.credential).handle, objectHandles),
+          revocationState:
+            item.revocationState instanceof CredentialRevocationState
+              ? item.revocationState.handle
+              : item.revocationState !== undefined
+              ? pushToArray(CredentialRevocationState.fromJson(item.revocationState).handle, objectHandles)
+              : undefined,
 
-            timestamp: item.timestamp,
-          })),
-          credentialsProve: options.credentialsProve,
-          selfAttest: options.selfAttest,
-          masterSecret,
-          schemas: Object.entries(options.schemas).reduce<Record<string, ObjectHandle>>((prev, [id, object]) => {
+          timestamp: item.timestamp,
+        })),
+        credentialsProve: options.credentialsProve,
+        selfAttest: options.selfAttest,
+        masterSecret,
+        schemas: Object.entries(options.schemas).reduce<Record<string, ObjectHandle>>((prev, [id, object]) => {
+          const objectHandle =
+            object instanceof Schema ? object.handle : pushToArray(Schema.fromJson(object).handle, objectHandles)
+
+          prev[id] = objectHandle
+          return prev
+        }, {}),
+        credentialDefinitions: Object.entries(options.credentialDefinitions).reduce<Record<string, ObjectHandle>>(
+          (prev, [id, object]) => {
             const objectHandle =
-              object instanceof Schema ? object.handle : pushToArray(Schema.fromJson(object).handle, objectHandles)
+              object instanceof CredentialDefinition
+                ? object.handle
+                : pushToArray(CredentialDefinition.fromJson(object).handle, objectHandles)
 
             prev[id] = objectHandle
             return prev
-          }, {}),
-          credentialDefinitions: Object.entries(options.credentialDefinitions).reduce<Record<string, ObjectHandle>>(
-            (prev, [id, object]) => {
-              const objectHandle =
-                object instanceof CredentialDefinition
-                  ? object.handle
-                  : pushToArray(CredentialDefinition.fromJson(object).handle, objectHandles)
-
-              prev[id] = objectHandle
-              return prev
-            },
-            {}
-          ),
-        }).handle
-      )
-      return presentation
+          },
+          {}
+        ),
+      }).handle
     } finally {
       objectHandles.forEach((handle) => handle.clear())
     }
+    return new Presentation(presentationHandle)
   }
 
   public static fromJson(json: JsonObject) {
@@ -142,6 +142,7 @@ export class Presentation extends AnoncredsObject {
       ? Object.keys(options.revocationRegistryDefinitions)
       : undefined
 
+    let verified
     const objectHandles: ObjectHandle[] = []
     try {
       const presentationRequest =
@@ -149,7 +150,7 @@ export class Presentation extends AnoncredsObject {
           ? options.presentationRequest.handle
           : pushToArray(PresentationRequest.fromJson(options.presentationRequest).handle, objectHandles)
 
-      return anoncreds.verifyPresentation({
+      verified = anoncreds.verifyPresentation({
         presentation: this.handle,
         presentationRequest,
         schemas: schemas.map((o) =>
@@ -174,5 +175,6 @@ export class Presentation extends AnoncredsObject {
     } finally {
       objectHandles.forEach((handle) => handle.clear())
     }
+    return verified
   }
 }

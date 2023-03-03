@@ -25,6 +25,8 @@ export type UpdateRevocationStateOptions = Required<
 
 export class CredentialRevocationState extends AnoncredsObject {
   public static create(options: CreateRevocationStateOptions) {
+    let credentialRevocationStateHandle
+    // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
     try {
       const revocationRegistryDefinition =
@@ -40,19 +42,18 @@ export class CredentialRevocationState extends AnoncredsObject {
           ? options.revocationStatusList.handle
           : pushToArray(RevocationStatusList.fromJson(options.revocationStatusList).handle, objectHandles)
 
-      return new CredentialRevocationState(
-        anoncreds.createOrUpdateRevocationState({
-          revocationRegistryDefinition,
-          revocationStatusList,
-          revocationRegistryIndex: options.revocationRegistryIndex,
-          tailsPath: options.tailsPath,
-          oldRevocationStatusList: undefined,
-          previousRevocationState: undefined,
-        }).handle
-      )
+      credentialRevocationStateHandle = anoncreds.createOrUpdateRevocationState({
+        revocationRegistryDefinition,
+        revocationStatusList,
+        revocationRegistryIndex: options.revocationRegistryIndex,
+        tailsPath: options.tailsPath,
+        oldRevocationStatusList: undefined,
+        previousRevocationState: undefined,
+      }).handle
     } finally {
       objectHandles.forEach((handle) => handle.clear())
     }
+    return new CredentialRevocationState(credentialRevocationStateHandle)
   }
 
   public static fromJson(json: JsonObject) {

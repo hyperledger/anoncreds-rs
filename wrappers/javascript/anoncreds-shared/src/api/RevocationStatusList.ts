@@ -28,6 +28,7 @@ export type UpdateRevocationStatusListOptions = {
 
 export class RevocationStatusList extends AnoncredsObject {
   public static create(options: CreateRevocationStatusListOptions) {
+    let revocationStatusListHandle
     const objectHandles: ObjectHandle[] = []
     try {
       const revocationRegistryDefinition =
@@ -38,15 +39,16 @@ export class RevocationStatusList extends AnoncredsObject {
               objectHandles
             )
 
-      const revocationStatusList = anoncreds.createRevocationStatusList({
+      revocationStatusListHandle = anoncreds.createRevocationStatusList({
         ...options,
         revocationRegistryDefinition,
-      })
-      return new RevocationStatusList(revocationStatusList.handle)
+      }).handle
     } finally {
       objectHandles.forEach((handle) => handle.clear())
     }
+    return new RevocationStatusList(revocationStatusListHandle)
   }
+
   public static fromJson(json: JsonObject) {
     let revocationRegistryDefinition: RevocationRegistryDefinition | undefined = undefined
     try {

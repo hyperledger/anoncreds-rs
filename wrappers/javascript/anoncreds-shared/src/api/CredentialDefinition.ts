@@ -20,28 +20,34 @@ export type CreateCredentialDefinitionOptions = {
 
 export class CredentialDefinition extends AnoncredsObject {
   public static create(options: CreateCredentialDefinitionOptions) {
+    let createReturnObj: {
+      credentialDefinition: ObjectHandle
+      credentialDefinitionPrivate: ObjectHandle
+      keyCorrectnessProof: ObjectHandle
+    }
+
+    // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
     try {
       const schema =
         options.schema instanceof Schema
           ? options.schema.handle
           : pushToArray(Schema.fromJson(options.schema).handle, objectHandles)
-      const { credentialDefinition, credentialDefinitionPrivate, keyCorrectnessProof } =
-        anoncreds.createCredentialDefinition({
-          schemaId: options.schemaId,
-          schema,
-          signatureType: options.signatureType,
-          tag: options.tag,
-          issuerId: options.issuerId,
-          supportRevocation: options.supportRevocation ?? false,
-        })
-      return {
-        credentialDefinition: new CredentialDefinition(credentialDefinition.handle),
-        credentialDefinitionPrivate: new CredentialDefinitionPrivate(credentialDefinitionPrivate.handle),
-        keyCorrectnessProof: new KeyCorrectnessProof(keyCorrectnessProof.handle),
-      }
+      createReturnObj = anoncreds.createCredentialDefinition({
+        schemaId: options.schemaId,
+        schema,
+        signatureType: options.signatureType,
+        tag: options.tag,
+        issuerId: options.issuerId,
+        supportRevocation: options.supportRevocation ?? false,
+      })
     } finally {
       objectHandles.forEach((handle) => handle.clear())
+    }
+    return {
+      credentialDefinition: new CredentialDefinition(createReturnObj.credentialDefinition.handle),
+      credentialDefinitionPrivate: new CredentialDefinitionPrivate(createReturnObj.credentialDefinitionPrivate.handle),
+      keyCorrectnessProof: new KeyCorrectnessProof(createReturnObj.keyCorrectnessProof.handle),
     }
   }
 

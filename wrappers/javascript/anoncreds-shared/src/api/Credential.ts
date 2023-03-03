@@ -36,6 +36,8 @@ export type ProcessCredentialOptions = {
 
 export class Credential extends AnoncredsObject {
   public static create(options: CreateCredentialOptions) {
+    let credential
+    // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
     try {
       const credentialDefinition =
@@ -65,7 +67,7 @@ export class Credential extends AnoncredsObject {
           ? pushToArray(RevocationStatusList.fromJson(options.revocationStatusList).handle, objectHandles)
           : undefined
 
-      const credential = anoncreds.createCredential({
+      credential = anoncreds.createCredential({
         credentialDefinition,
         credentialDefinitionPrivate,
         credentialOffer,
@@ -76,10 +78,10 @@ export class Credential extends AnoncredsObject {
         revocationConfiguration: options.revocationConfiguration?.native,
         revocationStatusList,
       })
-      return new Credential(credential.handle)
     } finally {
       objectHandles.forEach((handle) => handle.clear())
     }
+    return new Credential(credential.handle)
   }
 
   public static fromJson(json: JsonObject) {
@@ -87,6 +89,7 @@ export class Credential extends AnoncredsObject {
   }
 
   public process(options: ProcessCredentialOptions) {
+    let credential
     // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
     try {
@@ -115,7 +118,7 @@ export class Credential extends AnoncredsObject {
             )
           : undefined
 
-      const credential = anoncreds.processCredential({
+      credential = anoncreds.processCredential({
         credential: this.handle,
         credentialDefinition,
         credentialRequestMetadata,
@@ -126,11 +129,10 @@ export class Credential extends AnoncredsObject {
       // We can discard previous handle and store the new one
       this.handle.clear()
       this.handle = credential
-
-      return this
     } finally {
       objectHandles.forEach((handle) => handle.clear())
     }
+    return this
   }
 
   public get schemaId() {

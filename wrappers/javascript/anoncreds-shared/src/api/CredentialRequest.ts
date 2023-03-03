@@ -20,6 +20,11 @@ export type CreateCredentialRequestOptions = {
 
 export class CredentialRequest extends AnoncredsObject {
   public static create(options: CreateCredentialRequestOptions) {
+    let createReturnObj: {
+      credentialRequest: ObjectHandle
+      credentialRequestMetadata: ObjectHandle
+    }
+    // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
     try {
       const credentialDefinition =
@@ -37,20 +42,19 @@ export class CredentialRequest extends AnoncredsObject {
           ? options.credentialOffer.handle
           : pushToArray(CredentialOffer.fromJson(options.credentialOffer).handle, objectHandles)
 
-      const { credentialRequest, credentialRequestMetadata } = anoncreds.createCredentialRequest({
+      createReturnObj = anoncreds.createCredentialRequest({
         proverDid: options.proverDid,
         credentialDefinition,
         masterSecret,
         masterSecretId: options.masterSecretId,
         credentialOffer,
       })
-
-      return {
-        credentialRequest: new CredentialRequest(credentialRequest.handle),
-        credentialRequestMetadata: new CredentialRequestMetadata(credentialRequestMetadata.handle),
-      }
     } finally {
       objectHandles.forEach((handle) => handle.clear())
+    }
+    return {
+      credentialRequest: new CredentialRequest(createReturnObj.credentialRequest.handle),
+      credentialRequestMetadata: new CredentialRequestMetadata(createReturnObj.credentialRequestMetadata.handle),
     }
   }
 

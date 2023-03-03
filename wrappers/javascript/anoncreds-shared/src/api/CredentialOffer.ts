@@ -15,6 +15,8 @@ export type CreateCredentialOfferOptions = {
 
 export class CredentialOffer extends AnoncredsObject {
   public static create(options: CreateCredentialOfferOptions) {
+    let credentialOfferHandle
+    // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
     try {
       const keyCorrectnessProof =
@@ -22,16 +24,15 @@ export class CredentialOffer extends AnoncredsObject {
           ? options.keyCorrectnessProof.handle
           : pushToArray(KeyCorrectnessProof.fromJson(options.keyCorrectnessProof).handle, objectHandles)
 
-      return new CredentialOffer(
-        anoncreds.createCredentialOffer({
-          schemaId: options.schemaId,
-          credentialDefinitionId: options.credentialDefinitionId,
-          keyCorrectnessProof,
-        }).handle
-      )
+      credentialOfferHandle = anoncreds.createCredentialOffer({
+        schemaId: options.schemaId,
+        credentialDefinitionId: options.credentialDefinitionId,
+        keyCorrectnessProof,
+      }).handle
     } finally {
       objectHandles.forEach((handle) => handle.clear())
     }
+    return new CredentialOffer(credentialOfferHandle)
   }
 
   public static fromJson(json: JsonObject) {
