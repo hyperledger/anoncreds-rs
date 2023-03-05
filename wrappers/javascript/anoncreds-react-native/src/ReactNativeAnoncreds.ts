@@ -150,12 +150,25 @@ export class ReactNativeAnoncreds implements Anoncreds {
     schemas: Record<string, ObjectHandle>
     credentialDefinitions: Record<string, ObjectHandle>
   }): ObjectHandle {
+    const selfAttestNames = Object.keys(options.selfAttest)
+    const selfAttestValues = Object.values(options.selfAttest)
     const schemaKeys = Object.keys(options.schemas)
     const schemaValues = Object.values(options.schemas).map((o) => o.handle)
     const credentialDefinitionKeys = Object.keys(options.credentialDefinitions)
     const credentialDefinitionValues = Object.values(options.credentialDefinitions).map((o) => o.handle)
+    const serialized = serializeArguments(options)
+
+    const credentialEntries = options.credentials.map((value) => ({
+      credential: value.credential.handle,
+      timestamp: value.timestamp ?? -1,
+      rev_state: value.revocationState?.handle ?? 0,
+    }))
+
     const handle = anoncredsReactNative.createPresentation({
-      ...serializeArguments(options),
+      ...serialized,
+      selfAttestNames,
+      selfAttestValues,
+      credentials: credentialEntries,
       schemas: schemaValues,
       schemaIds: schemaKeys,
       credentialDefinitions: credentialDefinitionValues,
@@ -260,7 +273,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
   }
 
   public credentialOfferFromJson(options: { json: string }): ObjectHandle {
-    const handle = anoncredsReactNative.credentialFromJson(serializeArguments(options))
+    const handle = anoncredsReactNative.credentialOfferFromJson(serializeArguments(options))
     return new ObjectHandle(handle)
   }
 

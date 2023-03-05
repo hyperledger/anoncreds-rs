@@ -160,10 +160,10 @@ FfiCredentialEntry jsiToValue(jsi::Runtime &rt, jsi::Object &options,
   if (value.isObject()) {
     jsi::Object valueAsObject = value.asObject(rt);
     auto credential = jsiToValue<ObjectHandle>(rt, valueAsObject, "credential");
-    auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp");
+    auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp", true);
     auto revocationState =
-        jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState");
-
+        jsiToValue<ObjectHandle>(rt, valueAsObject, "rev_state", true);
+  
     return FfiCredentialEntry{.credential = credential,
                               .timestamp = timestamp,
                               .rev_state = revocationState};

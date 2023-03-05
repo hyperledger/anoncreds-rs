@@ -119,6 +119,293 @@ jsi::Value createCredentialDefinition(jsi::Runtime &rt, jsi::Object options) {
   return object;
 };
 
+// ===== AnonCreds Objects from JSON =====
+
+jsi::Value revocationRegistryDefinitionFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle revocationRegistryDefinitionP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_revocation_registry_definition_from_json(b, &revocationRegistryDefinitionP);
+  handleError(rt, code);
+
+  return jsi::Value(int(revocationRegistryDefinitionP));
+};
+
+jsi::Value revocationRegistryFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle revocationRegistryP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_revocation_registry_from_json(b, &revocationRegistryP);
+  handleError(rt, code);
+
+  return jsi::Value(int(revocationRegistryP));
+};
+
+jsi::Value presentationFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle presentationP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_presentation_from_json(b, &presentationP);
+  handleError(rt, code);
+
+  return jsi::Value(int(presentationP));
+};
+
+jsi::Value credentialOfferFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle credentialOfferP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_credential_offer_from_json(b, &credentialOfferP);
+  handleError(rt, code);
+
+  return jsi::Value(int(credentialOfferP));
+};
+
+jsi::Value schemaFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle schemaP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_schema_from_json(b, &schemaP);
+  handleError(rt, code);
+
+  return jsi::Value(int(schemaP));
+};
+
+jsi::Value masterSecretFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle masterSecretP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_master_secret_from_json(b, &masterSecretP);
+  handleError(rt, code);
+
+  return jsi::Value(int(masterSecretP));
+};
+
+jsi::Value credentialRequestFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle credentialRequestP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_credential_request_from_json(b, &credentialRequestP);
+  handleError(rt, code);
+
+  return jsi::Value(int(credentialRequestP));
+};
+
+jsi::Value credentialRequestMetadataFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle credentialRequestMetadataP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_credential_request_metadata_from_json(b, &credentialRequestMetadataP);
+  handleError(rt, code);
+
+  return jsi::Value(int(credentialRequestMetadataP));
+};
+
+jsi::Value credentialFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle credentialP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_credential_from_json(b, &credentialP);
+  handleError(rt, code);
+
+  return jsi::Value(int(credentialP));
+};
+
+jsi::Value revocationRegistryDefinitionPrivateFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle revocationRegistryDefinitionPrivateP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_revocation_registry_definition_private_from_json(b, &revocationRegistryDefinitionPrivateP);
+  handleError(rt, code);
+
+  return jsi::Value(int(revocationRegistryDefinitionPrivateP));
+};
+
+jsi::Value revocationStateFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle revocationStateP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_revocation_state_from_json(b, &revocationStateP);
+  handleError(rt, code);
+
+  return jsi::Value(int(revocationStateP));
+};
+
+jsi::Value revocationRegistryDeltaFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle revocationRegistryDeltaP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_revocation_registry_delta_from_json(b, &revocationRegistryDeltaP);
+  handleError(rt, code);
+
+  return jsi::Value(int(revocationRegistryDeltaP));
+};
+
+jsi::Value credentialDefinitionFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle credentialDefinitionP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_credential_definition_from_json(b, &credentialDefinitionP);
+  handleError(rt, code);
+
+  return jsi::Value(int(credentialDefinitionP));
+};
+
+jsi::Value credentialDefinitionPrivateFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle credentialDefinitionPrivateP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_credential_definition_private_from_json(b, &credentialDefinitionPrivateP);
+  handleError(rt, code);
+
+  return jsi::Value(int(credentialDefinitionPrivateP));
+};
+
+jsi::Value keyCorrectnessProofFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle keyCorrectnessProofP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_key_correctness_proof_from_json(b, &keyCorrectnessProofP);
+  handleError(rt, code);
+
+  return jsi::Value(int(keyCorrectnessProofP));
+};
+
 // ===== PROOFS =====
 
 jsi::Value createPresentation(jsi::Runtime &rt, jsi::Object options) {
@@ -132,7 +419,7 @@ jsi::Value createPresentation(jsi::Runtime &rt, jsi::Object options) {
       jsiToValue<FfiStrList>(rt, options, "selfAttestedNames");
   auto selfAttestedValues =
       jsiToValue<FfiStrList>(rt, options, "selfAttestedValues");
-  auto masterSecret = jsiToValue<ObjectHandle>(rt, options, "masterSercet");
+  auto masterSecret = jsiToValue<ObjectHandle>(rt, options, "masterSecret");
   auto schemas = jsiToValue<FfiList_ObjectHandle>(rt, options, "schemas");
   auto schemaIds = jsiToValue<FfiList_FfiStr>(rt, options, "schemaIds");
   auto credentialDefinitions =
@@ -242,13 +529,13 @@ jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle credReqMetaP;
 
   ErrorCode code = anoncreds_create_credential_request(
-      proverDid.c_str(), credentialDefinition, masterSecret,
+      proverDid.length() > 0 ? proverDid.c_str() : nullptr, credentialDefinition, masterSecret,
       masterSecretId.c_str(), credentialOffer, &credReqP, &credReqMetaP);
   handleError(rt, code);
 
   jsi::Object object = jsi::Object(rt);
-  object.setProperty(rt, "credReq", int(credReqP));
-  object.setProperty(rt, "credReqMeta", int(credReqMetaP));
+  object.setProperty(rt, "credentialRequest", int(credReqP));
+  object.setProperty(rt, "credentialRequestMetadata", int(credReqMetaP));
   return object;
 };
 
@@ -282,11 +569,11 @@ jsi::Value processCredential(jsi::Runtime &rt, jsi::Object options) {
   auto credential = jsiToValue<ObjectHandle>(rt, options, "credential");
   auto credentialRequestMetadata =
       jsiToValue<ObjectHandle>(rt, options, "credentialRequestMetadata");
-  auto masterSecret = jsiToValue<ObjectHandle>(rt, options, "masterSercet");
+  auto masterSecret = jsiToValue<ObjectHandle>(rt, options, "masterSecret");
   auto credentialDefinition =
       jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
   auto revocationRegistryDefinition =
-      jsiToValue<ObjectHandle>(rt, options, "revocationRegistryDefinition");
+      jsiToValue<ObjectHandle>(rt, options, "revocationRegistryDefinition", true);
 
   ObjectHandle credentialP;
 
