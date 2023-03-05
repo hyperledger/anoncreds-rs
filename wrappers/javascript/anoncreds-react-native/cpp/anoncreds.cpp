@@ -178,6 +178,25 @@ jsi::Value presentationFromJson(jsi::Runtime &rt, jsi::Object options) {
   return jsi::Value(int(presentationP));
 };
 
+jsi::Value presentationRequestFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle presentationRequestP;
+
+    ByteBuffer b;
+
+    std::vector<uint8_t> jsonVector(json.begin(), json.end());
+    uint8_t *p = &jsonVector[0];
+    
+    b.data = p;
+    b.len = json.length();
+    
+  ErrorCode code = anoncreds_presentation_request_from_json(b, &presentationRequestP);
+  handleError(rt, code);
+
+  return jsi::Value(int(presentationRequestP));
+};
+
 jsi::Value credentialOfferFromJson(jsi::Runtime &rt, jsi::Object options) {
   auto json = jsiToValue<std::string>(rt, options, "json");
 
@@ -354,7 +373,7 @@ jsi::Value credentialDefinitionFromJson(jsi::Runtime &rt, jsi::Object options) {
 
   ObjectHandle credentialDefinitionP;
 
-    ByteBuffer b;
+      ByteBuffer b;
 
     std::vector<uint8_t> jsonVector(json.begin(), json.end());
     uint8_t *p = &jsonVector[0];
@@ -416,9 +435,9 @@ jsi::Value createPresentation(jsi::Runtime &rt, jsi::Object options) {
   auto credentialsProve =
       jsiToValue<FfiList_FfiCredentialProve>(rt, options, "credentialsProve");
   auto selfAttestedNames =
-      jsiToValue<FfiStrList>(rt, options, "selfAttestedNames");
+      jsiToValue<FfiStrList>(rt, options, "selfAttestNames");
   auto selfAttestedValues =
-      jsiToValue<FfiStrList>(rt, options, "selfAttestedValues");
+      jsiToValue<FfiStrList>(rt, options, "selfAttestValues");
   auto masterSecret = jsiToValue<ObjectHandle>(rt, options, "masterSecret");
   auto schemas = jsiToValue<FfiList_ObjectHandle>(rt, options, "schemas");
   auto schemaIds = jsiToValue<FfiList_FfiStr>(rt, options, "schemaIds");
@@ -549,7 +568,7 @@ jsi::Value credentialGetAttribute(jsi::Runtime &rt, jsi::Object options) {
       anoncreds_credential_get_attribute(handle, name.c_str(), &resultP);
   handleError(rt, code);
 
-  return jsi::String::createFromAscii(rt, resultP);
+  return jsi::String::createFromAscii(rt, resultP ? resultP : "{}");
 };
 
 jsi::Value encodeCredentialAttributes(jsi::Runtime &rt, jsi::Object options) {
@@ -562,7 +581,7 @@ jsi::Value encodeCredentialAttributes(jsi::Runtime &rt, jsi::Object options) {
       anoncreds_encode_credential_attributes(attributeRawValues, &resultP);
   handleError(rt, code);
 
-  return jsi::String::createFromAscii(rt, resultP);
+  return jsi::String::createFromAscii(rt, resultP ? resultP : "{}");
 };
 
 jsi::Value processCredential(jsi::Runtime &rt, jsi::Object options) {
@@ -703,7 +722,7 @@ jsi::Value revocationRegistryDefinitionGetAttribute(jsi::Runtime &rt,
       handle, name.c_str(), &resultP);
   handleError(rt, code);
 
-  return jsi::String::createFromAscii(rt, resultP);
+  return jsi::String::createFromAscii(rt, resultP ? resultP : "{}");
 };
 
 } // namespace anoncreds
