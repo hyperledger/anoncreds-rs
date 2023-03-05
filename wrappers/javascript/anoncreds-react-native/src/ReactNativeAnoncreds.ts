@@ -156,7 +156,6 @@ export class ReactNativeAnoncreds implements Anoncreds {
     const schemaValues = Object.values(options.schemas).map((o) => o.handle)
     const credentialDefinitionKeys = Object.keys(options.credentialDefinitions)
     const credentialDefinitionValues = Object.values(options.credentialDefinitions).map((o) => o.handle)
-    const serialized = serializeArguments(options)
 
     const credentialEntries = options.credentials.map((value) => ({
       credential: value.credential.handle,
@@ -165,7 +164,9 @@ export class ReactNativeAnoncreds implements Anoncreds {
     }))
 
     const handle = anoncredsReactNative.createPresentation({
-      ...serialized,
+      presentationRequest: options.presentationRequest.handle,
+      masterSecret: options.masterSecret.handle,
+      credentialsProve: options.credentialsProve,
       selfAttestNames,
       selfAttestValues,
       credentials: credentialEntries,

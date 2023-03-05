@@ -103,19 +103,19 @@ jsi::Value createCredentialDefinition(jsi::Runtime &rt, jsi::Object options) {
 
   ObjectHandle credentialDefinitionP;
   ObjectHandle credentialDefinitionPrivateP;
-  ObjectHandle keyProofP;
+  ObjectHandle keyCorrectnessProofP;
 
   ErrorCode code = anoncreds_create_credential_definition(
       schemaId.c_str(), schema, tag.c_str(), issuerId.c_str(),
       signatureType.c_str(), supportRevocation, &credentialDefinitionP,
-      &credentialDefinitionPrivateP, &keyProofP);
+      &credentialDefinitionPrivateP, &keyCorrectnessProofP);
   handleError(rt, code);
 
   jsi::Object object = jsi::Object(rt);
   object.setProperty(rt, "credentialDefinition", int(credentialDefinitionP));
   object.setProperty(rt, "credentialDefinitionPrivate",
                      int(credentialDefinitionPrivateP));
-  object.setProperty(rt, "keyProof", int(keyProofP));
+  object.setProperty(rt, "keyCorrectnessProof", int(keyCorrectnessProofP));
   return object;
 };
 
@@ -524,12 +524,12 @@ jsi::Value createCredentialOffer(jsi::Runtime &rt, jsi::Object options) {
   auto schemaId = jsiToValue<std::string>(rt, options, "schemaId");
   auto credentialDefinitionId =
       jsiToValue<std::string>(rt, options, "credentialDefinitionId");
-  auto keyProof = jsiToValue<ObjectHandle>(rt, options, "keyProof");
+  auto keyCorrectnessProof = jsiToValue<ObjectHandle>(rt, options, "keyCorrectnessProof");
 
   ObjectHandle credOfferP;
 
   ErrorCode code = anoncreds_create_credential_offer(
-      schemaId.c_str(), credentialDefinitionId.c_str(), keyProof, &credOfferP);
+      schemaId.c_str(), credentialDefinitionId.c_str(), keyCorrectnessProof, &credOfferP);
   handleError(rt, code);
 
   return jsi::Value(int(credOfferP));
@@ -546,9 +546,9 @@ jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
 
   ObjectHandle credReqP;
   ObjectHandle credReqMetaP;
-
+  
   ErrorCode code = anoncreds_create_credential_request(
-      proverDid.length() > 0 ? proverDid.c_str() : nullptr, credentialDefinition, masterSecret,
+      proverDid.length() ? proverDid.c_str() : nullptr, credentialDefinition, masterSecret,
       masterSecretId.c_str(), credentialOffer, &credReqP, &credReqMetaP);
   handleError(rt, code);
 
@@ -568,7 +568,7 @@ jsi::Value credentialGetAttribute(jsi::Runtime &rt, jsi::Object options) {
       anoncreds_credential_get_attribute(handle, name.c_str(), &resultP);
   handleError(rt, code);
 
-  return jsi::String::createFromAscii(rt, resultP ? resultP : "{}");
+  return resultP != nullptr ? jsi::String::createFromAscii(rt, resultP) : jsi::Value::null();
 };
 
 jsi::Value encodeCredentialAttributes(jsi::Runtime &rt, jsi::Object options) {
@@ -581,7 +581,7 @@ jsi::Value encodeCredentialAttributes(jsi::Runtime &rt, jsi::Object options) {
       anoncreds_encode_credential_attributes(attributeRawValues, &resultP);
   handleError(rt, code);
 
-  return jsi::String::createFromAscii(rt, resultP ? resultP : "{}");
+  return resultP != nullptr ? jsi::String::createFromAscii(rt, resultP) : jsi::Value::null();
 };
 
 jsi::Value processCredential(jsi::Runtime &rt, jsi::Object options) {
@@ -722,7 +722,7 @@ jsi::Value revocationRegistryDefinitionGetAttribute(jsi::Runtime &rt,
       handle, name.c_str(), &resultP);
   handleError(rt, code);
 
-  return jsi::String::createFromAscii(rt, resultP ? resultP : "{}");
+  return resultP != nullptr ? jsi::String::createFromAscii(rt, resultP) : jsi::Value::null();
 };
 
 } // namespace anoncreds
