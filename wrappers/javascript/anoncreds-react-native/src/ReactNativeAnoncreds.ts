@@ -87,9 +87,31 @@ export class ReactNativeAnoncreds implements Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     attributeEncodedValues?: Record<string, string>
+    revocationRegistryId?: string
+    revocationStatusList?: ObjectHandle
     revocationConfiguration?: NativeCredentialRevocationConfig
   }): ObjectHandle {
-    const { credential } = anoncredsReactNative.createCredential(serializeArguments(options))
+    const attributeNames = Object.keys(options.attributeRawValues)
+    const attributeRawValues = Object.values(options.attributeRawValues)
+    const attributeEncodedValues = options.attributeEncodedValues
+      ? Object.values(options.attributeEncodedValues)
+      : undefined
+
+    const credential = anoncredsReactNative.createCredential({
+      ...serializeArguments(options),
+      attributeRawValues,
+      attributeEncodedValues,
+      attributeNames,
+      revocationConfiguration: options.revocationConfiguration
+        ? {
+            registryIndex: options.revocationConfiguration.registryIndex,
+            revocationRegistryDefinition: options.revocationConfiguration.revocationRegistryDefinition.handle,
+            revocationRegistryDefinitionPrivate:
+              options.revocationConfiguration.revocationRegistryDefinitionPrivate.handle,
+            tailsPath: options.revocationConfiguration.tailsPath,
+          }
+        : undefined,
+    })
 
     return new ObjectHandle(credential)
   }
@@ -186,8 +208,8 @@ export class ReactNativeAnoncreds implements Anoncreds {
     credentialDefinitions: ObjectHandle[]
     credentialDefinitionIds: string[]
     revocationRegistryDefinitions?: ObjectHandle[]
-    revocationRegistryDefinitionIds: string[]
-    revocationStatusLists: ObjectHandle[]
+    revocationRegistryDefinitionIds?: string[]
+    revocationStatusLists?: ObjectHandle[]
   }): boolean {
     return anoncredsReactNative.verifyPresentation(serializeArguments(options))
   }
