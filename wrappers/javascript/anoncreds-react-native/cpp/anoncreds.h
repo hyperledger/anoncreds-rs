@@ -28,6 +28,7 @@ jsi::Value createCredentialDefinition(jsi::Runtime &rt, jsi::Object options);
 jsi::Value revocationRegistryDefinitionFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value revocationRegistryFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value presentationFromJson(jsi::Runtime &rt, jsi::Object options);
+jsi::Value presentationRequestFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value credentialOfferFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value schemaFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value masterSecretFromJson(jsi::Runtime &rt, jsi::Object options);

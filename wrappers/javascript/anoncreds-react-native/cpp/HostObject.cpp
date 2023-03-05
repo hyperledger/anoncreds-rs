@@ -52,6 +52,8 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
                                 &anoncreds::revocationRegistryDefinitionFromJson));
   fMap.insert(std::make_tuple("presentationFromJson",
                                 &anoncreds::presentationFromJson));
+  fMap.insert(std::make_tuple("presentationRequestFromJson",
+                                &anoncreds::presentationRequestFromJson));
   fMap.insert(std::make_tuple("credentialOfferFromJson",
                                 &anoncreds::credentialOfferFromJson));
   fMap.insert(std::make_tuple("schemaFromJson",
