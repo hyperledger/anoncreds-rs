@@ -175,7 +175,7 @@ describe('API', () => {
 
     expect(presentation.handle.handle).toStrictEqual(expect.any(Number))
 
-    const verify = Presentation.fromJson(presentation.toJson()).verify({
+    const verify = presentation.verify({
       presentationRequest,
       schemas: { ['mock:uri']: schema },
       credentialDefinitions: { ['mock:uri']: credentialDefinition },
@@ -319,7 +319,7 @@ describe('API', () => {
 
     expect(presentation.handle.handle).toStrictEqual(expect.any(Number))
 
-    const verify = Presentation.fromJson(presentation.toJson()).verify({
+    const verify = presentation.verify({
       presentationRequest,
       schemas: { ['mock:uri']: schema },
       credentialDefinitions: { ['mock:uri']: credentialDefinition },
