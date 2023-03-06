@@ -8,7 +8,7 @@ import type {
 import type { TypedArray } from 'ref-array-di'
 import type { StructObject } from 'ref-struct-di'
 
-import { ByteBuffer, ObjectHandle } from '@hyperledger/anoncreds-shared'
+import { AnoncredsError, ByteBuffer, ObjectHandle } from '@hyperledger/anoncreds-shared'
 import { TextDecoder, TextEncoder } from 'util'
 
 import { handleError } from './error'
@@ -32,13 +32,21 @@ import {
 } from './ffi'
 import { nativeAnoncreds } from './library'
 
+function handleReturnPointer<Return>(returnValue: Buffer): Return {
+  if (returnValue.address() === 0) {
+    throw AnoncredsError.customError({ message: 'Unexpected null pointer' })
+  }
+
+  return returnValue.deref() as Return
+}
+
 export class NodeJSAnoncreds implements Anoncreds {
   public generateNonce(): string {
     const ret = allocateStringBuffer()
     nativeAnoncreds.anoncreds_generate_nonce(ret)
     handleError()
 
-    return ret.deref() as string
+    return handleReturnPointer<string>(ret)
   }
 
   public createSchema(options: {
@@ -54,7 +62,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     nativeAnoncreds.anoncreds_create_schema(name, version, issuerId, attributeNames, ret)
     handleError()
 
-    return new ObjectHandle(ret.deref() as number)
+    return new ObjectHandle(handleReturnPointer<number>(ret))
   }
 
   public revocationRegistryDefinitionGetAttribute(options: { objectHandle: ObjectHandle; name: string }) {
@@ -64,7 +72,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     nativeAnoncreds.anoncreds_revocation_registry_definition_get_attribute(objectHandle, name, ret)
     handleError()
 
-    return ret.deref() as string
+    return handleReturnPointer<string>(ret)
   }
 
   public credentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }) {
@@ -74,7 +82,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     nativeAnoncreds.anoncreds_credential_get_attribute(objectHandle, name, ret)
     handleError()
 
-    return ret.deref() as string
+    return handleReturnPointer<string>(ret)
   }
 
   public createCredentialDefinition(options: {
@@ -105,9 +113,9 @@ export class NodeJSAnoncreds implements Anoncreds {
     handleError()
 
     return {
-      credentialDefinition: new ObjectHandle(credentialDefinitionPtr.deref() as number),
-      credentialDefinitionPrivate: new ObjectHandle(credentialDefinitionPrivatePtr.deref() as number),
-      keyProof: new ObjectHandle(keyProofPtr.deref() as number),
+      credentialDefinition: new ObjectHandle(handleReturnPointer<number>(credentialDefinitionPtr)),
+      credentialDefinitionPrivate: new ObjectHandle(handleReturnPointer<number>(credentialDefinitionPrivatePtr)),
+      keyProof: new ObjectHandle(handleReturnPointer<number>(keyProofPtr)),
     }
   }
 
@@ -180,7 +188,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     )
     handleError()
 
-    return new ObjectHandle(credentialPtr.deref() as number)
+    return new ObjectHandle(handleReturnPointer<number>(credentialPtr))
   }
 
   public encodeCredentialAttributes(options: { attributeRawValues: Array<string> }): Array<string> {
@@ -191,7 +199,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     nativeAnoncreds.anoncreds_encode_credential_attributes(attributeRawValues, ret)
     handleError()
 
-    const result = ret.deref() as string
+    const result = handleReturnPointer<string>(ret)
 
     return result.split(',')
   }
@@ -217,7 +225,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     )
     handleError()
 
-    return new ObjectHandle(ret.deref() as number)
+    return new ObjectHandle(handleReturnPointer<number>(ret))
   }
 
   public createCredentialOffer(options: {
@@ -231,7 +239,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     nativeAnoncreds.anoncreds_create_credential_offer(schemaId, credentialDefinitionId, keyProof, ret)
     handleError()
 
-    return new ObjectHandle(ret.deref() as number)
+    return new ObjectHandle(handleReturnPointer<number>(ret))
   }
 
   public createCredentialRequest(options: {
@@ -259,8 +267,8 @@ export class NodeJSAnoncreds implements Anoncreds {
     handleError()
 
     return {
-      credentialRequest: new ObjectHandle(credentialRequestPtr.deref() as number),
-      credentialRequestMetadata: new ObjectHandle(credentialRequestMetadataPtr.deref() as number),
+      credentialRequest: new ObjectHandle(handleReturnPointer<number>(credentialRequestPtr)),
+      credentialRequestMetadata: new ObjectHandle(handleReturnPointer<number>(credentialRequestMetadataPtr)),
     }
   }
 
@@ -270,7 +278,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     nativeAnoncreds.anoncreds_create_master_secret(ret)
     handleError()
 
-    return new ObjectHandle(ret.deref() as number)
+    return new ObjectHandle(handleReturnPointer<number>(ret))
   }
 
   public createPresentation(options: {
@@ -371,7 +379,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     )
     handleError()
 
-    return new ObjectHandle(ret.deref() as number)
+    return new ObjectHandle(handleReturnPointer<number>(ret))
   }
   public verifyPresentation(options: {
     presentation: ObjectHandle
@@ -435,7 +443,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     )
     handleError()
 
-    return Boolean(ret.deref() as number)
+    return Boolean(handleReturnPointer<number>(ret))
   }
 
   public createRevocationStatusList(options: {
@@ -460,7 +468,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     )
     handleError()
 
-    return new ObjectHandle(ret.deref() as number)
+    return new ObjectHandle(handleReturnPointer<number>(ret))
   }
 
   public updateRevocationStatusListTimestampOnly(options: {
@@ -473,7 +481,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     nativeAnoncreds.anoncreds_update_revocation_status_list_timestamp_only(timestamp, currentRevocationStatusList, ret)
     handleError()
 
-    return new ObjectHandle(ret.deref() as number)
+    return new ObjectHandle(handleReturnPointer<number>(ret))
   }
 
   public updateRevocationStatusList(options: {
@@ -497,7 +505,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     )
     handleError()
 
-    return new ObjectHandle(ret.deref() as number)
+    return new ObjectHandle(handleReturnPointer<number>(ret))
   }
 
   public createRevocationRegistryDefinition(options: {
@@ -536,8 +544,10 @@ export class NodeJSAnoncreds implements Anoncreds {
     handleError()
 
     return {
-      revocationRegistryDefinition: new ObjectHandle(revocationRegistryDefinitionPtr.deref() as number),
-      revocationRegistryDefinitionPrivate: new ObjectHandle(revocationRegistryDefinitionPrivate.deref() as number),
+      revocationRegistryDefinition: new ObjectHandle(handleReturnPointer<number>(revocationRegistryDefinitionPtr)),
+      revocationRegistryDefinitionPrivate: new ObjectHandle(
+        handleReturnPointer<number>(revocationRegistryDefinitionPrivate)
+      ),
     }
   }
 
@@ -567,7 +577,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     )
     handleError()
 
-    return new ObjectHandle(ret.deref() as number)
+    return new ObjectHandle(handleReturnPointer<number>(ret))
   }
   public version(): string {
     return nativeAnoncreds.anoncreds_version()
@@ -584,7 +594,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     nativeAnoncreds.anoncreds_get_current_error(ret)
     handleError()
 
-    return ret.deref() as string
+    return handleReturnPointer<string>(ret)
   }
 
   private objectFromJson(method: (byteBuffer: Buffer, ret: Buffer) => unknown, options: { json: string }) {
@@ -595,7 +605,7 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     method(byteBuffer as unknown as Buffer, ret)
 
-    return new ObjectHandle(ret.deref() as number)
+    return new ObjectHandle(handleReturnPointer<number>(ret))
   }
 
   public presentationRequestFromJson(options: { json: string }) {
@@ -669,7 +679,8 @@ export class NodeJSAnoncreds implements Anoncreds {
     nativeAnoncreds.anoncreds_object_get_json(objectHandle, ret)
     handleError()
 
-    const output = new Uint8Array(byteBufferToBuffer(ret.deref() as { data: Buffer; len: number }))
+    const returnValue = handleReturnPointer<{ data: Buffer; len: number }>(ret)
+    const output = new Uint8Array(byteBufferToBuffer(returnValue))
 
     return new TextDecoder().decode(output)
   }
@@ -682,7 +693,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     nativeAnoncreds.anoncreds_object_get_type_name(objectHandle, ret)
     handleError()
 
-    return ret.deref() as string
+    return handleReturnPointer<string>(ret)
   }
 
   public objectFree(options: { objectHandle: ObjectHandle }) {
