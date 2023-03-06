@@ -59,6 +59,7 @@ export const nativeBindings = {
     FFI_ERRORCODE,
     [
       FFI_STRING,
+      FFI_STRING,
       FFI_OBJECT_HANDLE,
       FFI_OBJECT_HANDLE,
       FFI_STRING,

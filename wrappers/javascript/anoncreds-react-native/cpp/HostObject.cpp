@@ -2,7 +2,10 @@
 #include <algorithm>
 #include <vector>
 
-AnoncredsTurboModuleHostObject::AnoncredsTurboModuleHostObject(jsi::Runtime &rt) { return; }
+AnoncredsTurboModuleHostObject::AnoncredsTurboModuleHostObject(
+    jsi::Runtime &rt) {
+  return;
+}
 
 FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   FunctionMap fMap;
@@ -82,8 +85,8 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   return fMap;
 }
 
-jsi::Function AnoncredsTurboModuleHostObject::call(jsi::Runtime &rt, const char *name,
-                                          Cb cb) {
+jsi::Function AnoncredsTurboModuleHostObject::call(jsi::Runtime &rt,
+                                                   const char *name, Cb cb) {
   return jsi::Function::createFromHostFunction(
       rt, jsi::PropNameID::forAscii(rt, name), 1,
       [this, cb](jsi::Runtime &rt, const jsi::Value &thisValue,
@@ -105,8 +108,9 @@ AnoncredsTurboModuleHostObject::getPropertyNames(jsi::Runtime &rt) {
   return result;
 }
 
-jsi::Value AnoncredsTurboModuleHostObject::get(jsi::Runtime &rt,
-                                      const jsi::PropNameID &propNameId) {
+jsi::Value
+AnoncredsTurboModuleHostObject::get(jsi::Runtime &rt,
+                                    const jsi::PropNameID &propNameId) {
   auto propName = propNameId.utf8(rt);
   auto fMap = AnoncredsTurboModuleHostObject::functionMapping(rt);
   for (FunctionMap::iterator it = fMap.begin(); it != fMap.end(); ++it) {
