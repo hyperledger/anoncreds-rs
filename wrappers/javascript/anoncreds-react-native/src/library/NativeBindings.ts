@@ -1,3 +1,4 @@
+import type { ReturnObject } from '../utils/serialize'
 import type {
   NativeCredentialEntry,
   NativeCredentialProve,
@@ -5,28 +6,41 @@ import type {
 } from '@hyperledger/anoncreds-shared'
 
 // Alias for _Handle.handle
-type _Handle = number
+type Handle = number
 
 export interface NativeBindings {
   version(options: Record<never, never>): string
   getCurrentError(options: Record<never, never>): string
-  setDefaultLogger(options: Record<never, never>): null
-  generateNonce(options: Record<never, never>): string
-  createSchema(options: { name: string; version: string; issuerId: string; attributeNames: string[] }): _Handle
+
+  setDefaultLogger(options: Record<never, never>): ReturnObject<null>
+  generateNonce(options: Record<never, never>): ReturnObject<string>
+  createSchema(options: {
+    name: string
+    version: string
+    issuerId: string
+    attributeNames: string[]
+  }): ReturnObject<Handle>
+
   createRevocationStatusList(options: {
     revocationRegistryDefinitionId: string
-    revocationRegistryDefinition: _Handle
+    revocationRegistryDefinition: Handle
     timestamp?: number
     issuanceByDefault: number
-  }): _Handle
+  }): ReturnObject<Handle>
+
   updateRevocationStatusList(options: {
     timestamp?: number
     issued?: number[]
     revoked?: number[]
-    revocationRegistryDefinition: _Handle
-    currentRevocationStatusList: _Handle
-  }): _Handle
-  updateRevocationStatusListTimestampOnly(options: { timestamp: number; currentRevocationStatusList: _Handle }): _Handle
+    revocationRegistryDefinition: Handle
+    currentRevocationStatusList: Handle
+  }): ReturnObject<Handle>
+
+  updateRevocationStatusListTimestampOnly(options: {
+    timestamp: number
+    currentRevocationStatusList: Handle
+  }): ReturnObject<Handle>
+
   createCredentialDefinition(options: {
     schemaId: string
     schema: number
@@ -34,7 +48,8 @@ export interface NativeBindings {
     tag: string
     signatureType: string
     supportRevocation: number
-  }): { credentialDefinition: _Handle; credentialDefinitionPrivate: _Handle; keyProof: _Handle }
+  }): ReturnObject<{ credentialDefinition: Handle; credentialDefinitionPrivate: Handle; keyProof: Handle }>
+
   createCredential(options: {
     credentialDefinition: number
     credentialDefinitionPrivate: number
@@ -43,16 +58,24 @@ export interface NativeBindings {
     attributeRawValues: string
     attributeEncodedValues?: string
     revocationConfiguration?: NativeCredentialRevocationConfig
-  }): { credential: _Handle; revocationRegistry: _Handle; revocationDelta: _Handle }
-  encodeCredentialAttributes(options: { attributeRawValues: Array<string> }): string
+  }): ReturnObject<{ credential: Handle; revocationRegistry: Handle; revocationDelta: Handle }>
+
+  encodeCredentialAttributes(options: { attributeRawValues: Array<string> }): ReturnObject<string>
+
   processCredential(options: {
     credential: number
     credentialRequestMetadata: number
     masterSecret: number
     credentialDefinition: number
     revocationRegistryDefinition?: number
-  }): _Handle
-  createCredentialOffer(options: { schemaId: string; credentialDefinitionId: string; keyProof: number }): _Handle
+  }): ReturnObject<Handle>
+
+  createCredentialOffer(options: {
+    schemaId: string
+    credentialDefinitionId: string
+    keyProof: number
+  }): ReturnObject<Handle>
+
   createCredentialRequest(options: {
     entropy?: string
     proverDid?: string
@@ -60,8 +83,10 @@ export interface NativeBindings {
     masterSecret: number
     masterSecretId: string
     credentialOffer: number
-  }): { credentialRequest: _Handle; credentialRequestMetadata: _Handle }
-  createMasterSecret(options: Record<never, never>): number
+  }): ReturnObject<{ credentialRequest: Handle; credentialRequestMetadata: Handle }>
+
+  createMasterSecret(options: Record<never, never>): ReturnObject<number>
+
   createPresentation(options: {
     presentationRequest: number
     credentials: NativeCredentialEntry[]
@@ -72,7 +97,8 @@ export interface NativeBindings {
     schemas: number[]
     credentialDefinitionIds: string[]
     credentialDefinitions: number[]
-  }): _Handle
+  }): ReturnObject<Handle>
+
   verifyPresentation(options: {
     presentation: number
     presentationRequest: number
@@ -83,7 +109,8 @@ export interface NativeBindings {
     revocationRegistryDefinitions?: number[]
     revocationRegistryDefinitionIds?: string[]
     revocationStatusLists?: number[]
-  }): boolean
+  }): ReturnObject<number>
+
   createRevocationRegistryDefinition(options: {
     credentialDefinition: number
     credentialDefinitionId: string
@@ -92,40 +119,64 @@ export interface NativeBindings {
     revocationRegistryType: string
     maximumCredentialNumber: number
     tailsDirectoryPath?: string
-  }): {
-    registryDefinition: _Handle
-    registryDefinitionPrivate: _Handle
-    registryEntry: _Handle
-    registryInitDelta: _Handle
-  }
+  }): ReturnObject<{
+    registryDefinition: Handle
+    registryDefinitionPrivate: Handle
+    registryEntry: Handle
+    registryInitDelta: Handle
+  }>
+
   createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: number
     revocationRegistryIndex: number
     tailsPath: string
     revocationState?: number
     oldRevocationStatusList?: number
-  }): _Handle
-  presentationRequestFromJson(options: { json: string }): _Handle
-  schemaGetAttribute(options: { objectHandle: number; name: string }): string
-  revocationRegistryDefinitionGetAttribute(options: { objectHandle: number; name: string }): string
-  credentialGetAttribute(options: { objectHandle: number; name: string }): string
-  getJson(options: { objectHandle: number }): string
-  getTypeName(options: { objectHandle: number }): string
-  objectFree(options: { objectHandle: number }): void
-  credentialDefinitionGetAttribute(options: { objectHandle: number; name: string }): string
-  revocationRegistryDefinitionFromJson(options: { json: string }): _Handle
-  revocationRegistryFromJson(options: { json: string }): _Handle
-  presentationFromJson(options: { json: string }): _Handle
-  credentialOfferFromJson(options: { json: string }): _Handle
-  schemaFromJson(options: { json: string }): _Handle
-  masterSecretFromJson(options: { json: string }): _Handle
-  credentialRequestFromJson(options: { json: string }): _Handle
-  credentialRequestMetadataFromJson(options: { json: string }): _Handle
-  credentialFromJson(options: { json: string }): _Handle
-  revocationRegistryDefinitionPrivateFromJson(options: { json: string }): _Handle
-  revocationRegistryDeltaFromJson(options: { json: string }): _Handle
-  revocationStateFromJson(options: { json: string }): _Handle
-  credentialDefinitionFromJson(options: { json: string }): _Handle
-  credentialDefinitionPrivateFromJson(options: { json: string }): _Handle
-  keyCorrectnessProofFromJson(options: { json: string }): _Handle
+  }): ReturnObject<Handle>
+
+  presentationRequestFromJson(options: { json: string }): ReturnObject<Handle>
+
+  schemaGetAttribute(options: { objectHandle: number; name: string }): ReturnObject<string>
+
+  revocationRegistryDefinitionGetAttribute(options: { objectHandle: number; name: string }): ReturnObject<string>
+
+  credentialGetAttribute(options: { objectHandle: number; name: string }): ReturnObject<string>
+
+  getJson(options: { objectHandle: number }): ReturnObject<string>
+
+  getTypeName(options: { objectHandle: number }): ReturnObject<string>
+
+  objectFree(options: { objectHandle: number }): ReturnObject<never>
+
+  credentialDefinitionGetAttribute(options: { objectHandle: number; name: string }): ReturnObject<string>
+
+  revocationRegistryDefinitionFromJson(options: { json: string }): ReturnObject<Handle>
+
+  revocationRegistryFromJson(options: { json: string }): ReturnObject<Handle>
+
+  presentationFromJson(options: { json: string }): ReturnObject<Handle>
+
+  credentialOfferFromJson(options: { json: string }): ReturnObject<Handle>
+
+  schemaFromJson(options: { json: string }): ReturnObject<Handle>
+
+  masterSecretFromJson(options: { json: string }): ReturnObject<Handle>
+
+  credentialRequestFromJson(options: { json: string }): ReturnObject<Handle>
+
+  credentialRequestMetadataFromJson(options: { json: string }): ReturnObject<Handle>
+
+  credentialFromJson(options: { json: string }): ReturnObject<Handle>
+
+  revocationRegistryDefinitionPrivateFromJson(options: { json: string }): ReturnObject<Handle>
+
+  revocationRegistryDeltaFromJson(options: { json: string }): ReturnObject<Handle>
+
+  revocationStateFromJson(options: { json: string }): ReturnObject<Handle>
+
+  credentialDefinitionFromJson(options: { json: string }): ReturnObject<Handle>
+
+  credentialDefinitionPrivateFromJson(options: { json: string }): ReturnObject<Handle>
+
+  keyCorrectnessProofFromJson(options: { json: string }): ReturnObject<Handle>
 }

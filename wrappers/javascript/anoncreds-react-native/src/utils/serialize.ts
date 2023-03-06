@@ -1,5 +1,10 @@
 import { ObjectHandle } from '@hyperledger/anoncreds-shared'
 
+export type ReturnObject<T = unknown> = {
+  errorCode: number
+  value?: null | T
+}
+
 type Argument = SerializedArgument | Date | boolean | ObjectHandle
 
 type SerializedArgument = string | number | Array<unknown> | Record<string, unknown>
