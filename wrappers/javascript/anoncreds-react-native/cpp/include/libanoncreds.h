@@ -282,7 +282,8 @@ ErrorCode anoncreds_create_credential_offer(FfiStr schema_id,
                                             ObjectHandle key_proof,
                                             ObjectHandle *cred_offer_p);
 
-ErrorCode anoncreds_create_credential_request(FfiStr prover_did,
+ErrorCode anoncreds_create_credential_request(FfiStr entropy,
+                                              FfiStr prover_did,
                                               ObjectHandle cred_def,
                                               ObjectHandle master_secret,
                                               FfiStr master_secret_id,

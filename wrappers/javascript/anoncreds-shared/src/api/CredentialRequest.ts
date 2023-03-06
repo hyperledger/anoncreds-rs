@@ -8,6 +8,7 @@ import { anoncreds } from '../register'
 import { CredentialRequestMetadata } from './CredentialRequestMetadata'
 
 export type CreateCredentialRequestOptions = {
+  entropy?: string
   proverDid?: string
   credentialDefinition: CredentialDefinition
   masterSecret: MasterSecret
@@ -18,6 +19,7 @@ export type CreateCredentialRequestOptions = {
 export class CredentialRequest extends AnoncredsObject {
   public static create(options: CreateCredentialRequestOptions) {
     const { credentialRequest, credentialRequestMetadata } = anoncreds.createCredentialRequest({
+      entropy: options.entropy,
       proverDid: options.proverDid,
       credentialDefinition: options.credentialDefinition.handle,
       masterSecret: options.masterSecret.handle,

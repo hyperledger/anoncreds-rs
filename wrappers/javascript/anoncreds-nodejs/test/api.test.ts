@@ -95,6 +95,7 @@ describe('API', () => {
     const masterSecretId = 'master secret id'
 
     const { credentialRequestMetadata, credentialRequest } = CredentialRequest.create({
+      entropy: 'entropy',
       credentialDefinition,
       masterSecret,
       masterSecretId,
@@ -214,6 +215,7 @@ describe('API', () => {
     const masterSecretId = 'master secret id'
 
     const { credentialRequestMetadata, credentialRequest } = CredentialRequest.create({
+      entropy: 'entropy',
       credentialDefinition,
       masterSecret,
       masterSecretId,

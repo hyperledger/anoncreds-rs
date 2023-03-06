@@ -1814,7 +1814,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_operator_in_multimply_to_string() {
+    fn test_simple_operator_in_multiply_to_string() {
         let name1 = _random_string(10);
         let value1 = _random_string(10);
         let value2 = _random_string(10);

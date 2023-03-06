@@ -67,6 +67,7 @@ fn anoncreds_works_for_single_issuer_single_prover() {
 
     // Prover creates a Credential Request
     let (cred_request, cred_request_metadata) = prover::create_credential_request(
+        Some("entropy"),
         None,
         &cred_def_pub,
         &prover_wallet.master_secret,
@@ -295,6 +296,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
 
     // Prover creates a Credential Request
     let (cred_request, cred_request_metadata) = prover::create_credential_request(
+        Some("entropy"),
         None,
         &cred_def_pub,
         &prover_wallet.master_secret,
