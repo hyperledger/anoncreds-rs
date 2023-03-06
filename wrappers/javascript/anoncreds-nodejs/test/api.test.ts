@@ -368,6 +368,7 @@ test('create and verify presentation passing only JSON objects as parameters)', 
   const masterSecretId = 'master secret id'
 
   const { credentialRequestMetadata, credentialRequest } = CredentialRequest.create({
+    entropy: 'entropy',
     credentialDefinition: credentialDefinition.toJson(),
     masterSecret: masterSecret.toJson(),
     masterSecretId,
