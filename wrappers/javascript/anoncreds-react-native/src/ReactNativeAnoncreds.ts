@@ -78,14 +78,14 @@ export class ReactNativeAnoncreds implements Anoncreds {
     signatureType: string
     supportRevocation: boolean
   }): { credentialDefinition: ObjectHandle; credentialDefinitionPrivate: ObjectHandle; keyProof: ObjectHandle } {
-    const { keyProof, credentialDefinition, credentialDefinitionPrivate } = handleError(
+    const { keyCorrectnessProof, credentialDefinition, credentialDefinitionPrivate } = handleError(
       anoncredsReactNative.createCredentialDefinition(serializeArguments(options))
     )
 
     return {
       credentialDefinitionPrivate: new ObjectHandle(credentialDefinitionPrivate),
       credentialDefinition: new ObjectHandle(credentialDefinition),
-      keyProof: new ObjectHandle(keyProof),
+      keyProof: new ObjectHandle(keyCorrectnessProof),
     }
   }
 
