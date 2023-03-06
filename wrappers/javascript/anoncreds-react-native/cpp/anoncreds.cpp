@@ -154,6 +154,9 @@ jsi::Value verifyPresentation(jsi::Runtime &rt, jsi::Object options) {
       rt, options, "revocationRegistryDefinitionIds");
   auto revocationStatusLists =
       jsiToValue<FfiList_ObjectHandle>(rt, options, "revocationStatusLists");
+  auto nonrevokedIntervalOverride =
+      jsiToValue<FfiList_FfiNonrevokedIntervalOverride>(
+          rt, options, "nonRevokedIntervalOverride", true);
 
   int8_t out;
 
@@ -161,7 +164,7 @@ jsi::Value verifyPresentation(jsi::Runtime &rt, jsi::Object options) {
       presentation, presentationRequest, schemas, schemaIds,
       credentialDefinitions, credentialDefinitionIds,
       revocationRegistryDefinitions, revocationRegistryDefinitionIds,
-      revocationStatusLists, &out);
+      revocationStatusLists, nonrevokedIntervalOverride, &out);
 
   return createReturnValue(rt, code, &out);
 };
@@ -308,6 +311,7 @@ jsi::Value createRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
       jsiToValue<std::string>(rt, options, "revocationRegistryDefinitionId");
   auto revocationRegistryDefinition =
       jsiToValue<ObjectHandle>(rt, options, "revocationRegistryDefinition");
+  auto issuerId = jsiToValue<std::string>(rt, options, "issuerId");
   auto timestamp = jsiToValue<int64_t>(rt, options, "timestamp");
   auto issuanceByDefault = jsiToValue<int8_t>(rt, options, "issuanceByDefault");
 
@@ -315,7 +319,7 @@ jsi::Value createRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
 
   ErrorCode code = anoncreds_create_revocation_status_list(
       revocationRegistryDefinitionId.c_str(), revocationRegistryDefinition,
-      timestamp, issuanceByDefault, &out);
+      issuerId.c_str(), timestamp, issuanceByDefault, &out);
 
   return createReturnValue(rt, code, &out);
 }
@@ -366,12 +370,12 @@ jsi::Value createRevocationRegistryDefinition(jsi::Runtime &rt,
   auto tailsDirPath =
       jsiToValue<std::string>(rt, options, "tailsDirPath", true);
 
-  RevocationRegistryDefinition out;
+  RevocationRegistryDefinitionReturn out;
 
   ErrorCode code = anoncreds_create_revocation_registry_def(
       credentialDefinition, credentialDefinitionId.c_str(), issuerId.c_str(),
       tag.c_str(), revocationRegistryType.c_str(), maxCredNum,
-      tailsDirPath ? nullptr : tailsDirPath.c_str(),
+      tailsDirPath.length() > 0 ? tailsDirPath.c_str() : nullptr,
       &out.revocationRegistryDefinition,
       &out.revocationRegistryDefinitionPrivate);
 

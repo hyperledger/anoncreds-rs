@@ -166,8 +166,9 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
 }
 
 template <>
-jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
-                             anoncreds::RevocationRegistryDefinition *value) {
+jsi::Value
+createReturnValue(jsi::Runtime &rt, ErrorCode code,
+                  anoncreds::RevocationRegistryDefinitionReturn *value) {
   auto object = jsi::Object(rt);
 
   if (code == ErrorCode::Success) {
@@ -305,7 +306,7 @@ FfiCredentialEntry jsiToValue(jsi::Runtime &rt, jsi::Object &options,
   if (value.isObject()) {
     jsi::Object valueAsObject = value.asObject(rt);
     auto credential = jsiToValue<ObjectHandle>(rt, valueAsObject, "credential");
-    auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp");
+    auto timestamp = jsiToValue<int32_t>(rt, valueAsObject, "timestamp");
     auto revocationState =
         jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState");
 
@@ -359,7 +360,7 @@ jsiToValue<FfiList_FfiCredentialEntry>(jsi::Runtime &rt, jsi::Object &options,
 
       auto credential =
           jsiToValue<ObjectHandle>(rt, valueAsObject, "credential");
-      auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp");
+      auto timestamp = jsiToValue<int32_t>(rt, valueAsObject, "timestamp");
       auto revocationState =
           jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState");
 
@@ -529,5 +530,48 @@ FfiCredRevInfo jsiToValue(jsi::Runtime &rt, jsi::Object &options,
   throw jsi::JSError(rt, errorPrefix + name + errorInfix +
                              "CredentialRevocationConfig");
 };
+
+template <>
+FfiList_FfiNonrevokedIntervalOverride
+jsiToValue<FfiList_FfiNonrevokedIntervalOverride>(jsi::Runtime &rt,
+                                                  jsi::Object &options,
+                                                  const char *name,
+                                                  bool optional) {
+  jsi::Value value = options.getProperty(rt, name);
+
+  if (value.isObject() && value.asObject(rt).isArray(rt)) {
+    auto arr = value.asObject(rt).asArray(rt);
+    auto len = arr.length(rt);
+
+    auto nonRevokedIntervalOverride = new FfiNonrevokedIntervalOverride[len];
+
+    for (int i = 0; i < len; i++) {
+      auto element = arr.getValueAtIndex(rt, i);
+      auto valueAsObject = element.asObject(rt);
+
+      auto revocationRegistryDefinitionId = jsiToValue<std::string>(
+          rt, valueAsObject, "revocationRegistryDefinitionId");
+      auto requestedFromTimestamp =
+          jsiToValue<int32_t>(rt, valueAsObject, "requestedFromTimestamp");
+      auto overrideRevocationStatusListTimestamp = jsiToValue<int32_t>(
+          rt, valueAsObject, "overrideRevocationStatusListTimestamp");
+
+      nonRevokedIntervalOverride[i] = *new FfiNonrevokedIntervalOverride[sizeof(
+          FfiNonrevokedIntervalOverride)];
+      nonRevokedIntervalOverride[i] = FfiNonrevokedIntervalOverride{
+          .rev_reg_def_id = revocationRegistryDefinitionId.c_str(),
+          .requested_from_ts = requestedFromTimestamp,
+          .override_rev_status_list_ts = overrideRevocationStatusListTimestamp};
+    }
+    return FfiList_FfiNonrevokedIntervalOverride{
+        .count = len, .data = nonRevokedIntervalOverride};
+  }
+
+  if (optional)
+    return FfiList_FfiNonrevokedIntervalOverride{};
+
+  throw jsi::JSError(rt, errorPrefix + name + errorInfix +
+                             "Array<NonRevokedIntervalOverride>");
+}
 
 } // namespace anoncredsTurboModuleUtility
