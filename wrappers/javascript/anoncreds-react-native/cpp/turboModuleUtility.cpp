@@ -130,12 +130,14 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
     if (value == nullptr) {
       object.setProperty(rt, "value", jsi::Value::null());
     } else {
-      object.setProperty(rt, "credentialDefinition",
+      auto objectValue = jsi::Object(rt);
+      objectValue.setProperty(rt, "credentialDefinition",
                          int(value->credentialDefinition));
-      object.setProperty(rt, "credentialDefinitionPrivate",
+      objectValue.setProperty(rt, "credentialDefinitionPrivate",
                          int(value->credentialDefinitionPrivate));
-      object.setProperty(rt, "keyCorrectnessProof",
+      objectValue.setProperty(rt, "keyCorrectnessProof",
                          int(value->keyCorrectnessProof));
+      object.setProperty(rt, "value", objectValue);
     }
   }
 
@@ -153,10 +155,12 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
     if (value == nullptr) {
       object.setProperty(rt, "value", jsi::Value::null());
     } else {
-      object.setProperty(rt, "credentialRequest",
+      auto objectValue = jsi::Object(rt);
+      objectValue.setProperty(rt, "credentialRequest",
                          int(value->credentialRequest));
-      object.setProperty(rt, "credentialRequestMetadata",
+      objectValue.setProperty(rt, "credentialRequestMetadata",
                          int(value->credentialRequestMetadata));
+      object.setProperty(rt, "value", objectValue);
     }
   }
 
@@ -175,10 +179,12 @@ createReturnValue(jsi::Runtime &rt, ErrorCode code,
     if (value == nullptr) {
       object.setProperty(rt, "value", jsi::Value::null());
     } else {
-      object.setProperty(rt, "revocationRegistryDefinition",
+      auto objectValue = jsi::Object(rt);
+      objectValue.setProperty(rt, "revocationRegistryDefinition",
                          int(value->revocationRegistryDefinition));
-      object.setProperty(rt, "revocationRegistryDefinitionPrivate",
+      objectValue.setProperty(rt, "revocationRegistryDefinitionPrivate",
                          int(value->revocationRegistryDefinitionPrivate));
+      object.setProperty(rt, "value", objectValue);
     }
   }
 
