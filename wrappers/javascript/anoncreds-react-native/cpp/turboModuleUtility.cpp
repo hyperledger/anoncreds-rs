@@ -165,7 +165,7 @@ FfiCredentialEntry jsiToValue(jsi::Runtime &rt, jsi::Object &options,
     auto credential = jsiToValue<ObjectHandle>(rt, valueAsObject, "credential");
     auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp", true);
     auto revocationState =
-        jsiToValue<ObjectHandle>(rt, valueAsObject, "rev_state", true);
+        jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState", true);
 
     return FfiCredentialEntry{.credential = credential,
                               .timestamp = timestamp,
@@ -219,7 +219,7 @@ jsiToValue<FfiList_FfiCredentialEntry>(jsi::Runtime &rt, jsi::Object &options,
           jsiToValue<ObjectHandle>(rt, valueAsObject, "credential");
       auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp", true);
       auto revocationState =
-          jsiToValue<ObjectHandle>(rt, valueAsObject, "rev_state", true);
+          jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState", true);
 
       credentialEntry[i] = *new FfiCredentialEntry[sizeof(FfiCredentialEntry)];
       credentialEntry[i] = FfiCredentialEntry{.credential = credential,

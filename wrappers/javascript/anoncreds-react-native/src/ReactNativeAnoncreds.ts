@@ -183,7 +183,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     const credentialEntries = options.credentials.map((value) => ({
       credential: value.credential.handle,
       timestamp: value.timestamp ?? -1,
-      rev_state: value.revocationState?.handle ?? 0,
+      revocationState: value.revocationState?.handle ?? 0,
     }))
 
     const handle = anoncredsReactNative.createPresentation({

@@ -67,7 +67,7 @@ export interface NativeBindings {
   createMasterSecret(options: Record<never, never>): number
   createPresentation(options: {
     presentationRequest: number
-    credentials: { credential: number; timestamp?: number; rev_state?: number }[]
+    credentials: { credential: number; timestamp?: number; revocationState?: number }[]
     credentialsProve: NativeCredentialProve[]
     selfAttestNames: string[]
     selfAttestValues: string[]
