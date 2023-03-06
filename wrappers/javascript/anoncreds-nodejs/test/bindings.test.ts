@@ -2,6 +2,8 @@ import { anoncreds } from '@hyperledger/anoncreds-shared'
 
 import { setup } from './utils'
 
+const ENTROPY = 'entropy'
+
 describe('bindings', () => {
   beforeAll(() => setup())
 
@@ -198,6 +200,7 @@ describe('bindings', () => {
     const masterSecretId = 'master secret id'
 
     const { credentialRequest, credentialRequestMetadata } = anoncreds.createCredentialRequest({
+      entropy: ENTROPY,
       credentialDefinition: credentialDefinition,
       masterSecret,
       masterSecretId,
@@ -275,6 +278,7 @@ describe('bindings', () => {
     const masterSecretId = 'master secret id'
 
     const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
+      entropy: ENTROPY,
       credentialDefinition,
       masterSecret,
       masterSecretId,
@@ -409,6 +413,7 @@ describe('bindings', () => {
     const masterSecretId = 'master secret id'
 
     const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
+      entropy: ENTROPY,
       credentialDefinition,
       masterSecret,
       masterSecretId,
@@ -539,6 +544,7 @@ describe('bindings', () => {
     const masterSecretId = 'master secret id'
 
     const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
+      entropy: ENTROPY,
       credentialDefinition,
       masterSecret,
       masterSecretId,

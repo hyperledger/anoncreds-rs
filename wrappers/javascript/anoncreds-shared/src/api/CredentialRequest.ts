@@ -11,6 +11,7 @@ import { MasterSecret } from './MasterSecret'
 import { pushToArray } from './utils'
 
 export type CreateCredentialRequestOptions = {
+  entropy?: string
   proverDid?: string
   credentialDefinition: CredentialDefinition | JsonObject
   masterSecret: MasterSecret | JsonObject
@@ -43,6 +44,7 @@ export class CredentialRequest extends AnoncredsObject {
           : pushToArray(CredentialOffer.fromJson(options.credentialOffer).handle, objectHandles)
 
       createReturnObj = anoncreds.createCredentialRequest({
+        entropy: options.entropy,
         proverDid: options.proverDid,
         credentialDefinition,
         masterSecret,

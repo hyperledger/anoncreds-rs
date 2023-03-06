@@ -57,6 +57,7 @@ export interface NativeBindings {
     keyCorrectnessProof: number
   }): _Handle
   createCredentialRequest(options: {
+    entropy?: string
     proverDid?: string
     credentialDefinition: number
     masterSecret: number

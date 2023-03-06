@@ -34,6 +34,7 @@ pub fn create_master_secret() -> Result<MasterSecret> {
 }
 
 pub fn create_credential_request(
+    entropy: Option<&str>,
     prover_did: Option<&str>,
     cred_def: &CredentialDefinition,
     master_secret: &MasterSecret,
@@ -41,25 +42,19 @@ pub fn create_credential_request(
     credential_offer: &CredentialOffer,
 ) -> Result<(CredentialRequest, CredentialRequestMetadata)> {
     trace!(
-        "create_credential_request >>> cred_def: {:?}, master_secret: {:?}, credential_offer: {:?}",
+        "create_credential_request >>> entropy {:?}, prover_did {:?}, cred_def: {:?}, master_secret: {:?}, credential_offer: {:?}",
+        entropy,
+        prover_did,
         cred_def,
         secret!(&master_secret),
         credential_offer
     );
 
-    // Here we check whether the identifiers inside the cred_def (schema_id, and issuer_id)
-    // are legacy or new. If they are new, it is not allowed to supply a `prover_did` and a
-    // random string will be chosen for you.
-    if !(cred_def.schema_id.is_legacy() || cred_def.issuer_id.is_legacy()) && prover_did.is_some() {
-        return Err(err_msg!(
-            "Prover did must not be supplied when using new identifiers"
-        ));
-    }
-
     let credential_pub_key = CredentialPublicKey::build_from_parts(
         &cred_def.value.primary,
         cred_def.value.revocation.as_ref(),
     )?;
+
     let mut credential_values_builder = CryptoIssuer::new_credential_values_builder()?;
     credential_values_builder.add_value_hidden("master_secret", &master_secret.value.value()?)?;
     let cred_values = credential_values_builder.finalize()?;
@@ -75,13 +70,14 @@ pub fn create_credential_request(
             credential_offer.nonce.as_native(),
         )?;
 
-    let credential_request = CredentialRequest {
-        prover_did: prover_did.map(|d| d.to_owned()),
-        cred_def_id: credential_offer.cred_def_id.to_owned(),
+    let credential_request = CredentialRequest::new(
+        entropy,
+        prover_did,
+        credential_offer.cred_def_id.to_owned(),
         blinded_ms,
         blinded_ms_correctness_proof,
         nonce,
-    };
+    )?;
 
     let credential_request_metadata = CredentialRequestMetadata {
         master_secret_blinding_data,
@@ -822,8 +818,6 @@ mod tests {
         const ISSUER_ID: &str = "mock:uri";
         const CRED_DEF_ID: &str = "mock:uri";
 
-        const PROVER_DID: &str = "NcYxiDXkpYi6ov5FcYDi1e";
-
         const LEGACY_SCHEMA_ID: &str = "NcYxiDXkpYi6ov5FcYDi1e";
         const LEGACY_ISSUER_ID: &str = "NcYxiDXkpYi6ov5FcYDi1e";
         const LEGACY_CRED_DEF_ID: &str = "NcYxiDXkpYi6ov5FcYDi1e";
@@ -888,8 +882,14 @@ mod tests {
             let (cred_def, key_correctness_proof) = _cred_def_and_key_correctness_proof();
             let master_secret = _master_secret();
             let cred_offer = _cred_offer(key_correctness_proof);
-            let resp =
-                create_credential_request(None, &cred_def, &master_secret, "default", &cred_offer);
+            let resp = create_credential_request(
+                Some("entropy"),
+                None,
+                &cred_def,
+                &master_secret,
+                "default",
+                &cred_offer,
+            );
             assert!(resp.is_ok())
         }
 
@@ -899,7 +899,8 @@ mod tests {
             let master_secret = _master_secret();
             let cred_offer = _legacy_cred_offer(key_correctness_proof);
             let resp = create_credential_request(
-                Some(PROVER_DID),
+                Some("entropy"),
+                None,
                 &cred_def,
                 &master_secret,
                 "default",
@@ -913,8 +914,14 @@ mod tests {
             let (cred_def, key_correctness_proof) = _legacy_cred_def_and_key_correctness_proof();
             let master_secret = _master_secret();
             let cred_offer = _legacy_cred_offer(key_correctness_proof);
-            let resp =
-                create_credential_request(None, &cred_def, &master_secret, "default", &cred_offer);
+            let resp = create_credential_request(
+                Some("entropy"),
+                None,
+                &cred_def,
+                &master_secret,
+                "default",
+                &cred_offer,
+            );
             assert!(resp.is_ok())
         }
 
@@ -924,13 +931,14 @@ mod tests {
             let master_secret = _master_secret();
             let cred_offer = _cred_offer(key_correctness_proof);
             let resp = create_credential_request(
-                Some(PROVER_DID),
+                Some("entropy"),
+                None,
                 &cred_def,
                 &master_secret,
                 "default",
                 &cred_offer,
             );
-            assert!(resp.is_err())
+            assert!(resp.is_ok())
         }
 
         #[test]
@@ -939,13 +947,14 @@ mod tests {
             let master_secret = _master_secret();
             let cred_offer = _legacy_cred_offer(key_correctness_proof);
             let resp = create_credential_request(
-                Some(PROVER_DID),
+                Some("entropy"),
+                None,
                 &cred_def,
                 &master_secret,
                 "default",
                 &cred_offer,
             );
-            assert!(resp.is_err())
+            assert!(resp.is_ok())
         }
     }
 }
