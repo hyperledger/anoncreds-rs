@@ -40,13 +40,14 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
 
 template <>
 jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
-                             const char **out) {
+                             const char **value) {
   auto object = jsi::Object(rt);
 
   if (code == ErrorCode::Success) {
-    auto valueWithoutNullptr = out == nullptr
+    auto isNullptr = value == nullptr || *value == nullptr;
+    auto valueWithoutNullptr = isNullptr
                                    ? jsi::Value::null()
-                                   : jsi::String::createFromAscii(rt, *out);
+                                   : jsi::String::createFromAscii(rt, *value);
     object.setProperty(rt, "value", valueWithoutNullptr);
   }
 
@@ -56,27 +57,12 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
 }
 
 template <>
-jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code, int8_t *out) {
+jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code, int8_t *value) {
   auto object = jsi::Object(rt);
 
   if (code == ErrorCode::Success) {
     auto valueWithoutNullptr =
-        out ? jsi::Value::null() : jsi::Value(rt, int(*out));
-    object.setProperty(rt, "value", valueWithoutNullptr);
-  }
-
-  object.setProperty(rt, "errorCode", int(code));
-
-  return object;
-}
-
-template <>
-jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code, uint32_t *out) {
-  auto object = jsi::Object(rt);
-
-  if (code == ErrorCode::Success) {
-    auto valueWithoutNullptr =
-        out ? jsi::Value::null() : jsi::Value(rt, int(*out));
+        value == nullptr ? jsi::Value::null() : jsi::Value(rt, int(*value));
     object.setProperty(rt, "value", valueWithoutNullptr);
   }
 
@@ -87,12 +73,12 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code, uint32_t *out) {
 
 template <>
 jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
-                             ObjectHandle *out) {
+                             uint32_t *value) {
   auto object = jsi::Object(rt);
 
   if (code == ErrorCode::Success) {
     auto valueWithoutNullptr =
-        out ? jsi::Value::null() : jsi::Value(rt, int(*out));
+        value == nullptr ? jsi::Value::null() : jsi::Value(rt, int(*value));
     object.setProperty(rt, "value", valueWithoutNullptr);
   }
 
@@ -103,13 +89,12 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
 
 template <>
 jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
-                             ByteBuffer *out) {
+                             ObjectHandle *value) {
   auto object = jsi::Object(rt);
 
   if (code == ErrorCode::Success) {
     auto valueWithoutNullptr =
-        out == nullptr ? jsi::Value::null()
-                       : jsi::String::createFromUtf8(rt, out->data, out->len);
+        value == nullptr ? jsi::Value::null() : jsi::Value(rt, int(*value));
     object.setProperty(rt, "value", valueWithoutNullptr);
   }
 
@@ -120,19 +105,37 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
 
 template <>
 jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
-                             anoncreds::CredentialDefinitionReturn *out) {
+                             ByteBuffer *value) {
   auto object = jsi::Object(rt);
 
   if (code == ErrorCode::Success) {
-    if (out == nullptr) {
+    auto valueWithoutNullptr =
+        value == nullptr
+            ? jsi::Value::null()
+            : jsi::String::createFromUtf8(rt, value->data, value->len);
+    object.setProperty(rt, "value", valueWithoutNullptr);
+  }
+
+  object.setProperty(rt, "errorCode", int(code));
+
+  return object;
+}
+
+template <>
+jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
+                             anoncreds::CredentialDefinitionReturn *value) {
+  auto object = jsi::Object(rt);
+
+  if (code == ErrorCode::Success) {
+    if (value == nullptr) {
       object.setProperty(rt, "value", jsi::Value::null());
     } else {
       object.setProperty(rt, "credentialDefinition",
-                         int(out->credentialDefinition));
+                         int(value->credentialDefinition));
       object.setProperty(rt, "credentialDefinitionPrivate",
-                         int(out->credentialDefinitionPrivate));
+                         int(value->credentialDefinitionPrivate));
       object.setProperty(rt, "keyCorrectnessProof",
-                         int(out->keyCorrectnessProof));
+                         int(value->keyCorrectnessProof));
     }
   }
 
@@ -143,16 +146,17 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
 
 template <>
 jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
-                             anoncreds::CredentialRequestReturn *out) {
+                             anoncreds::CredentialRequestReturn *value) {
   auto object = jsi::Object(rt);
 
   if (code == ErrorCode::Success) {
-    if (out == nullptr) {
+    if (value == nullptr) {
       object.setProperty(rt, "value", jsi::Value::null());
     } else {
-      object.setProperty(rt, "credentialRequest", int(out->credentialRequest));
+      object.setProperty(rt, "credentialRequest",
+                         int(value->credentialRequest));
       object.setProperty(rt, "credentialRequestMetadata",
-                         int(out->credentialRequestMetadata));
+                         int(value->credentialRequestMetadata));
     }
   }
 
@@ -163,17 +167,17 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
 
 template <>
 jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
-                             anoncreds::RevocationRegistryDefinition *out) {
+                             anoncreds::RevocationRegistryDefinition *value) {
   auto object = jsi::Object(rt);
 
   if (code == ErrorCode::Success) {
-    if (out == nullptr) {
+    if (value == nullptr) {
       object.setProperty(rt, "value", jsi::Value::null());
     } else {
       object.setProperty(rt, "revocationRegistryDefinition",
-                         int(out->revocationRegistryDefinition));
+                         int(value->revocationRegistryDefinition));
       object.setProperty(rt, "revocationRegistryDefinitionPrivate",
-                         int(out->revocationRegistryDefinitionPrivate));
+                         int(value->revocationRegistryDefinitionPrivate));
     }
   }
 

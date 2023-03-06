@@ -226,9 +226,10 @@ jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
   CredentialRequestReturn out;
 
   ErrorCode code = anoncreds_create_credential_request(
-      entropy.length() ? entropy.c_str() : nullptr, proverDid.length() ? proverDid.c_str() : nullptr, credentialDefinition, masterSecret,
-      masterSecretId.c_str(), credentialOffer, &out.credentialRequest,
-      &out.credentialRequestMetadata);
+      entropy.length() ? entropy.c_str() : nullptr,
+      proverDid.length() ? proverDid.c_str() : nullptr, credentialDefinition,
+      masterSecret, masterSecretId.c_str(), credentialOffer,
+      &out.credentialRequest, &out.credentialRequestMetadata);
 
   return createReturnValue(rt, code, &out);
 };
@@ -362,14 +363,16 @@ jsi::Value createRevocationRegistryDefinition(jsi::Runtime &rt,
   auto revocationRegistryType =
       jsiToValue<std::string>(rt, options, "revocationRegistryType");
   auto maxCredNum = jsiToValue<int64_t>(rt, options, "maximumCredentialnumber");
-  auto tailsDirPath = jsiToValue<std::string>(rt, options, "tailsDirPath", true);
+  auto tailsDirPath =
+      jsiToValue<std::string>(rt, options, "tailsDirPath", true);
 
   RevocationRegistryDefinition out;
 
   ErrorCode code = anoncreds_create_revocation_registry_def(
       credentialDefinition, credentialDefinitionId.c_str(), issuerId.c_str(),
       tag.c_str(), revocationRegistryType.c_str(), maxCredNum,
-      tailsDirPath ? nullptr : tailsDirPath.c_str(), &out.revocationRegistryDefinition,
+      tailsDirPath ? nullptr : tailsDirPath.c_str(),
+      &out.revocationRegistryDefinition,
       &out.revocationRegistryDefinitionPrivate);
 
   return createReturnValue(rt, code, &out);
