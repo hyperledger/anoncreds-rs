@@ -1,3 +1,5 @@
+import type { JsonObject } from '../types'
+
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
 
@@ -13,7 +15,7 @@ export class Schema extends AnoncredsObject {
     return new Schema(anoncreds.createSchema(options).handle)
   }
 
-  public static load(json: string) {
-    return new Schema(anoncreds.schemaFromJson({ json }).handle)
+  public static fromJson(json: JsonObject) {
+    return new Schema(anoncreds.schemaFromJson({ json: JSON.stringify(json) }).handle)
   }
 }

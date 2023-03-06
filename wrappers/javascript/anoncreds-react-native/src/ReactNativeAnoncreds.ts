@@ -69,14 +69,18 @@ export class ReactNativeAnoncreds implements Anoncreds {
     issuerId: string
     signatureType: string
     supportRevocation: boolean
-  }): { credentialDefinition: ObjectHandle; credentialDefinitionPrivate: ObjectHandle; keyProof: ObjectHandle } {
-    const { keyProof, credentialDefinition, credentialDefinitionPrivate } =
+  }): {
+    credentialDefinition: ObjectHandle
+    credentialDefinitionPrivate: ObjectHandle
+    keyCorrectnessProof: ObjectHandle
+  } {
+    const { keyCorrectnessProof, credentialDefinition, credentialDefinitionPrivate } =
       anoncredsReactNative.createCredentialDefinition(serializeArguments(options))
 
     return {
       credentialDefinitionPrivate: new ObjectHandle(credentialDefinitionPrivate),
       credentialDefinition: new ObjectHandle(credentialDefinition),
-      keyProof: new ObjectHandle(keyProof),
+      keyCorrectnessProof: new ObjectHandle(keyCorrectnessProof),
     }
   }
 
@@ -135,7 +139,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
   public createCredentialOffer(options: {
     schemaId: string
     credentialDefinitionId: string
-    keyProof: ObjectHandle
+    keyCorrectnessProof: ObjectHandle
   }): ObjectHandle {
     const handle = anoncredsReactNative.createCredentialOffer(serializeArguments(options))
     return new ObjectHandle(handle)

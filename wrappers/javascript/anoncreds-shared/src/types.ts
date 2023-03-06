@@ -16,3 +16,5 @@ export class ByteBuffer {
     return new ByteBuffer({ data, len: data.length })
   }
 }
+
+export type JsonObject = Record<string, unknown>

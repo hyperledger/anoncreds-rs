@@ -45,14 +45,15 @@ describe('bindings', () => {
       attributeNames: ['attr-1'],
     })
 
-    const { keyProof, credentialDefinition, credentialDefinitionPrivate } = anoncreds.createCredentialDefinition({
-      schemaId: 'mock:uri',
-      issuerId: 'mock:uri',
-      schema: schemaObj,
-      signatureType: 'CL',
-      supportRevocation: true,
-      tag: 'TAG',
-    })
+    const { keyCorrectnessProof, credentialDefinition, credentialDefinitionPrivate } =
+      anoncreds.createCredentialDefinition({
+        schemaId: 'mock:uri',
+        issuerId: 'mock:uri',
+        schema: schemaObj,
+        signatureType: 'CL',
+        supportRevocation: true,
+        tag: 'TAG',
+      })
 
     const credDefJson = anoncreds.getJson({ objectHandle: credentialDefinition })
     expect(JSON.parse(credDefJson)).toEqual(
@@ -67,9 +68,9 @@ describe('bindings', () => {
     const credDefPvtJson = anoncreds.getJson({ objectHandle: credentialDefinitionPrivate })
     expect(JSON.parse(credDefPvtJson)).toHaveProperty('value')
 
-    const keyProofJson = anoncreds.getJson({ objectHandle: keyProof })
-    expect(JSON.parse(keyProofJson)).toHaveProperty('c')
-    expect(JSON.parse(keyProofJson)).toHaveProperty('xr_cap')
+    const keyCorrectnessProofJson = anoncreds.getJson({ objectHandle: keyCorrectnessProof })
+    expect(JSON.parse(keyCorrectnessProofJson)).toHaveProperty('c')
+    expect(JSON.parse(keyCorrectnessProofJson)).toHaveProperty('xr_cap')
   })
 
   test('encode credential attributes', () => {
@@ -146,7 +147,7 @@ describe('bindings', () => {
       attributeNames: ['attr-1'],
     })
 
-    const { keyProof } = anoncreds.createCredentialDefinition({
+    const { keyCorrectnessProof } = anoncreds.createCredentialDefinition({
       schemaId: 'mock:uri',
       schema: schemaObj,
       issuerId: 'mock:uri',
@@ -158,7 +159,7 @@ describe('bindings', () => {
     const credOfferObj = anoncreds.createCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
-      keyProof,
+      keyCorrectnessProof,
     })
 
     const json = anoncreds.getJson({ objectHandle: credOfferObj })
@@ -180,7 +181,7 @@ describe('bindings', () => {
       attributeNames: ['attr-1'],
     })
 
-    const { credentialDefinition, keyProof } = anoncreds.createCredentialDefinition({
+    const { credentialDefinition, keyCorrectnessProof } = anoncreds.createCredentialDefinition({
       schemaId: 'mock:uri',
       issuerId: 'mock:uri',
       schema: schemaObj,
@@ -192,7 +193,7 @@ describe('bindings', () => {
     const credOfferObj = anoncreds.createCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
-      keyProof,
+      keyCorrectnessProof,
     })
 
     const masterSecret = anoncreds.createMasterSecret()
@@ -233,14 +234,15 @@ describe('bindings', () => {
       attributeNames: ['attr-1'],
     })
 
-    const { credentialDefinition, keyProof, credentialDefinitionPrivate } = anoncreds.createCredentialDefinition({
-      schemaId: 'mock:uri',
-      issuerId: 'mock:uri',
-      schema: schemaObj,
-      signatureType: 'CL',
-      supportRevocation: true,
-      tag: 'TAG',
-    })
+    const { credentialDefinition, keyCorrectnessProof, credentialDefinitionPrivate } =
+      anoncreds.createCredentialDefinition({
+        schemaId: 'mock:uri',
+        issuerId: 'mock:uri',
+        schema: schemaObj,
+        signatureType: 'CL',
+        supportRevocation: true,
+        tag: 'TAG',
+      })
 
     const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate } =
       anoncreds.createRevocationRegistryDefinition({
@@ -269,7 +271,7 @@ describe('bindings', () => {
     const credentialOffer = anoncreds.createCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
-      keyProof,
+      keyCorrectnessProof,
     })
 
     const masterSecret = anoncreds.createMasterSecret()
@@ -367,14 +369,15 @@ describe('bindings', () => {
       attributeNames: ['name', 'age', 'sex', 'height'],
     })
 
-    const { credentialDefinition, keyProof, credentialDefinitionPrivate } = anoncreds.createCredentialDefinition({
-      schemaId: 'mock:uri',
-      issuerId: 'mock:uri',
-      schema: schemaObj,
-      signatureType: 'CL',
-      supportRevocation: true,
-      tag: 'TAG',
-    })
+    const { credentialDefinition, keyCorrectnessProof, credentialDefinitionPrivate } =
+      anoncreds.createCredentialDefinition({
+        schemaId: 'mock:uri',
+        issuerId: 'mock:uri',
+        schema: schemaObj,
+        signatureType: 'CL',
+        supportRevocation: true,
+        tag: 'TAG',
+      })
 
     const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate } =
       anoncreds.createRevocationRegistryDefinition({
@@ -403,7 +406,7 @@ describe('bindings', () => {
     const credentialOffer = anoncreds.createCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
-      keyProof,
+      keyCorrectnessProof,
     })
 
     const masterSecret = anoncreds.createMasterSecret()
@@ -521,19 +524,20 @@ describe('bindings', () => {
       attributeNames: ['name', 'age', 'sex', 'height'],
     })
 
-    const { credentialDefinition, keyProof, credentialDefinitionPrivate } = anoncreds.createCredentialDefinition({
-      schemaId: 'mock:uri',
-      issuerId: 'mock:uri',
-      schema: schemaObj,
-      signatureType: 'CL',
-      supportRevocation: false,
-      tag: 'TAG',
-    })
+    const { credentialDefinition, keyCorrectnessProof, credentialDefinitionPrivate } =
+      anoncreds.createCredentialDefinition({
+        schemaId: 'mock:uri',
+        issuerId: 'mock:uri',
+        schema: schemaObj,
+        signatureType: 'CL',
+        supportRevocation: false,
+        tag: 'TAG',
+      })
 
     const credentialOffer = anoncreds.createCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
-      keyProof,
+      keyCorrectnessProof,
     })
 
     const masterSecret = anoncreds.createMasterSecret()

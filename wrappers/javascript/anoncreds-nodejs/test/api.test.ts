@@ -22,32 +22,30 @@ describe('API', () => {
   test('create and verify presentation', () => {
     const nonce = anoncreds.generateNonce()
 
-    const presentationRequest = PresentationRequest.load(
-      JSON.stringify({
-        nonce,
-        name: 'pres_req_1',
-        version: '0.1',
-        requested_attributes: {
-          attr1_referent: {
-            name: 'name',
-            issuer: 'mock:uri',
-          },
-          attr2_referent: {
-            name: 'sex',
-          },
-          attr3_referent: {
-            name: 'phone',
-          },
-          attr4_referent: {
-            names: ['name', 'height'],
-          },
+    const presentationRequest = PresentationRequest.fromJson({
+      nonce,
+      name: 'pres_req_1',
+      version: '0.1',
+      requested_attributes: {
+        attr1_referent: {
+          name: 'name',
+          issuer: 'mock:uri',
         },
-        requested_predicates: {
-          predicate1_referent: { name: 'age', p_type: '>=', p_value: 18 },
+        attr2_referent: {
+          name: 'sex',
         },
-        non_revoked: { from: 10, to: 200 },
-      })
-    )
+        attr3_referent: {
+          name: 'phone',
+        },
+        attr4_referent: {
+          names: ['name', 'height'],
+        },
+      },
+      requested_predicates: {
+        predicate1_referent: { name: 'age', p_type: '>=', p_value: 18 },
+      },
+      non_revoked: { from: 10, to: 200 },
+    })
 
     const schema = Schema.create({
       name: 'schema-1',
@@ -177,7 +175,7 @@ describe('API', () => {
 
     expect(presentation.handle.handle).toStrictEqual(expect.any(Number))
 
-    const verify = Presentation.load(presentation.toJson()).verify({
+    const verify = presentation.verify({
       presentationRequest,
       schemas: { ['mock:uri']: schema },
       credentialDefinitions: { ['mock:uri']: credentialDefinition },
@@ -237,7 +235,7 @@ describe('API', () => {
     })
 
     const credJson = credential.toJson()
-    expect(JSON.parse(credJson)).toEqual(
+    expect(credJson).toEqual(
       expect.objectContaining({
         cred_def_id: 'mock:uri',
         schema_id: 'mock:uri',
@@ -245,42 +243,40 @@ describe('API', () => {
     )
 
     const credReceivedJson = credential.toJson()
-    expect(JSON.parse(credReceivedJson)).toEqual(
+    expect(credReceivedJson).toEqual(
       expect.objectContaining({
         cred_def_id: 'mock:uri',
         schema_id: 'mock:uri',
       })
     )
-    expect(JSON.parse(credReceivedJson)).toHaveProperty('signature')
-    expect(JSON.parse(credReceivedJson)).toHaveProperty('witness')
+    expect(credReceivedJson).toHaveProperty('signature')
+    expect(credReceivedJson).toHaveProperty('witness')
 
     const nonce = anoncreds.generateNonce()
 
-    const presentationRequest = PresentationRequest.load(
-      JSON.stringify({
-        nonce,
-        name: 'pres_req_1',
-        version: '0.1',
-        requested_attributes: {
-          attr1_referent: {
-            name: 'name',
-            issuer: 'mock:uri',
-          },
-          attr2_referent: {
-            name: 'sex',
-          },
-          attr3_referent: {
-            name: 'phone',
-          },
-          attr4_referent: {
-            names: ['name', 'height'],
-          },
+    const presentationRequest = PresentationRequest.fromJson({
+      nonce,
+      name: 'pres_req_1',
+      version: '0.1',
+      requested_attributes: {
+        attr1_referent: {
+          name: 'name',
+          issuer: 'mock:uri',
         },
-        requested_predicates: {
-          predicate1_referent: { name: 'age', p_type: '>=', p_value: 18 },
+        attr2_referent: {
+          name: 'sex',
         },
-      })
-    )
+        attr3_referent: {
+          name: 'phone',
+        },
+        attr4_referent: {
+          names: ['name', 'height'],
+        },
+      },
+      requested_predicates: {
+        predicate1_referent: { name: 'age', p_type: '>=', p_value: 18 },
+      },
+    })
 
     const presentation = Presentation.create({
       presentationRequest,
@@ -323,7 +319,7 @@ describe('API', () => {
 
     expect(presentation.handle.handle).toStrictEqual(expect.any(Number))
 
-    const verify = Presentation.load(presentation.toJson()).verify({
+    const verify = presentation.verify({
       presentationRequest,
       schemas: { ['mock:uri']: schema },
       credentialDefinitions: { ['mock:uri']: credentialDefinition },
@@ -331,4 +327,158 @@ describe('API', () => {
 
     expect(verify).toBeTruthy()
   })
+})
+
+test('create and verify presentation passing only JSON objects as parameters)', () => {
+  // a schema can be created from JSON
+  const schema = Schema.fromJson({
+    name: 'schema-1',
+    issuerId: 'mock:uri',
+    version: '1',
+    attrNames: ['name', 'age', 'sex', 'height'],
+  })
+  expect(schema.toJson()).toEqual({
+    name: 'schema-1',
+    issuerId: 'mock:uri',
+    version: '1',
+    attrNames: expect.arrayContaining(['name', 'age', 'sex', 'height']),
+  })
+
+  const { credentialDefinition, keyCorrectnessProof, credentialDefinitionPrivate } = CredentialDefinition.create({
+    schemaId: 'mock:uri',
+    issuerId: 'mock:uri',
+    schema: {
+      name: 'schema-1',
+      issuerId: 'mock:uri',
+      version: '1',
+      attrNames: ['name', 'age', 'sex', 'height'],
+    },
+    signatureType: 'CL',
+    supportRevocation: false,
+    tag: 'TAG',
+  })
+
+  const credentialOffer = CredentialOffer.create({
+    schemaId: 'mock:uri',
+    credentialDefinitionId: 'mock:uri',
+    keyCorrectnessProof: keyCorrectnessProof.toJson(),
+  })
+
+  const masterSecret = MasterSecret.create()
+  const masterSecretId = 'master secret id'
+
+  const { credentialRequestMetadata, credentialRequest } = CredentialRequest.create({
+    entropy: 'entropy',
+    credentialDefinition: credentialDefinition.toJson(),
+    masterSecret: masterSecret.toJson(),
+    masterSecretId,
+    credentialOffer: credentialOffer.toJson(),
+  })
+
+  const credential = Credential.create({
+    credentialDefinition: credentialDefinition.toJson(),
+    credentialDefinitionPrivate: credentialDefinitionPrivate.toJson(),
+    credentialOffer: credentialOffer.toJson(),
+    credentialRequest: credentialRequest.toJson(),
+    attributeRawValues: { name: 'Alex', height: '175', age: '28', sex: 'male' },
+  })
+
+  const credReceived = credential.process({
+    credentialDefinition: credentialDefinition.toJson(),
+    credentialRequestMetadata: credentialRequestMetadata.toJson(),
+    masterSecret: masterSecret.toJson(),
+  })
+
+  const credJson = credential.toJson()
+  expect(credJson).toEqual(
+    expect.objectContaining({
+      cred_def_id: 'mock:uri',
+      schema_id: 'mock:uri',
+    })
+  )
+
+  const credReceivedJson = credential.toJson()
+  expect(credReceivedJson).toEqual(
+    expect.objectContaining({
+      cred_def_id: 'mock:uri',
+      schema_id: 'mock:uri',
+    })
+  )
+  expect(credReceivedJson).toHaveProperty('signature')
+  expect(credReceivedJson).toHaveProperty('witness')
+
+  const nonce = anoncreds.generateNonce()
+
+  const presentationRequest = {
+    nonce,
+    name: 'pres_req_1',
+    version: '0.1',
+    requested_attributes: {
+      attr1_referent: {
+        name: 'name',
+        issuer: 'mock:uri',
+      },
+      attr2_referent: {
+        name: 'sex',
+      },
+      attr3_referent: {
+        name: 'phone',
+      },
+      attr4_referent: {
+        names: ['name', 'height'],
+      },
+    },
+    requested_predicates: {
+      predicate1_referent: { name: 'age', p_type: '>=', p_value: 18 },
+    },
+  }
+
+  const presentation = Presentation.create({
+    presentationRequest,
+    credentials: [
+      {
+        credential: credReceived.toJson(),
+      },
+    ],
+    credentialDefinitions: { 'mock:uri': credentialDefinition.toJson() },
+    credentialsProve: [
+      {
+        entryIndex: 0,
+        isPredicate: false,
+        referent: 'attr1_referent',
+        reveal: true,
+      },
+      {
+        entryIndex: 0,
+        isPredicate: false,
+        referent: 'attr2_referent',
+        reveal: false,
+      },
+      {
+        entryIndex: 0,
+        isPredicate: false,
+        referent: 'attr4_referent',
+        reveal: true,
+      },
+      {
+        entryIndex: 0,
+        isPredicate: true,
+        referent: 'predicate1_referent',
+        reveal: true,
+      },
+    ],
+    masterSecret: masterSecret.toJson(),
+    schemas: { 'mock:uri': schema.toJson() },
+    selfAttest: { attr3_referent: '8-800-300' },
+  })
+
+  expect(presentation.handle.handle).toStrictEqual(expect.any(Number))
+
+  const verify = Presentation.fromJson(presentation.toJson()).verify({
+    presentationRequest,
+    schemas: { ['mock:uri']: schema.toJson() },
+    credentialDefinitions: { ['mock:uri']: credentialDefinition.toJson() },
+  })
+
+  expect(verify).toBeTruthy()
 })

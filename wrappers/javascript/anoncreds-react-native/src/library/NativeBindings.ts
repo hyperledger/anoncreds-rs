@@ -29,7 +29,7 @@ export interface NativeBindings {
     tag: string
     signatureType: string
     supportRevocation: number
-  }): { credentialDefinition: _Handle; credentialDefinitionPrivate: _Handle; keyProof: _Handle }
+  }): { credentialDefinition: _Handle; credentialDefinitionPrivate: _Handle; keyCorrectnessProof: _Handle }
   createCredential(options: {
     credentialDefinition: number
     credentialDefinitionPrivate: number
@@ -55,7 +55,11 @@ export interface NativeBindings {
     credentialDefinition: number
     revocationRegistryDefinition?: number
   }): _Handle
-  createCredentialOffer(options: { schemaId: string; credentialDefinitionId: string; keyProof: number }): _Handle
+  createCredentialOffer(options: {
+    schemaId: string
+    credentialDefinitionId: string
+    keyCorrectnessProof: number
+  }): _Handle
   createCredentialRequest(options: {
     entropy?: string
     proverDid?: string

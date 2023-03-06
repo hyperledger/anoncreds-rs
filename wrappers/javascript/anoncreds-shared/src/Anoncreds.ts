@@ -51,7 +51,11 @@ export interface Anoncreds {
     issuerId: string
     signatureType: string
     supportRevocation: boolean
-  }): { credentialDefinition: ObjectHandle; credentialDefinitionPrivate: ObjectHandle; keyProof: ObjectHandle }
+  }): {
+    credentialDefinition: ObjectHandle
+    credentialDefinitionPrivate: ObjectHandle
+    keyCorrectnessProof: ObjectHandle
+  }
 
   createCredential(options: {
     credentialDefinition: ObjectHandle
@@ -78,7 +82,7 @@ export interface Anoncreds {
   createCredentialOffer(options: {
     schemaId: string
     credentialDefinitionId: string
-    keyProof: ObjectHandle
+    keyCorrectnessProof: ObjectHandle
   }): ObjectHandle
 
   createCredentialRequest(options: {
