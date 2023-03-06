@@ -64,6 +64,9 @@ int8_t jsiToValue(jsi::Runtime &rt, jsi::Object &options, const char *name,
   if (value.isNumber())
     return value.asNumber();
 
+  if (value.isBool())
+      return value.asBool() ? 1 : 0;
+
   throw jsi::JSError(rt, errorPrefix + name + errorInfix + "number");
 };
 
@@ -160,9 +163,9 @@ FfiCredentialEntry jsiToValue(jsi::Runtime &rt, jsi::Object &options,
   if (value.isObject()) {
     jsi::Object valueAsObject = value.asObject(rt);
     auto credential = jsiToValue<ObjectHandle>(rt, valueAsObject, "credential");
-    auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp");
+    auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp", true);
     auto revocationState =
-        jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState");
+        jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState", true);
 
     return FfiCredentialEntry{.credential = credential,
                               .timestamp = timestamp,
@@ -214,9 +217,9 @@ jsiToValue<FfiList_FfiCredentialEntry>(jsi::Runtime &rt, jsi::Object &options,
 
       auto credential =
           jsiToValue<ObjectHandle>(rt, valueAsObject, "credential");
-      auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp");
+      auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp", true);
       auto revocationState =
-          jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState");
+          jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState", true);
 
       credentialEntry[i] = *new FfiCredentialEntry[sizeof(FfiCredentialEntry)];
       credentialEntry[i] = FfiCredentialEntry{.credential = credential,
@@ -255,10 +258,13 @@ jsiToValue<FfiList_FfiCredentialProve>(jsi::Runtime &rt, jsi::Object &options,
       auto isPredicate = jsiToValue<int8_t>(rt, valueAsObject, "isPredicate");
       auto reveal = jsiToValue<int8_t>(rt, valueAsObject, "reveal");
 
+      char *ffiStr = new char[sizeof(referent)];
+      strcpy(ffiStr, referent.c_str());
+        
       credentialProve[i] = *new FfiCredentialProve[sizeof(FfiCredentialProve)];
       credentialProve[i] = FfiCredentialProve{.entry_idx = entryIndex,
                                               .is_predicate = isPredicate,
-                                              .referent = referent.c_str(),
+                                              .referent = ffiStr,
                                               .reveal = reveal};
     }
     return FfiList_FfiCredentialProve{.count = len, .data = credentialProve};
@@ -309,6 +315,9 @@ FfiList_FfiStr jsiToValue<FfiList_FfiStr>(jsi::Runtime &rt,
     auto arr = value.asObject(rt).asArray(rt);
     auto len = arr.length(rt);
 
+    if (len == 0) {
+      return FfiList_FfiStr{};
+    }
     char **ffiStr = new char *[len];
 
     for (int i = 0; i < len; i++) {

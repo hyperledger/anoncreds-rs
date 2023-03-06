@@ -1,8 +1,4 @@
-import type {
-  NativeCredentialEntry,
-  NativeCredentialProve,
-  NativeCredentialRevocationConfig,
-} from '@hyperledger/anoncreds-shared'
+import type { NativeCredentialProve } from '@hyperledger/anoncreds-shared'
 
 // Alias for _Handle.handle
 type _Handle = number
@@ -39,10 +35,18 @@ export interface NativeBindings {
     credentialDefinitionPrivate: number
     credentialOffer: number
     credentialRequest: number
-    attributeRawValues: string
-    attributeEncodedValues?: string
-    revocationConfiguration?: NativeCredentialRevocationConfig
-  }): { credential: _Handle; revocationRegistry: _Handle; revocationDelta: _Handle }
+    attributeNames: string[]
+    attributeRawValues: string[]
+    attributeEncodedValues?: string[]
+    revocationRegistryId?: string
+    revocationStatusList?: number
+    revocationConfiguration?: {
+      registryIndex: number
+      revocationRegistryDefinition: number
+      revocationRegistryDefinitionPrivate: number
+      tailsPath: string
+    }
+  }): _Handle
   encodeCredentialAttributes(options: { attributeRawValues: Array<string> }): string
   processCredential(options: {
     credential: number
@@ -63,9 +67,10 @@ export interface NativeBindings {
   createMasterSecret(options: Record<never, never>): number
   createPresentation(options: {
     presentationRequest: number
-    credentials: NativeCredentialEntry[]
+    credentials: { credential: number; timestamp?: number; revocationState?: number }[]
     credentialsProve: NativeCredentialProve[]
-    selfAttest: string
+    selfAttestNames: string[]
+    selfAttestValues: string[]
     masterSecret: number
     schemaIds: string[]
     schemas: number[]
