@@ -48,7 +48,7 @@ export interface NativeBindings {
     tag: string
     signatureType: string
     supportRevocation: number
-  }): ReturnObject<{ credentialDefinition: Handle; credentialDefinitionPrivate: Handle; keyProof: Handle }>
+  }): ReturnObject<{ credentialDefinition: Handle; credentialDefinitionPrivate: Handle; keyCorrectnessProof: Handle }>
 
   createCredential(options: {
     credentialDefinition: number
