@@ -388,6 +388,37 @@ ErrorCode anoncreds_verify_presentation(ObjectHandle presentation,
                                         struct FfiList_FfiNonrevokedIntervalOverride nonrevoked_interval_override,
                                         int8_t *result_p);
 
+ErrorCode anoncreds_master_secret_from_json(ByteBuffer buffer, ObjectHandle *master_secret_p);
+
+ErrorCode anoncreds_credential_from_json(ByteBuffer buffer, ObjectHandle *credential_p);
+
+ErrorCode anoncreds_credential_request_from_json(ByteBuffer buffer, ObjectHandle *credential_request_p);
+
+ErrorCode anoncreds_credential_request_metadata_from_json(ByteBuffer buffer, ObjectHandle *credential_request_metadata_p);
+
+ErrorCode anoncreds_presentation_from_json(ByteBuffer buffer, ObjectHandle *presentation_p);
+
+ErrorCode anoncreds_credential_offer_from_json(ByteBuffer buffer, ObjectHandle *credential_offer_p);
+
+ErrorCode anoncreds_credential_definition_private_from_json(ByteBuffer buffer, ObjectHandle *credential_definition_private_p);
+
+ErrorCode anoncreds_revocation_registry_definition_from_json(ByteBuffer buffer, ObjectHandle *revocation_registry_definition_p);
+
+ErrorCode anoncreds_revocation_registry_from_json(ByteBuffer buffer, ObjectHandle *revocation_registry_p);
+
+ErrorCode anoncreds_revocation_state_from_json(ByteBuffer buffer, ObjectHandle *revocation_state_p);
+
+ErrorCode anoncreds_credential_definition_from_json(ByteBuffer buffer, ObjectHandle *credential_definition_p);
+
+ErrorCode anoncreds_revocation_registry_definition_private_from_json(ByteBuffer buffer, ObjectHandle *revocation_registry_private_p);
+
+ErrorCode anoncreds_revocation_registry_delta_from_json(ByteBuffer buffer, ObjectHandle *revocation_registry_delta_p);
+
+ErrorCode anoncreds_key_correctness_proof_from_json(ByteBuffer buffer, ObjectHandle *key_correctness_proof_p);
+
+ErrorCode anoncreds_schema_from_json(ByteBuffer buffer, ObjectHandle *schema_p);
+
+
 char *anoncreds_version(void);
 
 #ifdef __cplusplus
