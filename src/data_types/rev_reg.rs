@@ -185,7 +185,6 @@ impl From<&RevocationStatusList> for Option<RevocationRegistry> {
     fn from(rev_status_list: &RevocationStatusList) -> Self {
         rev_status_list
             .registry
-            .clone()
             .map(|v| RevocationRegistry { value: v.into() })
     }
 }
