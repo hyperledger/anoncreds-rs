@@ -339,13 +339,15 @@ pub fn create_credential(
         match (revocation_config, rev_status_list) {
             (Some(revocation_config), Some(rev_status_list)) => {
                 let rev_reg_def = &revocation_config.reg_def.value;
-                let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_status_list.into();
-                let mut rev_reg = rev_reg.ok_or_else(|| {
+                let rev_reg: Option<UrsaRevocationRegistry> = rev_status_list.into();
+                let rev_reg = rev_reg.ok_or_else(|| {
                     err_msg!(
                         Unexpected,
                         "RevocationStatusList should have accumulator value"
                     )
                 })?;
+
+                let mut rev_reg: ursa::cl::RevocationRegistry = rev_reg.into();
 
                 let status = rev_status_list
                     .get(revocation_config.registry_idx as usize)
@@ -429,6 +431,7 @@ pub fn create_credential(
             }
         };
 
+    let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_reg.map(|r| r.into());
     let credential = Credential {
         schema_id: cred_offer.schema_id.to_owned(),
         cred_def_id: cred_offer.cred_def_id.to_owned(),
@@ -436,7 +439,7 @@ pub fn create_credential(
         values: cred_values,
         signature: credential_signature,
         signature_correctness_proof,
-        rev_reg,
+        rev_reg: rev_reg.map(|r| r.into()),
         witness,
     };
 
