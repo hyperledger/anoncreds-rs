@@ -198,6 +198,7 @@ pub fn create_revocation_status_list(
     let max_cred_num = rev_reg_def.value.max_cred_num;
     let rev_reg_def_id = rev_reg_def_id.try_into()?;
     let issuer_id = issuer_id.try_into()?;
+    let mut rev_reg: ursa::cl::RevocationRegistry = rev_reg.into();
 
     if issuer_id != rev_reg_def.issuer_id {
         return Err(err_msg!(
@@ -210,7 +211,7 @@ pub fn create_revocation_status_list(
         let issued = BTreeSet::from_iter(1..=max_cred_num);
 
         CryptoIssuer::update_revocation_registry(
-            &mut rev_reg.into(),
+            &mut rev_reg,
             max_cred_num,
             issued,
             BTreeSet::new(),
@@ -225,7 +226,7 @@ pub fn create_revocation_status_list(
         Some(rev_reg_def_id.to_string().as_str()),
         issuer_id,
         list,
-        Some(rev_reg),
+        Some(rev_reg.into()),
         timestamp,
     )
 }
@@ -431,7 +432,6 @@ pub fn create_credential(
             }
         };
 
-    let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_reg.map(|r| r.into());
     let credential = Credential {
         schema_id: cred_offer.schema_id.to_owned(),
         cred_def_id: cred_offer.cred_def_id.to_owned(),
@@ -439,7 +439,7 @@ pub fn create_credential(
         values: cred_values,
         signature: credential_signature,
         signature_correctness_proof,
-        rev_reg: rev_reg.map(|r| r.into()),
+        rev_reg,
         witness,
     };
 
