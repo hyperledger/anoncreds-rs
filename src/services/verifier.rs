@@ -119,9 +119,10 @@ pub fn verify_presentation(
                     .timestamp()
                     .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing timestamp"))?;
 
-                let rev_reg: ursa::cl::RevocationRegistry =
-                    Into::<Option<ursa::cl::RevocationRegistry>>::into(*list)
-                        .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing Accum"))?;
+                let rev_reg: Option<ursa::cl::RevocationRegistry> = (*list).try_into()?;
+                let rev_reg = rev_reg.ok_or_else(|| {
+                    err_msg!(Unexpected, "Revocation status list missing accumulator")
+                })?;
 
                 map.entry(id)
                     .or_insert_with(HashMap::new)
