@@ -258,9 +258,10 @@ jsiToValue<FfiList_FfiCredentialProve>(jsi::Runtime &rt, jsi::Object &options,
       auto isPredicate = jsiToValue<int8_t>(rt, valueAsObject, "isPredicate");
       auto reveal = jsiToValue<int8_t>(rt, valueAsObject, "reveal");
 
-      char *ffiStr = new char[sizeof(referent)];
-      strcpy(ffiStr, referent.c_str());
-        
+      char *ffiStr = new char[referent.length() + 1];
+      std::copy(referent.begin(), referent.end(), ffiStr);
+      ffiStr[referent.length()] = '\0';
+
       credentialProve[i] = *new FfiCredentialProve[sizeof(FfiCredentialProve)];
       credentialProve[i] = FfiCredentialProve{.entry_idx = entryIndex,
                                               .is_predicate = isPredicate,
@@ -324,8 +325,9 @@ FfiList_FfiStr jsiToValue<FfiList_FfiStr>(jsi::Runtime &rt,
       // TODO: check if string first
       jsi::Value element = arr.getValueAtIndex(rt, i);
       std::string s = element.asString(rt).utf8(rt);
-      ffiStr[i] = new char[sizeof(s)];
-      strcpy(ffiStr[i], s.c_str());
+      ffiStr[i] = new char[s.length() + 1];
+      std::copy(s.begin(), s.end(), ffiStr[i]);
+      ffiStr[i][s.length()] = '\0';
     }
 
     return FfiList_FfiStr{.count = len, .data = ffiStr};
