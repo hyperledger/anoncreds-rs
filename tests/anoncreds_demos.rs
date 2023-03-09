@@ -354,7 +354,6 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
     )
     .unwrap();
 
-
     // Prover receives the credential and processes it
     let mut recv_cred = issue_cred;
     prover::process_credential(

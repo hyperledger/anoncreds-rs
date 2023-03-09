@@ -198,7 +198,7 @@ pub fn create_revocation_status_list(
     let max_cred_num = rev_reg_def.value.max_cred_num;
     let rev_reg_def_id = rev_reg_def_id.try_into()?;
     let issuer_id = issuer_id.try_into()?;
-    let mut rev_reg: ursa::cl::RevocationRegistry = rev_reg.into();
+    let mut rev_reg: ursa::cl::RevocationRegistry = rev_reg.try_into()?;
 
     if issuer_id != rev_reg_def.issuer_id {
         return Err(err_msg!(
@@ -226,7 +226,7 @@ pub fn create_revocation_status_list(
         Some(rev_reg_def_id.to_string().as_str()),
         issuer_id,
         list,
-        Some(rev_reg.into()),
+        Some(rev_reg.try_into()?),
         timestamp,
     )
 }
@@ -267,7 +267,7 @@ pub fn update_revocation_status_list(
         )
     });
 
-    let rev_reg_opt: Option<ursa::cl::RevocationRegistry> = current_list.into();
+    let rev_reg_opt: Option<ursa::cl::RevocationRegistry> = current_list.try_into()?;
     let mut rev_reg = rev_reg_opt.ok_or_else(|| {
         Error::from_msg(
             ErrorKind::Unexpected,
@@ -348,7 +348,7 @@ pub fn create_credential(
                     )
                 })?;
 
-                let mut rev_reg: ursa::cl::RevocationRegistry = rev_reg.into();
+                let mut rev_reg: ursa::cl::RevocationRegistry = rev_reg.try_into()?;
 
                 let status = rev_status_list
                     .get(revocation_config.registry_idx as usize)
