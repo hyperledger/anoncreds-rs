@@ -163,7 +163,7 @@ FfiCredentialEntry jsiToValue(jsi::Runtime &rt, jsi::Object &options,
   if (value.isObject()) {
     jsi::Object valueAsObject = value.asObject(rt);
     auto credential = jsiToValue<ObjectHandle>(rt, valueAsObject, "credential");
-    auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp", true);
+    auto timestamp = jsiToValue<int32_t>(rt, valueAsObject, "timestamp", true);
     auto revocationState =
         jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState", true);
 
@@ -217,7 +217,7 @@ jsiToValue<FfiList_FfiCredentialEntry>(jsi::Runtime &rt, jsi::Object &options,
 
       auto credential =
           jsiToValue<ObjectHandle>(rt, valueAsObject, "credential");
-      auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp", true);
+      auto timestamp = jsiToValue<int32_t>(rt, valueAsObject, "timestamp", true);
       auto revocationState =
           jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState", true);
 
@@ -406,9 +406,9 @@ FfiNonrevokedIntervalOverride jsiToValue(jsi::Runtime &rt, jsi::Object &options,
   if (value.isObject()) {
     jsi::Object valueAsObject = value.asObject(rt);
     auto requestedFromTimestamp =
-        jsiToValue<int64_t>(rt, valueAsObject, "requestedFromTimestamp");
+        jsiToValue<int32_t>(rt, valueAsObject, "requestedFromTimestamp");
     auto overrideRevocationStatusListTimestamp =
-        jsiToValue<int64_t>(rt, valueAsObject, "overrideRevocationStatusListTimestamp");
+        jsiToValue<int32_t>(rt, valueAsObject, "overrideRevocationStatusListTimestamp");
     auto revocationRegistryDefinitionId = jsiToValue<std::string>(rt, valueAsObject, "revocationRegistryDefinitionId");
 
     return FfiNonrevokedIntervalOverride{.rev_reg_def_id = revocationRegistryDefinitionId.c_str(),
@@ -438,9 +438,9 @@ jsiToValue<FfiList_FfiNonrevokedIntervalOverride>(jsi::Runtime &rt, jsi::Object 
       auto valueAsObject = element.asObject(rt);
 
       auto requestedFromTimestamp =
-        jsiToValue<int64_t>(rt, valueAsObject, "requestedFromTimestamp");
+        jsiToValue<int32_t>(rt, valueAsObject, "requestedFromTimestamp");
       auto overrideRevocationStatusListTimestamp =
-        jsiToValue<int64_t>(rt, valueAsObject, "overrideRevocationStatusListTimestamp");
+        jsiToValue<int32_t>(rt, valueAsObject, "overrideRevocationStatusListTimestamp");
       auto revocationRegistryDefinitionId = jsiToValue<std::string>(rt, valueAsObject, "revocationRegistryDefinitionId");
 
       nonRevokedInterValOverrides[i] = *new FfiNonrevokedIntervalOverride[sizeof(FfiNonrevokedIntervalOverride)];

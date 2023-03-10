@@ -674,8 +674,8 @@ jsi::Value createRevocationRegistryDefinition(jsi::Runtime &rt,
   auto tag = jsiToValue<std::string>(rt, options, "tag");
   auto revocationRegistryType =
       jsiToValue<std::string>(rt, options, "revocationRegistryType");
-  auto maxCredNum = jsiToValue<int64_t>(rt, options, "maxCredNum");
-  auto tailsDirPath = jsiToValue<std::string>(rt, options, "tailsDirPath");
+  auto maxCredNum = jsiToValue<int64_t>(rt, options, "maximumCredentialNumber");
+  auto tailsDirPath = jsiToValue<std::string>(rt, options, "tailsDirectoryPath", true);
 
   ObjectHandle regDefP;
   ObjectHandle regDefPrivateP;
@@ -687,8 +687,8 @@ jsi::Value createRevocationRegistryDefinition(jsi::Runtime &rt,
   handleError(rt, code);
 
   jsi::Object object = jsi::Object(rt);
-  object.setProperty(rt, "regDef", int(regDefP));
-  object.setProperty(rt, "regDefPrivate", int(regDefPrivateP));
+  object.setProperty(rt, "revocationRegistryDefinition", int(regDefP));
+  object.setProperty(rt, "revocationRegistryDefinitionPrivate", int(regDefPrivateP));
   return object;
 };
 
