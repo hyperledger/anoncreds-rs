@@ -163,7 +163,7 @@ FfiCredentialEntry jsiToValue(jsi::Runtime &rt, jsi::Object &options,
   if (value.isObject()) {
     jsi::Object valueAsObject = value.asObject(rt);
     auto credential = jsiToValue<ObjectHandle>(rt, valueAsObject, "credential");
-    auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp", true);
+    auto timestamp = jsiToValue<int32_t>(rt, valueAsObject, "timestamp", true);
     auto revocationState =
         jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState", true);
 
@@ -217,7 +217,7 @@ jsiToValue<FfiList_FfiCredentialEntry>(jsi::Runtime &rt, jsi::Object &options,
 
       auto credential =
           jsiToValue<ObjectHandle>(rt, valueAsObject, "credential");
-      auto timestamp = jsiToValue<int64_t>(rt, valueAsObject, "timestamp", true);
+      auto timestamp = jsiToValue<int32_t>(rt, valueAsObject, "timestamp", true);
       auto revocationState =
           jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState", true);
 
@@ -258,9 +258,10 @@ jsiToValue<FfiList_FfiCredentialProve>(jsi::Runtime &rt, jsi::Object &options,
       auto isPredicate = jsiToValue<int8_t>(rt, valueAsObject, "isPredicate");
       auto reveal = jsiToValue<int8_t>(rt, valueAsObject, "reveal");
 
-      char *ffiStr = new char[sizeof(referent)];
-      strcpy(ffiStr, referent.c_str());
-        
+      char *ffiStr = new char[referent.length() + 1];
+      std::copy(referent.begin(), referent.end(), ffiStr);
+      ffiStr[referent.length()] = '\0';
+
       credentialProve[i] = *new FfiCredentialProve[sizeof(FfiCredentialProve)];
       credentialProve[i] = FfiCredentialProve{.entry_idx = entryIndex,
                                               .is_predicate = isPredicate,
@@ -324,8 +325,9 @@ FfiList_FfiStr jsiToValue<FfiList_FfiStr>(jsi::Runtime &rt,
       // TODO: check if string first
       jsi::Value element = arr.getValueAtIndex(rt, i);
       std::string s = element.asString(rt).utf8(rt);
-      ffiStr[i] = new char[sizeof(s)];
-      strcpy(ffiStr[i], s.c_str());
+      ffiStr[i] = new char[s.length() + 1];
+      std::copy(s.begin(), s.end(), ffiStr[i]);
+      ffiStr[i][s.length()] = '\0';
     }
 
     return FfiList_FfiStr{.count = len, .data = ffiStr};
@@ -393,5 +395,67 @@ FfiCredRevInfo jsiToValue(jsi::Runtime &rt, jsi::Object &options,
   throw jsi::JSError(rt, errorPrefix + name + errorInfix +
                              "CredentialRevocationConfig");
 };
+
+template <>
+FfiNonrevokedIntervalOverride jsiToValue(jsi::Runtime &rt, jsi::Object &options,
+                          const char *name, bool optional) {
+  jsi::Value value = options.getProperty(rt, name);
+  if ((value.isNull() || value.isUndefined()) && optional)
+    return FfiNonrevokedIntervalOverride{};
+
+  if (value.isObject()) {
+    jsi::Object valueAsObject = value.asObject(rt);
+    auto requestedFromTimestamp =
+        jsiToValue<int32_t>(rt, valueAsObject, "requestedFromTimestamp");
+    auto overrideRevocationStatusListTimestamp =
+        jsiToValue<int32_t>(rt, valueAsObject, "overrideRevocationStatusListTimestamp");
+    auto revocationRegistryDefinitionId = jsiToValue<std::string>(rt, valueAsObject, "revocationRegistryDefinitionId");
+
+    return FfiNonrevokedIntervalOverride{.rev_reg_def_id = revocationRegistryDefinitionId.c_str(),
+                          .requested_from_ts = requestedFromTimestamp,
+                          .override_rev_status_list_ts = overrideRevocationStatusListTimestamp};
+  }
+
+  throw jsi::JSError(rt, errorPrefix + name + errorInfix +
+                             "NonrevokedIntervalOverride");
+};
+
+template <>
+FfiList_FfiNonrevokedIntervalOverride
+jsiToValue<FfiList_FfiNonrevokedIntervalOverride>(jsi::Runtime &rt, jsi::Object &options,
+                                       const char *name, bool optional) {
+  jsi::Value value = options.getProperty(rt, name);
+
+  if (value.isObject() && value.asObject(rt).isArray(rt)) {
+    auto arr = value.asObject(rt).asArray(rt);
+    auto len = arr.length(rt);
+
+    auto nonRevokedInterValOverrides = new FfiNonrevokedIntervalOverride[arrayMaxSize];
+
+    // TODO: error Handling
+    for (int i = 0; i < len; i++) {
+      auto element = arr.getValueAtIndex(rt, i);
+      auto valueAsObject = element.asObject(rt);
+
+      auto requestedFromTimestamp =
+        jsiToValue<int32_t>(rt, valueAsObject, "requestedFromTimestamp");
+      auto overrideRevocationStatusListTimestamp =
+        jsiToValue<int32_t>(rt, valueAsObject, "overrideRevocationStatusListTimestamp");
+      auto revocationRegistryDefinitionId = jsiToValue<std::string>(rt, valueAsObject, "revocationRegistryDefinitionId");
+
+      nonRevokedInterValOverrides[i] = *new FfiNonrevokedIntervalOverride[sizeof(FfiNonrevokedIntervalOverride)];
+      nonRevokedInterValOverrides[i] = FfiNonrevokedIntervalOverride{.rev_reg_def_id = revocationRegistryDefinitionId.c_str(),
+                          .requested_from_ts = requestedFromTimestamp,
+                          .override_rev_status_list_ts = overrideRevocationStatusListTimestamp};
+    }
+
+    return FfiList_FfiNonrevokedIntervalOverride{.count = len, .data = nonRevokedInterValOverrides};
+  }
+
+  if (optional)
+    return FfiList_FfiNonrevokedIntervalOverride{};
+
+  throw jsi::JSError(rt, errorPrefix + name + errorInfix + "Array<NonrevokedIntervalOverride>");
+}
 
 } // namespace anoncredsTurboModuleUtility

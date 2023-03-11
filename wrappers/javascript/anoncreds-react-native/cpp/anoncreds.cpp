@@ -123,11 +123,13 @@ jsi::Value createCredentialDefinition(jsi::Runtime &rt, jsi::Object options) {
 
 ByteBuffer stringToByteBuffer(std::string str) {
   ByteBuffer b;
-  std::vector<uint8_t> jsonVector(str.begin(), str.end());
-  uint8_t *p = &jsonVector[0];
-      
-  b.data = p;
-  b.len = str.length();
+  size_t len = str.size();
+  uint8_t *c = new uint8_t[len + 1];
+  std::copy(str.begin(), str.end(), c);
+  c[len] = '\0';
+  b.data = c;
+  b.len = len;
+    
   return b;
 }
 
@@ -139,7 +141,9 @@ jsi::Value revocationRegistryDefinitionFromJson(jsi::Runtime &rt, jsi::Object op
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_revocation_registry_definition_from_json(b, &revocationRegistryDefinitionP);
+    
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(revocationRegistryDefinitionP));
 };
@@ -152,7 +156,9 @@ jsi::Value revocationRegistryFromJson(jsi::Runtime &rt, jsi::Object options) {
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_revocation_registry_from_json(b, &revocationRegistryP);
+  
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(revocationRegistryP));
 };
@@ -165,7 +171,9 @@ jsi::Value presentationFromJson(jsi::Runtime &rt, jsi::Object options) {
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_presentation_from_json(b, &presentationP);
+
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(presentationP));
 };
@@ -178,7 +186,9 @@ jsi::Value presentationRequestFromJson(jsi::Runtime &rt, jsi::Object options) {
   ByteBuffer b = stringToByteBuffer(json);
     
   ErrorCode code = anoncreds_presentation_request_from_json(b, &presentationRequestP);
+
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(presentationRequestP));
 };
@@ -191,6 +201,8 @@ jsi::Value credentialOfferFromJson(jsi::Runtime &rt, jsi::Object options) {
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_credential_offer_from_json(b, &credentialOfferP);
+  
+  delete[] b.data;
   handleError(rt, code);
 
   return jsi::Value(int(credentialOfferP));
@@ -204,7 +216,9 @@ jsi::Value schemaFromJson(jsi::Runtime &rt, jsi::Object options) {
   ByteBuffer b = stringToByteBuffer(json);
   
   ErrorCode code = anoncreds_schema_from_json(b, &schemaP);
+  
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(schemaP));
 };
@@ -217,7 +231,9 @@ jsi::Value masterSecretFromJson(jsi::Runtime &rt, jsi::Object options) {
   ByteBuffer b = stringToByteBuffer(json);
   
   ErrorCode code = anoncreds_master_secret_from_json(b, &masterSecretP);
+
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(masterSecretP));
 };
@@ -230,7 +246,9 @@ jsi::Value credentialRequestFromJson(jsi::Runtime &rt, jsi::Object options) {
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_credential_request_from_json(b, &credentialRequestP);
+  
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(credentialRequestP));
 };
@@ -243,7 +261,9 @@ jsi::Value credentialRequestMetadataFromJson(jsi::Runtime &rt, jsi::Object optio
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_credential_request_metadata_from_json(b, &credentialRequestMetadataP);
+
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(credentialRequestMetadataP));
 };
@@ -256,7 +276,9 @@ jsi::Value credentialFromJson(jsi::Runtime &rt, jsi::Object options) {
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_credential_from_json(b, &credentialP);
+  
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(credentialP));
 };
@@ -269,7 +291,9 @@ jsi::Value revocationRegistryDefinitionPrivateFromJson(jsi::Runtime &rt, jsi::Ob
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_revocation_registry_definition_private_from_json(b, &revocationRegistryDefinitionPrivateP);
+  
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(revocationRegistryDefinitionPrivateP));
 };
@@ -282,7 +306,9 @@ jsi::Value revocationStateFromJson(jsi::Runtime &rt, jsi::Object options) {
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_revocation_state_from_json(b, &revocationStateP);
+  
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(revocationStateP));
 };
@@ -295,7 +321,9 @@ jsi::Value revocationRegistryDeltaFromJson(jsi::Runtime &rt, jsi::Object options
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_revocation_registry_delta_from_json(b, &revocationRegistryDeltaP);
+  
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(revocationRegistryDeltaP));
 };
@@ -308,7 +336,9 @@ jsi::Value credentialDefinitionFromJson(jsi::Runtime &rt, jsi::Object options) {
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_credential_definition_from_json(b, &credentialDefinitionP);
+
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(credentialDefinitionP));
 };
@@ -321,7 +351,9 @@ jsi::Value credentialDefinitionPrivateFromJson(jsi::Runtime &rt, jsi::Object opt
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_credential_definition_private_from_json(b, &credentialDefinitionPrivateP);
+
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(credentialDefinitionPrivateP));
 };
@@ -334,7 +366,9 @@ jsi::Value keyCorrectnessProofFromJson(jsi::Runtime &rt, jsi::Object options) {
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_key_correctness_proof_from_json(b, &keyCorrectnessProofP);
+
   handleError(rt, code);
+  delete[] b.data;
 
   return jsi::Value(int(keyCorrectnessProofP));
 };
@@ -357,7 +391,7 @@ jsi::Value createPresentation(jsi::Runtime &rt, jsi::Object options) {
   auto schemaIds = jsiToValue<FfiList_FfiStr>(rt, options, "schemaIds");
   auto credentialDefinitions =
       jsiToValue<FfiList_ObjectHandle>(rt, options, "credentialDefinitions");
-  auto credentialDefinitionids =
+  auto credentialDefinitionIds =
       jsiToValue<FfiList_FfiStr>(rt, options, "credentialDefinitionIds");
 
   ObjectHandle presentationP;
@@ -365,9 +399,28 @@ jsi::Value createPresentation(jsi::Runtime &rt, jsi::Object options) {
   ErrorCode code = anoncreds_create_presentation(
       presentationRequest, credentials, credentialsProve, selfAttestedNames,
       selfAttestedValues, masterSecret, schemas, schemaIds,
-      credentialDefinitions, credentialDefinitionids, &presentationP);
+      credentialDefinitions, credentialDefinitionIds, &presentationP);
   handleError(rt, code);
 
+  // Free memory
+  delete[] credentials.data;
+  for (int i = 0; i < credentialsProve.count; i++) {
+    delete[] credentialsProve.data[i].referent;
+  }
+  for (int i = 0; i < schemaIds.count; i++) {
+    delete[] schemaIds.data[i];
+  }
+  delete[] schemas.data;
+  for (int i = 0; i < credentialDefinitionIds.count; i++) {
+    delete[] credentialDefinitionIds.data[i];
+  }
+  delete[] credentialDefinitions.data;
+  for (int i = 0; i < selfAttestedNames.count; i++) {
+    delete[] selfAttestedNames.data[i];
+  }
+  for (int i = 0; i < selfAttestedValues.count; i++) {
+    delete[] selfAttestedValues.data[i];
+  }
   return jsi::Value(int(presentationP));
 };
 
@@ -387,6 +440,8 @@ jsi::Value verifyPresentation(jsi::Runtime &rt, jsi::Object options) {
       rt, options, "revocationRegistryDefinitionIds", true);
   auto revocationStatusLists =
       jsiToValue<FfiList_ObjectHandle>(rt, options, "revocationStatusLists", true);
+  auto nonRevokedIntervalOverrides =
+      jsiToValue<FfiList_FfiNonrevokedIntervalOverride>(rt, options, "nonRevokedIntervalOverrides", true);
 
   int8_t resultP;
 
@@ -394,9 +449,18 @@ jsi::Value verifyPresentation(jsi::Runtime &rt, jsi::Object options) {
       presentation, presentationRequest, schemas, schemaIds,
       credentialDefinitions, credentialDefinitionIds,
       revocationRegistryDefinitions, revocationRegistryDefinitionIds,
-      revocationStatusLists, &resultP);
+      revocationStatusLists, nonRevokedIntervalOverrides, &resultP);
   handleError(rt, code);
 
+  // Free memory
+  for (int i = 0; i < schemaIds.count; i++) {
+    delete[] schemaIds.data[i];
+  }
+  delete[] schemas.data;
+  for (int i = 0; i < credentialDefinitionIds.count; i++) {
+    delete[] credentialDefinitionIds.data[i];
+  }
+  delete[] credentialDefinitions.data;
   return jsi::Value(int(resultP));
 };
 
@@ -461,7 +525,7 @@ jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
 
   ObjectHandle credReqP;
   ObjectHandle credReqMetaP;
-  
+
   ErrorCode code = anoncreds_create_credential_request(entropy.length() ? entropy.c_str() : nullptr,
       proverDid.length() ? proverDid.c_str() : nullptr, credentialDefinition, masterSecret,
       masterSecretId.c_str(), credentialOffer, &credReqP, &credReqMetaP);
@@ -549,6 +613,8 @@ jsi::Value createOrUpdateRevocationState(jsi::Runtime &rt,
 jsi::Value createRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
   auto revocationRegistryDefinitionId =
       jsiToValue<std::string>(rt, options, "revocationRegistryDefinitionId");
+  auto issuerId =
+      jsiToValue<std::string>(rt, options, "issuerId");
   auto revocationRegistryDefinition =
       jsiToValue<ObjectHandle>(rt, options, "revocationRegistryDefinition");
   auto timestamp = jsiToValue<int64_t>(rt, options, "timestamp");
@@ -558,7 +624,7 @@ jsi::Value createRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
 
   ErrorCode code = anoncreds_create_revocation_status_list(
       revocationRegistryDefinitionId.c_str(), revocationRegistryDefinition,
-      timestamp, issuanceByDefault, &revocationStatusListP);
+      issuerId.c_str(), timestamp, issuanceByDefault, &revocationStatusListP);
   handleError(rt, code);
 
   return jsi::Value(int(revocationStatusListP));
@@ -608,8 +674,8 @@ jsi::Value createRevocationRegistryDefinition(jsi::Runtime &rt,
   auto tag = jsiToValue<std::string>(rt, options, "tag");
   auto revocationRegistryType =
       jsiToValue<std::string>(rt, options, "revocationRegistryType");
-  auto maxCredNum = jsiToValue<int64_t>(rt, options, "maxCredNum");
-  auto tailsDirPath = jsiToValue<std::string>(rt, options, "tailsDirPath");
+  auto maxCredNum = jsiToValue<int64_t>(rt, options, "maximumCredentialNumber");
+  auto tailsDirPath = jsiToValue<std::string>(rt, options, "tailsDirectoryPath", true);
 
   ObjectHandle regDefP;
   ObjectHandle regDefPrivateP;
@@ -621,8 +687,8 @@ jsi::Value createRevocationRegistryDefinition(jsi::Runtime &rt,
   handleError(rt, code);
 
   jsi::Object object = jsi::Object(rt);
-  object.setProperty(rt, "regDef", int(regDefP));
-  object.setProperty(rt, "regDefPrivate", int(regDefPrivateP));
+  object.setProperty(rt, "revocationRegistryDefinition", int(regDefP));
+  object.setProperty(rt, "revocationRegistryDefinitionPrivate", int(regDefPrivateP));
   return object;
 };
 

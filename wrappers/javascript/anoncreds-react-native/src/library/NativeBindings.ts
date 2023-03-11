@@ -1,4 +1,4 @@
-import type { NativeCredentialProve } from '@hyperledger/anoncreds-shared'
+import type { NativeCredentialProve, NativeNonRevokedIntervalOverride } from '@hyperledger/anoncreds-shared'
 
 // Alias for _Handle.handle
 type _Handle = number
@@ -11,6 +11,7 @@ export interface NativeBindings {
   createRevocationStatusList(options: {
     revocationRegistryDefinitionId: string
     revocationRegistryDefinition: _Handle
+    issuerId: string
     timestamp?: number
     issuanceByDefault: number
   }): _Handle
@@ -91,6 +92,7 @@ export interface NativeBindings {
     revocationRegistryDefinitions?: number[]
     revocationRegistryDefinitionIds?: string[]
     revocationStatusLists?: number[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
   }): boolean
   createRevocationRegistryDefinition(options: {
     credentialDefinition: number
