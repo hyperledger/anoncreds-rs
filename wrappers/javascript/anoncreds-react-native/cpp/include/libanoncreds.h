@@ -398,6 +398,8 @@ ErrorCode anoncreds_credential_request_metadata_from_json(ByteBuffer buffer, Obj
 
 ErrorCode anoncreds_presentation_from_json(ByteBuffer buffer, ObjectHandle *presentation_p);
 
+ErrorCode anoncreds_presentation_request_from_json(ByteBuffer buffer, ObjectHandle *presentation_request_p);
+
 ErrorCode anoncreds_credential_offer_from_json(ByteBuffer buffer, ObjectHandle *credential_offer_p);
 
 ErrorCode anoncreds_credential_definition_private_from_json(ByteBuffer buffer, ObjectHandle *credential_definition_private_p);

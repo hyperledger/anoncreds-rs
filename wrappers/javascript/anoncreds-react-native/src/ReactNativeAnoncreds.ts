@@ -3,6 +3,7 @@ import type {
   NativeCredentialEntry,
   NativeCredentialProve,
   NativeCredentialRevocationConfig,
+  NativeNonRevokedIntervalOverride,
 } from '@hyperledger/anoncreds-shared'
 
 import { ObjectHandle } from '@hyperledger/anoncreds-shared'
@@ -14,6 +15,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
   public createRevocationStatusList(options: {
     revocationRegistryDefinitionId: string
     revocationRegistryDefinition: ObjectHandle
+    issuerId: string
     timestamp?: number
     issuanceByDefault: boolean
   }): ObjectHandle {
@@ -215,6 +217,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     revocationRegistryDefinitions?: ObjectHandle[]
     revocationRegistryDefinitionIds?: string[]
     revocationStatusLists?: ObjectHandle[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
   }): boolean {
     return anoncredsReactNative.verifyPresentation(serializeArguments(options))
   }
