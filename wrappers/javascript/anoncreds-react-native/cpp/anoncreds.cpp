@@ -101,8 +101,8 @@ jsi::Value createCredentialDefinition(jsi::Runtime &rt, jsi::Object options) {
 
   ErrorCode code = anoncreds_create_credential_definition(
       schemaId.c_str(), schema, tag.c_str(), issuerId.c_str(),
-      signatureType.c_str(), supportRevocation, &out->credentialDefinition,
-      &out->credentialDefinitionPrivate, &out->keyCorrectnessProof);
+      signatureType.c_str(), supportRevocation, &out.credentialDefinition,
+      &out.credentialDefinitionPrivate, &out.keyCorrectnessProof);
 
   return createReturnValue(rt, code, &out);
 };
@@ -186,15 +186,15 @@ jsi::Value credentialOfferFromJson(jsi::Runtime &rt, jsi::Object options) {
   auto json = jsiToValue<std::string>(rt, options, "json");
 
   ObjectHandle out;
-
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_credential_offer_from_json(b, &out);
-  
-  delete[] b.data;
-  handleError(rt, code);
+  auto returnValue = createReturnValue(rt, code, &out);
 
-  return jsi::Value(int(out));
+  // Free memory
+  delete[] b.data;
+
+  return returnValue;
 };
 
 jsi::Value schemaFromJson(jsi::Runtime &rt, jsi::Object options) {
@@ -604,7 +604,6 @@ jsi::Value createRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
       jsiToValue<std::string>(rt, options, "issuerId");
   auto revocationRegistryDefinition =
       jsiToValue<ObjectHandle>(rt, options, "revocationRegistryDefinition");
-  auto issuerId = jsiToValue<std::string>(rt, options, "issuerId");
   auto timestamp = jsiToValue<int64_t>(rt, options, "timestamp");
   auto issuanceByDefault = jsiToValue<int8_t>(rt, options, "issuanceByDefault");
 
