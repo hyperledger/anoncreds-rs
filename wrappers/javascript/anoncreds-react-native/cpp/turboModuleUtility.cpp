@@ -217,7 +217,7 @@ int8_t jsiToValue(jsi::Runtime &rt, jsi::Object &options, const char *name,
     return value.asNumber();
 
   if (value.isBool())
-      return value.asBool() ? 1 : 0;
+      return value.getBool() ? 1 : 0;
 
   throw jsi::JSError(rt, errorPrefix + name + errorInfix + "number");
 };
