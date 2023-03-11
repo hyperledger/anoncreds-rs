@@ -1,9 +1,5 @@
 import type { ReturnObject } from '../utils/serialize'
-import type {
-  NativeCredentialEntry,
-  NativeCredentialProve,
-  NativeCredentialRevocationConfig,
-} from '@hyperledger/anoncreds-shared'
+import type { NativeCredentialProve, NativeNonRevokedIntervalOverride } from '@hyperledger/anoncreds-shared'
 
 // Alias for _Handle.handle
 type Handle = number
@@ -24,6 +20,7 @@ export interface NativeBindings {
   createRevocationStatusList(options: {
     revocationRegistryDefinitionId: string
     revocationRegistryDefinition: Handle
+    issuerId: string
     timestamp?: number
     issuanceByDefault: number
   }): ReturnObject<Handle>
@@ -55,13 +52,19 @@ export interface NativeBindings {
     credentialDefinitionPrivate: number
     credentialOffer: number
     credentialRequest: number
-    attributeRawValues: string
-    attributeEncodedValues?: string
-    revocationConfiguration?: NativeCredentialRevocationConfig
-  }): ReturnObject<{ credential: Handle; revocationRegistry: Handle; revocationDelta: Handle }>
-
+    attributeNames: string[]
+    attributeRawValues: string[]
+    attributeEncodedValues?: string[]
+    revocationRegistryId?: string
+    revocationStatusList?: number
+    revocationConfiguration?: {
+      registryIndex: number
+      revocationRegistryDefinition: number
+      revocationRegistryDefinitionPrivate: number
+      tailsPath: string
+    }
+  }): ReturnObject<Handle>
   encodeCredentialAttributes(options: { attributeRawValues: Array<string> }): ReturnObject<string>
-
   processCredential(options: {
     credential: number
     credentialRequestMetadata: number
@@ -73,7 +76,7 @@ export interface NativeBindings {
   createCredentialOffer(options: {
     schemaId: string
     credentialDefinitionId: string
-    keyProof: number
+    keyCorrectnessProof: number
   }): ReturnObject<Handle>
 
   createCredentialRequest(options: {
@@ -89,9 +92,10 @@ export interface NativeBindings {
 
   createPresentation(options: {
     presentationRequest: number
-    credentials: NativeCredentialEntry[]
+    credentials: { credential: number; timestamp?: number; revocationState?: number }[]
     credentialsProve: NativeCredentialProve[]
-    selfAttest: string
+    selfAttestNames: string[]
+    selfAttestValues: string[]
     masterSecret: number
     schemaIds: string[]
     schemas: number[]
@@ -109,6 +113,7 @@ export interface NativeBindings {
     revocationRegistryDefinitions?: number[]
     revocationRegistryDefinitionIds?: string[]
     revocationStatusLists?: number[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
   }): ReturnObject<number>
 
   createRevocationRegistryDefinition(options: {

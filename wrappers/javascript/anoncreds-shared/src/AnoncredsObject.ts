@@ -1,3 +1,5 @@
+import type { JsonObject } from './types'
+
 import { ObjectHandle } from './ObjectHandle'
 import { anoncreds } from './register'
 
@@ -9,6 +11,6 @@ export class AnoncredsObject {
   }
 
   public toJson() {
-    return anoncreds.getJson({ objectHandle: this.handle })
+    return JSON.parse(anoncreds.getJson({ objectHandle: this.handle })) as JsonObject
   }
 }

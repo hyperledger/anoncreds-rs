@@ -23,19 +23,23 @@ use anoncreds::{
     verifier,
 };
 
+#[allow(unused)]
 pub struct TestError(String);
 
 // {cred_def_id: {
 //       schema_id, credential_values, support_revocation, rev_reg_id, rev_idx
 // }}
+#[allow(unused)]
 pub type IssuerValues<'a> =
     HashMap<&'a str, (&'a str, HashMap<&'a str, &'a str>, bool, &'a str, u32)>;
 
 // {cred_def_id: {
 //       attribute_per_credential, predicate_for_credential }}
+#[allow(unused)]
 pub type ProverValues<'a> = HashMap<&'a str, (Vec<&'a str>, Vec<&'a str>)>;
 
 // { rev_reg_def_id: {req_timestamp, override_timestamp} }
+#[allow(unused)]
 pub type Override<'a> = HashMap<&'a RevocationRegistryDefinitionId, HashMap<u64, u64>>;
 
 #[derive(Debug)]
@@ -48,6 +52,7 @@ pub struct Mock<'a> {
 }
 
 impl<'a> Mock<'a> {
+    #[allow(unused)]
     pub fn new(
         issuer_ids: &[&'a str],
         prover_ids: &[&'a str],
@@ -72,6 +77,7 @@ impl<'a> Mock<'a> {
         }
     }
 
+    #[allow(unused)]
     pub fn verifer_verifies_presentations_for_requests(
         &self,
         presentations: &[Presentation],
@@ -110,6 +116,7 @@ impl<'a> Mock<'a> {
     // issuer wallet holds all data relating to cred def and rev def
     // prover wallet contains the cred offers from the credentials
     // ledger holds the rev reg def / rev reg info
+    #[allow(unused)]
     pub fn issuer_setup(
         &mut self,
         issuer_id: &'static str,
@@ -218,6 +225,7 @@ impl<'a> Mock<'a> {
         }
     }
 
+    #[allow(unused)]
     fn issuer_create_credential(
         &self,
         issuer_wallet: &IssuerWallet,
@@ -290,6 +298,7 @@ impl<'a> Mock<'a> {
 
     // prover requests and gets credential stored in their wallets
     // This updates ledger on revocation reg also
+    #[allow(unused)]
     pub fn issuer_create_credential_and_store_in_prover_wallet(
         &mut self,
         issuer_id: &'static str,
@@ -373,6 +382,7 @@ impl<'a> Mock<'a> {
         }
     }
 
+    #[allow(unused)]
     pub fn prover_creates_revocation_states(
         &mut self,
         prover_id: &'static str,
@@ -403,6 +413,7 @@ impl<'a> Mock<'a> {
         self.prover_wallets.get_mut(prover_id).unwrap().rev_states = rev_states;
     }
 
+    #[allow(unused)]
     pub fn prover_creates_presentation(
         &self,
         prover_id: &'static str,

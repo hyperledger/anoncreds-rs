@@ -1,6 +1,6 @@
 use crate::error::{Result, ValidationError};
 use crate::invalid;
-use crate::utils::validation::{Validatable, LEGACY_IDENTIFIER};
+use crate::utils::validation::{Validatable, LEGACY_DID_IDENTIFIER};
 
 use super::{cred_def::CredentialDefinitionId, nonce::Nonce};
 
@@ -29,9 +29,9 @@ impl Validatable for CredentialRequest {
                 }
             }
             None => {
-                if self.cred_def_id.is_legacy() {
+                if self.cred_def_id.is_legacy_cred_def_identifier() {
                     if let Some(prover_did) = self.prover_did.clone() {
-                        if LEGACY_IDENTIFIER.captures(&prover_did).is_some() {
+                        if LEGACY_DID_IDENTIFIER.captures(&prover_did).is_some() {
                             Ok(())
                         } else {
                             Err(invalid!("Prover did was supplied, not valid"))
@@ -106,10 +106,12 @@ mod cred_req_tests {
     use super::*;
 
     const NEW_IDENTIFIER: &str = "mock:uri";
-    const LEGACY_IDENTIFIER: &str = "NcYxiDXkpYi6ov5FcYDi1e";
+    const LEGACY_DID_IDENTIFIER: &str = "DXoTtQJNtXtiwWaZAK3rB1";
+    const LEGACY_SCHEMA_IDENTIFIER: &str = "DXoTtQJNtXtiwWaZAK3rB1:2:example:1.0";
+    const LEGACY_CRED_DEF_IDENTIFIER: &str = "DXoTtQJNtXtiwWaZAK3rB1:3:CL:98153:default";
 
     const ENTROPY: Option<&str> = Some("entropy");
-    const PROVER_DID: Option<&str> = Some(LEGACY_IDENTIFIER);
+    const PROVER_DID: Option<&str> = Some(LEGACY_DID_IDENTIFIER);
     const MASTER_SERCET_ID: &str = "master:secret:id";
 
     fn cred_def() -> Result<(CredentialDefinition, CredentialKeyCorrectnessProof)> {
@@ -140,7 +142,11 @@ mod cred_req_tests {
         is_legacy: bool,
     ) -> Result<CredentialOffer> {
         if is_legacy {
-            create_credential_offer(LEGACY_IDENTIFIER, LEGACY_IDENTIFIER, &correctness_proof)
+            create_credential_offer(
+                LEGACY_SCHEMA_IDENTIFIER,
+                LEGACY_CRED_DEF_IDENTIFIER,
+                &correctness_proof,
+            )
         } else {
             create_credential_offer(NEW_IDENTIFIER, NEW_IDENTIFIER, &correctness_proof)
         }

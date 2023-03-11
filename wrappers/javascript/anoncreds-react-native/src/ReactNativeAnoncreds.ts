@@ -16,6 +16,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
   public createRevocationStatusList(options: {
     revocationRegistryDefinitionId: string
     revocationRegistryDefinition: ObjectHandle
+    issuerId: string
     timestamp?: number
     issuanceByDefault: boolean
   }): ObjectHandle {
@@ -77,7 +78,11 @@ export class ReactNativeAnoncreds implements Anoncreds {
     issuerId: string
     signatureType: string
     supportRevocation: boolean
-  }): { credentialDefinition: ObjectHandle; credentialDefinitionPrivate: ObjectHandle; keyProof: ObjectHandle } {
+  }): {
+    credentialDefinition: ObjectHandle
+    credentialDefinitionPrivate: ObjectHandle
+    keyCorrectnessProof: ObjectHandle
+  } {
     const { keyCorrectnessProof, credentialDefinition, credentialDefinitionPrivate } = handleError(
       anoncredsReactNative.createCredentialDefinition(serializeArguments(options))
     )
@@ -85,7 +90,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return {
       credentialDefinitionPrivate: new ObjectHandle(credentialDefinitionPrivate),
       credentialDefinition: new ObjectHandle(credentialDefinition),
-      keyProof: new ObjectHandle(keyCorrectnessProof),
+      keyCorrectnessProof: new ObjectHandle(keyCorrectnessProof),
     }
   }
 
@@ -96,9 +101,33 @@ export class ReactNativeAnoncreds implements Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     attributeEncodedValues?: Record<string, string>
+    revocationRegistryId?: string
+    revocationStatusList?: ObjectHandle
     revocationConfiguration?: NativeCredentialRevocationConfig
   }): ObjectHandle {
-    const { credential } = handleError(anoncredsReactNative.createCredential(serializeArguments(options)))
+    const attributeNames = Object.keys(options.attributeRawValues)
+    const attributeRawValues = Object.values(options.attributeRawValues)
+    const attributeEncodedValues = options.attributeEncodedValues
+      ? Object.values(options.attributeEncodedValues)
+      : undefined
+
+    const credential = handleError(
+      anoncredsReactNative.createCredential({
+        ...serializeArguments(options),
+        attributeRawValues,
+        attributeEncodedValues,
+        attributeNames,
+        revocationConfiguration: options.revocationConfiguration
+          ? {
+              registryIndex: options.revocationConfiguration.registryIndex,
+              revocationRegistryDefinition: options.revocationConfiguration.revocationRegistryDefinition.handle,
+              revocationRegistryDefinitionPrivate:
+                options.revocationConfiguration.revocationRegistryDefinitionPrivate.handle,
+              tailsPath: options.revocationConfiguration.tailsPath,
+            }
+          : undefined,
+      })
+    )
 
     return new ObjectHandle(credential)
   }
@@ -122,7 +151,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
   public createCredentialOffer(options: {
     schemaId: string
     credentialDefinitionId: string
-    keyProof: ObjectHandle
+    keyCorrectnessProof: ObjectHandle
   }): ObjectHandle {
     const handle = handleError(anoncredsReactNative.createCredentialOffer(serializeArguments(options)))
     return new ObjectHandle(handle)
@@ -160,13 +189,27 @@ export class ReactNativeAnoncreds implements Anoncreds {
     schemas: Record<string, ObjectHandle>
     credentialDefinitions: Record<string, ObjectHandle>
   }): ObjectHandle {
+    const selfAttestNames = Object.keys(options.selfAttest)
+    const selfAttestValues = Object.values(options.selfAttest)
     const schemaKeys = Object.keys(options.schemas)
     const schemaValues = Object.values(options.schemas).map((o) => o.handle)
     const credentialDefinitionKeys = Object.keys(options.credentialDefinitions)
     const credentialDefinitionValues = Object.values(options.credentialDefinitions).map((o) => o.handle)
+
+    const credentialEntries = options.credentials.map((value) => ({
+      credential: value.credential.handle,
+      timestamp: value.timestamp ?? -1,
+      revocationState: value.revocationState?.handle ?? 0,
+    }))
+
     const handle = handleError(
       anoncredsReactNative.createPresentation({
-        ...serializeArguments(options),
+        presentationRequest: options.presentationRequest.handle,
+        masterSecret: options.masterSecret.handle,
+        credentialsProve: options.credentialsProve,
+        selfAttestNames,
+        selfAttestValues,
+        credentials: credentialEntries,
         schemas: schemaValues,
         schemaIds: schemaKeys,
         credentialDefinitions: credentialDefinitionValues,
@@ -186,9 +229,9 @@ export class ReactNativeAnoncreds implements Anoncreds {
     revocationRegistryDefinitions?: ObjectHandle[]
     revocationRegistryDefinitionIds?: string[]
     revocationStatusLists?: ObjectHandle[]
-    nonRevokedIntervalOverride?: NativeNonRevokedIntervalOverride[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
   }): boolean {
-    return !!handleError(anoncredsReactNative.verifyPresentation(serializeArguments(options)))
+    return Boolean(handleError(anoncredsReactNative.verifyPresentation(serializeArguments(options))))
   }
 
   public createRevocationRegistryDefinition(options: {
@@ -273,7 +316,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
   }
 
   public credentialOfferFromJson(options: { json: string }): ObjectHandle {
-    const handle = handleError(anoncredsReactNative.credentialFromJson(serializeArguments(options)))
+    const handle = handleError(anoncredsReactNative.credentialOfferFromJson(serializeArguments(options)))
     return new ObjectHandle(handle)
   }
 

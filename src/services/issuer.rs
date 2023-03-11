@@ -5,7 +5,7 @@ use super::types::*;
 
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
-use crate::data_types::rev_reg::RevocationRegistryId;
+use crate::data_types::rev_reg::{RevocationRegistryId, UrsaRevocationRegistry};
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
 use crate::data_types::{
@@ -25,7 +25,7 @@ use bitvec::bitvec;
 
 use super::tails::{TailsFileReader, TailsWriter};
 
-const ACCUM_NO_ISSUED: &str = "{\"accum\":\"1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000 2 095E45DDF417D05FB10933FFC63D474548B7FFFF7888802F07FFFFFF7D07A8A8 1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000\"}";
+const ACCUM_NO_ISSUED: &str = "1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000 2 095E45DDF417D05FB10933FFC63D474548B7FFFF7888802F07FFFFFF7D07A8A8 1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000";
 
 pub fn create_schema<II>(
     schema_name: &str,
@@ -194,10 +194,11 @@ pub fn create_revocation_status_list(
     timestamp: Option<u64>,
     issuance_by_default: bool,
 ) -> Result<RevocationStatusList> {
-    let mut rev_reg: ursa::cl::RevocationRegistry = serde_json::from_str(ACCUM_NO_ISSUED)?;
+    let rev_reg = UrsaRevocationRegistry::try_from(ACCUM_NO_ISSUED)?;
     let max_cred_num = rev_reg_def.value.max_cred_num;
     let rev_reg_def_id = rev_reg_def_id.try_into()?;
     let issuer_id = issuer_id.try_into()?;
+    let mut rev_reg: ursa::cl::RevocationRegistry = rev_reg.try_into()?;
 
     if issuer_id != rev_reg_def.issuer_id {
         return Err(err_msg!(
@@ -225,7 +226,7 @@ pub fn create_revocation_status_list(
         Some(rev_reg_def_id.to_string().as_str()),
         issuer_id,
         list,
-        Some(rev_reg),
+        Some(rev_reg.try_into()?),
         timestamp,
     )
 }
@@ -266,7 +267,7 @@ pub fn update_revocation_status_list(
         )
     });
 
-    let rev_reg_opt: Option<ursa::cl::RevocationRegistry> = current_list.into();
+    let rev_reg_opt: Option<ursa::cl::RevocationRegistry> = current_list.try_into()?;
     let mut rev_reg = rev_reg_opt.ok_or_else(|| {
         Error::from_msg(
             ErrorKind::Unexpected,
@@ -339,13 +340,15 @@ pub fn create_credential(
         match (revocation_config, rev_status_list) {
             (Some(revocation_config), Some(rev_status_list)) => {
                 let rev_reg_def = &revocation_config.reg_def.value;
-                let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_status_list.into();
-                let mut rev_reg = rev_reg.ok_or_else(|| {
+                let rev_reg: Option<UrsaRevocationRegistry> = rev_status_list.into();
+                let rev_reg = rev_reg.ok_or_else(|| {
                     err_msg!(
                         Unexpected,
                         "RevocationStatusList should have accumulator value"
                     )
                 })?;
+
+                let mut rev_reg: ursa::cl::RevocationRegistry = rev_reg.try_into()?;
 
                 let status = rev_status_list
                     .get(revocation_config.registry_idx as usize)

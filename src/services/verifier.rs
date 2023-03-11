@@ -22,7 +22,7 @@ use crate::ursa::cl::{
     RevocationRegistry as CryptoRevocationRegistry,
 };
 use crate::utils::query::Query;
-use crate::utils::validation::LEGACY_IDENTIFIER;
+use crate::utils::validation::LEGACY_DID_IDENTIFIER;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Filter {
@@ -119,9 +119,10 @@ pub fn verify_presentation(
                     .timestamp()
                     .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing timestamp"))?;
 
-                let rev_reg: ursa::cl::RevocationRegistry =
-                    Into::<Option<ursa::cl::RevocationRegistry>>::into(*list)
-                        .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing Accum"))?;
+                let rev_reg: Option<ursa::cl::RevocationRegistry> = (*list).try_into()?;
+                let rev_reg = rev_reg.ok_or_else(|| {
+                    err_msg!(Unexpected, "Revocation status list missing accumulator")
+                })?;
 
                 map.entry(id)
                     .or_insert_with(HashMap::new)
@@ -803,7 +804,7 @@ fn precess_filed(filed: &str, filter_value: impl Into<String>, tag_value: &str) 
     // means that we only allow legacy identifiers which can be detected with a simple regex. If
     // they are not in the legacy format, we do not support this.
     if (filed == "schema_issuer_did" || filed == "issuer_did")
-        && (LEGACY_IDENTIFIER.captures(&filter_value).is_none())
+        && (LEGACY_DID_IDENTIFIER.captures(&filter_value).is_none())
     {
         return Err(err_msg!(
             ProofRejected,

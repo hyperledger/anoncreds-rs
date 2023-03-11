@@ -294,9 +294,9 @@ pub fn create_or_update_revocation_state_with_witness(
     revocation_status_list: &RevocationStatusList,
     timestamp: u64,
 ) -> Result<CredentialRevocationState> {
-    let rev_reg = <&RevocationStatusList as Into<Option<CryptoRevocationRegistry>>>::into(
+    let rev_reg = <&RevocationStatusList as TryInto<Option<CryptoRevocationRegistry>>>::try_into(
         revocation_status_list,
-    )
+    )?
     .ok_or_else(|| err_msg!(Unexpected, "Revocation Status List must have accum value"))?;
 
     Ok(CredentialRevocationState {
@@ -326,7 +326,7 @@ pub fn create_or_update_revocation_state(
         old_rev_status_list,
     );
 
-    let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_status_list.into();
+    let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_status_list.try_into()?;
     let rev_reg = rev_reg.ok_or_else(|| {
         err_msg!("revocation registry is required to create or update the revocation state")
     })?;
@@ -350,7 +350,7 @@ pub fn create_or_update_revocation_state(
             &mut revoked,
         );
 
-        let source_rev_reg: Option<ursa::cl::RevocationRegistry> = source_rev_list.into();
+        let source_rev_reg: Option<ursa::cl::RevocationRegistry> = source_rev_list.try_into()?;
 
         let rev_reg_delta = RevocationRegistryDelta::from_parts(
             source_rev_reg.as_ref(),
@@ -818,9 +818,9 @@ mod tests {
         const ISSUER_ID: &str = "mock:uri";
         const CRED_DEF_ID: &str = "mock:uri";
 
-        const LEGACY_SCHEMA_ID: &str = "NcYxiDXkpYi6ov5FcYDi1e";
-        const LEGACY_ISSUER_ID: &str = "NcYxiDXkpYi6ov5FcYDi1e";
-        const LEGACY_CRED_DEF_ID: &str = "NcYxiDXkpYi6ov5FcYDi1e";
+        const LEGACY_DID_IDENTIFIER: &str = "DXoTtQJNtXtiwWaZAK3rB1";
+        const LEGACY_SCHEMA_IDENTIFIER: &str = "DXoTtQJNtXtiwWaZAK3rB1:2:example:1.0";
+        const LEGACY_CRED_DEF_IDENTIFIER: &str = "DXoTtQJNtXtiwWaZAK3rB1:3:CL:98153:default";
 
         fn _master_secret() -> MasterSecret {
             MasterSecret::new().expect("Error creating prover master secret")
@@ -851,15 +851,21 @@ mod tests {
         }
 
         fn _legacy_schema() -> Schema {
-            create_schema("test", "1.0", LEGACY_ISSUER_ID, ["a", "b", "c"][..].into()).unwrap()
+            create_schema(
+                "test",
+                "1.0",
+                LEGACY_DID_IDENTIFIER,
+                ["a", "b", "c"][..].into(),
+            )
+            .unwrap()
         }
 
         fn _legacy_cred_def_and_key_correctness_proof(
         ) -> (CredentialDefinition, CredentialKeyCorrectnessProof) {
             let (cred_def, _, key_correctness_proof) = create_credential_definition(
-                LEGACY_SCHEMA_ID,
+                LEGACY_SCHEMA_IDENTIFIER,
                 &_legacy_schema(),
-                LEGACY_ISSUER_ID,
+                LEGACY_DID_IDENTIFIER,
                 "tag",
                 SignatureType::CL,
                 CredentialDefinitionConfig {
@@ -873,8 +879,12 @@ mod tests {
         fn _legacy_cred_offer(
             key_correctness_proof: CredentialKeyCorrectnessProof,
         ) -> CredentialOffer {
-            create_credential_offer(LEGACY_SCHEMA_ID, LEGACY_CRED_DEF_ID, &key_correctness_proof)
-                .unwrap()
+            create_credential_offer(
+                LEGACY_SCHEMA_IDENTIFIER,
+                LEGACY_CRED_DEF_IDENTIFIER,
+                &key_correctness_proof,
+            )
+            .unwrap()
         }
 
         #[test]
