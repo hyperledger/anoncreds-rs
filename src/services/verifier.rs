@@ -22,7 +22,7 @@ use crate::ursa::cl::{
     RevocationRegistry as CryptoRevocationRegistry,
 };
 use crate::utils::query::Query;
-use crate::utils::validation::LEGACY_IDENTIFIER;
+use crate::utils::validation::LEGACY_DID_IDENTIFIER;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Filter {
@@ -804,7 +804,7 @@ fn precess_filed(filed: &str, filter_value: impl Into<String>, tag_value: &str) 
     // means that we only allow legacy identifiers which can be detected with a simple regex. If
     // they are not in the legacy format, we do not support this.
     if (filed == "schema_issuer_did" || filed == "issuer_did")
-        && (LEGACY_IDENTIFIER.captures(&filter_value).is_none())
+        && (LEGACY_DID_IDENTIFIER.captures(&filter_value).is_none())
     {
         return Err(err_msg!(
             ProofRejected,
