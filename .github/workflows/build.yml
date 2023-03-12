@@ -70,10 +70,6 @@ jobs:
   build-release:
     name: Build Library
 
-    env:
-      # This is required for fetching the openssl dependency from git more consistently
-      CARGO_NET_GIT_FETCH_WITH_CLI: true
-
     strategy:
       matrix:
         include:
@@ -345,8 +341,6 @@ jobs:
   build-ios-libraries:
     name: Build ios Libraries
     runs-on: macos-latest
-    env:
-      CARGO_NET_GIT_FETCH_WITH_CLI: true
     strategy:
       matrix:
         architecture:
