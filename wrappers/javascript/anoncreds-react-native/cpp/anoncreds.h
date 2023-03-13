@@ -8,6 +8,22 @@ using namespace facebook;
 
 namespace anoncreds {
 
+struct CredentialDefinitionReturn {
+  ObjectHandle credentialDefinition;
+  ObjectHandle credentialDefinitionPrivate;
+  ObjectHandle keyCorrectnessProof;
+};
+
+struct CredentialRequestReturn {
+  ObjectHandle credentialRequest;
+  ObjectHandle credentialRequestMetadata;
+};
+
+struct RevocationRegistryDefinitionReturn {
+  ObjectHandle revocationRegistryDefinition;
+  ObjectHandle revocationRegistryDefinitionPrivate;
+};
+
 // General
 jsi::Value version(jsi::Runtime &rt, jsi::Object options);
 jsi::Value getCurrentError(jsi::Runtime &rt, jsi::Object options);

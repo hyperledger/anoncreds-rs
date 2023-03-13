@@ -23,23 +23,175 @@ void registerTurboModule(jsi::Runtime &rt,
 void assertValueIsObject(jsi::Runtime &rt, const jsi::Value *val) {
   val->asObject(rt);
 }
-void handleError(jsi::Runtime &rt, ErrorCode code) {
-  if (code == ErrorCode::Success)
-    return;
 
-  jsi::Value errorMessage = anoncreds::getCurrentError(rt, jsi::Object(rt));
+template <>
+jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
+                             nullptr_t value) {
+  auto object = jsi::Object(rt);
 
-  jsi::Object JSON = rt.global().getPropertyAsObject(rt, "JSON");
-  jsi::Function JSONParse = JSON.getPropertyAsFunction(rt, "parse");
-  jsi::Object parsedErrorObject =
-      JSONParse.call(rt, errorMessage).getObject(rt);
-  jsi::Value message = parsedErrorObject.getProperty(rt, "message");
-  if (message.isString()) {
-    throw jsi::JSError(rt, message.getString(rt).utf8(rt));
+  if (code == ErrorCode::Success) {
+    object.setProperty(rt, "value", jsi::Value::null());
   }
-  throw jsi::JSError(rt, "Could not get message with code: " +
-                             std::to_string(code));
-};
+
+  object.setProperty(rt, "errorCode", int(code));
+
+  return object;
+}
+
+template <>
+jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
+                             const char **value) {
+  auto object = jsi::Object(rt);
+
+  if (code == ErrorCode::Success) {
+    auto isNullptr = value == nullptr || *value == nullptr;
+    auto valueWithoutNullptr = isNullptr
+                                   ? jsi::Value::null()
+                                   : jsi::String::createFromAscii(rt, *value);
+    object.setProperty(rt, "value", valueWithoutNullptr);
+  }
+
+  object.setProperty(rt, "errorCode", int(code));
+
+  return object;
+}
+
+template <>
+jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code, int8_t *value) {
+  auto object = jsi::Object(rt);
+
+  if (code == ErrorCode::Success) {
+    auto valueWithoutNullptr =
+        value == nullptr ? jsi::Value::null() : jsi::Value(rt, int(*value));
+    object.setProperty(rt, "value", valueWithoutNullptr);
+  }
+
+  object.setProperty(rt, "errorCode", int(code));
+
+  return object;
+}
+
+template <>
+jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
+                             uint32_t *value) {
+  auto object = jsi::Object(rt);
+
+  if (code == ErrorCode::Success) {
+    auto valueWithoutNullptr =
+        value == nullptr ? jsi::Value::null() : jsi::Value(rt, int(*value));
+    object.setProperty(rt, "value", valueWithoutNullptr);
+  }
+
+  object.setProperty(rt, "errorCode", int(code));
+
+  return object;
+}
+
+template <>
+jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
+                             ObjectHandle *value) {
+  auto object = jsi::Object(rt);
+
+  if (code == ErrorCode::Success) {
+    auto valueWithoutNullptr =
+        value == nullptr ? jsi::Value::null() : jsi::Value(rt, int(*value));
+    object.setProperty(rt, "value", valueWithoutNullptr);
+  }
+
+  object.setProperty(rt, "errorCode", int(code));
+
+  return object;
+}
+
+template <>
+jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
+                             ByteBuffer *value) {
+  auto object = jsi::Object(rt);
+
+  if (code == ErrorCode::Success) {
+    auto valueWithoutNullptr =
+        value == nullptr
+            ? jsi::Value::null()
+            : jsi::String::createFromUtf8(rt, value->data, value->len);
+    object.setProperty(rt, "value", valueWithoutNullptr);
+  }
+
+  object.setProperty(rt, "errorCode", int(code));
+
+  return object;
+}
+
+template <>
+jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
+                             anoncreds::CredentialDefinitionReturn *value) {
+  auto object = jsi::Object(rt);
+
+  if (code == ErrorCode::Success) {
+    if (value == nullptr) {
+      object.setProperty(rt, "value", jsi::Value::null());
+    } else {
+      auto objectValue = jsi::Object(rt);
+      objectValue.setProperty(rt, "credentialDefinition",
+                         int(value->credentialDefinition));
+      objectValue.setProperty(rt, "credentialDefinitionPrivate",
+                         int(value->credentialDefinitionPrivate));
+      objectValue.setProperty(rt, "keyCorrectnessProof",
+                         int(value->keyCorrectnessProof));
+      object.setProperty(rt, "value", objectValue);
+    }
+  }
+
+  object.setProperty(rt, "errorCode", int(code));
+
+  return object;
+}
+
+template <>
+jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
+                             anoncreds::CredentialRequestReturn *value) {
+  auto object = jsi::Object(rt);
+
+  if (code == ErrorCode::Success) {
+    if (value == nullptr) {
+      object.setProperty(rt, "value", jsi::Value::null());
+    } else {
+      auto objectValue = jsi::Object(rt);
+      objectValue.setProperty(rt, "credentialRequest",
+                         int(value->credentialRequest));
+      objectValue.setProperty(rt, "credentialRequestMetadata",
+                         int(value->credentialRequestMetadata));
+      object.setProperty(rt, "value", objectValue);
+    }
+  }
+
+  object.setProperty(rt, "errorCode", int(code));
+
+  return object;
+}
+
+template <>
+jsi::Value
+createReturnValue(jsi::Runtime &rt, ErrorCode code,
+                  anoncreds::RevocationRegistryDefinitionReturn *value) {
+  auto object = jsi::Object(rt);
+
+  if (code == ErrorCode::Success) {
+    if (value == nullptr) {
+      object.setProperty(rt, "value", jsi::Value::null());
+    } else {
+      auto objectValue = jsi::Object(rt);
+      objectValue.setProperty(rt, "revocationRegistryDefinition",
+                         int(value->revocationRegistryDefinition));
+      objectValue.setProperty(rt, "revocationRegistryDefinitionPrivate",
+                         int(value->revocationRegistryDefinitionPrivate));
+      object.setProperty(rt, "value", objectValue);
+    }
+  }
+
+  object.setProperty(rt, "errorCode", int(code));
+
+  return object;
+}
 
 template <>
 uint8_t jsiToValue(jsi::Runtime &rt, jsi::Object &options, const char *name,
@@ -65,7 +217,7 @@ int8_t jsiToValue(jsi::Runtime &rt, jsi::Object &options, const char *name,
     return value.asNumber();
 
   if (value.isBool())
-      return value.asBool() ? 1 : 0;
+      return value.getBool() ? 1 : 0;
 
   throw jsi::JSError(rt, errorPrefix + name + errorInfix + "number");
 };
@@ -455,7 +607,8 @@ jsiToValue<FfiList_FfiNonrevokedIntervalOverride>(jsi::Runtime &rt, jsi::Object 
   if (optional)
     return FfiList_FfiNonrevokedIntervalOverride{};
 
-  throw jsi::JSError(rt, errorPrefix + name + errorInfix + "Array<NonrevokedIntervalOverride>");
+  throw jsi::JSError(rt, errorPrefix + name + errorInfix +
+                             "Array<NonRevokedIntervalOverride>");
 }
 
 } // namespace anoncredsTurboModuleUtility
