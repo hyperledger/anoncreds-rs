@@ -4,6 +4,7 @@ import type {
   Anoncreds,
   NativeCredentialRevocationConfig,
   NativeNonRevokedIntervalOverride,
+  AnoncredsErrorObject,
 } from '@hyperledger/anoncreds-shared'
 import type { TypedArray } from 'ref-array-di'
 import type { StructObject } from 'ref-struct-di'
@@ -11,7 +12,6 @@ import type { StructObject } from 'ref-struct-di'
 import { AnoncredsError, ByteBuffer, ObjectHandle } from '@hyperledger/anoncreds-shared'
 import { TextDecoder, TextEncoder } from 'util'
 
-import { handleError } from './error'
 import {
   byteBufferToBuffer,
   allocateStringBuffer,
@@ -41,6 +41,16 @@ function handleReturnPointer<Return>(returnValue: Buffer): Return {
 }
 
 export class NodeJSAnoncreds implements Anoncreds {
+  private handleError() {
+    const nativeError = allocateStringBuffer()
+    getNativeAnoncreds().anoncreds_get_current_error(nativeError)
+    const anoncredsErrorObject = JSON.parse(nativeError.deref() as string) as AnoncredsErrorObject
+
+    if (anoncredsErrorObject.code === 0) return
+
+    throw new AnoncredsError(anoncredsErrorObject)
+  }
+
   public get nativeAnoncreds() {
     return getNativeAnoncreds()
   }
@@ -48,7 +58,7 @@ export class NodeJSAnoncreds implements Anoncreds {
   public generateNonce(): string {
     const ret = allocateStringBuffer()
     this.nativeAnoncreds.anoncreds_generate_nonce(ret)
-    handleError()
+    this.handleError()
 
     return handleReturnPointer<string>(ret)
   }
@@ -64,7 +74,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     const ret = allocatePointer()
 
     this.nativeAnoncreds.anoncreds_create_schema(name, version, issuerId, attributeNames, ret)
-    handleError()
+    this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
@@ -74,7 +84,7 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     const ret = allocateStringBuffer()
     this.nativeAnoncreds.anoncreds_revocation_registry_definition_get_attribute(objectHandle, name, ret)
-    handleError()
+    this.handleError()
 
     return handleReturnPointer<string>(ret)
   }
@@ -84,7 +94,7 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     const ret = allocateStringBuffer()
     this.nativeAnoncreds.anoncreds_credential_get_attribute(objectHandle, name, ret)
-    handleError()
+    this.handleError()
 
     return handleReturnPointer<string>(ret)
   }
@@ -118,7 +128,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialDefinitionPrivatePtr,
       keyCorrectnessProofPtr
     )
-    handleError()
+    this.handleError()
 
     return {
       credentialDefinition: new ObjectHandle(handleReturnPointer<number>(credentialDefinitionPtr)),
@@ -194,7 +204,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       revocationConfiguration?.ref().address() ?? 0,
       credentialPtr
     )
-    handleError()
+    this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(credentialPtr))
   }
@@ -205,7 +215,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     const ret = allocateStringBuffer()
 
     this.nativeAnoncreds.anoncreds_encode_credential_attributes(attributeRawValues, ret)
-    handleError()
+    this.handleError()
 
     const result = handleReturnPointer<string>(ret)
 
@@ -231,7 +241,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       options.revocationRegistryDefinition?.handle ?? 0,
       ret
     )
-    handleError()
+    this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
@@ -245,7 +255,7 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     const ret = allocatePointer()
     this.nativeAnoncreds.anoncreds_create_credential_offer(schemaId, credentialDefinitionId, keyCorrectnessProof, ret)
-    handleError()
+    this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
@@ -274,7 +284,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialRequestPtr,
       credentialRequestMetadataPtr
     )
-    handleError()
+    this.handleError()
 
     return {
       credentialRequest: new ObjectHandle(handleReturnPointer<number>(credentialRequestPtr)),
@@ -286,7 +296,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     const ret = allocatePointer()
 
     this.nativeAnoncreds.anoncreds_create_master_secret(ret)
-    handleError()
+    this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
@@ -387,7 +397,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialDefinitionIds as unknown as Buffer,
       ret
     )
-    handleError()
+    this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
@@ -451,7 +461,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       nonRevokedIntervalOverrideList as unknown as Buffer,
       ret
     )
-    handleError()
+    this.handleError()
 
     return Boolean(handleReturnPointer<number>(ret))
   }
@@ -476,7 +486,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       issuanceByDefault,
       ret
     )
-    handleError()
+    this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
@@ -493,7 +503,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       currentRevocationStatusList,
       ret
     )
-    handleError()
+    this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
@@ -517,7 +527,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       currentRevocationStatusList,
       ret
     )
-    handleError()
+    this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
@@ -555,7 +565,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       revocationRegistryDefinitionPtr,
       revocationRegistryDefinitionPrivate
     )
-    handleError()
+    this.handleError()
 
     return {
       revocationRegistryDefinition: new ObjectHandle(handleReturnPointer<number>(revocationRegistryDefinitionPtr)),
@@ -589,7 +599,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       previousRevocationState.handle,
       ret
     )
-    handleError()
+    this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
@@ -599,14 +609,14 @@ export class NodeJSAnoncreds implements Anoncreds {
 
   public setDefaultLogger(): void {
     this.nativeAnoncreds.anoncreds_set_default_logger()
-    handleError()
+    this.handleError()
   }
 
   // This should be called when a function returns a non-zero code
   public getCurrentError(): string {
     const ret = allocateStringBuffer()
     this.nativeAnoncreds.anoncreds_get_current_error(ret)
-    handleError()
+    this.handleError()
 
     return handleReturnPointer<string>(ret)
   }
@@ -615,7 +625,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     const ret = allocatePointer()
 
     const byteBuffer = ByteBuffer.fromUint8Array(new TextEncoder().encode(options.json))
-    handleError()
+    this.handleError()
 
     method(byteBuffer as unknown as Buffer, ret)
 
@@ -691,7 +701,7 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     const { objectHandle } = serializeArguments(options)
     this.nativeAnoncreds.anoncreds_object_get_json(objectHandle, ret)
-    handleError()
+    this.handleError()
 
     const returnValue = handleReturnPointer<{ data: Buffer; len: number }>(ret)
     const output = new Uint8Array(byteBufferToBuffer(returnValue))
@@ -705,13 +715,13 @@ export class NodeJSAnoncreds implements Anoncreds {
     const ret = allocateStringBuffer()
 
     this.nativeAnoncreds.anoncreds_object_get_type_name(objectHandle, ret)
-    handleError()
+    this.handleError()
 
     return handleReturnPointer<string>(ret)
   }
 
   public objectFree(options: { objectHandle: ObjectHandle }) {
     this.nativeAnoncreds.anoncreds_object_free(options.objectHandle.handle)
-    handleError()
+    this.handleError()
   }
 }
