@@ -20,7 +20,7 @@ from ctypes import (
 )
 from ctypes.util import find_library
 from io import BytesIO
-from typing import Optional, Mapping, Sequence, Tuple, Union
+from typing import Iterable, Optional, Mapping, Sequence, Tuple, Union
 
 from .error import AnoncredsError, AnoncredsErrorCode
 
@@ -143,7 +143,7 @@ class FfiObjectHandleList(Structure):
     ]
 
     @classmethod
-    def create(cls, values: Optional[Sequence[ObjectHandle]]) -> "FfiObjectHandleList":
+    def create(cls, values: Optional[Iterable[ObjectHandle]]) -> "FfiObjectHandleList":
         inst = FfiObjectHandleList()
         if values is not None:
             values = list(values)
@@ -159,12 +159,12 @@ class FfiIntList(Structure):
     ]
 
     @classmethod
-    def create(cls, values: Optional[Sequence[str]]) -> "FfiIntList":
+    def create(cls, values: Optional[Iterable[int]]) -> "FfiIntList":
         inst = FfiIntList()
         if values is not None:
-            values = [c_int64(v) for v in values]
-            inst.count = len(values)
-            inst.data = (c_int64 * inst.count)(*values)
+            ffi_values = [c_int64(v) for v in values]
+            inst.count = len(ffi_values)
+            inst.data = (c_int64 * inst.count)(*ffi_values)
         return inst
 
 
@@ -175,12 +175,12 @@ class FfiStrList(Structure):
     ]
 
     @classmethod
-    def create(cls, values: Optional[Sequence[str]]) -> "FfiStrList":
+    def create(cls, values: Optional[Iterable[str]]) -> "FfiStrList":
         inst = FfiStrList()
         if values is not None:
-            values = [encode_str(v) for v in values]
-            inst.count = len(values)
-            inst.data = (c_char_p * inst.count)(*values)
+            ffi_values = [encode_str(v) for v in values]
+            inst.count = len(ffi_values)
+            inst.data = (c_char_p * inst.count)(*ffi_values)
         return inst
 
 
@@ -195,8 +195,8 @@ class CredentialEntry(Structure):
     def create(
         cls,
         credential: ObjectHandle,
-        timestamp: int = None,
-        rev_state: ObjectHandle = None,
+        timestamp: Optional[int] = None,
+        rev_state: Optional[ObjectHandle] = None,
     ) -> "CredentialEntry":
         return CredentialEntry(
             credential=credential,
@@ -259,9 +259,7 @@ class RevocationConfig(Structure):
     _fields_ = [
         ("rev_reg_def", ObjectHandle),
         ("rev_reg_def_private", ObjectHandle),
-        ("rev_reg", ObjectHandle),
         ("rev_reg_index", c_int64),
-        ("rev_reg_used", FfiIntList),
         ("tails_path", c_char_p),
     ]
 
@@ -270,17 +268,13 @@ class RevocationConfig(Structure):
         cls,
         rev_reg_def: ObjectHandle,
         rev_reg_def_private: ObjectHandle,
-        rev_reg: ObjectHandle,
         rev_reg_index: int,
-        rev_reg_used: Sequence[int],
         tails_path: str,
     ) -> "RevocationConfig":
         return RevocationConfig(
             rev_reg_def=rev_reg_def,
             rev_reg_def_private=rev_reg_def_private,
-            rev_reg=rev_reg,
             rev_reg_index=rev_reg_index,
-            rev_reg_used=FfiIntList.create(rev_reg_used),
             tails_path=encode_str(tails_path),
         )
 
@@ -700,7 +694,7 @@ def verify_presentation(
     schemas: Sequence[ObjectHandle],
     cred_defs: Sequence[ObjectHandle],
     rev_reg_defs: Sequence[ObjectHandle],
-    rev_regs: Sequence[RevocationEntry],
+    rev_regs: Optional[Sequence[RevocationEntry]],
 ) -> bool:
     verify = c_int8()
     entry_list = RevocationEntryList()
@@ -720,34 +714,80 @@ def verify_presentation(
     return bool(verify)
 
 
-def create_revocation_registry(
+def create_revocation_registry_def(
     cred_def: ObjectHandle,
     cred_def_id: str,
     tag: str,
     rev_reg_type: str,
-    issuance_type: Optional[str],
     max_cred_num: int,
     tails_dir_path: Optional[str],
-) -> Tuple[ObjectHandle, ObjectHandle, ObjectHandle, ObjectHandle]:
+) -> Tuple[ObjectHandle, ObjectHandle]:
     reg_def = ObjectHandle()
     reg_def_private = ObjectHandle()
-    reg_entry = ObjectHandle()
-    reg_init_delta = ObjectHandle()
     do_call(
-        "anoncreds_create_revocation_registry",
+        "anoncreds_create_revocation_registry_def",
         cred_def,
         encode_str(cred_def_id),
         encode_str(tag),
         encode_str(rev_reg_type),
-        encode_str(issuance_type),
         c_int64(max_cred_num),
         encode_str(tails_dir_path),
         byref(reg_def),
         byref(reg_def_private),
-        byref(reg_entry),
-        byref(reg_init_delta),
     )
-    return reg_def, reg_def_private, reg_entry, reg_init_delta
+    return reg_def, reg_def_private
+
+
+def create_revocation_status_list(
+    rev_reg_def_id: str,
+    rev_reg_def: ObjectHandle,
+    timestamp: Optional[int],
+    issuance_by_default: bool,
+) -> ObjectHandle:
+    status_list = ObjectHandle()
+    timestamp = 0 if timestamp is None else timestamp
+    do_call(
+        "anoncreds_create_revocation_status_list",
+        encode_str(rev_reg_def_id),
+        rev_reg_def,
+        c_int64(timestamp),
+        c_int8(issuance_by_default),
+        byref(status_list),
+    )
+    return status_list
+
+
+def update_revocation_status_list_timestamp_only(
+    timestamp: int,
+    current_list: ObjectHandle,
+) -> ObjectHandle:
+    updated_list = ObjectHandle()
+    do_call(
+        "anoncreds_update_revocation_status_list_timestamp_only",
+        c_int64(timestamp),
+        current_list,
+        byref(updated_list),
+    )
+    return updated_list
+
+
+def update_revocation_status_list(
+    timestamp: int,
+    issued: Sequence[int],
+    revoked: Sequence[int],
+    rev_reg_def: ObjectHandle,
+    current_list: ObjectHandle,
+) -> ObjectHandle:
+    updated_list = ObjectHandle()
+    do_call(
+        c_int64(timestamp),
+        FfiIntList.create(issued),
+        FfiIntList.create(revoked),
+        rev_reg_def,
+        current_list,
+        byref(updated_list),
+    )
+    return updated_list
 
 
 def update_revocation_registry(
@@ -791,8 +831,8 @@ def create_or_update_revocation_state(
     rev_reg_list: ObjectHandle,
     rev_reg_index: int,
     tails_path: str,
-    rev_state: ObjectHandle,
-    old_rev_reg_list: ObjectHandle,
+    rev_state: Optional[ObjectHandle] = None,
+    old_rev_reg_list: Optional[ObjectHandle] = None,
 ) -> ObjectHandle:
     rev_state = ObjectHandle()
     do_call(
@@ -801,8 +841,8 @@ def create_or_update_revocation_state(
         rev_reg_list,
         c_int64(rev_reg_index),
         encode_str(tails_path),
-        rev_state,
-        old_rev_reg_list,
+        rev_state or ObjectHandle(),
+        old_rev_reg_list or ObjectHandle(),
         byref(rev_state),
     )
     return rev_state

@@ -118,14 +118,14 @@ class CredentialRequest(bindings.AnoncredsObject):
             master_secret = MasterSecret.load(master_secret)
         if not isinstance(cred_offer, bindings.AnoncredsObject):
             cred_offer = CredentialOffer.load(cred_offer)
-        cred_def, cred_def_metadata = bindings.create_credential_request(
+        cred_def_handle, cred_def_metadata = bindings.create_credential_request(
             prover_did,
             cred_def.handle,
             master_secret.handle,
             master_secret_id,
             cred_offer.handle,
         )
-        return CredentialRequest(cred_def), CredentialRequestMetadata(cred_def_metadata)
+        return CredentialRequest(cred_def_handle), CredentialRequestMetadata(cred_def_metadata)
 
     @classmethod
     def load(cls, value: Union[dict, str, bytes, memoryview]) -> "CredentialRequest":
@@ -185,9 +185,9 @@ class Credential(bindings.AnoncredsObject):
         cred_offer: Union[str, CredentialOffer],
         cred_request: Union[str, CredentialRequest],
         attr_raw_values: Mapping[str, str],
-        attr_enc_values: Mapping[str, str] = None,
+        attr_enc_values: Optional[Mapping[str, str]] = None,
         rev_reg_id: Optional[str] = None,
-        revocation_config: "CredentialRevocationConfig" = None,
+        revocation_config: Optional["CredentialRevocationConfig"] = None,
     ) -> Tuple[
         "Credential",
         Optional["RevocationRegistry"],
@@ -310,8 +310,8 @@ class PresentCredentials:
     def _get_entry(
         self,
         cred: Credential,
-        timestamp: int = None,
-        rev_state: "CredentialRevocationState" = None,
+        timestamp: Optional[int] = None,
+        rev_state: Union[None, str, "CredentialRevocationState"] = None,
     ):
         if cred not in self.entries:
             self.entries[cred] = {}
@@ -328,8 +328,8 @@ class PresentCredentials:
         cred: Credential,
         *referents: Sequence[str],
         reveal: bool = True,
-        timestamp: int = None,
-        rev_state: Union[str, "CredentialRevocationState"] = None,
+        timestamp: Optional[int] = None,
+        rev_state: Union[None, str, "CredentialRevocationState"] = None,
     ):
         if not referents:
             return
@@ -341,8 +341,8 @@ class PresentCredentials:
         self,
         cred: Credential,
         *referents: Sequence[str],
-        timestamp: int = None,
-        rev_state: Union[str, "CredentialRevocationState"] = None,
+        timestamp: Optional[int] = None,
+        rev_state: Union[None, str, "CredentialRevocationState"] = None,
     ):
         if not referents:
             return
@@ -368,13 +368,13 @@ class Presentation(bindings.AnoncredsObject):
             master_secret = MasterSecret.load(master_secret)
         schema_ids = list(schemas.keys())
         cred_def_ids = list(cred_defs.keys())
-        schemas = [
+        schema_handles = [
             (
                 Schema.load(s) if not isinstance(s, bindings.AnoncredsObject) else s
             ).handle
             for s in schemas.values()
         ]
-        cred_defs = [
+        cred_def_handles = [
             (
                 CredentialDefinition.load(c)
                 if not isinstance(c, bindings.AnoncredsObject)
@@ -405,11 +405,11 @@ class Presentation(bindings.AnoncredsObject):
                 pres_req.handle,
                 creds,
                 creds_prove,
-                self_attest,
+                self_attest or {},
                 master_secret.handle,
-                schemas,
+                schema_handles,
                 schema_ids,
-                cred_defs,
+                cred_def_handles,
                 cred_def_ids,
             )
         )
@@ -425,20 +425,20 @@ class Presentation(bindings.AnoncredsObject):
         pres_req: Union[str, PresentationRequest],
         schemas: Sequence[Union[str, Schema]],
         cred_defs: Sequence[Union[str, CredentialDefinition]],
-        rev_reg_defs: Sequence[Union[str, "RevocationRegistryDefinition"]] = None,
-        rev_reg_entries: Mapping[
+        rev_reg_defs: Sequence[Union[str, "RevocationRegistryDefinition"]],
+        rev_reg_entries: Optional[Mapping[
             str, Mapping[int, Union[str, "RevocationRegistry"]]
-        ] = None,
+        ]] = None,
     ) -> bool:
         if not isinstance(pres_req, bindings.AnoncredsObject):
             pres_req = PresentationRequest.load(pres_req)
-        schemas = [
+        schema_handles = [
             (
                 Schema.load(s) if not isinstance(s, bindings.AnoncredsObject) else s
             ).handle
             for s in schemas
         ]
-        cred_defs = [
+        cred_def_handles = [
             (
                 CredentialDefinition.load(c)
                 if not isinstance(c, bindings.AnoncredsObject)
@@ -466,8 +466,8 @@ class Presentation(bindings.AnoncredsObject):
         return bindings.verify_presentation(
             self.handle,
             pres_req.handle,
-            schemas,
-            cred_defs,
+            schema_handles,
+            cred_def_handles,
             reg_defs,
             reg_entries or None,
         )
@@ -485,35 +485,27 @@ class RevocationRegistryDefinition(bindings.AnoncredsObject):
         registry_type: str,
         max_cred_num: int,
         *,
-        issuance_type: str = None,
-        tails_dir_path: str = None,
+        tails_dir_path: Optional[str] = None,
     ) -> Tuple[
         "RevocationRegistryDefinition",
         "RevocationRegistryDefinitionPrivate",
-        "RevocationRegistry",
-        "RevocationRegistryDelta",
     ]:
         if not isinstance(cred_def, bindings.AnoncredsObject):
             cred_def = CredentialDefinition.load(cred_def)
         (
             reg_def,
             reg_def_private,
-            reg_entry,
-            reg_init_delta,
-        ) = bindings.create_revocation_registry(
+        ) = bindings.create_revocation_registry_def(
             cred_def.handle,
             cred_def_id,
             tag,
             registry_type,
-            issuance_type,
             max_cred_num,
             tails_dir_path,
         )
         return (
             RevocationRegistryDefinition(reg_def),
             RevocationRegistryDefinitionPrivate(reg_def_private),
-            RevocationRegistry(reg_entry),
-            RevocationRegistryDelta(reg_init_delta),
         )
 
     @classmethod
@@ -581,6 +573,51 @@ class RevocationRegistryDefinitionPrivate(bindings.AnoncredsObject):
         )
 
 
+class RevocationStatusList(bindings.AnoncredsObject):
+    @classmethod
+    def create(
+        cls,
+        rev_reg_def_id: str,
+        rev_reg_def: Union[dict, str, bytes, RevocationRegistryDefinition],
+        *,
+        timestamp: Optional[int] = None,
+        issuance_by_default: bool = True,
+    ) -> "RevocationStatusList":
+        if not isinstance(rev_reg_def, bindings.AnoncredsObject):
+            rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
+        (
+            rev_status_list
+        ) = bindings.create_revocation_status_list(
+            rev_reg_def_id,
+            rev_reg_def.handle,
+            timestamp,
+            issuance_by_default,
+        )
+        return RevocationStatusList(rev_status_list)
+
+    @classmethod
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "RevocationStatusList":
+        return RevocationStatusList(
+            bindings._object_from_json("anoncreds_revocation_list_from_json", value)
+        )
+
+    def update_timestamp_only(self, timestamp: int):
+        self.handle = bindings.update_revocation_status_list_timestamp_only(timestamp, self.handle)
+
+    def update(
+        self,
+        rev_reg_def: Union[dict, str, bytes, RevocationRegistryDefinition],
+        timestamp: int,
+        issued: Sequence[int],
+        revoked: Sequence[int],
+    ):
+        if not isinstance(rev_reg_def, bindings.AnoncredsObject):
+            rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
+        self.handle = bindings.update_revocation_status_list(
+            timestamp, issued, revoked, rev_reg_def.handle, self.handle
+        )
+
+
 class RevocationRegistry(bindings.AnoncredsObject):
     @classmethod
     def load(cls, value: Union[dict, str, bytes, memoryview]) -> "RevocationRegistry":
@@ -640,12 +677,10 @@ class RevocationRegistryDelta(bindings.AnoncredsObject):
 class CredentialRevocationConfig:
     def __init__(
         self,
-        rev_reg_def: Union[str, "RevocationRegistryDefinition"] = None,
-        rev_reg_def_private: Union[str, "RevocationRegistryDefinitionPrivate"] = None,
-        rev_reg: Union[str, "RevocationRegistry"] = None,
-        rev_reg_index: int = None,
-        rev_reg_used: Sequence[int] = None,
-        tails_path: str = None,
+        rev_reg_def: Union[str, "RevocationRegistryDefinition"],
+        rev_reg_def_private: Union[str, "RevocationRegistryDefinitionPrivate"],
+        rev_reg_index: int,
+        tails_path: str,
     ):
         if not isinstance(rev_reg_def, bindings.AnoncredsObject):
             rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
@@ -655,11 +690,7 @@ class CredentialRevocationConfig:
                 rev_reg_def_private
             )
         self.rev_reg_def_private = rev_reg_def_private
-        if not isinstance(rev_reg, bindings.AnoncredsObject):
-            rev_reg = RevocationRegistry.load(rev_reg)
-        self.rev_reg = rev_reg
         self.rev_reg_index = rev_reg_index
-        self.rev_reg_used = rev_reg_used
         self.tails_path = tails_path
 
     @property
@@ -667,9 +698,7 @@ class CredentialRevocationConfig:
         return bindings.RevocationConfig.create(
             self.rev_reg_def.handle,
             self.rev_reg_def_private.handle,
-            self.rev_reg.handle,
             self.rev_reg_index,
-            self.rev_reg_used,
             self.tails_path,
         )
 
@@ -678,32 +707,21 @@ class CredentialRevocationState(bindings.AnoncredsObject):
     @classmethod
     def create(
         cls,
-        rev_reg_def: Union[str, RevocationRegistryDefinition],
-        # Delta -> List
-        rev_reg_list: Union[str, RevocationRegistryDelta],
-        rev_reg_idx: int,
+        rev_reg_def: Union[str, bytes, dict, memoryview, RevocationRegistryDefinition],
+        rev_status_list: Union[str, bytes, dict, memoryview, RevocationStatusList],
+        rev_reg_index: int,
         tails_path: str,
-        # TODO: state type
-        rev_state: Union[str, str],
-        # Delta -> List
-        old_rev_reg_list: Union[str, RevocationRegistryDelta],
     ) -> "CredentialRevocationState":
         if not isinstance(rev_reg_def, bindings.AnoncredsObject):
             rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
-        if not isinstance(rev_reg_list, bindings.AnoncredsObject):
-            rev_reg_list = RevocationRegistryDelta.load(rev_reg_list)
-        if not isinstance(rev_state, bindings.AnoncredsObject):
-            rev_state = CredentialRevocationState.load(rev_state)
-        if not isinstance(old_rev_reg_list, bindings.AnoncredsObject):
-            old_rev_reg_list = RevocationRegistryDelta.load(old_rev_reg_list)
+        if not isinstance(rev_status_list, bindings.AnoncredsObject):
+            rev_status_list = RevocationStatusList.load(rev_status_list)
         return CredentialRevocationState(
             bindings.create_or_update_revocation_state(
                 rev_reg_def.handle,
-                rev_reg_list.handle,
-                rev_reg_idx,
+                rev_status_list.handle,
+                rev_reg_index,
                 tails_path,
-                rev_state.handle,
-                old_rev_reg_list.handle,
             )
         )
 
@@ -717,21 +735,23 @@ class CredentialRevocationState(bindings.AnoncredsObject):
 
     def update(
         self,
-        rev_reg_def: Union[str, RevocationRegistryDefinition],
-        rev_reg_delta: Union[str, RevocationRegistryDelta],
+        rev_reg_def: Union[str, dict, bytes, memoryview, RevocationRegistryDefinition],
+        rev_status_list: Union[str, dict, bytes, memoryview, RevocationStatusList],
         rev_reg_index: int,
-        timestamp: int,
         tails_path: str,
+        old_rev_status_list: Union[str, bytes, dict, memoryview, RevocationStatusList],
     ):
         if not isinstance(rev_reg_def, bindings.AnoncredsObject):
             rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
-        if not isinstance(rev_reg_delta, bindings.AnoncredsObject):
-            rev_reg_delta = RevocationRegistryDelta.load(rev_reg_delta)
+        if not isinstance(rev_status_list, bindings.AnoncredsObject):
+            rev_status_list = RevocationStatusList.load(rev_status_list)
+        if not isinstance(old_rev_status_list, bindings.AnoncredsObject):
+            old_rev_status_list = RevocationStatusList.load(old_rev_status_list)
         self.handle = bindings.create_or_update_revocation_state(
             rev_reg_def.handle,
-            rev_reg_delta.handle,
+            rev_status_list.handle,
             rev_reg_index,
-            timestamp,
             tails_path,
             self.handle,
+            old_rev_status_list.handle,
         )
