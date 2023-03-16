@@ -93,7 +93,6 @@ pub extern "C" fn anoncreds_update_revocation_status_list(
         )?;
 
         let new_rev_status_list = ObjectHandle::create(new_rev_status_list)?;
-        ObjectHandle::remove(&rev_current_list)?;
 
         unsafe { *new_rev_status_list_p = new_rev_status_list };
 
@@ -117,7 +116,6 @@ pub extern "C" fn anoncreds_update_revocation_status_list_timestamp_only(
         );
 
         let new_rev_status_list_handle = ObjectHandle::create(new_rev_status_list)?;
-        ObjectHandle::remove(&rev_current_list)?;
 
         unsafe { *rev_status_list_p = new_rev_status_list_handle };
 

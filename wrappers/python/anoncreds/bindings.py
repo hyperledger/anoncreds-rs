@@ -13,6 +13,7 @@ from ctypes import (
     c_char_p,
     c_int8,
     c_int64,
+    c_int32,
     c_size_t,
     c_ubyte,
     c_void_p,
@@ -159,7 +160,7 @@ class FfiIntList(Structure):
     ]
 
     @classmethod
-    def create(cls, values: Optional[Sequence[str]]) -> "FfiIntList":
+    def create(cls, values: Optional[Sequence[int]]) -> "FfiIntList":
         inst = FfiIntList()
         if values is not None:
             values = [c_int64(v) for v in values]
@@ -167,6 +168,20 @@ class FfiIntList(Structure):
             inst.data = (c_int64 * inst.count)(*values)
         return inst
 
+class FfiInt32List(Structure):
+    _fields_ = [
+        ("count", c_size_t),
+        ("data", POINTER(c_int32)),
+    ]
+
+    @classmethod
+    def create(cls, values: Optional[Sequence[int]]) -> "FfiInt32List":
+        inst = FfiInt32List()
+        if values is not None:
+            values = [c_int32(v) for v in values]
+            inst.count = len(values)
+            inst.data = (c_int32 * inst.count)(*values)
+        return inst
 
 class FfiStrList(Structure):
     _fields_ = [
@@ -247,21 +262,43 @@ class CredentialProve(Structure):
             reveal=True,
         )
 
-
 class CredentialProveList(Structure):
     _fields_ = [
         ("count", c_int64),
         ("data", POINTER(CredentialProve)),
     ]
 
+class NonrevokedIntervalOverride(Structure):
+    _fields_ = [
+        ("rev_reg_def_id", c_char_p),
+        ("requested_from_ts", c_int32),
+        ("override_rev_status_list_ts", c_int32),
+    ]
+
+    @classmethod
+    def create(
+        cls,
+        rev_reg_def_id: str,
+        requested_from_ts: int,
+        override_rev_status_list_ts: int,
+    ) -> "NonrevokedIntervalOverride":
+        return NonrevokedIntervalOverride(
+            rev_reg_def_id=encode_str(rev_reg_def_id),
+            requested_from_ts=requested_from_ts,
+            override_rev_status_list_ts=override_rev_status_list_ts,
+        )
+
+class NonrevokedIntervalOverrideList(Structure):
+    _fields_ = [
+        ("count", c_int64),
+        ("data", POINTER(NonrevokedIntervalOverride)),
+    ]
 
 class RevocationConfig(Structure):
     _fields_ = [
         ("rev_reg_def", ObjectHandle),
         ("rev_reg_def_private", ObjectHandle),
-        ("rev_reg", ObjectHandle),
         ("rev_reg_index", c_int64),
-        ("rev_reg_used", FfiIntList),
         ("tails_path", c_char_p),
     ]
 
@@ -270,17 +307,13 @@ class RevocationConfig(Structure):
         cls,
         rev_reg_def: ObjectHandle,
         rev_reg_def_private: ObjectHandle,
-        rev_reg: ObjectHandle,
         rev_reg_index: int,
-        rev_reg_used: Sequence[int],
         tails_path: str,
     ) -> "RevocationConfig":
         return RevocationConfig(
             rev_reg_def=rev_reg_def,
             rev_reg_def_private=rev_reg_def_private,
-            rev_reg=rev_reg,
             rev_reg_index=rev_reg_index,
-            rev_reg_used=FfiIntList.create(rev_reg_used),
             tails_path=encode_str(tails_path),
         )
 
@@ -530,11 +563,10 @@ def create_credential(
     attr_raw_values: Mapping[str, str],
     attr_enc_values: Optional[Mapping[str, str]],
     rev_reg_id: Optional[str],
+    rev_status_list: Optional[ObjectHandle],
     revocation_config: Optional[RevocationConfig],
-) -> Tuple[ObjectHandle, ObjectHandle, ObjectHandle]:
+) -> ObjectHandle:
     cred = ObjectHandle()
-    rev_reg = ObjectHandle()
-    rev_delta = ObjectHandle()
     attr_keys = list(attr_raw_values.keys())
     names_list = FfiStrList.create(attr_keys)
     raw_values_list = FfiStrList.create(str(attr_raw_values[k]) for k in attr_keys)
@@ -544,7 +576,7 @@ def create_credential(
             enc_values_list.append(attr_enc_values.get(name))
     else:
         enc_values_list = None
-    enc_values_list = FfiStrList().create(enc_values_list)
+    enc_values_list = FfiStrList.create(enc_values_list)
     do_call(
         "anoncreds_create_credential",
         cred_def,
@@ -555,14 +587,11 @@ def create_credential(
         raw_values_list,
         enc_values_list,
         encode_str(rev_reg_id),
-        pointer(revocation_config)
-        if revocation_config
-        else POINTER(RevocationConfig)(),
+        rev_status_list if rev_status_list else ObjectHandle(),
+        pointer(revocation_config) if revocation_config else POINTER(RevocationConfig)(),
         byref(cred),
-        byref(rev_reg),
-        byref(rev_delta),
     )
-    return cred, rev_reg, rev_delta
+    return cred
 
 
 def encode_credential_attributes(
@@ -630,6 +659,7 @@ def create_credential_offer(
 
 
 def create_credential_request(
+    entropy: Optional[str],
     prover_did: Optional[str],
     cred_def: ObjectHandle,
     master_secret: ObjectHandle,
@@ -639,6 +669,7 @@ def create_credential_request(
     cred_req, cred_req_metadata = ObjectHandle(), ObjectHandle()
     do_call(
         "anoncreds_create_credential_request",
+        encode_str(entropy),
         encode_str(prover_did),
         cred_def,
         master_secret,
@@ -663,7 +694,7 @@ def create_presentation(
     pres_req: ObjectHandle,
     credentials: Sequence[CredentialEntry],
     credentials_prove: Sequence[CredentialProve],
-    self_attest: Mapping[str, str],
+    self_attest: Optional[Mapping[str, str]],
     master_secret: ObjectHandle,
     schemas: Sequence[ObjectHandle],
     schema_ids: Sequence[str],
@@ -677,13 +708,14 @@ def create_presentation(
     prove_list.count = len(credentials_prove)
     prove_list.data = (CredentialProve * prove_list.count)(*credentials_prove)
     present = ObjectHandle()
+
     do_call(
         "anoncreds_create_presentation",
         pres_req,
         entry_list,
         prove_list,
-        FfiStrList.create(self_attest.keys()),
-        FfiStrList.create(self_attest.values()),
+        FfiStrList.create(self_attest.keys() if self_attest else None),
+        FfiStrList.create(self_attest.values() if self_attest else None),
         master_secret,
         FfiObjectHandleList.create(schemas),
         FfiStrList.create(schema_ids),
@@ -693,61 +725,122 @@ def create_presentation(
     )
     return present
 
+def create_revocation_status_list(
+    rev_reg_def_id: str,
+    rev_reg_def: ObjectHandle,
+    issuer_id: str,
+    timestamp: Optional[int],
+    issuance_by_default: bool,
+) -> ObjectHandle:
+    revocation_status_list = ObjectHandle()
+
+    do_call(
+        "anoncreds_create_revocation_status_list",
+        encode_str(rev_reg_def_id),
+        rev_reg_def,
+        encode_str(issuer_id),
+        timestamp if timestamp else -1,
+        int(issuance_by_default),
+        byref(revocation_status_list),
+    )
+    return revocation_status_list
+
+def update_revocation_status_list(
+    timestamp: Optional[int],
+    issued: Optional[Sequence[int]],
+    revoked: Optional[Sequence[int]],
+    rev_reg_def: ObjectHandle,
+    rev_current_list: ObjectHandle,
+) -> ObjectHandle:
+    new_revocation_status_list = ObjectHandle()
+
+    do_call(
+        "anoncreds_update_revocation_status_list",
+        timestamp if timestamp else -1,
+        FfiInt32List.create(issued),
+        FfiInt32List.create(revoked),
+        rev_reg_def,
+        rev_current_list,
+        byref(new_revocation_status_list)
+    )
+
+    return new_revocation_status_list
+
+def update_revocation_status_list_timestamp_only(
+    timestamp: int,
+    rev_current_list: ObjectHandle,
+) -> ObjectHandle:
+    new_revocation_status_list = ObjectHandle()
+
+    do_call(
+        "anoncreds_update_revocation_status_list_timestamp_only",
+        timestamp,
+        rev_current_list.handle,
+        byref(new_revocation_status_list)
+    )
+
+    return new_revocation_status_list
 
 def verify_presentation(
     presentation: ObjectHandle,
     pres_req: ObjectHandle,
+    schema_ids: Sequence[str],
     schemas: Sequence[ObjectHandle],
+    cred_def_ids: Sequence[str],
     cred_defs: Sequence[ObjectHandle],
-    rev_reg_defs: Sequence[ObjectHandle],
-    rev_regs: Sequence[RevocationEntry],
+    rev_reg_def_ids: Optional[Sequence[str]],
+    rev_reg_defs: Optional[Sequence[ObjectHandle]],
+    rev_status_lists: Optional[Sequence[ObjectHandle]],
+    nonrevoked_interval_overrides: Optional[Sequence[NonrevokedIntervalOverride]]
 ) -> bool:
     verify = c_int8()
-    entry_list = RevocationEntryList()
-    if rev_regs:
-        entry_list.count = len(rev_regs)
-        entry_list.data = (RevocationEntry * entry_list.count)(*rev_regs)
+
+    nonrevoked_interval_overrides_list = NonrevokedIntervalOverrideList()
+    if nonrevoked_interval_overrides:
+        nonrevoked_interval_overrides_list.count = len(nonrevoked_interval_overrides)
+        nonrevoked_interval_overrides_list.data = (NonrevokedIntervaOverride * nonrevoked_interval_overrides.count)(*nonrevoked_interval_overrides)
+
     do_call(
         "anoncreds_verify_presentation",
         presentation,
         pres_req,
         FfiObjectHandleList.create(schemas),
+        FfiStrList.create(schema_ids),
         FfiObjectHandleList.create(cred_defs),
+        FfiStrList.create(cred_def_ids),
         FfiObjectHandleList.create(rev_reg_defs),
-        entry_list,
+        FfiStrList.create(rev_reg_def_ids),
+        FfiObjectHandleList.create(rev_status_lists),
+        nonrevoked_interval_overrides_list, 
         byref(verify),
     )
     return bool(verify)
 
 
-def create_revocation_registry(
+def create_revocation_registry_definition(
     cred_def: ObjectHandle,
     cred_def_id: str,
+    issuer_id: str,
     tag: str,
     rev_reg_type: str,
-    issuance_type: Optional[str],
     max_cred_num: int,
     tails_dir_path: Optional[str],
-) -> Tuple[ObjectHandle, ObjectHandle, ObjectHandle, ObjectHandle]:
+) -> Tuple[ObjectHandle, ObjectHandle]:
     reg_def = ObjectHandle()
     reg_def_private = ObjectHandle()
-    reg_entry = ObjectHandle()
-    reg_init_delta = ObjectHandle()
     do_call(
-        "anoncreds_create_revocation_registry",
+        "anoncreds_create_revocation_registry_def",
         cred_def,
         encode_str(cred_def_id),
+        encode_str(issuer_id),
         encode_str(tag),
         encode_str(rev_reg_type),
-        encode_str(issuance_type),
         c_int64(max_cred_num),
         encode_str(tails_dir_path),
         byref(reg_def),
         byref(reg_def_private),
-        byref(reg_entry),
-        byref(reg_init_delta),
     )
-    return reg_def, reg_def_private, reg_entry, reg_init_delta
+    return reg_def, reg_def_private
 
 
 def update_revocation_registry(
@@ -788,21 +881,21 @@ def merge_revocation_registry_deltas(
 
 def create_or_update_revocation_state(
     rev_reg_def: ObjectHandle,
-    rev_reg_list: ObjectHandle,
+    rev_status_list: ObjectHandle,
     rev_reg_index: int,
     tails_path: str,
-    rev_state: ObjectHandle,
-    old_rev_reg_list: ObjectHandle,
+    rev_state: Optional[ObjectHandle],
+    old_rev_status_list: Optional[ObjectHandle],
 ) -> ObjectHandle:
-    rev_state = ObjectHandle()
+    updated_rev_state = ObjectHandle()
     do_call(
         "anoncreds_create_or_update_revocation_state",
         rev_reg_def,
-        rev_reg_list,
+        rev_status_list,
         c_int64(rev_reg_index),
         encode_str(tails_path),
-        rev_state,
-        old_rev_reg_list,
-        byref(rev_state),
+        rev_state if rev_state else ObjectHandle(),
+        old_rev_status_list if old_rev_status_list else ObjectHandle(),
+        byref(updated_rev_state),
     )
-    return rev_state
+    return updated_rev_state
