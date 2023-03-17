@@ -333,7 +333,7 @@ fn anoncreds_with_revocation_works_for_single_issuer_single_prover() {
         &cred_offer,
         &cred_request,
         cred_values.into(),
-        Some(rev_reg_id.clone()),
+        Some(rev_reg_id),
         Some(&revocation_status_list),
         Some(CredentialRevocationConfig {
             reg_def: &rev_reg_def_pub,
@@ -518,7 +518,7 @@ fn _create_presentation(
         self_attested_phone.to_string(),
     );
 
-    let presentation = prover::create_presentation(
+    prover::create_presentation(
         pres_request,
         present,
         Some(self_attested),
@@ -526,8 +526,7 @@ fn _create_presentation(
         schemas,
         cred_defs,
     )
-    .expect("Error creating presentation");
-    presentation
+    .expect("Error creating presentation")
 }
 
 /*
