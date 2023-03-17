@@ -73,22 +73,6 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code, int8_t *value) {
 
 template <>
 jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
-                             uint32_t *value) {
-  auto object = jsi::Object(rt);
-
-  if (code == ErrorCode::Success) {
-    auto valueWithoutNullptr =
-        value == nullptr ? jsi::Value::null() : jsi::Value(rt, int(*value));
-    object.setProperty(rt, "value", valueWithoutNullptr);
-  }
-
-  object.setProperty(rt, "errorCode", int(code));
-
-  return object;
-}
-
-template <>
-jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
                              ObjectHandle *value) {
   auto object = jsi::Object(rt);
 
@@ -132,11 +116,11 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
     } else {
       auto objectValue = jsi::Object(rt);
       objectValue.setProperty(rt, "credentialDefinition",
-                         int(value->credentialDefinition));
+                              int(value->credentialDefinition));
       objectValue.setProperty(rt, "credentialDefinitionPrivate",
-                         int(value->credentialDefinitionPrivate));
+                              int(value->credentialDefinitionPrivate));
       objectValue.setProperty(rt, "keyCorrectnessProof",
-                         int(value->keyCorrectnessProof));
+                              int(value->keyCorrectnessProof));
       object.setProperty(rt, "value", objectValue);
     }
   }
@@ -157,9 +141,9 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
     } else {
       auto objectValue = jsi::Object(rt);
       objectValue.setProperty(rt, "credentialRequest",
-                         int(value->credentialRequest));
+                              int(value->credentialRequest));
       objectValue.setProperty(rt, "credentialRequestMetadata",
-                         int(value->credentialRequestMetadata));
+                              int(value->credentialRequestMetadata));
       object.setProperty(rt, "value", objectValue);
     }
   }
@@ -181,9 +165,9 @@ createReturnValue(jsi::Runtime &rt, ErrorCode code,
     } else {
       auto objectValue = jsi::Object(rt);
       objectValue.setProperty(rt, "revocationRegistryDefinition",
-                         int(value->revocationRegistryDefinition));
+                              int(value->revocationRegistryDefinition));
       objectValue.setProperty(rt, "revocationRegistryDefinitionPrivate",
-                         int(value->revocationRegistryDefinitionPrivate));
+                              int(value->revocationRegistryDefinitionPrivate));
       object.setProperty(rt, "value", objectValue);
     }
   }
@@ -217,7 +201,7 @@ int8_t jsiToValue(jsi::Runtime &rt, jsi::Object &options, const char *name,
     return value.asNumber();
 
   if (value.isBool())
-      return value.getBool() ? 1 : 0;
+    return value.getBool() ? 1 : 0;
 
   throw jsi::JSError(rt, errorPrefix + name + errorInfix + "number");
 };
@@ -369,7 +353,8 @@ jsiToValue<FfiList_FfiCredentialEntry>(jsi::Runtime &rt, jsi::Object &options,
 
       auto credential =
           jsiToValue<ObjectHandle>(rt, valueAsObject, "credential");
-      auto timestamp = jsiToValue<int32_t>(rt, valueAsObject, "timestamp", true);
+      auto timestamp =
+          jsiToValue<int32_t>(rt, valueAsObject, "timestamp", true);
       auto revocationState =
           jsiToValue<ObjectHandle>(rt, valueAsObject, "revocationState", true);
 
@@ -550,7 +535,7 @@ FfiCredRevInfo jsiToValue(jsi::Runtime &rt, jsi::Object &options,
 
 template <>
 FfiNonrevokedIntervalOverride jsiToValue(jsi::Runtime &rt, jsi::Object &options,
-                          const char *name, bool optional) {
+                                         const char *name, bool optional) {
   jsi::Value value = options.getProperty(rt, name);
   if ((value.isNull() || value.isUndefined()) && optional)
     return FfiNonrevokedIntervalOverride{};
@@ -559,13 +544,15 @@ FfiNonrevokedIntervalOverride jsiToValue(jsi::Runtime &rt, jsi::Object &options,
     jsi::Object valueAsObject = value.asObject(rt);
     auto requestedFromTimestamp =
         jsiToValue<int32_t>(rt, valueAsObject, "requestedFromTimestamp");
-    auto overrideRevocationStatusListTimestamp =
-        jsiToValue<int32_t>(rt, valueAsObject, "overrideRevocationStatusListTimestamp");
-    auto revocationRegistryDefinitionId = jsiToValue<std::string>(rt, valueAsObject, "revocationRegistryDefinitionId");
+    auto overrideRevocationStatusListTimestamp = jsiToValue<int32_t>(
+        rt, valueAsObject, "overrideRevocationStatusListTimestamp");
+    auto revocationRegistryDefinitionId = jsiToValue<std::string>(
+        rt, valueAsObject, "revocationRegistryDefinitionId");
 
-    return FfiNonrevokedIntervalOverride{.rev_reg_def_id = revocationRegistryDefinitionId.c_str(),
-                          .requested_from_ts = requestedFromTimestamp,
-                          .override_rev_status_list_ts = overrideRevocationStatusListTimestamp};
+    return FfiNonrevokedIntervalOverride{
+        .rev_reg_def_id = revocationRegistryDefinitionId.c_str(),
+        .requested_from_ts = requestedFromTimestamp,
+        .override_rev_status_list_ts = overrideRevocationStatusListTimestamp};
   }
 
   throw jsi::JSError(rt, errorPrefix + name + errorInfix +
@@ -574,15 +561,18 @@ FfiNonrevokedIntervalOverride jsiToValue(jsi::Runtime &rt, jsi::Object &options,
 
 template <>
 FfiList_FfiNonrevokedIntervalOverride
-jsiToValue<FfiList_FfiNonrevokedIntervalOverride>(jsi::Runtime &rt, jsi::Object &options,
-                                       const char *name, bool optional) {
+jsiToValue<FfiList_FfiNonrevokedIntervalOverride>(jsi::Runtime &rt,
+                                                  jsi::Object &options,
+                                                  const char *name,
+                                                  bool optional) {
   jsi::Value value = options.getProperty(rt, name);
 
   if (value.isObject() && value.asObject(rt).isArray(rt)) {
     auto arr = value.asObject(rt).asArray(rt);
     auto len = arr.length(rt);
 
-    auto nonRevokedInterValOverrides = new FfiNonrevokedIntervalOverride[arrayMaxSize];
+    auto nonRevokedInterValOverrides =
+        new FfiNonrevokedIntervalOverride[arrayMaxSize];
 
     // TODO: error Handling
     for (int i = 0; i < len; i++) {
@@ -590,18 +580,23 @@ jsiToValue<FfiList_FfiNonrevokedIntervalOverride>(jsi::Runtime &rt, jsi::Object 
       auto valueAsObject = element.asObject(rt);
 
       auto requestedFromTimestamp =
-        jsiToValue<int32_t>(rt, valueAsObject, "requestedFromTimestamp");
-      auto overrideRevocationStatusListTimestamp =
-        jsiToValue<int32_t>(rt, valueAsObject, "overrideRevocationStatusListTimestamp");
-      auto revocationRegistryDefinitionId = jsiToValue<std::string>(rt, valueAsObject, "revocationRegistryDefinitionId");
+          jsiToValue<int32_t>(rt, valueAsObject, "requestedFromTimestamp");
+      auto overrideRevocationStatusListTimestamp = jsiToValue<int32_t>(
+          rt, valueAsObject, "overrideRevocationStatusListTimestamp");
+      auto revocationRegistryDefinitionId = jsiToValue<std::string>(
+          rt, valueAsObject, "revocationRegistryDefinitionId");
 
-      nonRevokedInterValOverrides[i] = *new FfiNonrevokedIntervalOverride[sizeof(FfiNonrevokedIntervalOverride)];
-      nonRevokedInterValOverrides[i] = FfiNonrevokedIntervalOverride{.rev_reg_def_id = revocationRegistryDefinitionId.c_str(),
-                          .requested_from_ts = requestedFromTimestamp,
-                          .override_rev_status_list_ts = overrideRevocationStatusListTimestamp};
+      nonRevokedInterValOverrides[i] =
+          *new FfiNonrevokedIntervalOverride[sizeof(
+              FfiNonrevokedIntervalOverride)];
+      nonRevokedInterValOverrides[i] = FfiNonrevokedIntervalOverride{
+          .rev_reg_def_id = revocationRegistryDefinitionId.c_str(),
+          .requested_from_ts = requestedFromTimestamp,
+          .override_rev_status_list_ts = overrideRevocationStatusListTimestamp};
     }
 
-    return FfiList_FfiNonrevokedIntervalOverride{.count = len, .data = nonRevokedInterValOverrides};
+    return FfiList_FfiNonrevokedIntervalOverride{
+        .count = len, .data = nonRevokedInterValOverrides};
   }
 
   if (optional)
