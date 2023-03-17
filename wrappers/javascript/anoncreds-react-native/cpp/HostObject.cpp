@@ -50,37 +50,38 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   fMap.insert(std::make_tuple("objectFree", &anoncreds::objectFree));
 
   fMap.insert(std::make_tuple("credentialDefinitionFromJson",
-                                &anoncreds::credentialDefinitionFromJson));
-  fMap.insert(std::make_tuple("revocationRegistryDefinitionFromJson",
-                                &anoncreds::revocationRegistryDefinitionFromJson));
+                              &anoncreds::credentialDefinitionFromJson));
+  fMap.insert(
+      std::make_tuple("revocationRegistryDefinitionFromJson",
+                      &anoncreds::revocationRegistryDefinitionFromJson));
   fMap.insert(std::make_tuple("presentationFromJson",
-                                &anoncreds::presentationFromJson));
+                              &anoncreds::presentationFromJson));
   fMap.insert(std::make_tuple("presentationRequestFromJson",
-                                &anoncreds::presentationRequestFromJson));
+                              &anoncreds::presentationRequestFromJson));
   fMap.insert(std::make_tuple("credentialOfferFromJson",
-                                &anoncreds::credentialOfferFromJson));
-  fMap.insert(std::make_tuple("schemaFromJson",
-                                &anoncreds::schemaFromJson));
+                              &anoncreds::credentialOfferFromJson));
+  fMap.insert(std::make_tuple("schemaFromJson", &anoncreds::schemaFromJson));
   fMap.insert(std::make_tuple("masterSecretFromJson",
-                                &anoncreds::masterSecretFromJson));
+                              &anoncreds::masterSecretFromJson));
   fMap.insert(std::make_tuple("credentialRequestFromJson",
-                                &anoncreds::credentialRequestFromJson));
+                              &anoncreds::credentialRequestFromJson));
   fMap.insert(std::make_tuple("credentialRequestMetadataFromJson",
-                                &anoncreds::credentialRequestMetadataFromJson));
-  fMap.insert(std::make_tuple("credentialFromJson",
-                                &anoncreds::credentialFromJson));
-  fMap.insert(std::make_tuple("revocationRegistryDefinitionPrivateFromJson",
-                                &anoncreds::revocationRegistryDefinitionPrivateFromJson));
+                              &anoncreds::credentialRequestMetadataFromJson));
+  fMap.insert(
+      std::make_tuple("credentialFromJson", &anoncreds::credentialFromJson));
+  fMap.insert(
+      std::make_tuple("revocationRegistryDefinitionPrivateFromJson",
+                      &anoncreds::revocationRegistryDefinitionPrivateFromJson));
   fMap.insert(std::make_tuple("revocationRegistryDeltaFromJson",
-                                &anoncreds::revocationRegistryDeltaFromJson));
+                              &anoncreds::revocationRegistryDeltaFromJson));
   fMap.insert(std::make_tuple("revocationStateFromJson",
-                                &anoncreds::revocationStateFromJson));
+                              &anoncreds::revocationStateFromJson));
   fMap.insert(std::make_tuple("credentialDefinitionFromJson",
-                                &anoncreds::credentialDefinitionFromJson));
+                              &anoncreds::credentialDefinitionFromJson));
   fMap.insert(std::make_tuple("credentialDefinitionPrivateFromJson",
-                                &anoncreds::credentialDefinitionPrivateFromJson));
+                              &anoncreds::credentialDefinitionPrivateFromJson));
   fMap.insert(std::make_tuple("keyCorrectnessProofFromJson",
-                                &anoncreds::keyCorrectnessProofFromJson));
+                              &anoncreds::keyCorrectnessProofFromJson));
 
   return fMap;
 }
