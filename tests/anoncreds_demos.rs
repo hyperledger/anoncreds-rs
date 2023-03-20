@@ -18,7 +18,7 @@ mod utils;
 
 #[test]
 fn anoncreds_demo_works_for_single_issuer_single_prover() {
-    // Create Prover pseudo wallet and master secret
+    // Create Prover pseudo wallet and link secret
     let mut prover_wallet = ProverWallet::default();
 
     // Create schema
@@ -41,7 +41,7 @@ fn anoncreds_demo_works_for_single_issuer_single_prover() {
         Some("entropy"),
         None,
         &gvt_cred_def,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         "default",
         &cred_offer,
     )
@@ -66,7 +66,7 @@ fn anoncreds_demo_works_for_single_issuer_single_prover() {
     prover::process_credential(
         &mut recv_cred,
         &cred_request_metadata,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &gvt_cred_def,
         None,
     )
@@ -128,7 +128,7 @@ fn anoncreds_demo_works_for_single_issuer_single_prover() {
         &pres_request,
         present,
         Some(self_attested),
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &schemas,
         &cred_defs,
     )
@@ -193,7 +193,7 @@ fn anoncreds_demo_works_for_single_issuer_single_prover() {
 
 #[test]
 fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
-    // Create Prover pseudo wallet and master secret
+    // Create Prover pseudo wallet and link secret
     let mut prover_wallet = ProverWallet::default();
 
     // Create schema
@@ -241,7 +241,7 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
         Some("entropy"),
         None,
         &gvt_cred_def,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         "default",
         &cred_offer,
     )
@@ -289,7 +289,7 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
     prover::process_credential(
         &mut recv_cred,
         &cred_request_metadata,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &gvt_cred_def,
         Some(&gvt_rev_reg_def),
     )
@@ -446,7 +446,7 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
         Some("entropy"),
         None,
         &gvt_cred_def,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         "default",
         &gvt_cred_offer,
     )
@@ -471,7 +471,7 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
     prover::process_credential(
         &mut gvt_recv_cred,
         &gvt_cred_request_metadata,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &gvt_cred_def,
         None,
     )
@@ -489,7 +489,7 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
         Some("entropy"),
         None,
         &emp_cred_def,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         "default",
         &emp_cred_offer,
     )
@@ -513,7 +513,7 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
     prover::process_credential(
         &mut emp_recv_cred,
         &emp_cred_request_metadata,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &emp_cred_def,
         None,
     )
@@ -575,7 +575,7 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
         &pres_request,
         present,
         None,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &schemas,
         &cred_defs,
     )
@@ -596,7 +596,7 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
 
 #[test]
 fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
-    // Create Prover pseudo wallet and master secret
+    // Create Prover pseudo wallet and link secret
     let mut prover_wallet = ProverWallet::default();
 
     // Create schema
@@ -619,7 +619,7 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
         Some("entropy"),
         None,
         &gvt_cred_def,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         "default",
         &cred_offer,
     )
@@ -644,7 +644,7 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
     prover::process_credential(
         &mut recv_cred,
         &cred_request_metadata,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &gvt_cred_def,
         None,
     )
@@ -704,7 +704,7 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
         &pres_request,
         present,
         Some(self_attested),
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &schemas,
         &cred_defs,
     )
@@ -725,7 +725,7 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
 
 #[test]
 fn anoncreds_demo_works_for_requested_attribute_in_upper_case() {
-    // Create Prover pseudo wallet and master secret
+    // Create Prover pseudo wallet and link secret
     let mut prover_wallet = ProverWallet::default();
 
     // Create schema
@@ -748,7 +748,7 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case() {
         Some("entropy"),
         None,
         &gvt_cred_def,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         "default",
         &cred_offer,
     )
@@ -773,7 +773,7 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case() {
     prover::process_credential(
         &mut recv_cred,
         &cred_request_metadata,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &gvt_cred_def,
         None,
     )
@@ -833,7 +833,7 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case() {
         &pres_request,
         present,
         Some(self_attested),
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &schemas,
         &cred_defs,
     )
@@ -925,7 +925,7 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
         Some("entropy"),
         None,
         &gvt_cred_def,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         "default",
         &gvt_cred_offer,
     )
@@ -950,7 +950,7 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
     prover::process_credential(
         &mut gvt_recv_cred,
         &gvt_cred_request_metadata,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &gvt_cred_def,
         None,
     )
@@ -968,7 +968,7 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
         Some("entropy"),
         None,
         &emp_cred_def,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         "default",
         &emp_cred_offer,
     )
@@ -992,7 +992,7 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
     prover::process_credential(
         &mut emp_recv_cred,
         &emp_cred_request_metadata,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &emp_cred_def,
         None,
     )
@@ -1059,7 +1059,7 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
         &pres_request,
         present,
         None,
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         &schemas,
         &cred_defs,
     )
@@ -1121,16 +1121,16 @@ fn anoncreds_works_for_twice_entry_of_credential_for_different_witness() {
 
     // ISSUANCE CREDENTIAL FOR PROVER1
 
-    // Prover1 creates Master Secret
-    let prover1_master_secret_id = "prover1_master_secret";
-    anoncreds::prover_create_master_secret(prover1_wallet_handle, prover1_master_secret_id)
+    // Prover1 creates Link Secret
+    let prover1_link_secret_id = "prover1_link_secret";
+    anoncreds::prover_create_link_secret(prover1_wallet_handle, prover1_link_secret_id)
         .unwrap();
 
     let timestamp1 = time::get_time().sec as u64;
 
     let (prover1_cred_rev_id, revoc_reg_delta1_json) =
         anoncreds::multi_steps_create_revocation_credential(
-            prover1_master_secret_id,
+            prover1_link_secret_id,
             prover1_wallet_handle,
             issuer_wallet_handle,
             CREDENTIAL1_ID,
@@ -1144,15 +1144,15 @@ fn anoncreds_works_for_twice_entry_of_credential_for_different_witness() {
     let revoc_reg_delta1_json = revoc_reg_delta1_json.unwrap();
 
     // ISSUANCE CREDENTIAL FOR PROVER2
-    // Prover2 creates Master Secret
-    let prover2_master_secret_id = "prover2_master_secret";
-    anoncreds::prover_create_master_secret(prover2_wallet_handle, prover2_master_secret_id)
+    // Prover2 creates Link Secret
+    let prover2_link_secret_id = "prover2_link_secret";
+    anoncreds::prover_create_link_secret(prover2_wallet_handle, prover2_link_secret_id)
         .unwrap();
 
     let timestamp2 = time::get_time().sec as u64 + 100;
 
     let (_, revoc_reg_delta2_json) = anoncreds::multi_steps_create_revocation_credential(
-        prover2_master_secret_id,
+        prover2_link_secret_id,
         prover2_wallet_handle,
         issuer_wallet_handle,
         CREDENTIAL2_ID,
@@ -1260,7 +1260,7 @@ fn anoncreds_works_for_twice_entry_of_credential_for_different_witness() {
         prover1_wallet_handle,
         &proof_request,
         &requested_credentials_json,
-        prover1_master_secret_id,
+        prover1_link_secret_id,
         &schemas_json,
         &credential_defs_json,
         &rev_states_json,
@@ -1364,8 +1364,8 @@ fn anoncreds_works_for_multiple_requested_predicates_from_one_credential() {
             attr_names,
         );
 
-    //4. Prover creates Master Secret
-    anoncreds::prover_create_master_secret(prover_wallet_handle, COMMON_MASTER_SECRET).unwrap();
+    //4. Prover creates Link Secret
+    anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //5. Issuance credential for Prover
     let cred_values = r#"{
@@ -1383,7 +1383,7 @@ fn anoncreds_works_for_multiple_requested_predicates_from_one_credential() {
     }"#;
 
     anoncreds::multi_steps_create_credential(
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         prover_wallet_handle,
         issuer_wallet_handle,
         CREDENTIAL1_ID,
@@ -1463,7 +1463,7 @@ fn anoncreds_works_for_multiple_requested_predicates_from_one_credential() {
         prover_wallet_handle,
         &proof_req_json,
         &requested_credentials_json,
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         &schemas_json,
         &cred_defs_json,
         &rev_states_json,
@@ -1514,12 +1514,12 @@ fn anoncreds_works_for_multiple_requested_predicates_from_one_credential() {
 //             GVT_SCHEMA_ATTRIBUTES,
 //         );
 
-//     //4. Prover creates Master Secret
-//     anoncreds::prover_create_master_secret(prover_wallet_handle, COMMON_MASTER_SECRET).unwrap();
+//     //4. Prover creates Link Secret
+//     anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
 //     //5. Issuance credential for Prover
 //     anoncreds::multi_steps_create_credential(
-//         COMMON_MASTER_SECRET,
+//         COMMON_LINK_SECRET,
 //         prover_wallet_handle,
 //         issuer_wallet_handle,
 //         CREDENTIAL1_ID,
@@ -1574,7 +1574,7 @@ fn anoncreds_works_for_multiple_requested_predicates_from_one_credential() {
 //         prover_wallet_handle,
 //         &proof_req_json,
 //         &requested_credentials_json,
-//         COMMON_MASTER_SECRET,
+//         COMMON_LINK_SECRET,
 //         &schemas_json,
 //         &cred_defs_json,
 //         &rev_states_json,
@@ -1612,7 +1612,7 @@ fn anoncreds_works_for_multiple_requested_predicates_from_one_credential() {
 //         prover_wallet_handle,
 //         &proof_req_json,
 //         &requested_credentials_json,
-//         COMMON_MASTER_SECRET,
+//         COMMON_LINK_SECRET,
 //         &schemas_json,
 //         &cred_defs_json,
 //         &rev_states_json,
@@ -1660,8 +1660,8 @@ fn anoncreds_works_for_different_predicate_types() {
             schema_attributes,
         );
 
-    //4. Prover creates Master Secret
-    anoncreds::prover_create_master_secret(prover_wallet_handle, COMMON_MASTER_SECRET).unwrap();
+    //4. Prover creates Link Secret
+    anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     let cred_values = json!({
         "age": {"raw": "28", "encoded": "28"},
@@ -1673,7 +1673,7 @@ fn anoncreds_works_for_different_predicate_types() {
 
     //5. Issuance credential for Prover
     anoncreds::multi_steps_create_credential(
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         prover_wallet_handle,
         issuer_wallet_handle,
         CREDENTIAL1_ID,
@@ -1737,7 +1737,7 @@ fn anoncreds_works_for_different_predicate_types() {
         prover_wallet_handle,
         &proof_req_json,
         &requested_credentials_json,
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         &schemas_json,
         &cred_defs_json,
         &rev_states_json,
@@ -1787,11 +1787,11 @@ fn anoncreds_works_for_attr_value_restriction() {
         );
 
     //4. Prover creates Master Secret
-    anoncreds::prover_create_master_secret(prover_wallet_handle, COMMON_MASTER_SECRET).unwrap();
+    anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //5. Issuance credential for Prover
     anoncreds::multi_steps_create_credential(
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         prover_wallet_handle,
         issuer_wallet_handle,
         CREDENTIAL1_ID,
@@ -1845,7 +1845,7 @@ fn anoncreds_works_for_attr_value_restriction() {
         prover_wallet_handle,
         &proof_req_json,
         &requested_credentials_json,
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         &schemas_json,
         &cred_defs_json,
         &rev_states_json,
@@ -1907,11 +1907,11 @@ fn anoncreds_fails_for_unmet_attr_value_restrictions() {
         );
 
     //4. Prover creates Master Secret
-    anoncreds::prover_create_master_secret(prover_wallet_handle, COMMON_MASTER_SECRET).unwrap();
+    anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //5. Issuance 2 credentials for Prover
     anoncreds::multi_steps_create_credential(
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         prover_wallet_handle,
         issuer_wallet_handle,
         CREDENTIAL1_ID,
@@ -1921,7 +1921,7 @@ fn anoncreds_fails_for_unmet_attr_value_restrictions() {
     );
 
     anoncreds::multi_steps_create_credential(
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         prover_wallet_handle,
         issuer_wallet_handle,
         CREDENTIAL3_ID,
@@ -1968,7 +1968,7 @@ fn anoncreds_fails_for_unmet_attr_value_restrictions() {
         prover_wallet_handle,
         &proof_req_json,
         &requested_credentials_json,
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         &schemas_json,
         &cred_defs_json,
         &rev_states_json,
@@ -2029,11 +2029,11 @@ fn anoncreds_works_for_single_issuer_single_prover_fully_qualified_ids() {
         );
 
     //4. Prover creates Master Secret
-    anoncreds::prover_create_master_secret(prover_wallet_handle, COMMON_MASTER_SECRET).unwrap();
+    anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //5. Issuance credential for Prover
     anoncreds::multi_steps_create_credential(
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         prover_wallet_handle,
         issuer_wallet_handle,
         CREDENTIAL1_ID,
@@ -2108,7 +2108,7 @@ fn anoncreds_works_for_single_issuer_single_prover_fully_qualified_ids() {
         prover_wallet_handle,
         &proof_req_json,
         &requested_credentials_json,
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         &schemas_json,
         &cred_defs_json,
         &rev_states_json,
@@ -2207,7 +2207,7 @@ fn anoncreds_works_for_single_issuer_single_prover_fully_qualified_ids() {
         prover_wallet_handle,
         &proof_req_json,
         &requested_credentials_json,
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         &schemas_json,
         &cred_defs_json,
         &rev_states_json,
@@ -2302,7 +2302,7 @@ fn anoncreds_works_for_single_fully_qualified_issuer_single_unqualified_prover()
     );
 
     //4. Prover creates Master Secret
-    anoncreds::prover_create_master_secret(prover_wallet_handle, COMMON_MASTER_SECRET).unwrap();
+    anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //5. Issuance unqualified credential for Prover
     // Issuer creates Credential Offer
@@ -2323,7 +2323,7 @@ fn anoncreds_works_for_single_fully_qualified_issuer_single_unqualified_prover()
         DID_MY1,
         &cred_offer_json,
         &cred_def_json,
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
     )
     .unwrap();
 
@@ -2414,7 +2414,7 @@ fn anoncreds_works_for_single_fully_qualified_issuer_single_unqualified_prover()
         prover_wallet_handle,
         &proof_req_json,
         &requested_credentials_json,
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         &schemas_json,
         &cred_defs_json,
         &rev_states_json,
@@ -2502,11 +2502,11 @@ fn anoncreds_works_for_prover_hold_different_credentials_types() {
         );
 
     //6. Prover creates Master Secret
-    anoncreds::prover_create_master_secret(prover_wallet_handle, COMMON_MASTER_SECRET).unwrap();
+    anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //7. Issuer1 issue GVT Credential for Prover
     anoncreds::multi_steps_create_credential(
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         prover_wallet_handle,
         issuer_gvt_wallet_handle,
         CREDENTIAL1_ID,
@@ -2517,7 +2517,7 @@ fn anoncreds_works_for_prover_hold_different_credentials_types() {
 
     //8. Issuer2 issue XYZ Credential for Prover
     anoncreds::multi_steps_create_credential(
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         prover_wallet_handle,
         issuer_xyz_wallet_handle,
         CREDENTIAL2_ID,
@@ -2613,7 +2613,7 @@ fn anoncreds_works_for_prover_hold_different_credentials_types() {
         prover_wallet_handle,
         &proof_req_json,
         &requested_credentials_json,
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         &schemas_json,
         &credential_defs_json,
         &rev_states_json,
@@ -2718,11 +2718,11 @@ fn anoncreds_works_for_restrictions_as_empty_array() {
         );
 
     //4. Prover creates Master Secret
-    anoncreds::prover_create_master_secret(prover_wallet_handle, COMMON_MASTER_SECRET).unwrap();
+    anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //5. Issuance credential for Prover
     anoncreds::multi_steps_create_credential(
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         prover_wallet_handle,
         issuer_wallet_handle,
         CREDENTIAL1_ID,
@@ -2794,7 +2794,7 @@ fn anoncreds_works_for_restrictions_as_empty_array() {
         prover_wallet_handle,
         &proof_req_json,
         &requested_credentials_json,
-        COMMON_MASTER_SECRET,
+        COMMON_LINK_SECRET,
         &schemas_json,
         &cred_defs_json,
         &rev_states_json,

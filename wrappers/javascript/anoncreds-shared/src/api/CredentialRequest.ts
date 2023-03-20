@@ -7,15 +7,14 @@ import { anoncreds } from '../register'
 import { CredentialDefinition } from './CredentialDefinition'
 import { CredentialOffer } from './CredentialOffer'
 import { CredentialRequestMetadata } from './CredentialRequestMetadata'
-import { MasterSecret } from './MasterSecret'
 import { pushToArray } from './utils'
 
 export type CreateCredentialRequestOptions = {
   entropy?: string
   proverDid?: string
   credentialDefinition: CredentialDefinition | JsonObject
-  masterSecret: MasterSecret | JsonObject
-  masterSecretId: string
+  linkSecret: string
+  linkSecretId: string
   credentialOffer: CredentialOffer | JsonObject
 }
 
@@ -33,11 +32,6 @@ export class CredentialRequest extends AnoncredsObject {
           ? options.credentialDefinition.handle
           : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
 
-      const masterSecret =
-        options.masterSecret instanceof MasterSecret
-          ? options.masterSecret.handle
-          : pushToArray(MasterSecret.fromJson(options.masterSecret).handle, objectHandles)
-
       const credentialOffer =
         options.credentialOffer instanceof CredentialOffer
           ? options.credentialOffer.handle
@@ -47,8 +41,8 @@ export class CredentialRequest extends AnoncredsObject {
         entropy: options.entropy,
         proverDid: options.proverDid,
         credentialDefinition,
-        masterSecret,
-        masterSecretId: options.masterSecretId,
+        linkSecret: options.linkSecret,
+        linkSecretId: options.linkSecretId,
         credentialOffer,
       })
     } finally {

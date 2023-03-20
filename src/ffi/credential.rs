@@ -6,6 +6,7 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, ObjectHandle};
 use super::util::FfiStrList;
+use crate::data_types::link_secret::LinkSecret;
 use crate::data_types::rev_reg::RevocationRegistryId;
 use crate::error::Result;
 use crate::services::{
@@ -170,13 +171,19 @@ pub extern "C" fn anoncreds_encode_credential_attributes(
 pub extern "C" fn anoncreds_process_credential(
     cred: ObjectHandle,
     cred_req_metadata: ObjectHandle,
-    master_secret: ObjectHandle,
+    link_secret: FfiStr,
     cred_def: ObjectHandle,
     rev_reg_def: ObjectHandle,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(cred_p);
+
+        let link_secret = link_secret
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing link secret"))?;
+        let link_secret = LinkSecret::try_from(link_secret)?;
+
         let mut cred = cred
             .load()?
             .cast_ref::<Credential>()?
@@ -185,7 +192,7 @@ pub extern "C" fn anoncreds_process_credential(
         process_credential(
             &mut cred,
             cred_req_metadata.load()?.cast_ref()?,
-            master_secret.load()?.cast_ref()?,
+            &link_secret,
             cred_def.load()?.cast_ref()?,
             rev_reg_def
                 .opt_load()?

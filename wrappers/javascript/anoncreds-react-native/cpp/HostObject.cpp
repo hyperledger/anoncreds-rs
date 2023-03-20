@@ -21,7 +21,7 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   fMap.insert(std::make_tuple("createCredentialRequest",
                               &anoncreds::createCredentialRequest));
   fMap.insert(
-      std::make_tuple("createMasterSecret", &anoncreds::createMasterSecret));
+      std::make_tuple("createLinkSecret", &anoncreds::createLinkSecret));
   fMap.insert(std::make_tuple("createOrUpdateRevocationState",
                               &anoncreds::createOrUpdateRevocationState));
   fMap.insert(
@@ -61,8 +61,6 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   fMap.insert(std::make_tuple("credentialOfferFromJson",
                               &anoncreds::credentialOfferFromJson));
   fMap.insert(std::make_tuple("schemaFromJson", &anoncreds::schemaFromJson));
-  fMap.insert(std::make_tuple("masterSecretFromJson",
-                              &anoncreds::masterSecretFromJson));
   fMap.insert(std::make_tuple("credentialRequestFromJson",
                               &anoncreds::credentialRequestFromJson));
   fMap.insert(std::make_tuple("credentialRequestMetadataFromJson",

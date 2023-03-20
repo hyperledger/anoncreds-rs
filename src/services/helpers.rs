@@ -40,7 +40,7 @@ pub fn build_non_credential_schema() -> Result<NonCredentialSchema> {
     trace!("build_non_credential_schema");
 
     let mut non_credential_schema_builder = issuer::Issuer::new_non_credential_schema_builder()?;
-    non_credential_schema_builder.add_attr("master_secret")?;
+    non_credential_schema_builder.add_attr("link_secret")?;
     let res = non_credential_schema_builder.finalize()?;
 
     trace!("build_non_credential_schema <<< res: {:?}", res);
@@ -49,7 +49,7 @@ pub fn build_non_credential_schema() -> Result<NonCredentialSchema> {
 
 pub fn build_credential_values(
     credential_values: &HashMap<String, AttributeValues>,
-    master_secret: Option<&CryptoMasterSecret>,
+    link_secret: Option<&CryptoMasterSecret>,
 ) -> Result<CryptoCredentialValues> {
     trace!(
         "build_credential_values >>> credential_values: {:?}",
@@ -60,8 +60,8 @@ pub fn build_credential_values(
     for (attr, values) in credential_values {
         credential_values_builder.add_dec_known(&attr_common_view(attr), &values.encoded)?;
     }
-    if let Some(ms) = master_secret {
-        credential_values_builder.add_value_hidden("master_secret", &ms.value()?)?;
+    if let Some(ms) = link_secret {
+        credential_values_builder.add_value_hidden("link_secret", &ms.value()?)?;
     }
 
     let res = credential_values_builder.finalize()?;

@@ -55,10 +55,10 @@ jsi::Value objectFree(jsi::Runtime &rt, jsi::Object options) {
 
 // ===== META =====
 
-jsi::Value createMasterSecret(jsi::Runtime &rt, jsi::Object options) {
+jsi::Value createLinkSecret(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle out;
 
-  ErrorCode code = anoncreds_create_master_secret(&out);
+  ErrorCode code = anoncreds_create_link_secret(&out);
 
   return createReturnValue(rt, code, &out);
 };
@@ -205,21 +205,6 @@ jsi::Value schemaFromJson(jsi::Runtime &rt, jsi::Object options) {
   ByteBuffer b = stringToByteBuffer(json);
 
   ErrorCode code = anoncreds_schema_from_json(b, &out);
-  auto returnValue = createReturnValue(rt, code, &out);
-
-  // Free memory
-  delete[] b.data;
-
-  return returnValue;
-};
-
-jsi::Value masterSecretFromJson(jsi::Runtime &rt, jsi::Object options) {
-  auto json = jsiToValue<std::string>(rt, options, "json");
-
-  ObjectHandle out;
-  ByteBuffer b = stringToByteBuffer(json);
-
-  ErrorCode code = anoncreds_master_secret_from_json(b, &out);
   auto returnValue = createReturnValue(rt, code, &out);
 
   // Free memory
@@ -381,7 +366,7 @@ jsi::Value createPresentation(jsi::Runtime &rt, jsi::Object options) {
       jsiToValue<FfiStrList>(rt, options, "selfAttestNames");
   auto selfAttestedValues =
       jsiToValue<FfiStrList>(rt, options, "selfAttestValues");
-  auto masterSecret = jsiToValue<ObjectHandle>(rt, options, "masterSecret");
+  auto linkSecret = jsiToValue<ObjectHandle>(rt, options, "linkSecret");
   auto schemas = jsiToValue<FfiList_ObjectHandle>(rt, options, "schemas");
   auto schemaIds = jsiToValue<FfiList_FfiStr>(rt, options, "schemaIds");
   auto credentialDefinitions =
@@ -393,7 +378,7 @@ jsi::Value createPresentation(jsi::Runtime &rt, jsi::Object options) {
 
   ErrorCode code = anoncreds_create_presentation(
       presentationRequest, credentials, credentialsProve, selfAttestedNames,
-      selfAttestedValues, masterSecret, schemas, schemaIds,
+      selfAttestedValues, linkSecret, schemas, schemaIds,
       credentialDefinitions, credentialDefinitionIds, &out);
 
   auto returnValue = createReturnValue(rt, code, &out);
@@ -521,8 +506,8 @@ jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
   auto proverDid = jsiToValue<std::string>(rt, options, "proverDid", true);
   auto credentialDefinition =
       jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
-  auto masterSecret = jsiToValue<ObjectHandle>(rt, options, "masterSecret");
-  auto masterSecretId = jsiToValue<std::string>(rt, options, "masterSecretId");
+  auto linkSecret = jsiToValue<ObjectHandle>(rt, options, "linkSecret");
+  auto linkSecretId = jsiToValue<std::string>(rt, options, "linkSecretId");
   auto credentialOffer =
       jsiToValue<ObjectHandle>(rt, options, "credentialOffer");
 
@@ -531,7 +516,7 @@ jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
   ErrorCode code = anoncreds_create_credential_request(
       entropy.length() ? entropy.c_str() : nullptr,
       proverDid.length() ? proverDid.c_str() : nullptr, credentialDefinition,
-      masterSecret, masterSecretId.c_str(), credentialOffer,
+      linkSecret, linkSecretId.c_str(), credentialOffer,
       &out.credentialRequest, &out.credentialRequestMetadata);
 
   return createReturnValue(rt, code, &out);
@@ -565,7 +550,7 @@ jsi::Value processCredential(jsi::Runtime &rt, jsi::Object options) {
   auto credential = jsiToValue<ObjectHandle>(rt, options, "credential");
   auto credentialRequestMetadata =
       jsiToValue<ObjectHandle>(rt, options, "credentialRequestMetadata");
-  auto masterSecret = jsiToValue<ObjectHandle>(rt, options, "masterSecret");
+  auto linkSecret = jsiToValue<ObjectHandle>(rt, options, "linkSecret");
   auto credentialDefinition =
       jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
   auto revocationRegistryDefinition = jsiToValue<ObjectHandle>(
@@ -574,7 +559,7 @@ jsi::Value processCredential(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle out;
 
   ErrorCode code = anoncreds_process_credential(
-      credential, credentialRequestMetadata, masterSecret, credentialDefinition,
+      credential, credentialRequestMetadata, linkSecret, credentialDefinition,
       revocationRegistryDefinition, &out);
 
   return createReturnValue(rt, code, &out);

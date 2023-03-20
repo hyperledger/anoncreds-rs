@@ -118,6 +118,12 @@ impl From<ErrorKind> for Error {
     }
 }
 
+impl From<ConversionError> for Error {
+    fn from(err: ConversionError) -> Self {
+        Error::from_opt_msg(ErrorKind::Input, err.context)
+    }
+}
+
 impl From<ValidationError> for Error {
     fn from(err: ValidationError) -> Self {
         Error::from_opt_msg(ErrorKind::Input, err.context)

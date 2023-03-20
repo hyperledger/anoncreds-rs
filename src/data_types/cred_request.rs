@@ -82,9 +82,9 @@ impl CredentialRequest {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialRequestMetadata {
-    pub master_secret_blinding_data: ursa::cl::CredentialSecretsBlindingFactors,
+    pub link_secret_blinding_data: ursa::cl::CredentialSecretsBlindingFactors,
     pub nonce: Nonce,
-    pub master_secret_name: String,
+    pub link_secret_name: String,
 }
 
 impl Validatable for CredentialRequestMetadata {}
@@ -95,7 +95,7 @@ mod cred_req_tests {
         data_types::{
             cred_def::{CredentialDefinition, CredentialKeyCorrectnessProof, SignatureType},
             cred_offer::CredentialOffer,
-            master_secret::MasterSecret,
+            link_secret::LinkSecret,
             schema::AttributeNames,
         },
         issuer::{create_credential_definition, create_credential_offer, create_schema},
@@ -112,7 +112,7 @@ mod cred_req_tests {
 
     const ENTROPY: Option<&str> = Some("entropy");
     const PROVER_DID: Option<&str> = Some(LEGACY_DID_IDENTIFIER);
-    const MASTER_SERCET_ID: &str = "master:secret:id";
+    const LINK_SERCET_ID: &str = "link:secret:id";
 
     fn cred_def() -> Result<(CredentialDefinition, CredentialKeyCorrectnessProof)> {
         let credential_definition_issuer_id = "sample:id";
@@ -133,8 +133,8 @@ mod cred_req_tests {
         Ok((cred_def.0, cred_def.2))
     }
 
-    fn master_secret() -> MasterSecret {
-        MasterSecret::new().unwrap()
+    fn link_secret() -> LinkSecret {
+        LinkSecret::new().unwrap()
     }
 
     fn credential_offer(
@@ -155,15 +155,15 @@ mod cred_req_tests {
     #[test]
     fn create_credential_request_with_valid_input() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
-        let master_secret = master_secret();
+        let link_secret = link_secret();
         let credential_offer = credential_offer(correctness_proof, false)?;
 
         let res = create_credential_request(
             ENTROPY,
             None,
             &cred_def,
-            &master_secret,
-            MASTER_SERCET_ID,
+            &link_secret,
+            LINK_SERCET_ID,
             &credential_offer,
         );
 
@@ -175,15 +175,15 @@ mod cred_req_tests {
     #[test]
     fn create_credential_request_with_valid_input_legacy() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
-        let master_secret = master_secret();
+        let link_secret = link_secret();
         let credential_offer = credential_offer(correctness_proof, true)?;
 
         let res = create_credential_request(
             None,
             PROVER_DID,
             &cred_def,
-            &master_secret,
-            MASTER_SERCET_ID,
+            &link_secret,
+            LINK_SERCET_ID,
             &credential_offer,
         );
 
@@ -195,15 +195,15 @@ mod cred_req_tests {
     #[test]
     fn create_credential_request_with_invalid_new_identifiers_and_prover_did() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
-        let master_secret = master_secret();
+        let link_secret = link_secret();
         let credential_offer = credential_offer(correctness_proof, false)?;
 
         let res = create_credential_request(
             None,
             PROVER_DID,
             &cred_def,
-            &master_secret,
-            MASTER_SERCET_ID,
+            &link_secret,
+            LINK_SERCET_ID,
             &credential_offer,
         );
 
@@ -215,15 +215,15 @@ mod cred_req_tests {
     #[test]
     fn create_credential_request_with_invalid_prover_did_and_entropy() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
-        let master_secret = master_secret();
+        let link_secret = link_secret();
         let credential_offer = credential_offer(correctness_proof, true)?;
 
         let res = create_credential_request(
             ENTROPY,
             PROVER_DID,
             &cred_def,
-            &master_secret,
-            MASTER_SERCET_ID,
+            &link_secret,
+            LINK_SERCET_ID,
             &credential_offer,
         );
 
@@ -235,15 +235,15 @@ mod cred_req_tests {
     #[test]
     fn create_credential_request_with_invalid_prover_did() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
-        let master_secret = master_secret();
+        let link_secret = link_secret();
         let credential_offer = credential_offer(correctness_proof, true)?;
 
         let res = create_credential_request(
             None,
             ENTROPY,
             &cred_def,
-            &master_secret,
-            MASTER_SERCET_ID,
+            &link_secret,
+            LINK_SERCET_ID,
             &credential_offer,
         );
 
@@ -255,15 +255,15 @@ mod cred_req_tests {
     #[test]
     fn create_credential_request_with_no_entropy_or_prover_did() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
-        let master_secret = master_secret();
+        let link_secret = link_secret();
         let credential_offer = credential_offer(correctness_proof, true)?;
 
         let res = create_credential_request(
             None,
             None,
             &cred_def,
-            &master_secret,
-            MASTER_SERCET_ID,
+            &link_secret,
+            LINK_SERCET_ID,
             &credential_offer,
         );
 
@@ -275,15 +275,15 @@ mod cred_req_tests {
     #[test]
     fn create_credential_request_json_contains_entropy() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
-        let master_secret = master_secret();
+        let link_secret = link_secret();
         let credential_offer = credential_offer(correctness_proof, false)?;
 
         let res = create_credential_request(
             ENTROPY,
             None,
             &cred_def,
-            &master_secret,
-            MASTER_SERCET_ID,
+            &link_secret,
+            LINK_SERCET_ID,
             &credential_offer,
         )
         .unwrap();
@@ -298,15 +298,15 @@ mod cred_req_tests {
     #[test]
     fn create_credential_request_json_contains_prover_did_with_legacy_identifiers() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
-        let master_secret = master_secret();
+        let link_secret = link_secret();
         let credential_offer = credential_offer(correctness_proof, true)?;
 
         let res = create_credential_request(
             None,
             PROVER_DID,
             &cred_def,
-            &master_secret,
-            MASTER_SERCET_ID,
+            &link_secret,
+            LINK_SERCET_ID,
             &credential_offer,
         )
         .unwrap();
@@ -321,15 +321,15 @@ mod cred_req_tests {
     #[test]
     fn create_credential_request_json_contains_entropy_with_legacy_identifiers() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
-        let master_secret = master_secret();
+        let link_secret = link_secret();
         let credential_offer = credential_offer(correctness_proof, false)?;
 
         let res = create_credential_request(
             ENTROPY,
             None,
             &cred_def,
-            &master_secret,
-            MASTER_SERCET_ID,
+            &link_secret,
+            LINK_SERCET_ID,
             &credential_offer,
         )
         .unwrap();

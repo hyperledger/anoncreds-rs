@@ -217,7 +217,7 @@ pub fn create_presentation(
         pres_request,
         present,
         Some(self_attested),
-        &prover_wallet.master_secret,
+        &prover_wallet.link_secret,
         schemas,
         cred_defs,
     )

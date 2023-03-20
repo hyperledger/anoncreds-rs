@@ -10,8 +10,8 @@ pub mod cred_request;
 /// Credentials
 pub mod credential;
 
-/// Identity master secret
-pub mod master_secret;
+/// Identity link secret
+pub mod link_secret;
 
 /// Nonce used in presentation requests
 pub mod nonce;
