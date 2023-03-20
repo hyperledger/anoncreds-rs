@@ -649,14 +649,14 @@ pub fn create_credential_offer(
 ///                                     &key_correctness_proof,
 ///                                     ).expect("Unable to create Credential Offer");
 ///
-/// let master_secret =
-///     prover::create_master_secret().expect("Unable to create master secret");
+/// let link_secret =
+///     prover::create_link_secret().expect("Unable to create link secret");
 ///
 /// let (credential_request, credential_request_metadata) =
 ///     prover::create_credential_request(Some("entropy"),
 ///                                       None,
 ///                                       &cred_def,
-///                                       &master_secret,
+///                                       &link_secret,
 ///                                       "my-secret-id",
 ///                                       &credential_offer,
 ///                                       ).expect("Unable to create credential request");

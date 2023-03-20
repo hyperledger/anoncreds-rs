@@ -1786,7 +1786,7 @@ fn anoncreds_works_for_attr_value_restriction() {
             GVT_SCHEMA_ATTRIBUTES,
         );
 
-    //4. Prover creates Master Secret
+    //4. Prover creates Link Secret
     anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //5. Issuance credential for Prover
@@ -1906,7 +1906,7 @@ fn anoncreds_fails_for_unmet_attr_value_restrictions() {
             GVT_SCHEMA_ATTRIBUTES,
         );
 
-    //4. Prover creates Master Secret
+    //4. Prover creates Link Secret
     anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //5. Issuance 2 credentials for Prover
@@ -2028,7 +2028,7 @@ fn anoncreds_works_for_single_issuer_single_prover_fully_qualified_ids() {
             GVT_SCHEMA_ATTRIBUTES,
         );
 
-    //4. Prover creates Master Secret
+    //4. Prover creates Link Secret
     anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //5. Issuance credential for Prover
@@ -2301,7 +2301,7 @@ fn anoncreds_works_for_single_fully_qualified_issuer_single_unqualified_prover()
         anoncreds::local_gvt_cred_def_id_fully_qualified()
     );
 
-    //4. Prover creates Master Secret
+    //4. Prover creates Link Secret
     anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //5. Issuance unqualified credential for Prover
@@ -2501,7 +2501,7 @@ fn anoncreds_works_for_prover_hold_different_credentials_types() {
             XYZ_SCHEMA_ATTRIBUTES,
         );
 
-    //6. Prover creates Master Secret
+    //6. Prover creates Link Secret
     anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //7. Issuer1 issue GVT Credential for Prover
@@ -2717,7 +2717,7 @@ fn anoncreds_works_for_restrictions_as_empty_array() {
             GVT_SCHEMA_ATTRIBUTES,
         );
 
-    //4. Prover creates Master Secret
+    //4. Prover creates Link Secret
     anoncreds::prover_create_link_secret(prover_wallet_handle, COMMON_LINK_SECRET).unwrap();
 
     //5. Issuance credential for Prover

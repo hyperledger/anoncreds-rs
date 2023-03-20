@@ -36,12 +36,12 @@ use super::tails::TailsFileReader;
 /// ```rust
 /// use anoncreds::prover;
 ///
-/// let master_secret = prover::create_master_secret()
-///     .expect("Unable to create master secret");
+/// let link_secret = prover::create_link_secret()
+///     .expect("Unable to create link secret");
 ///
 /// ```
-pub fn create_master_secret() -> Result<MasterSecret> {
-    MasterSecret::new().map_err(err_map!(Unexpected))
+pub fn create_link_secret() -> Result<LinkSecret> {
+    LinkSecret::new().map_err(err_map!(Unexpected))
 }
 
 /// Create an Anoncreds credential request according to the [Anoncreds v1.0 specification -
@@ -81,14 +81,14 @@ pub fn create_master_secret() -> Result<MasterSecret> {
 ///                                     &key_correctness_proof,
 ///                                     ).expect("Unable to create Credential Offer");
 ///
-/// let master_secret =
-///     prover::create_master_secret().expect("Unable to create master secret");
+/// let link_secret =
+///     prover::create_link_secret().expect("Unable to create link secret");
 ///
 /// let (credential_request, credential_request_metadata) =
 ///     prover::create_credential_request(Some("entropy"),
 ///                                       None,
 ///                                       &cred_def,
-///                                       &master_secret,
+///                                       &link_secret,
 ///                                       "my-secret-id",
 ///                                       &credential_offer,
 ///                                       ).expect("Unable to create credential request");
@@ -188,14 +188,14 @@ pub fn create_credential_request(
 ///                                     &key_correctness_proof,
 ///                                     ).expect("Unable to create Credential Offer");
 ///
-/// let master_secret =
-///     prover::create_master_secret().expect("Unable to create master secret");
+/// let link_secret =
+///     prover::create_link_secret().expect("Unable to create link secret");
 ///
 /// let (credential_request, credential_request_metadata) =
 ///     prover::create_credential_request(Some("entropy"),
 ///                                       None,
 ///                                       &cred_def,
-///                                       &master_secret,
+///                                       &link_secret,
 ///                                       "my-secret-id",
 ///                                       &credential_offer,
 ///                                       ).expect("Unable to create credential request");
@@ -217,7 +217,7 @@ pub fn create_credential_request(
 ///
 /// prover::process_credential(&mut credential,
 ///                            &credential_request_metadata,
-///                            &master_secret,
+///                            &link_secret,
 ///                            &cred_def,
 ///                            None
 ///                            ).expect("Unable to process the credential");
@@ -296,14 +296,14 @@ pub fn process_credential(
 ///                                     &key_correctness_proof,
 ///                                     ).expect("Unable to create Credential Offer");
 ///
-/// let master_secret =
-///     prover::create_master_secret().expect("Unable to create master secret");
+/// let link_secret =
+///     prover::create_link_secret().expect("Unable to create link secret");
 ///
 /// let (credential_request, credential_request_metadata) =
 ///     prover::create_credential_request(Some("entropy"),
 ///                                       None,
 ///                                       &cred_def,
-///                                       &master_secret,
+///                                       &link_secret,
 ///                                       "my-secret-id",
 ///                                       &credential_offer,
 ///                                       ).expect("Unable to create credential request");
@@ -325,7 +325,7 @@ pub fn process_credential(
 ///
 /// prover::process_credential(&mut credential,
 ///                            &credential_request_metadata,
-///                            &master_secret,
+///                            &link_secret,
 ///                            &cred_def,
 ///                            None
 ///                            ).expect("Unable to process the credential");
@@ -370,7 +370,7 @@ pub fn process_credential(
 ///     prover::create_presentation(&pres_request,
 ///                                 present,
 ///                                 None,
-///                                 &master_secret,
+///                                 &link_secret,
 ///                                 &schemas,
 ///                                 &cred_defs
 ///                                 ).expect("Unable to create presentation");

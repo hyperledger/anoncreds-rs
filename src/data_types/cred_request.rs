@@ -112,7 +112,7 @@ mod cred_req_tests {
 
     const ENTROPY: Option<&str> = Some("entropy");
     const PROVER_DID: Option<&str> = Some(LEGACY_DID_IDENTIFIER);
-    const LINK_SERCET_ID: &str = "link:secret:id";
+    const LINK_SECRET_ID: &str = "link:secret:id";
 
     fn cred_def() -> Result<(CredentialDefinition, CredentialKeyCorrectnessProof)> {
         let credential_definition_issuer_id = "sample:id";
@@ -163,7 +163,7 @@ mod cred_req_tests {
             None,
             &cred_def,
             &link_secret,
-            LINK_SERCET_ID,
+            LINK_SECRET_ID,
             &credential_offer,
         );
 
@@ -183,7 +183,7 @@ mod cred_req_tests {
             PROVER_DID,
             &cred_def,
             &link_secret,
-            LINK_SERCET_ID,
+            LINK_SECRET_ID,
             &credential_offer,
         );
 
@@ -203,7 +203,7 @@ mod cred_req_tests {
             PROVER_DID,
             &cred_def,
             &link_secret,
-            LINK_SERCET_ID,
+            LINK_SECRET_ID,
             &credential_offer,
         );
 
@@ -223,7 +223,7 @@ mod cred_req_tests {
             PROVER_DID,
             &cred_def,
             &link_secret,
-            LINK_SERCET_ID,
+            LINK_SECRET_ID,
             &credential_offer,
         );
 
@@ -243,7 +243,7 @@ mod cred_req_tests {
             ENTROPY,
             &cred_def,
             &link_secret,
-            LINK_SERCET_ID,
+            LINK_SECRET_ID,
             &credential_offer,
         );
 
@@ -263,7 +263,7 @@ mod cred_req_tests {
             None,
             &cred_def,
             &link_secret,
-            LINK_SERCET_ID,
+            LINK_SECRET_ID,
             &credential_offer,
         );
 
@@ -283,7 +283,7 @@ mod cred_req_tests {
             None,
             &cred_def,
             &link_secret,
-            LINK_SERCET_ID,
+            LINK_SECRET_ID,
             &credential_offer,
         )
         .unwrap();
@@ -306,7 +306,7 @@ mod cred_req_tests {
             PROVER_DID,
             &cred_def,
             &link_secret,
-            LINK_SERCET_ID,
+            LINK_SECRET_ID,
             &credential_offer,
         )
         .unwrap();
@@ -329,7 +329,7 @@ mod cred_req_tests {
             None,
             &cred_def,
             &link_secret,
-            LINK_SERCET_ID,
+            LINK_SECRET_ID,
             &credential_offer,
         )
         .unwrap();

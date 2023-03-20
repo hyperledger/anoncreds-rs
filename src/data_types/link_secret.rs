@@ -105,7 +105,7 @@ mod link_secret_tests {
             .try_clone()
             .expect("Error cloning link secret")
             .try_into()
-            .expect("error converting link secret");
+            .expect("error converting to master secret");
 
         assert_eq!(
             link_secret.0,
