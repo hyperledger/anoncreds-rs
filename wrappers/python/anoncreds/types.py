@@ -507,7 +507,7 @@ class Presentation(bindings.AnoncredsObject):
                 entry_idx = len(creds)
                 creds.append(
                     bindings.CredentialEntry.create(
-                        cred.handle, timestamp, rev_state and rev_state.handle
+                        cred, timestamp, rev_state and rev_state
                     )
                 )
                 for (reft, reveal) in attrs:
@@ -549,15 +549,17 @@ class Presentation(bindings.AnoncredsObject):
     ) -> bool:
         if not isinstance(pres_req, bindings.AnoncredsObject):
             pres_req = PresentationRequest.load(pres_req)
+
         schema_ids = list(schemas.keys())
-        schemas = [
+        schema_handles = [
             (
                 Schema.load(s) if not isinstance(s, bindings.AnoncredsObject) else s
             ).handle
             for s in schemas.values()
         ]
+
         cred_def_ids = list(cred_defs.keys())
-        cred_defs = [
+        cred_def_handles = [
             (
                 CredentialDefinition.load(c)
                 if not isinstance(c, bindings.AnoncredsObject)
@@ -567,39 +569,43 @@ class Presentation(bindings.AnoncredsObject):
         ]
 
         if rev_reg_defs:
-            rev_reg_def_ids = rev_reg_defs.keys()
-            rev_reg_defs = [
+            rev_reg_def_ids = list(rev_reg_defs.keys())
+            rev_reg_def_handles = [
                 (
                     RevocationRegistryDefinition.load(r) if not isinstance(r, bindings.AnoncredsObject) else r
                 ).handle
                 for r in rev_reg_defs.values()
             ]
+        else:
+            rev_reg_def_ids = None
+            rev_reg_def_handles = None
 
         if rev_status_lists:
-            rev_status_lists = [
+            rev_status_list_handles = [
                 (
                     RevocationStatusList.load(r) if not isinstance(r, bindings.AnoncredsObject) else r
                 ).handle
                 for r in rev_status_lists
             ]
+        else:
+            rev_status_list_handles = None
 
         nonrevoked_interval_overrides_native = []
         if nonrevoked_interval_overrides:
             for o in nonrevoked_interval_overrides:
                 nonrevoked_interval_overrides_native.append(o._native)
 
-
         return bindings.verify_presentation(
             self.handle,
             pres_req.handle,
             schema_ids,
-            schemas,
+            schema_handles,
             cred_def_ids,
-            cred_defs,
+            cred_def_handles,
             rev_reg_def_ids,
-            rev_reg_defs,
-            rev_status_lists,
-            nonrevoked_interval_overrides,
+            rev_reg_def_handles,
+            rev_status_list_handles,
+            nonrevoked_interval_overrides_native,
         )
 
 
@@ -621,21 +627,22 @@ class RevocationStatusList(bindings.AnoncredsObject):
         cls,
         rev_reg_def_id: str,
         rev_reg_def: Union[dict, str, bytes, RevocationRegistryDefinition],
-        *,
+        issuer_id: str,
         timestamp: Optional[int] = None,
         issuance_by_default: bool = True,
     ) -> "RevocationStatusList":
         if not isinstance(rev_reg_def, bindings.AnoncredsObject):
             rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
-        (
-            rev_status_list
-        ) = bindings.create_revocation_status_list(
-            rev_reg_def_id,
-            rev_reg_def.handle,
-            timestamp,
-            issuance_by_default,
+
+        return RevocationStatusList(
+            bindings.create_revocation_status_list(
+                rev_reg_def_id,
+                rev_reg_def.handle,
+                issuer_id,
+                timestamp,
+                issuance_by_default,
+            )
         )
-        return RevocationStatusList(rev_status_list)
 
     @classmethod
     def load(cls, value: Union[dict, str, bytes, memoryview]) -> "RevocationStatusList":
@@ -648,16 +655,18 @@ class RevocationStatusList(bindings.AnoncredsObject):
 
     def update(
         self,
+        timestamp: Optional[int],
+        issued: Optional[Sequence[int]],
+        revoked: Optional[Sequence[int]],
         rev_reg_def: Union[dict, str, bytes, RevocationRegistryDefinition],
-        timestamp: int,
-        issued: Sequence[int],
-        revoked: Sequence[int],
     ):
         if not isinstance(rev_reg_def, bindings.AnoncredsObject):
             rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
+
         self.handle = bindings.update_revocation_status_list(
             timestamp, issued, revoked, rev_reg_def.handle, self.handle
         )
+        return self
 
 
 class RevocationRegistry(bindings.AnoncredsObject):
@@ -714,6 +723,7 @@ class RevocationRegistryDelta(bindings.AnoncredsObject):
         self.handle = bindings.merge_revocation_registry_deltas(
             self.handle, next_delta.handle
         )
+        return self
 
 
 class CredentialRevocationConfig:
@@ -738,8 +748,8 @@ class CredentialRevocationConfig:
     @property
     def _native(self) -> bindings.RevocationConfig:
         return bindings.RevocationConfig.create(
-            self.rev_reg_def.handle,
-            self.rev_reg_def_private.handle,
+            self.rev_reg_def,
+            self.rev_reg_def_private,
             self.rev_reg_index,
             self.tails_path,
         )
@@ -771,17 +781,21 @@ class CredentialRevocationState(bindings.AnoncredsObject):
         rev_status_list: Union[str, RevocationStatusList],
         rev_reg_idx: int,
         tails_path: str,
-        rev_state: Optional[Union[str, str]] = None,
+        rev_state: Optional[Union[str, "CredentialRevocationState"]] = None,
         old_rev_status_list: Optional[Union[str, RevocationStatusList]] = None,
     ) -> "CredentialRevocationState":
         if not isinstance(rev_reg_def, bindings.AnoncredsObject):
             rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
+
         if not isinstance(rev_status_list, bindings.AnoncredsObject):
-            rev_reg_list = RevocationStatusList.load(rev_reg_list)
+            rev_status_list = RevocationStatusList.load(rev_status_list)
+
         if rev_state and not isinstance(rev_state, bindings.AnoncredsObject):
             rev_state = CredentialRevocationState.load(rev_state)
+
         if old_rev_status_list and not isinstance(old_rev_status_list, bindings.AnoncredsObject):
-            old_rev_reg_list = RevocationStatusList.load(old_rev_reg_list)
+            old_rev_status_list = RevocationStatusList.load(old_rev_status_list)
+
         return CredentialRevocationState(
             bindings.create_or_update_revocation_state(
                 rev_reg_def.handle,

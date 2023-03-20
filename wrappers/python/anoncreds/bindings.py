@@ -9,7 +9,10 @@ from ctypes import (
     CDLL,
     POINTER,
     Structure,
+    addressof,
     byref,
+    cast,
+    c_char,
     c_char_p,
     c_int8,
     c_int64,
@@ -18,21 +21,54 @@ from ctypes import (
     c_ubyte,
     c_void_p,
     pointer,
+    _CData
 )
 from ctypes.util import find_library
 from io import BytesIO
-from typing import Iterable, Optional, Mapping, Sequence, Tuple, Union
+from typing import Iterable, Optional, Mapping, Sequence, Tuple, Union, Callable
+from weakref import finalize
 
 from .error import AnoncredsError, AnoncredsErrorCode
 
 
 CALLBACKS = {}
-LIB: CDLL = None
+LIB: Optional[CDLL] = None
 LOGGER = logging.getLogger(__name__)
 
 
-class ObjectHandle(c_int64):
+def _struct_dtor(ctype: _CData, address: int, dtor: Callable):
+    value = ctype.from_address(address)
+    if value:
+        dtor(value)
+
+
+def finalize_struct(instance, ctype):
+    """Attach a struct destructor."""
+    finalize(
+        instance, _struct_dtor, ctype, addressof(instance), instance.__class__._cleanup
+    )
+
+
+def keepalive(instance, *depend):
+    """Ensure that dependencies are kept alive as long as the instance."""
+    finalize(instance, lambda *_args: None, *depend)
+
+
+class ObjectHandle(Structure):
     """Index of an active AnoncredsObject instance."""
+
+    _fields_ = [
+        ("value", c_int64),
+    ]
+
+    def __init__(self, value=0):
+        """Initializer."""
+        if isinstance(value, c_int64):
+            value = value.value
+        if not isinstance(value, int):
+            raise ValueError("Invalid handle")
+        super().__init__(value=value)
+        finalize_struct(self, c_int64)
 
     @property
     def type_name(self) -> str:
@@ -51,6 +87,11 @@ class ObjectHandle(c_int64):
 
     def __del__(self):
         object_free(self)
+
+    @classmethod
+    def _cleanup(cls, value: c_int64):
+        """Destructor."""
+        get_library().anoncreds_object_free(value)
 
 
 class AnoncredsObject:
@@ -76,55 +117,103 @@ class AnoncredsObject:
         return bytes(object_get_json(self.handle)).decode("utf-8")
 
     def to_json_buffer(self) -> memoryview:
-        return memoryview(object_get_json(self.handle).raw)
+        return object_get_json(self.handle).raw
 
 
-class ByteBuffer(Structure):
+class RawBuffer(Structure):
     """A byte buffer allocated by the library."""
 
     _fields_ = [
         ("len", c_int64),
-        ("value", c_void_p),
+        ("data", POINTER(c_ubyte)),
     ]
 
-    @property
-    def raw(self) -> Array:
-        ret = (c_ubyte * self.len).from_address(self.value)
-        setattr(ret, "_ref_", self)  # ensure buffer is not dropped
-        return ret
+    def __bool__(self) -> bool:
+        return bool(self.data)
 
     def __bytes__(self) -> bytes:
-        return bytes(self.raw)
+        if not self.len:
+            return b""
+        return bytes(self.array)
+
+    def __len__(self) -> int:
+        return int(self.len)
+
+    @property
+    def array(self) -> Array:
+        return cast(self.data, POINTER(c_ubyte * self.len)).contents
+
+    def __repr__(self) -> str:
+        return f"<RawBuffer(len={self.len})>"
+
+
+class ByteBuffer(Structure):
+    """A managed byte buffer allocated by the library."""
+
+    _fields_ = [("buffer", RawBuffer)]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        finalize_struct(self, RawBuffer)
+
+    @property
+    def _as_parameter_(self):
+        return self.buffer
+
+    @property
+    def array(self) -> Array:
+        return self.buffer.array
+
+    @property
+    def raw(self) -> memoryview:
+        m = memoryview(self.array)
+        keepalive(m, self)
+        return m
+
+    def __bytes__(self) -> bytes:
+        return bytes(self.buffer)
+
+    def __len__(self) -> int:
+        return len(self.buffer)
+
+    def __getitem__(self, idx) -> bytes:
+        return bytes(self.buffer.array[idx])
 
     def __repr__(self) -> str:
         """Format byte buffer as a string."""
         return repr(bytes(self))
 
-    def __del__(self):
-        """Call the byte buffer destructor when this instance is released."""
-        get_library().anoncreds_buffer_free(self)
+    @classmethod
+    def _cleanup(cls, buffer: RawBuffer):
+        """Call the byte buffer desctructor when this instance is released."""
+        get_library().anoncreds_buffer_free(buffer)
 
 
-class StrBuffer(c_char_p):
+class StrBuffer(Structure):
     """A string allocated by the library."""
 
-    @classmethod
-    def from_param(cls):
-        """Returns the type ctypes should use for loading the result."""
-        return c_void_p
+    _fields_ = [("buffer", POINTER(c_char))]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        finalize_struct(self, c_char_p)
 
     def is_none(self) -> bool:
         """Check if the returned string pointer is null."""
-        return self.value is None
+        return not self.buffer
 
     def opt_str(self) -> Optional[str]:
         """Convert to an optional string."""
         val = self.value
         return val.decode("utf-8") if val is not None else None
 
+    def __bool__(self) -> bool:
+        return bool(self.buffer)
+
     def __bytes__(self) -> bytes:
         """Convert to bytes."""
-        return self.value
+        bval = self.value
+        return bval if bval is not None else bytes()
 
     def __str__(self):
         """Convert to a string."""
@@ -132,9 +221,15 @@ class StrBuffer(c_char_p):
         val = self.opt_str()
         return val if val is not None else ""
 
-    def __del__(self):
+    @property
+    def value(self) -> bytes:
+        value = cast(self.buffer, c_char_p).value
+        return value if value is not None else bytes()
+
+    @classmethod
+    def _cleanup(cls, buffer: c_char_p):
         """Call the string destructor when this instance is released."""
-        get_library().anoncreds_string_free(self)
+        get_library().anoncreds_string_free(buffer)
 
 
 class FfiObjectHandleList(Structure):
@@ -209,15 +304,17 @@ class CredentialEntry(Structure):
     @classmethod
     def create(
         cls,
-        credential: ObjectHandle,
+        credential: AnoncredsObject,
         timestamp: Optional[int] = None,
-        rev_state: Optional[ObjectHandle] = None,
+        rev_state: Optional[AnoncredsObject] = None,
     ) -> "CredentialEntry":
-        return CredentialEntry(
-            credential=credential,
+        entry = CredentialEntry(
+            credential=credential.handle,
             timestamp=-1 if timestamp is None else timestamp,
-            rev_state=rev_state or ObjectHandle(),
+            rev_state=rev_state.handle if rev_state else ObjectHandle(),
         )
+        keepalive(entry, credential, rev_state)
+        return entry
 
 
 class CredentialEntryList(Structure):
@@ -305,23 +402,25 @@ class RevocationConfig(Structure):
     @classmethod
     def create(
         cls,
-        rev_reg_def: ObjectHandle,
-        rev_reg_def_private: ObjectHandle,
+        rev_reg_def: AnoncredsObject,
+        rev_reg_def_private: AnoncredsObject,
         rev_reg_index: int,
         tails_path: str,
     ) -> "RevocationConfig":
-        return RevocationConfig(
-            rev_reg_def=rev_reg_def,
-            rev_reg_def_private=rev_reg_def_private,
+        config = RevocationConfig(
+            rev_reg_def=rev_reg_def.handle,
+            rev_reg_def_private=rev_reg_def_private.handle,
             rev_reg_index=rev_reg_index,
             tails_path=encode_str(tails_path),
         )
+        keepalive(config, rev_reg_def, rev_reg_def_private)
+        return config
 
 
 class RevocationEntry(Structure):
     _fields_ = [
         ("def_entry_idx", c_int64),
-        ("entry", ObjectHandle),
+        ("registry", ObjectHandle),
         ("timestamp", c_int64),
     ]
 
@@ -329,14 +428,16 @@ class RevocationEntry(Structure):
     def create(
         cls,
         def_entry_idx: int,
-        entry: ObjectHandle,
+        registry: AnoncredsObject,
         timestamp: int,
     ) -> "RevocationEntry":
-        return RevocationEntry(
+        entry = RevocationEntry(
             def_entry_idx=def_entry_idx,
-            entry=entry,
+            registry=registry.handle,
             timestamp=timestamp,
         )
+        keepalive(entry, registry)
+        return entry
 
 
 class RevocationEntryList(Structure):
