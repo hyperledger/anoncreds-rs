@@ -855,7 +855,7 @@ def verify_presentation(
         FfiObjectHandleList.create(rev_reg_defs),
         FfiStrList.create(rev_reg_def_ids),
         FfiObjectHandleList.create(rev_status_lists),
-        nonrevoked_interval_overrides_list, 
+        nonrevoked_interval_overrides_list,
         byref(verify),
     )
     return bool(verify)

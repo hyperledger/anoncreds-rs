@@ -618,10 +618,10 @@ class RevocationStatusList(bindings.AnoncredsObject):
         if not isinstance(rev_reg_def, bindings.AnoncredsObject):
             rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
 
-        self.handle = bindings.update_revocation_status_list(
+        new_list = bindings.update_revocation_status_list(
             timestamp, issued, revoked, rev_reg_def.handle, self.handle
         )
-        return self
+        return RevocationStatusList(new_list)
 
 
 class RevocationRegistry(bindings.AnoncredsObject):

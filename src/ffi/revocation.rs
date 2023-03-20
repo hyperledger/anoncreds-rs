@@ -75,14 +75,14 @@ pub extern "C" fn anoncreds_update_revocation_status_list(
             Some(timestamp as u64)
         };
         let revoked: Option<BTreeSet<u32>> = if revoked.is_empty() {
-            Some(revoked.as_slice().iter().map(|r| *r as u32).collect())
-        } else {
             None
+        } else {
+            Some(revoked.as_slice().iter().map(|r| *r as u32).collect())
         };
         let issued: Option<BTreeSet<u32>> = if issued.is_empty() {
-            Some(issued.as_slice().iter().map(|r| *r as u32).collect())
-        } else {
             None
+        } else {
+            Some(issued.as_slice().iter().map(|r| *r as u32).collect())
         };
         let new_rev_status_list = issuer::update_revocation_status_list(
             timestamp,
