@@ -253,51 +253,6 @@ class Schema(bindings.AnoncredsObject):
     def load(cls, value: Union[dict, str, bytes, memoryview]) -> "Schema":
         return Schema(bindings._object_from_json("anoncreds_schema_from_json", value))
 
-class RevocationStatusList(bindings.AnoncredsObject):
-    @classmethod
-    def create(
-        cls,
-        rev_reg_def_id: str,
-        rev_reg_def: Union[str, RevocationRegistryDefinition],
-        issuer_id: str,
-        timestamp: Optional[int],
-        issuance_by_default: bool = True
-    ) -> "RevocationStatusList":
-        if not isinstance(rev_reg_def, bindings.AnoncredsObject):
-            rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
-
-        return RevocationStatusList(
-            bindings.create_revocation_status_list(
-                rev_reg_def_id,
-                rev_reg_def.handle,
-                issuer_id,
-                timestamp,
-                issuance_by_default,
-            )
-        )
-
-    def update(
-        self, 
-        timestamp: Optional[int], 
-        issued: Optional[Sequence[int]],
-        revoked: Optional[Sequence[int]],
-        rev_reg_def: Union[str, RevocationRegistryDefinition], 
-        ) -> "RevocationStatusList":
-        if not isinstance(rev_reg_def, bindings.AnoncredsObject):
-            rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
-
-        return RevocationStatusList(
-            bindings.update_revocation_status_list(
-                timestamp,
-                issued,
-                revoked,
-                rev_reg_def.handle,
-                self.handle,
-            )
-        )
-
-
-
 class Credential(bindings.AnoncredsObject):
     GET_ATTR = "anoncreds_credential_get_attribute"
 
