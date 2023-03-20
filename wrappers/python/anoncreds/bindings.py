@@ -21,11 +21,10 @@ from ctypes import (
     c_ubyte,
     c_void_p,
     pointer,
-    _CData
 )
 from ctypes.util import find_library
 from io import BytesIO
-from typing import Iterable, Optional, Mapping, Sequence, Tuple, Union, Callable
+from typing import Iterable, Optional, Mapping, Sequence, Tuple, Union, Callable, Any
 from weakref import finalize
 
 from .error import AnoncredsError, AnoncredsErrorCode
@@ -36,7 +35,7 @@ LIB: Optional[CDLL] = None
 LOGGER = logging.getLogger(__name__)
 
 
-def _struct_dtor(ctype: _CData, address: int, dtor: Callable):
+def _struct_dtor(ctype: Any, address: int, dtor: Callable):
     value = ctype.from_address(address)
     if value:
         dtor(value)
@@ -843,7 +842,7 @@ def verify_presentation(
     nonrevoked_interval_overrides_list = NonrevokedIntervalOverrideList()
     if nonrevoked_interval_overrides:
         nonrevoked_interval_overrides_list.count = len(nonrevoked_interval_overrides)
-        nonrevoked_interval_overrides_list.data = (NonrevokedIntervaOverride * nonrevoked_interval_overrides.count)(*nonrevoked_interval_overrides)
+        nonrevoked_interval_overrides_list.data = (NonrevokedIntervalOverride * nonrevoked_interval_overrides.count)(*nonrevoked_interval_overrides)
 
     do_call(
         "anoncreds_verify_presentation",
