@@ -399,7 +399,7 @@ impl<'a> Mock<'a> {
                     .get(&time_to_update_to)
                     .unwrap();
 
-                let state = prover::create_or_update_revocation_state_with_witness(
+                let state = prover::create_revocation_state_with_witness(
                     cred.witness.as_ref().unwrap().clone(),
                     rev_status_list,
                     time_to_update_to,

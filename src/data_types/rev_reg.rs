@@ -142,13 +142,13 @@ impl TryFrom<&RevocationStatusList> for Option<ursa::cl::RevocationRegistry> {
     type Error = Error;
 
     fn try_from(value: &RevocationStatusList) -> Result<Self, Self::Error> {
-        value.registry.clone().map(TryInto::try_into).transpose()
+        value.registry.map(TryInto::try_into).transpose()
     }
 }
 
 impl From<&RevocationStatusList> for Option<UrsaRevocationRegistry> {
     fn from(rev_status_list: &RevocationStatusList) -> Option<UrsaRevocationRegistry> {
-        rev_status_list.registry.clone().map(Into::into)
+        rev_status_list.registry.map(Into::into)
     }
 }
 

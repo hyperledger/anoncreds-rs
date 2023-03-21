@@ -9,7 +9,7 @@ pub const MAX_ATTRIBUTES_COUNT: usize = 125;
 
 impl_anoncreds_object_identifier!(SchemaId);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Schema {
     pub name: String,
