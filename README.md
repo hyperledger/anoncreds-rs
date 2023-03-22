@@ -49,7 +49,7 @@ Anoncreds is, soon, available as a standalone library in Rust, but also via wrap
 | Node.js      | [javascript](https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/javascript) | ✅     |
 | React Native | [javascript](https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/javascript) | ✅     |
 | Python       | [python](https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/python)         | 🚧     |
-| Go           | [go](https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/go)                 | ❌     |
+
 
 ## Credit
 
