@@ -53,7 +53,6 @@ pub fn verify_presentation(
     cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
     rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
     rev_status_lists: Option<Vec<&RevocationStatusList>>,
-    // Override Map: HashMap<req_timestamp, override_timestamp>
     nonrevoke_interval_override: Option<
         &HashMap<&RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
