@@ -242,7 +242,7 @@ jobs:
           #       uses: actions/download-artifact@v2
           #       with:
           #         name: ${{matrix.library}}
-          #         path: wrappers/python/indy_credx/
+          #         path: wrappers/python/anoncreds/
 
           #     - name: Build python package
           #       run: |
