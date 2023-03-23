@@ -1,5 +1,8 @@
 name: 'Anoncreds'
 
+env:
+  CROSS_VERSION: "0.2.4"
+
 on:
   push:
     branches: [main]
@@ -283,7 +286,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        architecture:
+        target:
           [
             aarch64-linux-android,
             armv7-linux-androideabi,
@@ -298,7 +301,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.architecture }}
+          targets: ${{ matrix.target }}
 
       - name: Cache cargo resources
         uses: Swatinem/rust-cache@v2
@@ -311,8 +314,8 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${{matrix.architecture}}
-          path: target/${{matrix.architecture}}/release/libanoncreds.so
+          name: ${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/libanoncreds.so
 
   create-android-library:
     name: Create android libraries
