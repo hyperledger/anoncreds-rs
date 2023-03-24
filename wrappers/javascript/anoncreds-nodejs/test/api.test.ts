@@ -6,7 +6,7 @@ import {
   CredentialRequest,
   CredentialRevocationConfig,
   CredentialRevocationState,
-  MasterSecret,
+  LinkSecret,
   Presentation,
   PresentationRequest,
   RevocationRegistryDefinition,
@@ -89,14 +89,14 @@ describe('API', () => {
       keyCorrectnessProof,
     })
 
-    const masterSecret = MasterSecret.create()
-    const masterSecretId = 'master secret id'
+    const linkSecret = LinkSecret.create()
+    const linkSecretId = 'link secret id'
 
     const { credentialRequestMetadata, credentialRequest } = CredentialRequest.create({
       entropy: 'entropy',
       credentialDefinition,
-      masterSecret,
-      masterSecretId,
+      linkSecret,
+      linkSecretId,
       credentialOffer,
     })
 
@@ -119,7 +119,7 @@ describe('API', () => {
     const credentialReceived = credential.process({
       credentialDefinition,
       credentialRequestMetadata,
-      masterSecret,
+      linkSecret,
       revocationRegistryDefinition,
     })
 
@@ -168,7 +168,7 @@ describe('API', () => {
           reveal: true,
         },
       ],
-      masterSecret,
+      linkSecret,
       schemas: { 'mock:uri': schema },
       selfAttest: { attr3_referent: '8-800-300' },
     })
@@ -209,14 +209,14 @@ describe('API', () => {
       keyCorrectnessProof,
     })
 
-    const masterSecret = MasterSecret.create()
-    const masterSecretId = 'master secret id'
+    const linkSecret = LinkSecret.create()
+    const linkSecretId = 'link secret id'
 
     const { credentialRequestMetadata, credentialRequest } = CredentialRequest.create({
       entropy: 'entropy',
       credentialDefinition,
-      masterSecret,
-      masterSecretId,
+      linkSecret,
+      linkSecretId,
       credentialOffer,
     })
 
@@ -231,7 +231,7 @@ describe('API', () => {
     const credReceived = credential.process({
       credentialDefinition,
       credentialRequestMetadata,
-      masterSecret,
+      linkSecret,
     })
 
     const credJson = credential.toJson()
@@ -312,7 +312,7 @@ describe('API', () => {
           reveal: true,
         },
       ],
-      masterSecret,
+      linkSecret,
       schemas: { 'mock:uri': schema },
       selfAttest: { attr3_referent: '8-800-300' },
     })
@@ -329,7 +329,11 @@ describe('API', () => {
   })
 })
 
-test('create and verify presentation passing only JSON objects as parameters)', () => {
+test('create and verify presentation passing only JSON objects as parameters', () => {
+  setup()
+
+  const nonce = anoncreds.generateNonce()
+
   // a schema can be created from JSON
   const schema = Schema.fromJson({
     name: 'schema-1',
@@ -358,20 +362,21 @@ test('create and verify presentation passing only JSON objects as parameters)', 
     tag: 'TAG',
   })
 
-  const credentialOffer = CredentialOffer.create({
-    schemaId: 'mock:uri',
-    credentialDefinitionId: 'mock:uri',
-    keyCorrectnessProof: keyCorrectnessProof.toJson(),
+  const credentialOffer = CredentialOffer.fromJson({
+    schema_id: 'mock:uri',
+    cred_def_id: 'mock:uri',
+    key_correctness_proof: keyCorrectnessProof.toJson(),
+    nonce,
   })
 
-  const masterSecret = MasterSecret.create()
-  const masterSecretId = 'master secret id'
+  const linkSecret = '123'
+  const linkSecretId = 'link secret id'
 
   const { credentialRequestMetadata, credentialRequest } = CredentialRequest.create({
     entropy: 'entropy',
     credentialDefinition: credentialDefinition.toJson(),
-    masterSecret: masterSecret.toJson(),
-    masterSecretId,
+    linkSecret,
+    linkSecretId,
     credentialOffer: credentialOffer.toJson(),
   })
 
@@ -386,7 +391,7 @@ test('create and verify presentation passing only JSON objects as parameters)', 
   const credReceived = credential.process({
     credentialDefinition: credentialDefinition.toJson(),
     credentialRequestMetadata: credentialRequestMetadata.toJson(),
-    masterSecret: masterSecret.toJson(),
+    linkSecret,
   })
 
   const credJson = credential.toJson()
@@ -406,8 +411,6 @@ test('create and verify presentation passing only JSON objects as parameters)', 
   )
   expect(credReceivedJson).toHaveProperty('signature')
   expect(credReceivedJson).toHaveProperty('witness')
-
-  const nonce = anoncreds.generateNonce()
 
   const presentationRequest = {
     nonce,
@@ -467,7 +470,7 @@ test('create and verify presentation passing only JSON objects as parameters)', 
         reveal: true,
       },
     ],
-    masterSecret: masterSecret.toJson(),
+    linkSecret,
     schemas: { 'mock:uri': schema.toJson() },
     selfAttest: { attr3_referent: '8-800-300' },
   })

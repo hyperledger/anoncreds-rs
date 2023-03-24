@@ -132,11 +132,9 @@ describe('bindings', () => {
     )
   })
 
-  test('create master secret', () => {
-    const masterSecret = anoncreds.createMasterSecret()
-    const json = anoncreds.getJson({ objectHandle: masterSecret })
-    expect(JSON.parse(json)).toHaveProperty('value')
-    expect(JSON.parse(json).value).toHaveProperty('ms')
+  test('create link secret', () => {
+    const linkSecret = anoncreds.createLinkSecret()
+    expect(typeof linkSecret).toBe('string')
   })
 
   test('create credential offer', () => {
@@ -190,21 +188,21 @@ describe('bindings', () => {
       tag: 'TAG',
     })
 
-    const credOfferObj = anoncreds.createCredentialOffer({
+    const credentialOffer = anoncreds.createCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
       keyCorrectnessProof,
     })
 
-    const masterSecret = anoncreds.createMasterSecret()
-    const masterSecretId = 'master secret id'
+    const linkSecret = anoncreds.createLinkSecret()
+    const linkSecretId = 'link secret id'
 
     const { credentialRequest, credentialRequestMetadata } = anoncreds.createCredentialRequest({
       entropy: ENTROPY,
       credentialDefinition: credentialDefinition,
-      masterSecret,
-      masterSecretId,
-      credentialOffer: credOfferObj,
+      linkSecret,
+      linkSecretId,
+      credentialOffer,
     })
 
     const credReqJson = anoncreds.getJson({ objectHandle: credentialRequest })
@@ -219,10 +217,10 @@ describe('bindings', () => {
     const credReqMetadataJson = anoncreds.getJson({ objectHandle: credentialRequestMetadata })
     expect(JSON.parse(credReqMetadataJson)).toEqual(
       expect.objectContaining({
-        master_secret_name: masterSecretId,
+        link_secret_name: linkSecretId,
       })
     )
-    expect(JSON.parse(credReqMetadataJson)).toHaveProperty('master_secret_blinding_data')
+    expect(JSON.parse(credReqMetadataJson)).toHaveProperty('link_secret_blinding_data')
     expect(JSON.parse(credReqMetadataJson)).toHaveProperty('nonce')
   })
 
@@ -274,14 +272,14 @@ describe('bindings', () => {
       keyCorrectnessProof,
     })
 
-    const masterSecret = anoncreds.createMasterSecret()
-    const masterSecretId = 'master secret id'
+    const linkSecret = anoncreds.createLinkSecret()
+    const linkSecretId = 'link secret id'
 
     const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
       entropy: ENTROPY,
       credentialDefinition,
-      masterSecret,
-      masterSecretId,
+      linkSecret,
+      linkSecretId,
       credentialOffer,
     })
 
@@ -305,7 +303,7 @@ describe('bindings', () => {
       credential,
       credentialDefinition,
       credentialRequestMetadata,
-      masterSecret,
+      linkSecret,
       revocationRegistryDefinition,
     })
 
@@ -409,14 +407,14 @@ describe('bindings', () => {
       keyCorrectnessProof,
     })
 
-    const masterSecret = anoncreds.createMasterSecret()
-    const masterSecretId = 'master secret id'
+    const linkSecret = anoncreds.createLinkSecret()
+    const linkSecretId = 'link secret id'
 
     const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
       entropy: ENTROPY,
       credentialDefinition,
-      masterSecret,
-      masterSecretId,
+      linkSecret,
+      linkSecretId,
       credentialOffer,
     })
 
@@ -440,7 +438,7 @@ describe('bindings', () => {
       credential,
       credentialDefinition,
       credentialRequestMetadata,
-      masterSecret,
+      linkSecret,
       revocationRegistryDefinition,
     })
 
@@ -494,7 +492,7 @@ describe('bindings', () => {
           reveal: true,
         },
       ],
-      masterSecret,
+      linkSecret,
       schemas: { 'mock:uri': schemaObj },
       selfAttest: { attr3_referent: '8-800-300' },
     })
@@ -540,14 +538,14 @@ describe('bindings', () => {
       keyCorrectnessProof,
     })
 
-    const masterSecret = anoncreds.createMasterSecret()
-    const masterSecretId = 'master secret id'
+    const linkSecret = anoncreds.createLinkSecret()
+    const linkSecretId = 'link secret id'
 
     const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
       entropy: ENTROPY,
       credentialDefinition,
-      masterSecret,
-      masterSecretId,
+      linkSecret,
+      linkSecretId,
       credentialOffer,
     })
 
@@ -563,7 +561,7 @@ describe('bindings', () => {
       credential,
       credentialDefinition,
       credentialRequestMetadata,
-      masterSecret,
+      linkSecret,
     })
 
     const credJson = anoncreds.getJson({ objectHandle: credential })
@@ -646,7 +644,7 @@ describe('bindings', () => {
           reveal: true,
         },
       ],
-      masterSecret,
+      linkSecret,
       schemas: { 'mock:uri': schemaObj },
       selfAttest: { attr3_referent: '8-800-300' },
     })

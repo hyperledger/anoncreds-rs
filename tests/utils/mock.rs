@@ -319,7 +319,7 @@ impl<'a> Mock<'a> {
                 Some("entropy"),
                 None,
                 &cred_def,
-                &self.prover_wallets[prover_id].master_secret,
+                &self.prover_wallets[prover_id].link_secret,
                 "default",
                 &offer,
             )
@@ -347,7 +347,7 @@ impl<'a> Mock<'a> {
             prover::process_credential(
                 &mut recv_cred,
                 &cred_req_data.1,
-                &self.prover_wallets[prover_id].master_secret,
+                &self.prover_wallets[prover_id].link_secret,
                 &cred_def,
                 rev_def,
             )
@@ -451,7 +451,7 @@ impl<'a> Mock<'a> {
             req,
             present,
             Some(self_attested.clone()),
-            &self.prover_wallets[prover_id].master_secret,
+            &self.prover_wallets[prover_id].link_secret,
             &schemas,
             &cred_defs,
         )

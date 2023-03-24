@@ -9,7 +9,6 @@ import { anoncreds } from '../register'
 import { Credential } from './Credential'
 import { CredentialDefinition } from './CredentialDefinition'
 import { CredentialRevocationState } from './CredentialRevocationState'
-import { MasterSecret } from './MasterSecret'
 import { PresentationRequest } from './PresentationRequest'
 import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
 import { Schema } from './Schema'
@@ -48,7 +47,7 @@ export type CreatePresentationOptions = {
   credentials: CredentialEntry[]
   credentialsProve: CredentialProve[]
   selfAttest: Record<string, string>
-  masterSecret: MasterSecret | JsonObject
+  linkSecret: string
   schemas: Record<string, Schema | JsonObject>
   credentialDefinitions: Record<string, CredentialDefinition | JsonObject>
 }
@@ -73,11 +72,6 @@ export class Presentation extends AnoncredsObject {
           ? options.presentationRequest.handle
           : pushToArray(PresentationRequest.fromJson(options.presentationRequest).handle, objectHandles)
 
-      const masterSecret =
-        options.masterSecret instanceof MasterSecret
-          ? options.masterSecret.handle
-          : pushToArray(MasterSecret.fromJson(options.masterSecret).handle, objectHandles)
-
       presentationHandle = anoncreds.createPresentation({
         presentationRequest,
         credentials: options.credentials.map((item) => ({
@@ -96,7 +90,7 @@ export class Presentation extends AnoncredsObject {
         })),
         credentialsProve: options.credentialsProve,
         selfAttest: options.selfAttest,
-        masterSecret,
+        linkSecret: options.linkSecret,
         schemas: Object.entries(options.schemas).reduce<Record<string, ObjectHandle>>((prev, [id, object]) => {
           const objectHandle =
             object instanceof Schema ? object.handle : pushToArray(Schema.fromJson(object).handle, objectHandles)

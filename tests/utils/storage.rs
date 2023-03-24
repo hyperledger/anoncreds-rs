@@ -1,6 +1,6 @@
 use anoncreds::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
 use anoncreds::data_types::credential::Credential;
-use anoncreds::data_types::master_secret::MasterSecret;
+use anoncreds::data_types::link_secret::LinkSecret;
 use anoncreds::data_types::rev_reg::RevocationRegistryId;
 use anoncreds::data_types::rev_reg_def::{
     RevocationRegistryDefinition, RevocationRegistryDefinitionId,
@@ -57,18 +57,18 @@ impl<'a> Default for IssuerWallet<'a> {
 pub struct ProverWallet<'a> {
     pub credentials: Vec<Credential>,
     pub rev_states: HashMap<RevocationRegistryId, (Option<CredentialRevocationState>, Option<u64>)>,
-    pub master_secret: MasterSecret,
+    pub link_secret: LinkSecret,
     pub cred_offers: HashMap<&'a str, CredentialOffer>,
     pub cred_reqs: Vec<(CredentialRequest, CredentialRequestMetadata)>,
 }
 
 impl<'a> Default for ProverWallet<'a> {
     fn default() -> Self {
-        let master_secret = MasterSecret::new().expect("Error creating prover master secret");
+        let link_secret = LinkSecret::new().expect("Error creating prover link secret");
         Self {
             credentials: vec![],
             rev_states: HashMap::new(),
-            master_secret,
+            link_secret,
             cred_offers: HashMap::new(),
             cred_reqs: vec![],
         }

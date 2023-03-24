@@ -6,6 +6,7 @@ use super::error::{catch_error, ErrorCode};
 use super::object::{AnonCredsObject, AnonCredsObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
 use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
+use crate::data_types::link_secret::LinkSecret;
 use crate::data_types::presentation::Presentation;
 use crate::data_types::rev_reg::RevocationStatusList;
 use crate::data_types::rev_reg_def::{
@@ -67,7 +68,7 @@ pub extern "C" fn anoncreds_create_presentation(
     credentials_prove: FfiList<FfiCredentialProve>,
     self_attest_names: FfiStrList,
     self_attest_values: FfiStrList,
-    master_secret: ObjectHandle,
+    link_secret: FfiStr,
     schemas: FfiList<ObjectHandle>,
     schema_ids: FfiStrList,
     cred_defs: FfiList<ObjectHandle>,
@@ -76,6 +77,11 @@ pub extern "C" fn anoncreds_create_presentation(
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(presentation_p);
+
+        let link_secret = link_secret
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing link secret"))?;
+        let link_secret = LinkSecret::try_from(link_secret)?;
 
         if self_attest_names.len() != self_attest_values.len() {
             return Err(err_msg!(
@@ -184,7 +190,7 @@ pub extern "C" fn anoncreds_create_presentation(
             pres_req.load()?.cast_ref()?,
             present_creds,
             self_attested,
-            master_secret.load()?.cast_ref()?,
+            &link_secret,
             &schemas,
             &cred_defs,
         )?;

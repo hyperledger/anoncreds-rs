@@ -109,22 +109,22 @@ class CredentialRequest(bindings.AnoncredsObject):
         entropy: Optional[str],
         prover_did: Optional[str],
         cred_def: Union[str, CredentialDefinition],
-        master_secret: Union[str, "MasterSecret"],
-        master_secret_id: str,
+        link_secret: Union[str, "LinkSecret"],
+        link_secret_id: str,
         cred_offer: Union[str, CredentialOffer],
     ) -> Tuple["CredentialRequest", "CredentialRequestMetadata"]:
         if not isinstance(cred_def, bindings.AnoncredsObject):
             cred_def = CredentialDefinition.load(cred_def)
-        if not isinstance(master_secret, bindings.AnoncredsObject):
-            master_secret = MasterSecret.load(master_secret)
+        if not isinstance(link_secret, bindings.AnoncredsObject):
+            link_secret = LinkSecret.load(link_secret)
         if not isinstance(cred_offer, bindings.AnoncredsObject):
             cred_offer = CredentialOffer.load(cred_offer)
         cred_def_handle, cred_def_metadata = bindings.create_credential_request(
             entropy,
             prover_did,
             cred_def.handle,
-            master_secret.handle,
-            master_secret_id,
+            link_secret.handle,
+            link_secret_id,
             cred_offer.handle,
         )
         return CredentialRequest(cred_def_handle), CredentialRequestMetadata(cred_def_metadata)
@@ -148,15 +148,15 @@ class CredentialRequestMetadata(bindings.AnoncredsObject):
         )
 
 
-class MasterSecret(bindings.AnoncredsObject):
+class LinkSecret(bindings.AnoncredsObject):
     @classmethod
-    def create(cls) -> "MasterSecret":
-        return MasterSecret(bindings.create_master_secret())
+    def create(cls) -> "LinkSecret":
+        return LinkSecret(bindings.create_link_secret())
 
     @classmethod
-    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "MasterSecret":
-        return MasterSecret(
-            bindings._object_from_json("anoncreds_master_secret_from_json", value)
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "LinkSecret":
+        return LinkSecret(
+            bindings._object_from_json("anoncreds_link_secret_from_json", value)
         )
 
 class RevocationRegistryDefinition(bindings.AnoncredsObject):
@@ -293,14 +293,14 @@ class Credential(bindings.AnoncredsObject):
     def process(
         self,
         cred_req_metadata: Union[str, CredentialRequestMetadata],
-        master_secret: Union[str, MasterSecret],
+        link_secret: Union[str, LinkSecret],
         cred_def: Union[str, CredentialDefinition],
         rev_reg_def: Optional[Union[str, "RevocationRegistryDefinition"]] = None,
     ) -> "Credential":
         if not isinstance(cred_req_metadata, bindings.AnoncredsObject):
             cred_req_metadata = CredentialRequestMetadata.load(cred_req_metadata)
-        if not isinstance(master_secret, bindings.AnoncredsObject):
-            master_secret = MasterSecret.load(master_secret)
+        if not isinstance(link_secret, bindings.AnoncredsObject):
+            link_secret = LinkSecret.load(link_secret)
         if not isinstance(cred_def, bindings.AnoncredsObject):
             cred_def = CredentialDefinition.load(cred_def)
         if rev_reg_def and not isinstance(rev_reg_def, bindings.AnoncredsObject):
@@ -309,7 +309,7 @@ class Credential(bindings.AnoncredsObject):
             bindings.process_credential(
                 self.handle,
                 cred_req_metadata.handle,
-                master_secret.handle,
+                link_secret.handle,
                 cred_def.handle,
                 rev_reg_def.handle if rev_reg_def else None,
             )
@@ -431,14 +431,14 @@ class Presentation(bindings.AnoncredsObject):
         pres_req: Union[str, PresentationRequest],
         present_creds: PresentCredentials,
         self_attest: Optional[Mapping[str, str]],
-        master_secret: Union[str, MasterSecret],
+        link_secret: Union[str, LinkSecret],
         schemas: Mapping[str, Union[str, Schema]],
         cred_defs: Mapping[str, Union[str, CredentialDefinition]],
     ) -> "Presentation":
         if not isinstance(pres_req, bindings.AnoncredsObject):
             pres_req = PresentationRequest.load(pres_req)
-        if not isinstance(master_secret, bindings.AnoncredsObject):
-            master_secret = MasterSecret.load(master_secret)
+        if not isinstance(link_secret, bindings.AnoncredsObject):
+            link_secret = LinkSecret.load(link_secret)
         schema_ids = list(schemas.keys())
         cred_def_ids = list(cred_defs.keys())
         schema_handles = [
@@ -479,7 +479,7 @@ class Presentation(bindings.AnoncredsObject):
                 creds,
                 creds_prove,
                 self_attest or {},
-                master_secret.handle,
+                link_secret.handle,
                 schema_handles,
                 schema_ids,
                 cred_def_handles,

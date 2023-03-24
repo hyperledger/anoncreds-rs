@@ -285,13 +285,13 @@ ErrorCode anoncreds_create_credential_offer(FfiStr schema_id,
 ErrorCode anoncreds_create_credential_request(FfiStr entropy,
                                               FfiStr prover_did,
                                               ObjectHandle cred_def,
-                                              ObjectHandle master_secret,
-                                              FfiStr master_secret_id,
+                                              FfiStr link_secret,
+                                              FfiStr link_secret_id,
                                               ObjectHandle cred_offer,
                                               ObjectHandle *cred_req_p,
                                               ObjectHandle *cred_req_meta_p);
 
-ErrorCode anoncreds_create_master_secret(ObjectHandle *master_secret_p);
+ErrorCode anoncreds_create_link_secret(const char **link_secret_p);
 
 ErrorCode anoncreds_create_or_update_revocation_state(ObjectHandle rev_reg_def,
                                                       ObjectHandle rev_status_list,
@@ -306,7 +306,7 @@ ErrorCode anoncreds_create_presentation(ObjectHandle pres_req,
                                         struct FfiList_FfiCredentialProve credentials_prove,
                                         FfiStrList self_attest_names,
                                         FfiStrList self_attest_values,
-                                        ObjectHandle master_secret,
+                                        FfiStr link_secret,
                                         struct FfiList_ObjectHandle schemas,
                                         FfiStrList schema_ids,
                                         struct FfiList_ObjectHandle cred_defs,
@@ -354,7 +354,7 @@ ErrorCode anoncreds_object_get_type_name(ObjectHandle handle, const char **resul
 
 ErrorCode anoncreds_process_credential(ObjectHandle cred,
                                        ObjectHandle cred_req_metadata,
-                                       ObjectHandle master_secret,
+                                       FfiStr link_secret,
                                        ObjectHandle cred_def,
                                        ObjectHandle rev_reg_def,
                                        ObjectHandle *cred_p);
@@ -387,39 +387,6 @@ ErrorCode anoncreds_verify_presentation(ObjectHandle presentation,
                                         struct FfiList_ObjectHandle rev_status_list,
                                         struct FfiList_FfiNonrevokedIntervalOverride nonrevoked_interval_override,
                                         int8_t *result_p);
-
-ErrorCode anoncreds_master_secret_from_json(ByteBuffer buffer, ObjectHandle *master_secret_p);
-
-ErrorCode anoncreds_credential_from_json(ByteBuffer buffer, ObjectHandle *credential_p);
-
-ErrorCode anoncreds_credential_request_from_json(ByteBuffer buffer, ObjectHandle *credential_request_p);
-
-ErrorCode anoncreds_credential_request_metadata_from_json(ByteBuffer buffer, ObjectHandle *credential_request_metadata_p);
-
-ErrorCode anoncreds_presentation_from_json(ByteBuffer buffer, ObjectHandle *presentation_p);
-
-ErrorCode anoncreds_presentation_request_from_json(ByteBuffer buffer, ObjectHandle *presentation_request_p);
-
-ErrorCode anoncreds_credential_offer_from_json(ByteBuffer buffer, ObjectHandle *credential_offer_p);
-
-ErrorCode anoncreds_credential_definition_private_from_json(ByteBuffer buffer, ObjectHandle *credential_definition_private_p);
-
-ErrorCode anoncreds_revocation_registry_definition_from_json(ByteBuffer buffer, ObjectHandle *revocation_registry_definition_p);
-
-ErrorCode anoncreds_revocation_registry_from_json(ByteBuffer buffer, ObjectHandle *revocation_registry_p);
-
-ErrorCode anoncreds_revocation_state_from_json(ByteBuffer buffer, ObjectHandle *revocation_state_p);
-
-ErrorCode anoncreds_credential_definition_from_json(ByteBuffer buffer, ObjectHandle *credential_definition_p);
-
-ErrorCode anoncreds_revocation_registry_definition_private_from_json(ByteBuffer buffer, ObjectHandle *revocation_registry_private_p);
-
-ErrorCode anoncreds_revocation_registry_delta_from_json(ByteBuffer buffer, ObjectHandle *revocation_registry_delta_p);
-
-ErrorCode anoncreds_key_correctness_proof_from_json(ByteBuffer buffer, ObjectHandle *key_correctness_proof_p);
-
-ErrorCode anoncreds_schema_from_json(ByteBuffer buffer, ObjectHandle *schema_p);
-
 
 char *anoncreds_version(void);
 

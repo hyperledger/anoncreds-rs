@@ -11,7 +11,7 @@ from anoncreds import (
     PresentationRequest,
     Presentation,
     PresentCredentials,
-    MasterSecret,
+    LinkSecret,
     RevocationRegistryDefinition,
     RevocationStatusList,
     NonrevokedIntervalOverride,
@@ -54,8 +54,8 @@ revocation_status_list = RevocationStatusList.create(
     True
 )
 
-master_secret = MasterSecret.create()
-master_secret_id = "default"
+link_secret = LinkSecret.create()
+link_secret_id = "default"
 
 cred_offer = CredentialOffer.create(
     schema_id,
@@ -67,8 +67,8 @@ cred_request, cred_request_metadata = CredentialRequest.create(
     entropy,
     None,
     cred_def_pub,
-    master_secret,
-    master_secret_id,
+    link_secret,
+    link_secret_id,
     cred_offer
 )
 
@@ -96,7 +96,7 @@ issue_cred = Credential.create(
 
 recv_cred = issue_cred.process(
     cred_request_metadata,
-    master_secret,
+    link_secret,
     cred_def_pub,
     rev_reg_def_pub
 )
@@ -184,7 +184,7 @@ presentation = Presentation.create(
     pres_req,
     present,
     {"attr3_referent": "8-800-300"},
-    master_secret,
+    link_secret,
     schemas,
     cred_defs,
 )
@@ -254,7 +254,7 @@ presentation = Presentation.create(
     pres_req,
     present,
     {"attr3_referent": "8-800-300"},
-    master_secret,
+    link_secret,
     schemas,
     cred_defs
 )
@@ -272,4 +272,3 @@ print(verified)
 assert not verified
 
 print("ok")
-

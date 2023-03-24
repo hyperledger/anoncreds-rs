@@ -33,7 +33,7 @@ jsi::Value setDefaultLogger(jsi::Runtime &rt, jsi::Object options);
 jsi::Value objectFree(jsi::Runtime &rt, jsi::Object options);
 
 // Meta
-jsi::Value createMasterSecret(jsi::Runtime &rt, jsi::Object options);
+jsi::Value createLinkSecret(jsi::Runtime &rt, jsi::Object options);
 jsi::Value generateNonce(jsi::Runtime &rt, jsi::Object options);
 
 // Anoncreds Objects
@@ -48,7 +48,6 @@ jsi::Value presentationFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value presentationRequestFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value credentialOfferFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value schemaFromJson(jsi::Runtime &rt, jsi::Object options);
-jsi::Value masterSecretFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value credentialRequestFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value credentialRequestMetadataFromJson(jsi::Runtime &rt,
                                              jsi::Object options);

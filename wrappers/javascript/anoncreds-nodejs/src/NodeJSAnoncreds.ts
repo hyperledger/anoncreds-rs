@@ -225,18 +225,18 @@ export class NodeJSAnoncreds implements Anoncreds {
   public processCredential(options: {
     credential: ObjectHandle
     credentialRequestMetadata: ObjectHandle
-    masterSecret: ObjectHandle
+    linkSecret: string
     credentialDefinition: ObjectHandle
     revocationRegistryDefinition?: ObjectHandle | undefined
   }): ObjectHandle {
-    const { credential, credentialRequestMetadata, masterSecret, credentialDefinition } = serializeArguments(options)
+    const { credential, credentialRequestMetadata, linkSecret, credentialDefinition } = serializeArguments(options)
 
     const ret = allocatePointer()
 
     this.nativeAnoncreds.anoncreds_process_credential(
       credential,
       credentialRequestMetadata,
-      masterSecret,
+      linkSecret,
       credentialDefinition,
       options.revocationRegistryDefinition?.handle ?? 0,
       ret
@@ -264,11 +264,11 @@ export class NodeJSAnoncreds implements Anoncreds {
     entropy?: string
     proverDid?: string
     credentialDefinition: ObjectHandle
-    masterSecret: ObjectHandle
-    masterSecretId: string
+    linkSecret: string
+    linkSecretId: string
     credentialOffer: ObjectHandle
   }): { credentialRequest: ObjectHandle; credentialRequestMetadata: ObjectHandle } {
-    const { entropy, proverDid, credentialDefinition, masterSecret, masterSecretId, credentialOffer } =
+    const { entropy, proverDid, credentialDefinition, linkSecret, linkSecretId, credentialOffer } =
       serializeArguments(options)
 
     const credentialRequestPtr = allocatePointer()
@@ -278,8 +278,8 @@ export class NodeJSAnoncreds implements Anoncreds {
       entropy,
       proverDid,
       credentialDefinition,
-      masterSecret,
-      masterSecretId,
+      linkSecret,
+      linkSecretId,
       credentialOffer,
       credentialRequestPtr,
       credentialRequestMetadataPtr
@@ -292,13 +292,13 @@ export class NodeJSAnoncreds implements Anoncreds {
     }
   }
 
-  public createMasterSecret(): ObjectHandle {
-    const ret = allocatePointer()
+  public createLinkSecret(): string {
+    const ret = allocateStringBuffer()
 
-    this.nativeAnoncreds.anoncreds_create_master_secret(ret)
+    this.nativeAnoncreds.anoncreds_create_link_secret(ret)
     this.handleError()
 
-    return new ObjectHandle(handleReturnPointer<number>(ret))
+    return handleReturnPointer<string>(ret)
   }
 
   public createPresentation(options: {
@@ -306,11 +306,11 @@ export class NodeJSAnoncreds implements Anoncreds {
     credentials: NativeCredentialEntry[]
     credentialsProve: NativeCredentialProve[]
     selfAttest: Record<string, string>
-    masterSecret: ObjectHandle
+    linkSecret: string
     schemas: Record<string, ObjectHandle>
     credentialDefinitions: Record<string, ObjectHandle>
   }): ObjectHandle {
-    const { presentationRequest, masterSecret } = serializeArguments(options)
+    const { presentationRequest, linkSecret } = serializeArguments(options)
 
     const credentialEntries = options.credentials.map((value) =>
       CredentialEntryStruct({
@@ -390,7 +390,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialProveList as unknown as Buffer,
       selfAttestNames as unknown as Buffer,
       selfAttestValues as unknown as Buffer,
-      masterSecret,
+      linkSecret,
       schemas as unknown as Buffer,
       schemaIds as unknown as Buffer,
       credentialDefinitions as unknown as Buffer,
@@ -634,10 +634,6 @@ export class NodeJSAnoncreds implements Anoncreds {
 
   public presentationRequestFromJson(options: { json: string }) {
     return this.objectFromJson(this.nativeAnoncreds.anoncreds_presentation_request_from_json, options)
-  }
-
-  public masterSecretFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(this.nativeAnoncreds.anoncreds_master_secret_from_json, options)
   }
 
   public credentialRequestFromJson(options: { json: string }): ObjectHandle {

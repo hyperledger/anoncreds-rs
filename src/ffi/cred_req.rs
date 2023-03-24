@@ -3,6 +3,7 @@ use ffi_support::FfiStr;
 use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
 use crate::data_types::cred_def::CredentialDefinition;
+use crate::data_types::link_secret::LinkSecret;
 use crate::services::{
     prover::create_credential_request,
     types::{CredentialRequest, CredentialRequestMetadata},
@@ -13,8 +14,8 @@ pub extern "C" fn anoncreds_create_credential_request(
     entropy: FfiStr,
     prover_did: FfiStr,
     cred_def: ObjectHandle,
-    master_secret: ObjectHandle,
-    master_secret_id: FfiStr,
+    link_secret: FfiStr,
+    link_secret_id: FfiStr,
     cred_offer: ObjectHandle,
     cred_req_p: *mut ObjectHandle,
     cred_req_meta_p: *mut ObjectHandle,
@@ -22,9 +23,15 @@ pub extern "C" fn anoncreds_create_credential_request(
     catch_error(|| {
         check_useful_c_ptr!(cred_req_p);
         check_useful_c_ptr!(cred_req_meta_p);
-        let master_secret_id = master_secret_id
+
+        let link_secret = link_secret
             .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing master secret ID"))?;
+            .ok_or_else(|| err_msg!("Missing link secret"))?;
+        let link_secret = LinkSecret::try_from(link_secret)?;
+
+        let link_secret_id = link_secret_id
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing link secret ID"))?;
         let entropy = entropy.as_opt_str();
         let prover_did = prover_did.as_opt_str();
 
@@ -35,8 +42,8 @@ pub extern "C" fn anoncreds_create_credential_request(
             entropy,
             prover_did,
             cred_def,
-            master_secret.load()?.cast_ref()?,
-            master_secret_id,
+            &link_secret,
+            link_secret_id,
             cred_offer.load()?.cast_ref()?,
         )?;
 

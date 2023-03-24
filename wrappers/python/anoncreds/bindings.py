@@ -707,7 +707,7 @@ def encode_credential_attributes(
 def process_credential(
     cred: ObjectHandle,
     cred_req_metadata: ObjectHandle,
-    master_secret: ObjectHandle,
+    link_secret: ObjectHandle,
     cred_def: ObjectHandle,
     rev_reg_def: Optional[ObjectHandle],
 ) -> ObjectHandle:
@@ -716,7 +716,7 @@ def process_credential(
         "anoncreds_process_credential",
         cred,
         cred_req_metadata,
-        master_secret,
+        link_secret,
         cred_def,
         rev_reg_def or ObjectHandle(),
         byref(result),
@@ -762,8 +762,8 @@ def create_credential_request(
     entropy: Optional[str],
     prover_did: Optional[str],
     cred_def: ObjectHandle,
-    master_secret: ObjectHandle,
-    master_secret_id: str,
+    link_secret: ObjectHandle,
+    link_secret_id: str,
     cred_offer: ObjectHandle,
 ) -> Tuple[ObjectHandle, ObjectHandle]:
     cred_req, cred_req_metadata = ObjectHandle(), ObjectHandle()
@@ -772,8 +772,8 @@ def create_credential_request(
         encode_str(entropy),
         encode_str(prover_did),
         cred_def,
-        master_secret,
-        encode_str(master_secret_id),
+        link_secret,
+        encode_str(link_secret_id),
         cred_offer,
         byref(cred_req),
         byref(cred_req_metadata),
@@ -781,10 +781,10 @@ def create_credential_request(
     return (cred_req, cred_req_metadata)
 
 
-def create_master_secret() -> ObjectHandle:
+def create_link_secret() -> ObjectHandle:
     secret = ObjectHandle()
     do_call(
-        "anoncreds_create_master_secret",
+        "anoncreds_create_link_secret",
         byref(secret),
     )
     return secret
@@ -795,7 +795,7 @@ def create_presentation(
     credentials: Sequence[CredentialEntry],
     credentials_prove: Sequence[CredentialProve],
     self_attest: Optional[Mapping[str, str]],
-    master_secret: ObjectHandle,
+    link_secret: ObjectHandle,
     schemas: Sequence[ObjectHandle],
     schema_ids: Sequence[str],
     cred_defs: Sequence[ObjectHandle],
@@ -816,7 +816,7 @@ def create_presentation(
         prove_list,
         FfiStrList.create(self_attest.keys() if self_attest else None),
         FfiStrList.create(self_attest.values() if self_attest else None),
-        master_secret,
+        link_secret,
         FfiObjectHandleList.create(schemas),
         FfiStrList.create(schema_ids),
         FfiObjectHandleList.create(cred_defs),
