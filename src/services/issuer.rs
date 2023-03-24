@@ -27,6 +27,24 @@ use super::tails::{TailsFileReader, TailsWriter};
 
 const ACCUM_NO_ISSUED: &str = "1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000 2 095E45DDF417D05FB10933FFC63D474548B7FFFF7888802F07FFFFFF7D07A8A8 1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000";
 
+/// Create an Anoncreds schema according to the [Anoncreds v1.0
+/// specification - Schema](https://hyperledger.github.io/anoncreds-spec/#schema-publisher-publish-schema-object)
+///
+/// This object can be stored on a VDR, verifiable data registry, to be used later on. It is
+/// important to note that the identifier for the schema is omitted as this is used or VDR defined.
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::issuer;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+///
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0", "did:web:xyz",
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+/// ```
 pub fn create_schema<II>(
     schema_name: &str,
     schema_version: &str,
@@ -56,6 +74,42 @@ where
     Ok(schema)
 }
 
+/// Create an Anoncreds credential definition according to the [Anoncreds v1.0 specification -
+/// Credential Definition without revocation
+/// support](https://hyperledger.github.io/anoncreds-spec/#generating-a-credential-definition-without-revocation-support)
+/// or [Anoncreds v1.0 specification - Credential Definition with
+/// revocation](https://hyperledger.github.io/anoncreds-spec/#generating-a-credential-definition-with-revocation-support)
+///
+/// If you want to add support for revocation, you can add this with the
+/// [CredentialDefinitionConfig] property.
+///
+/// This object can be stored on a VDR, verifiable data registry, to be used later on. It is
+/// important to note that the identifier for the credential definition is omitted as this is used
+/// or VDR defined.
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::issuer;
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    "did:web:xyz",
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition("did:web:xyz/resource/schema",
+///                                          &schema,
+///                                          "did:web:xyz",
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig::default()
+///                                          ).expect("Unable to create Credential Definition");
+/// ```
 pub fn create_credential_definition<SI, II>(
     schema_id: SI,
     schema: &Schema,
@@ -117,6 +171,52 @@ where
     Ok((cred_def, cred_def_private, cred_key_proof))
 }
 
+/// Create an Anoncreds revocation registry definition according to the [Anoncreds v1.0 -
+/// Revocation Registry
+/// Definition](https://hyperledger.github.io/anoncreds-spec/#issuer-create-and-publish-revocation-registry-objects).
+///
+/// This object can be stored on a VDR, verifiable data registry, to be used later on. It is
+/// important to note that the identifier for the revocation registry definition is omitted as this
+/// is used or VDR defined.
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::issuer;
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+/// use anoncreds::types::RegistryType;
+/// use anoncreds::tails::TailsFileWriter;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    "did:web:xyz",
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition("did:web:xyz/resource/schema",
+///                                          &schema,
+///                                          "did:web:xyz",
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig {
+///                                             support_revocation: true
+///                                          },
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let mut tw = TailsFileWriter::new(None);
+/// let (rev_reg_def, rev_reg_def_priv) =
+///     issuer::create_revocation_registry_def(&cred_def,
+///                                            "did:web:xyz/resource/cred-def",
+///                                            "did:web:xyz",
+///                                            "default-tag",
+///                                            RegistryType::CL_ACCUM,
+///                                            1000,
+///                                            &mut tw
+///                                            ).expect("Unable to create revocation registry");
+/// ```
 pub fn create_revocation_registry_def<TW>(
     cred_def: &CredentialDefinition,
     cred_def_id: impl TryInto<CredentialDefinitionId, Error = ValidationError>,
@@ -187,6 +287,57 @@ where
     Ok((revoc_reg_def, revoc_def_priv))
 }
 
+/// Create an Anoncreds Revocation Status List according to the [Anoncreds v1.0 - Revocation Status
+/// List](https://hyperledger.github.io/anoncreds-spec/#creating-the-initial-revocation-status-list-object).
+///
+/// This object can be stored on a VDR, verifiable data registry, to be used later on.
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::issuer;
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+/// use anoncreds::types::RegistryType;
+/// use anoncreds::tails::TailsFileWriter;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    "did:web:xyz",
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition("did:web:xyz/resource/schema",
+///                                          &schema,
+///                                          "did:web:xyz",
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig {
+///                                             support_revocation: true
+///                                          },
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let mut tw = TailsFileWriter::new(None);
+/// let (rev_reg_def, rev_reg_def_priv) =
+///     issuer::create_revocation_registry_def(&cred_def,
+///                                            "did:web:xyz/resource/cred-def",
+///                                            "did:web:xyz",
+///                                            "default-tag",
+///                                            RegistryType::CL_ACCUM,
+///                                            1000,
+///                                            &mut tw
+///                                            ).expect("Unable to create revocation registry");
+///
+/// let rev_status_list =
+///     issuer::create_revocation_status_list("did:web:xyz/resource/rev-reg-def",
+///                                           &rev_reg_def,
+///                                           "did:web:xyz",
+///                                           None,
+///                                           true
+///                                           ).expect("Unable to create revocation status list");
+/// ```
 pub fn create_revocation_status_list(
     rev_reg_def_id: impl TryInto<RevocationRegistryDefinitionId, Error = ValidationError>,
     rev_reg_def: &RevocationRegistryDefinition,
@@ -231,7 +382,60 @@ pub fn create_revocation_status_list(
     )
 }
 
-/// Update the timestamp only without changing any actual state
+/// Update a timestamp in an Anoncreds Revocation Status List according to the [Anoncreds v1.0 -
+/// Revocation Status
+/// List](https://hyperledger.github.io/anoncreds-spec/#creating-the-initial-revocation-status-list-object).
+///
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::issuer;
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+/// use anoncreds::types::RegistryType;
+/// use anoncreds::tails::TailsFileWriter;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    "did:web:xyz",
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition("did:web:xyz/resource/schema",
+///                                          &schema,
+///                                          "did:web:xyz",
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig {
+///                                             support_revocation: true
+///                                          },
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let mut tw = TailsFileWriter::new(None);
+/// let (rev_reg_def, rev_reg_def_priv) =
+///     issuer::create_revocation_registry_def(&cred_def,
+///                                            "did:web:xyz/resource/cred-def",
+///                                            "did:web:xyz",
+///                                            "default-tag",
+///                                            RegistryType::CL_ACCUM,
+///                                            1000,
+///                                            &mut tw
+///                                            ).expect("Unable to create revocation registry");
+///
+/// let rev_status_list = issuer::create_revocation_status_list("did:web:xyz/resource/rev-reg-def",
+///                                                             &rev_reg_def,
+///                                                             "did:web:xyz",
+///                                                             None,
+///                                                             true
+///                                                             ).expect("Unable to create revocation status list");
+///
+/// let updated_rev_status_list = issuer::update_revocation_status_list_timestamp_only(1000,
+///                                                                                    &rev_status_list
+///                                                                                    );
+/// ```
 pub fn update_revocation_status_list_timestamp_only(
     timestamp: u64,
     current_list: &RevocationStatusList,
@@ -241,8 +445,67 @@ pub fn update_revocation_status_list_timestamp_only(
     list.update(None, None, None, Some(timestamp)).unwrap();
     list
 }
-/// Update Revocation Status List
-/// - if `timestamp` is `None`: the timestamp is not updated
+
+/// Update an Anoncreds Revocation Status List according to the [Anoncreds v1.0 - Revocation Status
+/// List](https://hyperledger.github.io/anoncreds-spec/#creating-the-initial-revocation-status-list-object).
+///
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::issuer;
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+/// use anoncreds::types::RegistryType;
+/// use anoncreds::tails::TailsFileWriter;
+/// use std::collections::BTreeSet;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    "did:web:xyz",
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition("did:web:xyz/resource/schema",
+///                                          &schema,
+///                                          "did:web:xyz",
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig {
+///                                             support_revocation: true
+///                                          },
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let mut tw = TailsFileWriter::new(None);
+/// let (rev_reg_def, rev_reg_def_priv) =
+///     issuer::create_revocation_registry_def(&cred_def,
+///                                            "did:web:xyz/resource/cred-def",
+///                                            "did:web:xyz",
+///                                            "default-tag",
+///                                            RegistryType::CL_ACCUM,
+///                                            1000,
+///                                            &mut tw
+///                                            ).expect("Unable to create revocation registry");
+///
+/// let rev_status_list = issuer::create_revocation_status_list("did:web:xyz/resource/rev-reg-def",
+///                                                             &rev_reg_def,
+///                                                             "did:web:xyz",
+///                                                             None,
+///                                                             true
+///                                                             ).expect("Unable to create revocation status list");
+///
+/// let mut issued: BTreeSet<u32> = BTreeSet::new();
+/// issued.insert(1);
+///
+/// let updated_rev_status_list = issuer::update_revocation_status_list(None,
+///                                                                     Some(issued),
+///                                                                     None,
+///                                                                     &rev_reg_def,
+///                                                                     &rev_status_list
+///                                                                     ).expect("Unable to update revocation status list");
+/// ```
 pub fn update_revocation_status_list(
     timestamp: Option<u64>,
     issued: Option<BTreeSet<u32>>,
@@ -289,6 +552,40 @@ pub fn update_revocation_status_list(
     Ok(new_list)
 }
 
+/// Create an Anoncreds credential offer according to the [Anoncreds v1.0 specification -
+/// Credential Offer](https://hyperledger.github.io/anoncreds-spec/#credential-offer)
+///
+/// This object can be send to an holder which they can then use to request a credential.
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::issuer;
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    "did:web:xyz",
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition("did:web:xyz/resource/schema",
+///                                          &schema,
+///                                          "did:web:xyz",
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig::default()
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let credential_offer =
+///     issuer::create_credential_offer("did:web:xyz/resource/schema",
+///                                     "did:web:xyz/resource/cred-def",
+///                                     &key_correctness_proof,
+///                                     ).expect("Unable to create Credential Offer");
+/// ```
 pub fn create_credential_offer(
     schema_id: impl TryInto<SchemaId, Error = ValidationError>,
     cred_def_id: impl TryInto<CredentialDefinitionId, Error = ValidationError>,
@@ -315,6 +612,71 @@ pub fn create_credential_offer(
     Ok(credential_offer)
 }
 
+/// Create an Anoncreds credential according to the [Anoncreds v1.0 specification -
+/// Credential](https://hyperledger.github.io/anoncreds-spec/#issue-credential)
+///
+/// This object can be send to a holder which means that the credential is issued to that entity.
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::issuer;
+/// use anoncreds::prover;
+/// use anoncreds::types::MakeCredentialValues;
+///
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    "did:web:xyz",
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition("did:web:xyz/resource/schema",
+///                                          &schema,
+///                                          "did:web:xyz",
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig::default()
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let credential_offer =
+///     issuer::create_credential_offer("did:web:xyz/resource/schema",
+///                                     "did:web:xyz/resource/cred-def",
+///                                     &key_correctness_proof,
+///                                     ).expect("Unable to create Credential Offer");
+///
+/// let master_secret =
+///     prover::create_master_secret().expect("Unable to create master secret");
+///
+/// let (credential_request, credential_request_metadata) =
+///     prover::create_credential_request(Some("entropy"),
+///                                       None,
+///                                       &cred_def,
+///                                       &master_secret,
+///                                       "my-secret-id",
+///                                       &credential_offer,
+///                                       ).expect("Unable to create credential request");
+///
+/// let mut credential_values = MakeCredentialValues::default();
+/// credential_values.add_raw("name", "john").expect("Unable to add credential value");
+/// credential_values.add_raw("age", "28").expect("Unable to add credential value");
+///
+/// let credential =
+///     issuer::create_credential(&cred_def,
+///                               &cred_def_priv,
+///                               &credential_offer,
+///                               &credential_request,
+///                               credential_values.into(),
+///                               None,
+///                               None,
+///                               None
+///                               ).expect("Unable to create credential");
+/// ```
+#[allow(clippy::too_many_arguments)]
 pub fn create_credential(
     cred_def: &CredentialDefinition,
     cred_def_private: &CredentialDefinitionPrivate,

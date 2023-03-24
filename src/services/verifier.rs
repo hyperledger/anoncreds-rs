@@ -37,6 +37,15 @@ pub struct Filter {
 static INTERNAL_TAG_MATCHER: Lazy<Regex> =
     Lazy::new(|| Regex::new("^attr::([^:]+)::(value|marker)$").unwrap());
 
+/// Verify an incoming proof presentation
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::issuer;
+/// use anoncreds::prover;
+/// use anoncreds::verifier;
+/// ```
 pub fn verify_presentation(
     presentation: &Presentation,
     pres_req: &PresentationRequest,
@@ -275,6 +284,7 @@ pub fn verify_presentation(
     Ok(valid)
 }
 
+/// Generates a cryptographically strong pseudo-random nonce with a length of 80 bits
 pub fn generate_nonce() -> Result<Nonce> {
     new_nonce()
 }
