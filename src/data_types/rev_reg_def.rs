@@ -52,7 +52,10 @@ pub struct RevocationRegistryDefinition {
 
 impl Validatable for RevocationRegistryDefinition {
     fn validate(&self) -> Result<(), ValidationError> {
-        self.cred_def_id.validate()
+        self.cred_def_id.validate()?;
+        self.issuer_id.validate()?;
+
+        Ok(())
     }
 }
 
