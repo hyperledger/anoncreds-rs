@@ -10,7 +10,6 @@ import { CredentialDefinitionPrivate } from './CredentialDefinitionPrivate'
 import { CredentialOffer } from './CredentialOffer'
 import { CredentialRequest } from './CredentialRequest'
 import { CredentialRequestMetadata } from './CredentialRequestMetadata'
-import { MasterSecret } from './MasterSecret'
 import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
 import { RevocationStatusList } from './RevocationStatusList'
 import { pushToArray } from './utils'
@@ -29,7 +28,7 @@ export type CreateCredentialOptions = {
 
 export type ProcessCredentialOptions = {
   credentialRequestMetadata: CredentialRequestMetadata | JsonObject
-  masterSecret: MasterSecret | JsonObject
+  linkSecret: string
   credentialDefinition: CredentialDefinition | JsonObject
   revocationRegistryDefinition?: RevocationRegistryDefinition | JsonObject
 }
@@ -103,11 +102,6 @@ export class Credential extends AnoncredsObject {
           ? options.credentialRequestMetadata.handle
           : pushToArray(CredentialRequestMetadata.fromJson(options.credentialRequestMetadata).handle, objectHandles)
 
-      const masterSecret =
-        options.masterSecret instanceof MasterSecret
-          ? options.masterSecret.handle
-          : pushToArray(MasterSecret.fromJson(options.masterSecret).handle, objectHandles)
-
       const revocationRegistryDefinition =
         options.revocationRegistryDefinition instanceof RevocationRegistryDefinition
           ? options.revocationRegistryDefinition.handle
@@ -122,7 +116,7 @@ export class Credential extends AnoncredsObject {
         credential: this.handle,
         credentialDefinition,
         credentialRequestMetadata,
-        masterSecret,
+        linkSecret: options.linkSecret,
         revocationRegistryDefinition,
       })
 

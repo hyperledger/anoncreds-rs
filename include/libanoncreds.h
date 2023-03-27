@@ -285,13 +285,13 @@ ErrorCode anoncreds_create_credential_offer(FfiStr schema_id,
 ErrorCode anoncreds_create_credential_request(FfiStr entropy,
                                               FfiStr prover_did,
                                               ObjectHandle cred_def,
-                                              ObjectHandle master_secret,
-                                              FfiStr master_secret_id,
+                                              FfiStr link_secret,
+                                              FfiStr link_secret_id,
                                               ObjectHandle cred_offer,
                                               ObjectHandle *cred_req_p,
                                               ObjectHandle *cred_req_meta_p);
 
-ErrorCode anoncreds_create_master_secret(ObjectHandle *master_secret_p);
+ErrorCode anoncreds_create_link_secret(const char **link_secret_p);
 
 ErrorCode anoncreds_create_or_update_revocation_state(ObjectHandle rev_reg_def,
                                                       ObjectHandle rev_status_list,
@@ -306,7 +306,7 @@ ErrorCode anoncreds_create_presentation(ObjectHandle pres_req,
                                         struct FfiList_FfiCredentialProve credentials_prove,
                                         FfiStrList self_attest_names,
                                         FfiStrList self_attest_values,
-                                        ObjectHandle master_secret,
+                                        FfiStr link_secret,
                                         struct FfiList_ObjectHandle schemas,
                                         FfiStrList schema_ids,
                                         struct FfiList_ObjectHandle cred_defs,
@@ -354,7 +354,7 @@ ErrorCode anoncreds_object_get_type_name(ObjectHandle handle, const char **resul
 
 ErrorCode anoncreds_process_credential(ObjectHandle cred,
                                        ObjectHandle cred_req_metadata,
-                                       ObjectHandle master_secret,
+                                       FfiStr link_secret,
                                        ObjectHandle cred_def,
                                        ObjectHandle rev_reg_def,
                                        ObjectHandle *cred_p);

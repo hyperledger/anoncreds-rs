@@ -55,7 +55,10 @@ impl CredentialDefinition {
 
 impl Validatable for CredentialDefinition {
     fn validate(&self) -> Result<(), ValidationError> {
-        self.schema_id.validate()
+        self.schema_id.validate()?;
+        self.issuer_id.validate()?;
+
+        Ok(())
     }
 }
 

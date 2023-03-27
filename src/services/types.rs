@@ -6,7 +6,7 @@ pub use crate::data_types::{
     cred_offer::CredentialOffer,
     cred_request::{CredentialRequest, CredentialRequestMetadata},
     credential::{AttributeValues, Credential, CredentialValues},
-    master_secret::MasterSecret,
+    link_secret::LinkSecret,
     pres_request::PresentationRequest,
     presentation::Presentation,
     rev_reg::{RevocationRegistry, RevocationRegistryDelta, RevocationStatusList},

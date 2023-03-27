@@ -10,8 +10,8 @@ pub mod cred_request;
 /// Credentials
 pub mod credential;
 
-/// Identity master secret
-pub mod master_secret;
+/// Identity link secret
+pub mod link_secret;
 
 /// Nonce used in presentation requests
 pub mod nonce;
@@ -28,7 +28,7 @@ pub mod rev_reg;
 /// Revocation registry definitions
 pub mod rev_reg_def;
 
-/// V1 credential schemas
+/// Credential schemas
 pub mod schema;
 
 /// Macros for the data types

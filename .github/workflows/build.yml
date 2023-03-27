@@ -1,5 +1,8 @@
 name: "Anoncreds"
 
+env:
+  CROSS_VERSION: "0.2.4"
+
 on:
   push:
     branches: [main]
@@ -128,7 +131,8 @@ jobs:
           mkdir release-artifacts
           cp target/${{ matrix.target }}/release/${{ matrix.lib }} release-artifacts/
 
-      - uses: a7ul/tar-action@v1.1.2
+      - name: Release artifacts
+        uses: a7ul/tar-action@v1.1.2
         if: |
           github.event_name == 'release' ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true')
@@ -203,8 +207,7 @@ jobs:
   #       if: |
   #         github.event_name == 'release' ||
   #         (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-wrappers == 'true')
-  #       run:
-  #         npx lerna publish from-package --no-push --no-private --yes --no-git-tag-version
+  #       run: npx lerna publish from-package --no-push --no-private --yes --no-git-tag-version
 
   build-py:
     name: Build Python
@@ -282,7 +285,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        architecture:
+        target:
           [
             aarch64-linux-android,
             armv7-linux-androideabi,
@@ -291,21 +294,27 @@ jobs:
           ]
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: ${{ matrix.architecture }}
-      - uses: actions-rs/cargo@v1
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo resources
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: |
+          cargo install --bins --git https://github.com/rust-embedded/cross --tag v${{ env.CROSS_VERSION }} cross
+          cross build --release --target ${{ matrix.target }} --features=vendored
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
         with:
-          use-cross: true
-          command: build
-          args: --release --target ${{matrix.architecture}} --package=anoncreds --features=vendored
-      - uses: actions/upload-artifact@v2
-        name: Save library
-        with:
-          name: ${{matrix.architecture}}
-          path: target/${{matrix.architecture}}/release/libanoncreds.so
+          name: ${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/libanoncreds.so
 
   create-android-library:
     name: Create android libraries
@@ -329,7 +338,9 @@ jobs:
         with:
           name: android-libraries
           path: ./libs
-      - uses: geekyeggo/delete-artifact@v1
+
+      - name: Delete artifacts
+        uses: geekyeggo/delete-artifact@v1
         with:
           name: |
             aarch64-linux-android
@@ -347,17 +358,19 @@ jobs:
           [aarch64-apple-ios, aarch64-apple-ios-sim, x86_64-apple-ios]
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: ${{ matrix.architecture }}
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target ${{matrix.architecture}} --package=anoncreds --features=vendored
-      - uses: actions/upload-artifact@v2
-        name: Save library
+          targets: ${{matrix.architecture}}
+
+      - name: Build
+        run: cargo  build --release --target ${{matrix.architecture}} --features=vendored
+
+      - name: Save artifacts
+        uses: actions/upload-artifact@v2
         with:
           name: ${{matrix.architecture}}
           path: target/${{matrix.architecture}}/release/libanoncreds.dylib
@@ -371,7 +384,9 @@ jobs:
       (github.event_name == 'workflow_dispatch' &&
        github.event.inputs.publish == 'true'))
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Fetch dynamic libraries
         uses: actions/download-artifact@v3
       - run: >
@@ -379,12 +394,15 @@ jobs:
                                  aarch64-apple-ios-sim \
                                  x86_64-apple-ios \
                                  include
+
       - name: Save xcframework
         uses: actions/upload-artifact@v3
         with:
           name: anoncreds.xcframework
           path: out
-      - uses: geekyeggo/delete-artifact@v1
+
+      - name: Delete artifacts
+        uses: geekyeggo/delete-artifact@v1
         with:
           name: |
             aarch64-apple-ios
@@ -402,7 +420,6 @@ jobs:
       (github.event_name == 'release' ||
       (github.event_name == 'workflow_dispatch' &&
        github.event.inputs.publish == 'true'))
-
     steps:
       - name: Fetch Android libraries
         uses: actions/download-artifact@v3
@@ -416,7 +433,8 @@ jobs:
           name: anoncreds.xcframework
           path: mobile/ios/
 
-      - uses: a7ul/tar-action@v1.1.2
+      - name: Create archive
+        uses: a7ul/tar-action@v1.1.2
         with:
           command: c
           files: ./mobile

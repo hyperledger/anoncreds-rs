@@ -29,24 +29,84 @@ use crate::utils::validation::Validatable;
 
 use super::tails::TailsFileReader;
 
-pub fn create_master_secret() -> Result<MasterSecret> {
-    MasterSecret::new().map_err(err_map!(Unexpected))
+/// Create a new random link secret which is cryptographically strong and pseudo-random
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::prover;
+///
+/// let link_secret = prover::create_link_secret()
+///     .expect("Unable to create link secret");
+///
+/// ```
+pub fn create_link_secret() -> Result<LinkSecret> {
+    LinkSecret::new().map_err(err_map!(Unexpected))
 }
 
+/// Create an Anoncreds credential request according to the [Anoncreds v1.0 specification -
+/// Credential Request](https://hyperledger.github.io/anoncreds-spec/#credential-request)
+///
+/// This object can be send as a response to a [`crate::types::CredentialOffer`] received from an
+/// isuer
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::issuer;
+/// use anoncreds::prover;
+///
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    "did:web:xyz",
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition("did:web:xyz/resource/schema",
+///                                          &schema,
+///                                          "did:web:xyz",
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig::default()
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let credential_offer =
+///     issuer::create_credential_offer("did:web:xyz/resource/schema",
+///                                     "did:web:xyz/resource/cred-def",
+///                                     &key_correctness_proof,
+///                                     ).expect("Unable to create Credential Offer");
+///
+/// let link_secret =
+///     prover::create_link_secret().expect("Unable to create link secret");
+///
+/// let (credential_request, credential_request_metadata) =
+///     prover::create_credential_request(Some("entropy"),
+///                                       None,
+///                                       &cred_def,
+///                                       &link_secret,
+///                                       "my-secret-id",
+///                                       &credential_offer,
+///                                       ).expect("Unable to create credential request");
+/// ```
 pub fn create_credential_request(
     entropy: Option<&str>,
     prover_did: Option<&str>,
     cred_def: &CredentialDefinition,
-    master_secret: &MasterSecret,
-    master_secret_id: &str,
+    link_secret: &LinkSecret,
+    link_secret_id: &str,
     credential_offer: &CredentialOffer,
 ) -> Result<(CredentialRequest, CredentialRequestMetadata)> {
     trace!(
-        "create_credential_request >>> entropy {:?}, prover_did {:?}, cred_def: {:?}, master_secret: {:?}, credential_offer: {:?}",
+        "create_credential_request >>> entropy {:?}, prover_did {:?}, cred_def: {:?}, link_secret: {:?}, credential_offer: {:?}",
         entropy,
         prover_did,
         cred_def,
-        secret!(&master_secret),
+        secret!(&link_secret),
         credential_offer
     );
 
@@ -56,13 +116,13 @@ pub fn create_credential_request(
     )?;
 
     let mut credential_values_builder = CryptoIssuer::new_credential_values_builder()?;
-    credential_values_builder.add_value_hidden("master_secret", &master_secret.value.value()?)?;
+    credential_values_builder.add_value_hidden("link_secret", &link_secret.0)?;
     let cred_values = credential_values_builder.finalize()?;
 
     let nonce = new_nonce()?;
     let nonce_copy = nonce.try_clone().map_err(err_map!(Unexpected))?;
 
-    let (blinded_ms, master_secret_blinding_data, blinded_ms_correctness_proof) =
+    let (blinded_ms, link_secret_blinding_data, blinded_ms_correctness_proof) =
         CryptoProver::blind_credential_secrets(
             &credential_pub_key,
             &credential_offer.key_correctness_proof,
@@ -80,9 +140,9 @@ pub fn create_credential_request(
     )?;
 
     let credential_request_metadata = CredentialRequestMetadata {
-        master_secret_blinding_data,
+        link_secret_blinding_data,
         nonce: nonce_copy,
-        master_secret_name: master_secret_id.to_string(),
+        link_secret_name: link_secret_id.to_string(),
     };
 
     trace!(
@@ -94,29 +154,97 @@ pub fn create_credential_request(
     Ok((credential_request, credential_request_metadata))
 }
 
+/// Process an incoming credential as received from the issuer.
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::issuer;
+/// use anoncreds::prover;
+/// use anoncreds::types::MakeCredentialValues;
+///
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    "did:web:xyz",
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition("did:web:xyz/resource/schema",
+///                                          &schema,
+///                                          "did:web:xyz",
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig::default()
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let credential_offer =
+///     issuer::create_credential_offer("did:web:xyz/resource/schema",
+///                                     "did:web:xyz/resource/cred-def",
+///                                     &key_correctness_proof,
+///                                     ).expect("Unable to create Credential Offer");
+///
+/// let link_secret =
+///     prover::create_link_secret().expect("Unable to create link secret");
+///
+/// let (credential_request, credential_request_metadata) =
+///     prover::create_credential_request(Some("entropy"),
+///                                       None,
+///                                       &cred_def,
+///                                       &link_secret,
+///                                       "my-secret-id",
+///                                       &credential_offer,
+///                                       ).expect("Unable to create credential request");
+///
+/// let mut credential_values = MakeCredentialValues::default();
+/// credential_values.add_raw("name", "john").expect("Unable to add credential value");
+/// credential_values.add_raw("age", "28").expect("Unable to add credential value");
+///
+/// let mut credential =
+///     issuer::create_credential(&cred_def,
+///                               &cred_def_priv,
+///                               &credential_offer,
+///                               &credential_request,
+///                               credential_values.into(),
+///                               None,
+///                               None,
+///                               None
+///                               ).expect("Unable to create credential");
+///
+/// prover::process_credential(&mut credential,
+///                            &credential_request_metadata,
+///                            &link_secret,
+///                            &cred_def,
+///                            None
+///                            ).expect("Unable to process the credential");
+/// ```
 pub fn process_credential(
     credential: &mut Credential,
     cred_request_metadata: &CredentialRequestMetadata,
-    master_secret: &MasterSecret,
+    link_secret: &LinkSecret,
     cred_def: &CredentialDefinition,
     rev_reg_def: Option<&RevocationRegistryDefinition>,
 ) -> Result<()> {
-    trace!("process_credential >>> credential: {:?}, cred_request_metadata: {:?}, master_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
-            credential, cred_request_metadata, secret!(&master_secret), cred_def, rev_reg_def);
+    trace!("process_credential >>> credential: {:?}, cred_request_metadata: {:?}, link_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
+            credential, cred_request_metadata, secret!(&link_secret), cred_def, rev_reg_def);
 
     let credential_pub_key = CredentialPublicKey::build_from_parts(
         &cred_def.value.primary,
         cred_def.value.revocation.as_ref(),
     )?;
     let credential_values =
-        build_credential_values(&credential.values.0, Some(&master_secret.value))?;
+        build_credential_values(&credential.values.0, Some(&link_secret.try_into()?))?;
     let rev_pub_key = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
 
     CryptoProver::process_credential_signature(
         &mut credential.signature,
         &credential_values,
         &credential.signature_correctness_proof,
-        &cred_request_metadata.master_secret_blinding_data,
+        &cred_request_metadata.link_secret_blinding_data,
         &credential_pub_key,
         cred_request_metadata.nonce.as_native(),
         rev_pub_key,
@@ -129,16 +257,134 @@ pub fn process_credential(
     Ok(())
 }
 
+/// Process an incoming credential as received from the issuer.
+///
+/// # Example
+///
+/// ```rust
+/// use std::collections::HashMap;
+///
+/// use anoncreds::issuer;
+/// use anoncreds::prover;
+/// use anoncreds::verifier;
+/// use anoncreds::types::MakeCredentialValues;
+/// use anoncreds::types::PresentCredentials;
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+/// use anoncreds::data_types::schema::SchemaId;
+/// use anoncreds::data_types::cred_def::CredentialDefinitionId;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    "did:web:xyz",
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition("did:web:xyz/resource/schema",
+///                                          &schema,
+///                                          "did:web:xyz",
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig::default()
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let credential_offer =
+///     issuer::create_credential_offer("did:web:xyz/resource/schema",
+///                                     "did:web:xyz/resource/cred-def",
+///                                     &key_correctness_proof,
+///                                     ).expect("Unable to create Credential Offer");
+///
+/// let link_secret =
+///     prover::create_link_secret().expect("Unable to create link secret");
+///
+/// let (credential_request, credential_request_metadata) =
+///     prover::create_credential_request(Some("entropy"),
+///                                       None,
+///                                       &cred_def,
+///                                       &link_secret,
+///                                       "my-secret-id",
+///                                       &credential_offer,
+///                                       ).expect("Unable to create credential request");
+///
+/// let mut credential_values = MakeCredentialValues::default();
+/// credential_values.add_raw("name", "john").expect("Unable to add credential value");
+/// credential_values.add_raw("age", "28").expect("Unable to add credential value");
+///
+/// let mut credential =
+///     issuer::create_credential(&cred_def,
+///                               &cred_def_priv,
+///                               &credential_offer,
+///                               &credential_request,
+///                               credential_values.into(),
+///                               None,
+///                               None,
+///                               None
+///                               ).expect("Unable to create credential");
+///
+/// prover::process_credential(&mut credential,
+///                            &credential_request_metadata,
+///                            &link_secret,
+///                            &cred_def,
+///                            None
+///                            ).expect("Unable to process the credential");
+///
+/// let nonce = verifier::generate_nonce().expect("Unable to generate nonce");
+/// let pres_request = serde_json::from_value(serde_json::json!({
+///     "nonce": nonce,
+///     "name":"example_presentation_request",
+///     "version":"0.1",
+///     "requested_attributes":{
+///         "attr1_referent":{
+///             "name":"name",
+///             "restrictions": {
+///                 "cred_def_id": "did:web:xyz/resource/cred-def"
+///             }
+///         },
+///     },
+///     "requested_predicates":{
+///         "predicate1_referent":{"name":"age","p_type":">=","p_value":18}
+///     }
+/// }))
+/// .expect("Unable to create presentation request");
+///
+/// let mut schemas = HashMap::new();
+/// let schema_id = SchemaId::new_unchecked("did:web:xyz/resource/schema");
+/// schemas.insert(&schema_id, &schema);
+///
+/// let mut cred_defs = HashMap::new();
+/// let cred_def_id = CredentialDefinitionId::new_unchecked("did:web:xyz/resource/cred-def");
+/// cred_defs.insert(&cred_def_id, &cred_def);
+///
+/// let mut present = PresentCredentials::default();
+/// let mut cred1 = present.add_credential(
+///     &credential,
+///     None,
+///     None,
+/// );
+/// cred1.add_requested_attribute("attr1_referent", true);
+/// cred1.add_requested_predicate("predicate1_referent");
+///
+/// let presentation =
+///     prover::create_presentation(&pres_request,
+///                                 present,
+///                                 None,
+///                                 &link_secret,
+///                                 &schemas,
+///                                 &cred_defs
+///                                 ).expect("Unable to create presentation");
+/// ```
 pub fn create_presentation(
     pres_req: &PresentationRequest,
     credentials: PresentCredentials,
     self_attested: Option<HashMap<String, String>>,
-    master_secret: &MasterSecret,
+    link_secret: &LinkSecret,
     schemas: &HashMap<&SchemaId, &Schema>,
     cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
 ) -> Result<Presentation> {
-    trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, master_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
-            credentials, pres_req, credentials, &self_attested, secret!(&master_secret), schemas, cred_defs);
+    trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, link_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
+            credentials, pres_req, credentials, &self_attested, secret!(&link_secret), schemas, cred_defs);
 
     if credentials.is_empty()
         && self_attested
@@ -155,7 +401,7 @@ pub fn create_presentation(
 
     let pres_req_val = pres_req.value();
     let mut proof_builder = CryptoProver::new_proof_builder()?;
-    proof_builder.add_common_attribute("master_secret")?;
+    proof_builder.add_common_attribute("link_secret")?;
 
     let mut requested_proof = RequestedProof {
         self_attested_attrs: self_attested.unwrap_or_default(),
@@ -191,7 +437,7 @@ pub fn create_presentation(
 
         let credential_schema = build_credential_schema(&schema.attr_names.0)?;
         let credential_values =
-            build_credential_values(&credential.values.0, Some(&master_secret.value))?;
+            build_credential_values(&credential.values.0, Some(&link_secret.try_into()?))?;
         let (req_attrs, req_predicates) = prepare_credential_for_proving(
             present.requested_attributes,
             present.requested_predicates,
@@ -289,7 +535,9 @@ pub fn create_presentation(
     Ok(full_proof)
 }
 
-pub fn create_or_update_revocation_state_with_witness(
+/// Create a [`CredentialRevocationState`] based on a [`Witness`], [`RevocationStatusList`] and
+/// timestamp.
+pub fn create_revocation_state_with_witness(
     witness: Witness,
     revocation_status_list: &RevocationStatusList,
     timestamp: u64,
@@ -306,11 +554,71 @@ pub fn create_or_update_revocation_state_with_witness(
     })
 }
 
-// This can be done by anyone, allowing prover to offload this task
-// The tails_path here is used instead of tails_location in `revoc_reg_def` so prover can provide it
+/// Create or update the revocation state. If both the `rev_state` and `old_rev_status_list` are
+/// supplied, it will update it. Otherwise it will create a new [`CredentialRevocationState`]
+///
+/// This can be done by anyone, allowing prover to offload this task The `tails_path` here is used
+/// instead of `tails_location` in `revoc_reg_def` so prover can provide it
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::prover;
+/// use anoncreds::issuer;
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+/// use anoncreds::types::RegistryType;
+/// use anoncreds::tails::TailsFileWriter;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    "did:web:xyz",
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition("did:web:xyz/resource/schema",
+///                                          &schema,
+///                                          "did:web:xyz",
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig {
+///                                             support_revocation: true
+///                                          },
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let mut tw = TailsFileWriter::new(None);
+/// let (rev_reg_def, rev_reg_def_priv) =
+///     issuer::create_revocation_registry_def(&cred_def,
+///                                            "did:web:xyz/resource/cred-def",
+///                                            "did:web:xyz",
+///                                            "default-tag",
+///                                            RegistryType::CL_ACCUM,
+///                                            1000,
+///                                            &mut tw
+///                                            ).expect("Unable to create revocation registry");
+///
+/// let rev_status_list =
+///     issuer::create_revocation_status_list("did:web:xyz/resource/rev-reg-def",
+///                                           &rev_reg_def,
+///                                           "did:web:xyz",
+///                                           Some(10),
+///                                           true
+///                                           ).expect("Unable to create revocation status list");
+///
+/// let rev_state =
+///     prover::create_or_update_revocation_state(&rev_reg_def.value.tails_location,
+///                                               &rev_reg_def,
+///                                               &rev_status_list,
+///                                               0,
+///                                               None,
+///                                               None
+///                                              ).expect("Unable to create or update the revocation state");
+/// ```
 pub fn create_or_update_revocation_state(
     tails_path: &str,
-    revoc_reg_def: &RevocationRegistryDefinition,
+    rev_reg_def: &RevocationRegistryDefinition,
     rev_status_list: &RevocationStatusList,
     rev_reg_idx: u32,
     rev_state: Option<&CredentialRevocationState>, // for witness update
@@ -319,7 +627,7 @@ pub fn create_or_update_revocation_state(
     trace!(
         "create_or_update_revocation_state >>> revoc_reg_def: {:?}, \
     rev_status_list: {:?}, rev_reg_idx: {},  rev_state: {:?}, old_rev_status_list {:?}",
-        revoc_reg_def,
+        rev_reg_def,
         rev_status_list,
         rev_reg_idx,
         rev_state,
@@ -341,7 +649,7 @@ pub fn create_or_update_revocation_state(
     let witness = if let (Some(source_rev_state), Some(source_rev_list)) =
         (rev_state, old_rev_status_list)
     {
-        _create_index_deltas(
+        create_index_deltas(
             rev_status_list
                 .state_owned()
                 .bitxor(source_rev_list.state()),
@@ -362,18 +670,18 @@ pub fn create_or_update_revocation_state(
         let mut witness = source_rev_state.witness.clone();
         witness.update(
             rev_reg_idx,
-            revoc_reg_def.value.max_cred_num,
+            rev_reg_def.value.max_cred_num,
             &rev_reg_delta,
             &tails_reader,
         )?;
         witness
     } else {
-        let list_size = usize::try_from(revoc_reg_def.value.max_cred_num)
+        let list_size = usize::try_from(rev_reg_def.value.max_cred_num)
             .map_err(|e| Error::from_msg(crate::ErrorKind::InvalidState, e.to_string()))?;
         // Issuance by default
         let bit: usize = 0;
         let list = bitvec![bit; list_size];
-        _create_index_deltas(
+        create_index_deltas(
             rev_status_list.state_owned().bitxor(list),
             rev_status_list.state(),
             &mut issued,
@@ -382,7 +690,7 @@ pub fn create_or_update_revocation_state(
         let rev_reg_delta = RevocationRegistryDelta::from_parts(None, &rev_reg, &issued, &revoked);
         Witness::new(
             rev_reg_idx,
-            revoc_reg_def.value.max_cred_num,
+            rev_reg_def.value.max_cred_num,
             // issuance by default
             true,
             &rev_reg_delta,
@@ -397,7 +705,7 @@ pub fn create_or_update_revocation_state(
     })
 }
 
-fn _create_index_deltas(
+fn create_index_deltas(
     delta: bitvec::vec::BitVec,
     list: &bitvec::vec::BitVec,
     issued: &mut HashSet<u32>,
@@ -822,8 +1130,8 @@ mod tests {
         const LEGACY_SCHEMA_IDENTIFIER: &str = "DXoTtQJNtXtiwWaZAK3rB1:2:example:1.0";
         const LEGACY_CRED_DEF_IDENTIFIER: &str = "DXoTtQJNtXtiwWaZAK3rB1:3:CL:98153:default";
 
-        fn _master_secret() -> MasterSecret {
-            MasterSecret::new().expect("Error creating prover master secret")
+        fn _link_secret() -> LinkSecret {
+            LinkSecret::new().expect("Error creating prover link secret")
         }
 
         fn _schema() -> Schema {
@@ -890,13 +1198,13 @@ mod tests {
         #[test]
         fn create_credential_request_with_new_identifiers_and_no_prover_did() {
             let (cred_def, key_correctness_proof) = _cred_def_and_key_correctness_proof();
-            let master_secret = _master_secret();
+            let link_secret = _link_secret();
             let cred_offer = _cred_offer(key_correctness_proof);
             let resp = create_credential_request(
                 Some("entropy"),
                 None,
                 &cred_def,
-                &master_secret,
+                &link_secret,
                 "default",
                 &cred_offer,
             );
@@ -906,13 +1214,13 @@ mod tests {
         #[test]
         fn create_credential_request_with_legacy_identifiers_and_a_prover_did() {
             let (cred_def, key_correctness_proof) = _legacy_cred_def_and_key_correctness_proof();
-            let master_secret = _master_secret();
+            let link_secret = _link_secret();
             let cred_offer = _legacy_cred_offer(key_correctness_proof);
             let resp = create_credential_request(
                 Some("entropy"),
                 None,
                 &cred_def,
-                &master_secret,
+                &link_secret,
                 "default",
                 &cred_offer,
             );
@@ -922,13 +1230,13 @@ mod tests {
         #[test]
         fn create_credential_request_with_legacy_identifiers_and_no_prover_did() {
             let (cred_def, key_correctness_proof) = _legacy_cred_def_and_key_correctness_proof();
-            let master_secret = _master_secret();
+            let link_secret = _link_secret();
             let cred_offer = _legacy_cred_offer(key_correctness_proof);
             let resp = create_credential_request(
                 Some("entropy"),
                 None,
                 &cred_def,
-                &master_secret,
+                &link_secret,
                 "default",
                 &cred_offer,
             );
@@ -938,13 +1246,13 @@ mod tests {
         #[test]
         fn create_credential_request_with_new_identifiers_and_a_prover_did() {
             let (cred_def, key_correctness_proof) = _cred_def_and_key_correctness_proof();
-            let master_secret = _master_secret();
+            let link_secret = _link_secret();
             let cred_offer = _cred_offer(key_correctness_proof);
             let resp = create_credential_request(
                 Some("entropy"),
                 None,
                 &cred_def,
-                &master_secret,
+                &link_secret,
                 "default",
                 &cred_offer,
             );
@@ -954,13 +1262,13 @@ mod tests {
         #[test]
         fn create_credential_request_with_new_and_legacy_identifiers_and_a_prover_did() {
             let (cred_def, key_correctness_proof) = _cred_def_and_key_correctness_proof();
-            let master_secret = _master_secret();
+            let link_secret = _link_secret();
             let cred_offer = _legacy_cred_offer(key_correctness_proof);
             let resp = create_credential_request(
                 Some("entropy"),
                 None,
                 &cred_def,
-                &master_secret,
+                &link_secret,
                 "default",
                 &cred_offer,
             );
