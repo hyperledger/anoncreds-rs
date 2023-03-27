@@ -4,7 +4,7 @@ import os
 import runpy
 from setuptools import find_packages, setup
 
-PACKAGE_NAME = "anoncreds"
+PACKAGE_NAME = "anoncreds-test"
 version_meta = runpy.run_path("./{}/version.py".format(PACKAGE_NAME))
 VERSION = version_meta["__version__"]
 
