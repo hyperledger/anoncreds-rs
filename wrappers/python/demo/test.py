@@ -1,6 +1,6 @@
 from time import time
 
-from anoncreds-test import (
+from anoncreds_test import (
     generate_nonce,
     Credential,
     CredentialDefinition,

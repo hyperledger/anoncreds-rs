@@ -75,7 +75,7 @@ jobs:
             library: library-windows-x86_64
             plat-name: win_amd64
           - os: macos-latest
-            library: library-macos-x86_64
+            library: library-darwin-x86_64
             plat-name: win_amd64
 
     runs-on: ${{ matrix.os }}
