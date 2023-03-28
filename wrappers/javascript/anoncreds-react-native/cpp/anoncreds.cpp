@@ -90,8 +90,6 @@ jsi::Value createSchema(jsi::Runtime &rt, jsi::Object options) {
 jsi::Value createCredentialDefinition(jsi::Runtime &rt, jsi::Object options) {
   auto schemaId = jsiToValue<std::string>(rt, options, "schemaId");
   auto schema = jsiToValue<ObjectHandle>(rt, options, "schema");
-  auto credentialDefinitionId =
-      jsiToValue<std::string>(rt, options, "credentialDefinintionId");
   auto tag = jsiToValue<std::string>(rt, options, "tag");
   auto issuerId = jsiToValue<std::string>(rt, options, "issuerId");
   auto signatureType = jsiToValue<std::string>(rt, options, "signatureType");
