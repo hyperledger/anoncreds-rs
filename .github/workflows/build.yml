@@ -76,7 +76,7 @@ jobs:
             plat-name: win_amd64
           - os: macos-latest
             library: library-darwin-x86_64
-            plat-name: win_amd64
+            plat-name: macosx_10_9_universal2 # macosx_10_9_x86_64
 
     runs-on: ${{ matrix.os }}
 
