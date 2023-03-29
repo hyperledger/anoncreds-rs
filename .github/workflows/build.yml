@@ -97,7 +97,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ${{matrix.library}}
-          path: wrappers/python/anoncreds-test/
+          path: wrappers/python/anoncreds_test/
 
       - name: Build python package
         run: |
