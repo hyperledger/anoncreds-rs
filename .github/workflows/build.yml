@@ -265,7 +265,7 @@ jobs:
           #       run: auditwheel show wrappers/python/dist/*
 
           #     - name: Upload python package
-          #       uses: actions/upload-artifact@v2
+          #       uses: actions/upload-artifact@v3
           #       with:
           #         name: python-${{ runner.os }}
           #         path: wrappers/python/dist/*
@@ -312,7 +312,7 @@ jobs:
           cross build --release --target ${{ matrix.target }} --features=vendored
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.target }}
           path: target/${{ matrix.target }}/release/libanoncreds.so
@@ -335,7 +335,7 @@ jobs:
           sudo mv i686-linux-android      ./libs/x86
           sudo mv x86_64-linux-android    ./libs/x86_64
       - name: Save Android library
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: android-libraries
           path: ./libs
@@ -371,7 +371,7 @@ jobs:
         run: cargo  build --release --target ${{matrix.architecture}} --features=vendored
 
       - name: Save artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{matrix.architecture}}
           path: target/${{matrix.architecture}}/release/libanoncreds.dylib
