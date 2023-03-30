@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::data_types::{
     credential::AttributeValues,
@@ -21,7 +21,7 @@ pub fn attr_common_view(attr: &str) -> String {
     attr.replace(' ', "").to_lowercase()
 }
 
-pub fn build_credential_schema(attrs: &HashSet<String>) -> Result<CredentialSchema> {
+pub fn build_credential_schema(attrs: &[String]) -> Result<CredentialSchema> {
     trace!("build_credential_schema >>> attrs: {:?}", attrs);
 
     let mut credential_schema_builder = issuer::Issuer::new_credential_schema_builder()?;
