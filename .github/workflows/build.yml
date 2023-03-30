@@ -25,7 +25,7 @@ on:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: buildjet-2vcpu-ubuntu-2204
 
     steps:
       - name: Checkout
@@ -46,7 +46,7 @@ jobs:
   check:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-latest, windows-latest, buildjet-2vcpu-ubuntu-2204]
 
     runs-on: ${{ matrix.os }}
 
@@ -76,7 +76,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: buildjet-2vcpu-ubuntu-2204
             arch: linux-x86_64
             target: x86_64-unknown-linux-gnu
             lib: libanoncreds.so
@@ -154,7 +154,7 @@ jobs:
   build-javascript:
     name: Build and Test JavaScript wrapper
     needs: [build-release]
-    runs-on: ubuntu-latest
+    runs-on: buildjet-2vcpu-ubuntu-2204
     defaults:
       run:
         working-directory: wrappers/javascript
@@ -217,7 +217,7 @@ jobs:
           #   strategy:
           #     matrix:
           #       include:
-          #         - os: ubuntu-latest
+          #         - os: buildjet-2vcpu-ubuntu-2204
           #           library: library-linux-x86_64
           #           plat-name: manylinux2014_x86_64
           #         - os: windows-latest
@@ -283,7 +283,7 @@ jobs:
 
   build-android-libraries:
     name: Build Android Libraries
-    runs-on: ubuntu-latest
+    runs-on: buildjet-2vcpu-ubuntu-2204
     strategy:
       matrix:
         target:
@@ -319,7 +319,7 @@ jobs:
 
   create-android-library:
     name: Create android libraries
-    runs-on: ubuntu-latest
+    runs-on: buildjet-2vcpu-ubuntu-2204
     needs: build-android-libraries
     if: |
       (github.event_name == 'release' ||
@@ -413,7 +413,7 @@ jobs:
 
   create-ios-android-release-asset:
     name: Create iOS and Android Release Assets
-    runs-on: ubuntu-latest
+    runs-on: buildjet-2vcpu-ubuntu-2204
     needs:
       - create-ios-xcframework
       - create-android-library
