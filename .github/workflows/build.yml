@@ -1,7 +1,7 @@
 name: 'Anoncreds'
 
 env:
-  CROSS_VERSION: "0.2.4"
+  CROSS_VERSION: '0.2.4'
 
 on:
   push:
@@ -25,6 +25,8 @@ on:
 
 jobs:
   lint:
+    name: Lint
+
     runs-on: buildjet-2vcpu-ubuntu-2204
 
     steps:
@@ -43,10 +45,12 @@ jobs:
       - name: Cargo fmt
         run: cargo fmt --all -- --check
 
-  check:
+  test:
+    name: Test
+
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, buildjet-2vcpu-ubuntu-2204]
+        os: [windows-latest, buildjet-2vcpu-ubuntu-2204]
 
     runs-on: ${{ matrix.os }}
 
