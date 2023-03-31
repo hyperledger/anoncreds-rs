@@ -1,7 +1,6 @@
 use crate::impl_anoncreds_object_identifier;
 
 use std::collections::HashSet;
-use std::iter::FromIterator;
 
 use super::issuer_id::IssuerId;
 
@@ -19,31 +18,27 @@ pub struct Schema {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct AttributeNames(pub HashSet<String>);
+pub struct AttributeNames(pub Vec<String>);
 
 impl From<&[&str]> for AttributeNames {
     fn from(attrs: &[&str]) -> Self {
-        let mut attrset = HashSet::new();
-        for attr in attrs {
-            attrset.insert(attr.to_string());
-        }
-        Self(attrset)
+        Self(attrs.iter().map(|s| String::from(*s)).collect::<Vec<_>>())
     }
 }
 
 impl From<Vec<String>> for AttributeNames {
     fn from(attrs: Vec<String>) -> Self {
-        Self(HashSet::from_iter(attrs))
+        Self(attrs)
     }
 }
 
 impl From<HashSet<String>> for AttributeNames {
     fn from(attrs: HashSet<String>) -> Self {
-        Self(attrs)
+        Self(attrs.into_iter().collect::<Vec<_>>())
     }
 }
 
-impl From<AttributeNames> for HashSet<String> {
+impl From<AttributeNames> for Vec<String> {
     fn from(a: AttributeNames) -> Self {
         a.0
     }
@@ -59,6 +54,17 @@ impl Validatable for Schema {
 
 impl Validatable for AttributeNames {
     fn validate(&self) -> Result<(), ValidationError> {
+        let mut unique = HashSet::new();
+        let is_unique = self
+            .0
+            .clone()
+            .into_iter()
+            .all(move |name| unique.insert(name));
+
+        if !is_unique {
+            return Err("Attributes inside the schema must be unique".into());
+        }
+
         if self.0.is_empty() {
             return Err("Empty list of Schema attributes has been passed".into());
         }
@@ -91,6 +97,21 @@ mod test_schema_validation {
         let schema: Schema = serde_json::from_value(schema_json).unwrap();
         assert_eq!(schema.name, "gvt");
         assert_eq!(schema.version, "1.0");
+    }
+
+    #[test]
+    fn test_attribute_names_valid_ordering_consistent() {
+        // This test runs 10 times as the ordering can accidentally match
+        for _ in 0..10 {
+            let one: &[&str] = &["a", "b", "c", "d"];
+            let two: &[&str] = &["1", "2", "3", "4"];
+
+            let attr_names_one: AttributeNames = one.into();
+            let attr_names_two: AttributeNames = two.into();
+
+            assert_eq!(attr_names_one.0, one);
+            assert_eq!(attr_names_two.0, two);
+        }
     }
 
     #[test]

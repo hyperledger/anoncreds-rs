@@ -1,20 +1,82 @@
-name: 'Anoncreds'
+name: "Anoncreds"
 
 env:
-  CROSS_VERSION: '0.2.4'
+  CROSS_VERSION: "0.2.4"
 
 on:
   push:
-    branches: ['*']
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      publish-binaries:
+        description: "Publish Binaries to Release (will create a release if no release exits for branch or tag)"
+        required: true
+        default: false
+        type: boolean
+      publish-wrappers:
+        description: "Publish Wrappers to Registries"
+        required: true
+        default: false
+        type: boolean
 
 jobs:
+  lint:
+    runs-on: buildjet-2vcpu-ubuntu-2204
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo resources
+        uses: Swatinem/rust-cache@v2
+
+      - name: Cargo check
+        run: cargo check
+
+      - name: Cargo fmt
+        run: cargo fmt --all -- --check
+
+  check:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, buildjet-2vcpu-ubuntu-2204]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo resources
+        uses: Swatinem/rust-cache@v2
+
+      - name: Test Linux and macOS
+        if: "runner.os != 'Windows'"
+        run: cargo test --package anoncreds --features vendored
+
+      - name: Test Windows
+        if: "runner.os == 'Windows'"
+        env:
+          OPENSSL_STATIC: 1
+        run: cargo test --package anoncreds --features vendored
+
   build-release:
     name: Build Library
 
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: buildjet-2vcpu-ubuntu-2204
             arch: linux-x86_64
             target: x86_64-unknown-linux-gnu
             lib: libanoncreds.so
@@ -60,6 +122,90 @@ jobs:
         with:
           name: library-${{ matrix.arch }}
           path: target/${{ matrix.target }}/release/${{ matrix.lib }}
+
+      - name: Create library artifacts directory
+        if: |
+          github.event_name == 'release' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true')
+        run: |
+          mkdir release-artifacts
+          cp target/${{ matrix.target }}/release/${{ matrix.lib }} release-artifacts/
+      - name: Release artifacts
+        uses: a7ul/tar-action@v1.1.2
+        if: |
+          github.event_name == 'release' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true')
+        with:
+          command: c
+          cwd: release-artifacts
+          files: .
+          outPath: "library-${{ matrix.arch }}.tar.gz"
+
+      - name: Add library artifacts to release
+        if: |
+          github.event_name == 'release' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true')
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: library-${{ matrix.arch }}.tar.gz
+          asset_name: "library-${{ matrix.arch }}.tar.gz"
+
+  build-javascript:
+    name: Build and Test JavaScript wrapper
+    needs: [build-release]
+    runs-on: buildjet-2vcpu-ubuntu-2204
+    defaults:
+      run:
+        working-directory: wrappers/javascript
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Node.JS 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+
+      - name: Fetch library artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: library-linux-x86_64
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build JavaScript Wrapper
+        run: yarn build
+
+      - name: Lint JavaScript Wrapper
+        run: yarn lint
+
+      - name: Format Check JavaScript Wrapper
+        run: yarn check-format
+
+      - name: Type Check JavaScript Wrapper
+        run: yarn check-types
+
+      - name: Test JavaScript Wrapper
+        env:
+          # binary is downloaded to root of repository
+          LIB_ANONCREDS_PATH: ../../
+        run: yarn test
+
+      - name: Set NPM config
+        if: |
+          github.event_name == 'release' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-wrappers == 'true')
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> .npmrc
+          echo "registry=https://registry.npmjs.org/" >> .npmrc
+          echo "always-auth=true" >> .npmrc
+      - name: Publish JavaScript Wrapper
+        if: |
+          github.event_name == 'release' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-wrappers == 'true')
+        run: npx lerna publish from-package --no-push --no-private --yes --no-git-tag-version
 
   build-py:
     name: Build Python
@@ -127,3 +273,167 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: |
           twine upload --repository testpypi --skip-existing wrappers/python/dist/*
+
+  build-android-libraries:
+    name: Build Android Libraries
+    runs-on: buildjet-2vcpu-ubuntu-2204
+    strategy:
+      matrix:
+        target:
+          [
+            aarch64-linux-android,
+            armv7-linux-androideabi,
+            i686-linux-android,
+            x86_64-linux-android,
+          ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo resources
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: |
+          cargo install --bins --git https://github.com/rust-embedded/cross --tag v${{ env.CROSS_VERSION }} cross
+          cross build --release --target ${{ matrix.target }} --features=vendored
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/libanoncreds.so
+
+  create-android-library:
+    name: Create android libraries
+    runs-on: buildjet-2vcpu-ubuntu-2204
+    needs: build-android-libraries
+    if: |
+      (github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.inputs.publish == 'true'))
+    steps:
+      - name: Fetch libraries
+        uses: actions/download-artifact@v3
+      - run: |
+          sudo mkdir ./libs
+          sudo mv aarch64-linux-android   ./libs/arm64-v8a
+          sudo mv armv7-linux-androideabi ./libs/armeabi-v7a
+          sudo mv i686-linux-android      ./libs/x86
+          sudo mv x86_64-linux-android    ./libs/x86_64
+      - name: Save Android library
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-libraries
+          path: ./libs
+
+      - name: Delete artifacts
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+            aarch64-linux-android
+            armv7-linux-androideabi
+            i686-linux-android
+            x86_64-linux-android
+          failOnError: false
+
+  build-ios-libraries:
+    name: Build ios Libraries
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        architecture:
+          [aarch64-apple-ios, aarch64-apple-ios-sim, x86_64-apple-ios]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{matrix.architecture}}
+
+      - name: Build
+        run: cargo  build --release --target ${{matrix.architecture}} --features=vendored
+
+      - name: Save artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{matrix.architecture}}
+          path: target/${{matrix.architecture}}/release/libanoncreds.dylib
+
+  create-ios-xcframework:
+    name: Create ios xcframework
+    runs-on: macos-latest
+    needs: build-ios-libraries
+    if: |
+      (github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.inputs.publish == 'true'))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Fetch dynamic libraries
+        uses: actions/download-artifact@v3
+      - run: >
+          ./build-xcframework.sh aarch64-apple-ios \
+                                 aarch64-apple-ios-sim \
+                                 x86_64-apple-ios \
+                                 include
+      - name: Save xcframework
+        uses: actions/upload-artifact@v3
+        with:
+          name: anoncreds.xcframework
+          path: out
+
+      - name: Delete artifacts
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+            aarch64-apple-ios
+            aarch64-apple-ios-sim
+            x86_64-apple-ios
+          failOnError: false
+
+  create-ios-android-release-asset:
+    name: Create iOS and Android Release Assets
+    runs-on: buildjet-2vcpu-ubuntu-2204
+    needs:
+      - create-ios-xcframework
+      - create-android-library
+    if: |
+      (github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.inputs.publish == 'true'))
+    steps:
+      - name: Fetch Android libraries
+        uses: actions/download-artifact@v3
+        with:
+          name: android-libraries
+          path: mobile/android/
+
+      - name: Fetch iOS Framework
+        uses: actions/download-artifact@v3
+        with:
+          name: anoncreds.xcframework
+          path: mobile/ios/
+
+      - name: Create archive
+        uses: a7ul/tar-action@v1.1.2
+        with:
+          command: c
+          files: ./mobile
+          outPath: "library-ios-android.tar.gz"
+
+      - name: Add library artifacts to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: library-ios-android.tar.gz
+          asset_name: "library-ios-android.tar.gz"
