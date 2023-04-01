@@ -219,7 +219,10 @@ impl_anoncreds_object_from_json!(
 );
 
 impl_anoncreds_object!(RevocationStatusList, "RevocationStatusList");
-impl_anoncreds_object_from_json!(RevocationStatusList, anoncreds_revocation_status_list_from_json);
+impl_anoncreds_object_from_json!(
+    RevocationStatusList,
+    anoncreds_revocation_status_list_from_json
+);
 
 #[no_mangle]
 pub extern "C" fn anoncreds_create_or_update_revocation_state(
