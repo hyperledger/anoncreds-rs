@@ -652,6 +652,10 @@ export class NodeJSAnoncreds implements Anoncreds {
     return this.objectFromJson(this.nativeAnoncreds.anoncreds_revocation_registry_from_json, options)
   }
 
+  public revocationStatusListFromJson(options: { json: string }): ObjectHandle {
+    return this.objectFromJson(this.nativeAnoncreds.anoncreds_revocation_status_list_from_json, options)
+  }
+
   public revocationStateFromJson(options: { json: string }): ObjectHandle {
     return this.objectFromJson(this.nativeAnoncreds.anoncreds_revocation_state_from_json, options)
   }

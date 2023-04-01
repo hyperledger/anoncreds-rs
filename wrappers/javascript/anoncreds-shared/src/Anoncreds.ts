@@ -173,6 +173,8 @@ export interface Anoncreds {
 
   revocationRegistryFromJson(options: { json: string }): ObjectHandle
 
+  revocationStatusListFromJson(options: { json: string }): ObjectHandle
+
   presentationFromJson(options: { json: string }): ObjectHandle
 
   credentialOfferFromJson(options: { json: string }): ObjectHandle

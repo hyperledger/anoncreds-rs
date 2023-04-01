@@ -159,6 +159,8 @@ export interface NativeBindings {
 
   revocationRegistryFromJson(options: { json: string }): ReturnObject<Handle>
 
+  revocationStatusListFromJson(options: { json: string }): ReturnObject<Handle>
+
   presentationFromJson(options: { json: string }): ReturnObject<Handle>
 
   credentialOfferFromJson(options: { json: string }): ReturnObject<Handle>

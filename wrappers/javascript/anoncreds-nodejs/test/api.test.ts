@@ -358,8 +358,28 @@ test('create and verify presentation passing only JSON objects as parameters', (
       attrNames: ['name', 'age', 'sex', 'height'],
     },
     signatureType: 'CL',
-    supportRevocation: false,
+    supportRevocation: true,
     tag: 'TAG',
+  })
+
+  const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate } = RevocationRegistryDefinition.create({
+    credentialDefinitionId: 'mock:uri',
+    credentialDefinition,
+    issuerId: 'mock:uri',
+    tag: 'some_tag',
+    revocationRegistryType: 'CL_ACCUM',
+    maximumCredentialNumber: 10,
+  })
+
+  const tailsPath = revocationRegistryDefinition.getTailsLocation()
+
+  const timeCreateRevStatusList = 12
+  const revocationStatusList = RevocationStatusList.create({
+    issuerId: 'mock:uri',
+    timestamp: timeCreateRevStatusList,
+    issuanceByDefault: true,
+    revocationRegistryDefinition,
+    revocationRegistryDefinitionId: 'mock:uri',
   })
 
   const credentialOffer = CredentialOffer.fromJson({
@@ -386,12 +406,21 @@ test('create and verify presentation passing only JSON objects as parameters', (
     credentialOffer: credentialOffer.toJson(),
     credentialRequest: credentialRequest.toJson(),
     attributeRawValues: { name: 'Alex', height: '175', age: '28', sex: 'male' },
+    revocationRegistryId: 'mock:uri',
+    revocationStatusList: revocationStatusList.toJson(),
+    revocationConfiguration: new CredentialRevocationConfig({
+      registryDefinition: revocationRegistryDefinition,
+      registryDefinitionPrivate: revocationRegistryDefinitionPrivate,
+      registryIndex: 9,
+      tailsPath,
+    }),
   })
 
   const credReceived = credential.process({
     credentialDefinition: credentialDefinition.toJson(),
     credentialRequestMetadata: credentialRequestMetadata.toJson(),
     linkSecret,
+    revocationRegistryDefinition: revocationRegistryDefinition.toJson(),
   })
 
   const credJson = credential.toJson()
@@ -399,6 +428,7 @@ test('create and verify presentation passing only JSON objects as parameters', (
     expect.objectContaining({
       cred_def_id: 'mock:uri',
       schema_id: 'mock:uri',
+      rev_reg_id: 'mock:uri',
     })
   )
 
@@ -407,6 +437,7 @@ test('create and verify presentation passing only JSON objects as parameters', (
     expect.objectContaining({
       cred_def_id: 'mock:uri',
       schema_id: 'mock:uri',
+      rev_reg_id: 'mock:uri',
     })
   )
   expect(credReceivedJson).toHaveProperty('signature')
@@ -481,6 +512,8 @@ test('create and verify presentation passing only JSON objects as parameters', (
     presentationRequest,
     schemas: { ['mock:uri']: schema.toJson() },
     credentialDefinitions: { ['mock:uri']: credentialDefinition.toJson() },
+    revocationRegistryDefinitions: { ['mock:uri']: revocationRegistryDefinition.toJson() },
+    revocationStatusLists: [revocationStatusList.toJson()],
   })
 
   expect(verify).toBeTruthy()

@@ -167,6 +167,7 @@ export const nativeBindings = {
   anoncreds_credential_offer_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
   anoncreds_revocation_registry_definition_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
   anoncreds_revocation_registry_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_revocation_status_list_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
   anoncreds_revocation_state_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
   anoncreds_credential_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
   anoncreds_credential_definition_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
