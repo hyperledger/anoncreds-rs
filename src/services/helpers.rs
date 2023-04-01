@@ -40,7 +40,8 @@ pub fn build_non_credential_schema() -> Result<NonCredentialSchema> {
     trace!("build_non_credential_schema");
 
     let mut non_credential_schema_builder = issuer::Issuer::new_non_credential_schema_builder()?;
-    non_credential_schema_builder.add_attr("link_secret")?;
+    // value is master_secret as that's what's historically been used in published credential definitions
+    non_credential_schema_builder.add_attr("master_secret")?;
     let res = non_credential_schema_builder.finalize()?;
 
     trace!("build_non_credential_schema <<< res: {:?}", res);
@@ -61,7 +62,8 @@ pub fn build_credential_values(
         credential_values_builder.add_dec_known(&attr_common_view(attr), &values.encoded)?;
     }
     if let Some(ms) = link_secret {
-        credential_values_builder.add_value_hidden("link_secret", &ms.value()?)?;
+        // value is master_secret as that's what's historically been used in published credential definitions
+        credential_values_builder.add_value_hidden("master_secret", &ms.value()?)?;
     }
 
     let res = credential_values_builder.finalize()?;

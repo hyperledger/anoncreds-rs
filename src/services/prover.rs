@@ -116,7 +116,7 @@ pub fn create_credential_request(
     )?;
 
     let mut credential_values_builder = CryptoIssuer::new_credential_values_builder()?;
-    credential_values_builder.add_value_hidden("link_secret", &link_secret.0)?;
+    credential_values_builder.add_value_hidden("master_secret", &link_secret.0)?;
     let cred_values = credential_values_builder.finalize()?;
 
     let nonce = new_nonce()?;
@@ -401,7 +401,7 @@ pub fn create_presentation(
 
     let pres_req_val = pres_req.value();
     let mut proof_builder = CryptoProver::new_proof_builder()?;
-    proof_builder.add_common_attribute("link_secret")?;
+    proof_builder.add_common_attribute("master_secret")?;
 
     let mut requested_proof = RequestedProof {
         self_attested_attrs: self_attested.unwrap_or_default(),
