@@ -1,6 +1,10 @@
 _Generating the C header:_
 
-Install [cbindgen](https://github.com/eqrion/cbindgen/):
+1. Install [cbindgen](https://github.com/eqrion/cbindgen/)
+1. Install [cargo expand](https://github.com/dtolnay/cargo-expand)
+1. use `nightly` and not `stable
+  - `rustup default nightly`
+
 
 ```sh
 cargo install cbindgen
