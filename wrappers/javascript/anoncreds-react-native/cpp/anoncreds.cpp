@@ -151,6 +151,24 @@ jsi::Value revocationRegistryFromJson(jsi::Runtime &rt, jsi::Object options) {
   return returnValue;
 };
 
+jsi::Value revocationStatusListFromJson(jsi::Runtime &rt,
+                                                jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle out;
+
+  ByteBuffer b = stringToByteBuffer(json);
+  ErrorCode code = anoncreds_revocation_status_list_from_json(b, &out);
+
+  auto returnValue = createReturnValue(rt, code, &out);
+
+  // free data
+  delete[] b.data;
+
+  return returnValue;
+};
+
+
 jsi::Value presentationFromJson(jsi::Runtime &rt, jsi::Object options) {
   auto json = jsiToValue<std::string>(rt, options, "json");
 

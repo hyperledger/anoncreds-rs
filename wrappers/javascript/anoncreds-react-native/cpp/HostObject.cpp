@@ -45,6 +45,8 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
       std::make_tuple("setDefaultLogger", &anoncreds::setDefaultLogger));
   fMap.insert(
       std::make_tuple("verifyPresentation", &anoncreds::verifyPresentation));
+fMap.insert(std::make_tuple("createRevocationStatusList",
+                              &anoncreds::createRevocationStatusList));
   fMap.insert(std::make_tuple("updateRevocationStatusList",
                               &anoncreds::updateRevocationStatusList));
   fMap.insert(std::make_tuple("objectFree", &anoncreds::objectFree));
@@ -54,6 +56,12 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   fMap.insert(
       std::make_tuple("revocationRegistryDefinitionFromJson",
                       &anoncreds::revocationRegistryDefinitionFromJson));
+  fMap.insert(
+      std::make_tuple("revocationRegistryFromJson",
+                      &anoncreds::revocationRegistryDefinitionFromJson));
+  fMap.insert(
+      std::make_tuple("revocationStatusListFromJson",
+                      &anoncreds::revocationStatusListFromJson));
   fMap.insert(std::make_tuple("presentationFromJson",
                               &anoncreds::presentationFromJson));
   fMap.insert(std::make_tuple("presentationRequestFromJson",

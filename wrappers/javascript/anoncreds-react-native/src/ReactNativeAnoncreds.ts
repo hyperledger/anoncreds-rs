@@ -300,12 +300,17 @@ export class ReactNativeAnoncreds implements Anoncreds {
   }
 
   public revocationRegistryDefinitionFromJson(options: { json: string }): ObjectHandle {
-    const handle = handleError(anoncredsReactNative.revocationRegistryFromJson(serializeArguments(options)))
+    const handle = handleError(anoncredsReactNative.revocationRegistryDefinitionFromJson(serializeArguments(options)))
     return new ObjectHandle(handle)
   }
 
   public revocationRegistryFromJson(options: { json: string }): ObjectHandle {
     const handle = handleError(anoncredsReactNative.revocationRegistryFromJson(serializeArguments(options)))
+    return new ObjectHandle(handle)
+  }
+
+  public revocationStatusListFromJson(options: { json: string }): ObjectHandle {
+    const handle = handleError(anoncredsReactNative.revocationStatusListFromJson(serializeArguments(options)))
     return new ObjectHandle(handle)
   }
 

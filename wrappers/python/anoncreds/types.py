@@ -602,7 +602,7 @@ class RevocationStatusList(bindings.AnoncredsObject):
     @classmethod
     def load(cls, value: Union[dict, str, bytes, memoryview]) -> "RevocationStatusList":
         return RevocationStatusList(
-            bindings._object_from_json("anoncreds_revocation_list_from_json", value)
+            bindings._object_from_json("anoncreds_revocation_status_list_from_json", value)
         )
 
     def update_timestamp_only(self, timestamp: int):

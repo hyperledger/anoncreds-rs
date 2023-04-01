@@ -1,7 +1,6 @@
 import type { ObjectHandle } from '../ObjectHandle'
 import type { JsonObject } from '../types'
 import type { RevocationRegistry } from './RevocationRegistry'
-import type { RevocationStatusList } from './RevocationStatusList'
 
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
@@ -11,6 +10,7 @@ import { CredentialDefinition } from './CredentialDefinition'
 import { CredentialRevocationState } from './CredentialRevocationState'
 import { PresentationRequest } from './PresentationRequest'
 import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
+import { RevocationStatusList } from './RevocationStatusList'
 import { Schema } from './Schema'
 import { pushToArray } from './utils'
 
@@ -57,7 +57,7 @@ export type VerifyPresentationOptions = {
   schemas: Record<string, Schema | JsonObject>
   credentialDefinitions: Record<string, CredentialDefinition | JsonObject>
   revocationRegistryDefinitions?: Record<string, RevocationRegistryDefinition | JsonObject>
-  revocationStatusLists?: RevocationStatusList[]
+  revocationStatusLists?: Array<RevocationStatusList | JsonObject>
   nonRevokedIntervalOverride?: NonRevokedIntervalOverride[]
 }
 
@@ -163,7 +163,11 @@ export class Presentation extends AnoncredsObject {
             : pushToArray(RevocationRegistryDefinition.fromJson(o).handle, objectHandles)
         ),
         revocationRegistryDefinitionIds,
-        revocationStatusLists: options.revocationStatusLists?.map((o) => o.handle),
+        revocationStatusLists: options.revocationStatusLists?.map((o) =>
+          o instanceof RevocationStatusList
+            ? o.handle
+            : pushToArray(RevocationStatusList.fromJson(o).handle, objectHandles)
+        ),
         nonRevokedIntervalOverride: options.nonRevokedIntervalOverride,
       })
     } finally {

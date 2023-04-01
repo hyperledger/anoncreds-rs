@@ -50,22 +50,7 @@ export class RevocationStatusList extends AnoncredsObject {
   }
 
   public static fromJson(json: JsonObject) {
-    let revocationRegistryDefinition: RevocationRegistryDefinition | undefined = undefined
-    try {
-      revocationRegistryDefinition = RevocationRegistryDefinition.fromJson(
-        json.revocationRegistryDefinition as JsonObject
-      )
-      const revocationStatusList = RevocationStatusList.create({
-        issuanceByDefault: json.issuanceByDefault as boolean,
-        issuerId: json.issuerId as string,
-        revocationRegistryDefinitionId: json.revocationRegistryDefinitionId as string,
-        timestamp: json.timestamp as number,
-        revocationRegistryDefinition,
-      })
-      return revocationStatusList
-    } finally {
-      revocationRegistryDefinition?.handle.clear()
-    }
+    return new RevocationStatusList(anoncreds.revocationStatusListFromJson({ json: JSON.stringify(json) }).handle)
   }
 
   public updateTimestamp(options: UpdateRevocationStatusListTimestampOptions) {
