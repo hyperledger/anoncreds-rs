@@ -257,9 +257,10 @@ export class ReactNativeAnoncreds implements Anoncreds {
 
   public createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: ObjectHandle
+    revocationStatusList: ObjectHandle
     revocationRegistryIndex: number
     tailsPath: string
-    revocationState?: number
+    oldRevocationState?: ObjectHandle
     oldRevocationStatusList?: ObjectHandle
   }): ObjectHandle {
     const handle = handleError(anoncredsReactNative.createOrUpdateRevocationState(serializeArguments(options)))

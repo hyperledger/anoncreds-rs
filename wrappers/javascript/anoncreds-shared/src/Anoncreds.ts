@@ -138,7 +138,7 @@ export interface Anoncreds {
     revocationStatusList: ObjectHandle
     revocationRegistryIndex: number
     tailsPath: string
-    previousRevocationState?: ObjectHandle
+    oldRevocationState?: ObjectHandle
     oldRevocationStatusList?: ObjectHandle
   }): ObjectHandle
 

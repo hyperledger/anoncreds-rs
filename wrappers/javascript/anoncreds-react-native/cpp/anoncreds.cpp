@@ -592,16 +592,16 @@ jsi::Value createOrUpdateRevocationState(jsi::Runtime &rt,
   auto revocationRegistryIndex =
       jsiToValue<int64_t>(rt, options, "revocationRegistryIndex");
   auto tailsPath = jsiToValue<std::string>(rt, options, "tailsPath");
-  auto revocationState =
-      jsiToValue<ObjectHandle>(rt, options, "revocationState");
+  auto oldRevocationState =
+      jsiToValue<ObjectHandle>(rt, options, "oldRevocationState", true);
   auto oldRevocationStatusList =
-      jsiToValue<ObjectHandle>(rt, options, "oldRevocationStatusList");
+      jsiToValue<ObjectHandle>(rt, options, "oldRevocationStatusList", true);
 
   ObjectHandle out;
 
   ErrorCode code = anoncreds_create_or_update_revocation_state(
       revocationRegistryDefinition, revocationStatusList,
-      revocationRegistryIndex, tailsPath.c_str(), revocationState,
+      revocationRegistryIndex, tailsPath.c_str(), oldRevocationState,
       oldRevocationStatusList, &out);
 
   return createReturnValue(rt, code, &out);
