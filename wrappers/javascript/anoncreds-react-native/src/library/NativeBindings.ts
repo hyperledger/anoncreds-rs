@@ -133,9 +133,10 @@ export interface NativeBindings {
 
   createOrUpdateRevocationState(options: {
     revocationRegistryDefinition: number
+    revocationStatusList: number
     revocationRegistryIndex: number
     tailsPath: string
-    revocationState?: number
+    oldRevocationState?: number
     oldRevocationStatusList?: number
   }): ReturnObject<Handle>
 

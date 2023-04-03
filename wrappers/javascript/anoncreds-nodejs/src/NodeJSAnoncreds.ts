@@ -580,14 +580,14 @@ export class NodeJSAnoncreds implements Anoncreds {
     revocationStatusList: ObjectHandle
     revocationRegistryIndex: number
     tailsPath: string
-    previousRevocationStatusList?: ObjectHandle
-    previousRevocationState?: ObjectHandle
+    oldRevocationState?: ObjectHandle
+    oldRevocationStatusList?: ObjectHandle
   }): ObjectHandle {
     const { revocationRegistryDefinition, revocationStatusList, revocationRegistryIndex, tailsPath } =
       serializeArguments(options)
 
-    const previousRevocationState = options.previousRevocationState ?? new ObjectHandle(0)
-    const previousRevocationStatusList = options.previousRevocationStatusList ?? new ObjectHandle(0)
+    const oldRevocationState = options.oldRevocationState ?? new ObjectHandle(0)
+    const oldRevocationStatusList = options.oldRevocationStatusList ?? new ObjectHandle(0)
     const ret = allocatePointer()
 
     this.nativeAnoncreds.anoncreds_create_or_update_revocation_state(
@@ -595,14 +595,15 @@ export class NodeJSAnoncreds implements Anoncreds {
       revocationStatusList,
       revocationRegistryIndex,
       tailsPath,
-      previousRevocationStatusList.handle,
-      previousRevocationState.handle,
+      oldRevocationState.handle,
+      oldRevocationStatusList.handle,
       ret
     )
     this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
+
   public version(): string {
     return this.nativeAnoncreds.anoncreds_version()
   }
