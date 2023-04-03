@@ -56,7 +56,7 @@ jsi::Value objectFree(jsi::Runtime &rt, jsi::Object options) {
 // ===== META =====
 
 jsi::Value createLinkSecret(jsi::Runtime &rt, jsi::Object options) {
-  ObjectHandle out;
+  const char *out;
 
   ErrorCode code = anoncreds_create_link_secret(&out);
 
@@ -382,7 +382,7 @@ jsi::Value createPresentation(jsi::Runtime &rt, jsi::Object options) {
       jsiToValue<FfiStrList>(rt, options, "selfAttestNames");
   auto selfAttestedValues =
       jsiToValue<FfiStrList>(rt, options, "selfAttestValues");
-  auto linkSecret = jsiToValue<ObjectHandle>(rt, options, "linkSecret");
+  auto linkSecret = jsiToValue<std::string>(rt, options, "linkSecret");
   auto schemas = jsiToValue<FfiList_ObjectHandle>(rt, options, "schemas");
   auto schemaIds = jsiToValue<FfiList_FfiStr>(rt, options, "schemaIds");
   auto credentialDefinitions =
@@ -394,7 +394,7 @@ jsi::Value createPresentation(jsi::Runtime &rt, jsi::Object options) {
 
   ErrorCode code = anoncreds_create_presentation(
       presentationRequest, credentials, credentialsProve, selfAttestedNames,
-      selfAttestedValues, linkSecret, schemas, schemaIds,
+      selfAttestedValues, linkSecret.c_str(), schemas, schemaIds,
       credentialDefinitions, credentialDefinitionIds, &out);
 
   auto returnValue = createReturnValue(rt, code, &out);
@@ -522,7 +522,7 @@ jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
   auto proverDid = jsiToValue<std::string>(rt, options, "proverDid", true);
   auto credentialDefinition =
       jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
-  auto linkSecret = jsiToValue<ObjectHandle>(rt, options, "linkSecret");
+  auto linkSecret = jsiToValue<std::string>(rt, options, "linkSecret");
   auto linkSecretId = jsiToValue<std::string>(rt, options, "linkSecretId");
   auto credentialOffer =
       jsiToValue<ObjectHandle>(rt, options, "credentialOffer");
@@ -532,7 +532,7 @@ jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
   ErrorCode code = anoncreds_create_credential_request(
       entropy.length() ? entropy.c_str() : nullptr,
       proverDid.length() ? proverDid.c_str() : nullptr, credentialDefinition,
-      linkSecret, linkSecretId.c_str(), credentialOffer,
+      linkSecret.c_str(), linkSecretId.c_str(), credentialOffer,
       &out.credentialRequest, &out.credentialRequestMetadata);
 
   return createReturnValue(rt, code, &out);
@@ -566,7 +566,7 @@ jsi::Value processCredential(jsi::Runtime &rt, jsi::Object options) {
   auto credential = jsiToValue<ObjectHandle>(rt, options, "credential");
   auto credentialRequestMetadata =
       jsiToValue<ObjectHandle>(rt, options, "credentialRequestMetadata");
-  auto linkSecret = jsiToValue<ObjectHandle>(rt, options, "linkSecret");
+  auto linkSecret = jsiToValue<std::string>(rt, options, "linkSecret");
   auto credentialDefinition =
       jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
   auto revocationRegistryDefinition = jsiToValue<ObjectHandle>(
@@ -575,7 +575,7 @@ jsi::Value processCredential(jsi::Runtime &rt, jsi::Object options) {
   ObjectHandle out;
 
   ErrorCode code = anoncreds_process_credential(
-      credential, credentialRequestMetadata, linkSecret, credentialDefinition,
+      credential, credentialRequestMetadata, linkSecret.c_str(), credentialDefinition,
       revocationRegistryDefinition, &out);
 
   return createReturnValue(rt, code, &out);
