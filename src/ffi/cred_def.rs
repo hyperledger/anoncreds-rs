@@ -48,7 +48,7 @@ pub extern "C" fn anoncreds_create_credential_definition(
             issuer_id,
             tag,
             signature_type,
-            CredentialDefinitionConfig {
+            &CredentialDefinitionConfig {
                 support_revocation: support_revocation != 0,
             },
         )?;

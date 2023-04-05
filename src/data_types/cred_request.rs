@@ -60,8 +60,8 @@ impl CredentialRequest {
         nonce: Nonce,
     ) -> Result<Self> {
         let s = Self {
-            entropy: entropy.map(|e| e.to_owned()),
-            prover_did: prover_did.map(|p| p.to_owned()),
+            entropy: entropy.map(ToOwned::to_owned),
+            prover_did: prover_did.map(ToOwned::to_owned),
             cred_def_id,
             blinded_ms,
             blinded_ms_correctness_proof,
@@ -72,11 +72,14 @@ impl CredentialRequest {
     }
 
     pub fn entropy(&self) -> Result<String> {
-        self.entropy.clone().map(Result::Ok).unwrap_or_else(|| {
-            self.prover_did
-                .clone()
-                .ok_or(err_msg!("Entropy or prover did must be supplied"))
-        })
+        self.entropy.clone().map_or_else(
+            || {
+                self.prover_did
+                    .clone()
+                    .ok_or_else(|| err_msg!("Entropy or prover did must be supplied"))
+            },
+            Result::Ok,
+        )
     }
 }
 

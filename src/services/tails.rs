@@ -72,6 +72,7 @@ pub struct TailsFileReader {
 }
 
 impl TailsFileReader {
+    #[must_use]
     pub fn new_tails_reader(path: &str) -> TailsReader {
         TailsReader::new(Self {
             path: path.to_owned(),
@@ -81,13 +82,11 @@ impl TailsFileReader {
     }
 
     pub fn open(&mut self) -> Result<()> {
-        if self.file.is_some() {
-            Ok(())
-        } else {
+        if self.file.is_none() {
             let file = File::open(self.path.clone())?;
             self.file.replace(file);
-            Ok(())
         }
+        Ok(())
     }
 
     pub fn close(&mut self) {
@@ -141,9 +140,7 @@ pub struct TailsFileWriter {
 impl TailsFileWriter {
     pub fn new(root_path: Option<String>) -> Self {
         Self {
-            root_path: root_path
-                .map(PathBuf::from)
-                .unwrap_or_else(std::env::temp_dir),
+            root_path: root_path.map_or_else(std::env::temp_dir, PathBuf::from),
         }
     }
 }

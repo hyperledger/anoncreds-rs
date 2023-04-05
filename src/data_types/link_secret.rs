@@ -7,7 +7,6 @@ use ursa::{
 pub struct LinkSecret(pub ursa::bn::BigNumber);
 
 impl LinkSecret {
-    #[must_use]
     pub fn new() -> Result<Self, ConversionError> {
         let value = UrsaProver::new_master_secret()
             .and_then(|v| v.value())

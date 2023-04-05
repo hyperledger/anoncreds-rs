@@ -11,7 +11,7 @@ ffi_support::define_string_destructor!(anoncreds_string_free);
 pub extern "C" fn anoncreds_buffer_free(buffer: ByteBuffer) {
     ffi_support::abort_on_panic::with_abort_on_panic(|| {
         buffer.destroy_into_vec().zeroize();
-    })
+    });
 }
 
 #[macro_use]

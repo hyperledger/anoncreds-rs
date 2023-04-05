@@ -1,22 +1,19 @@
-use std::collections::HashMap;
-
-use ffi_support::FfiStr;
-
 use super::error::{catch_error, ErrorCode};
-use super::object::{AnonCredsObject, AnonCredsObjectList, ObjectHandle};
+use super::object::{AnoncredsObject, AnoncredsObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
 use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
 use crate::data_types::link_secret::LinkSecret;
 use crate::data_types::presentation::Presentation;
-use crate::data_types::rev_reg::RevocationStatusList;
-use crate::data_types::rev_reg_def::{
-    RevocationRegistryDefinition, RevocationRegistryDefinitionId,
-};
+use crate::data_types::rev_reg_def::RevocationRegistryDefinition;
+use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
+use crate::data_types::rev_status_list::RevocationStatusList;
 use crate::data_types::schema::{Schema, SchemaId};
 use crate::error::Result;
-use crate::services::{
-    prover::create_presentation, types::PresentCredentials, verifier::verify_presentation,
-};
+use crate::services::prover::create_presentation;
+use crate::services::types::PresentCredentials;
+use crate::services::verifier::verify_presentation;
+use ffi_support::FfiStr;
+use std::collections::HashMap;
 
 impl_anoncreds_object!(Presentation, "Presentation");
 impl_anoncreds_object_from_json!(Presentation, anoncreds_presentation_from_json);
@@ -56,9 +53,9 @@ pub struct FfiCredentialProve<'a> {
 }
 
 struct CredentialEntry {
-    credential: AnonCredsObject,
+    credential: AnoncredsObject,
     timestamp: Option<u64>,
-    rev_state: Option<AnonCredsObject>,
+    rev_state: Option<AnoncredsObject>,
 }
 
 #[no_mangle]
@@ -110,7 +107,9 @@ pub extern "C" fn anoncreds_create_presentation(
             )?
         };
 
-        let self_attested = if !self_attest_names.is_empty() {
+        let self_attested = if self_attest_names.is_empty() {
+            None
+        } else {
             let mut self_attested = HashMap::new();
             for (name, raw) in self_attest_names
                 .as_slice()
@@ -128,8 +127,6 @@ pub extern "C" fn anoncreds_create_presentation(
                 self_attested.insert(name, raw);
             }
             Some(self_attested)
-        } else {
-            None
         };
 
         let mut present_creds = PresentCredentials::default();
@@ -141,7 +138,7 @@ pub extern "C" fn anoncreds_create_presentation(
                 entry
                     .rev_state
                     .as_ref()
-                    .map(AnonCredsObject::cast_ref)
+                    .map(AnoncredsObject::cast_ref)
                     .transpose()?,
             );
 
@@ -168,21 +165,21 @@ pub extern "C" fn anoncreds_create_presentation(
         }
 
         let mut schema_identifiers: Vec<SchemaId> = vec![];
-        for schema_id in schema_ids.to_string_vec()?.iter() {
+        for schema_id in &schema_ids.to_string_vec()? {
             let s = SchemaId::new(schema_id.as_str())?;
             schema_identifiers.push(s);
         }
 
         let mut cred_def_identifiers: Vec<CredentialDefinitionId> = vec![];
-        for cred_def_id in cred_def_ids.to_string_vec()?.iter() {
+        for cred_def_id in &cred_def_ids.to_string_vec()? {
             let cred_def_id = CredentialDefinitionId::new(cred_def_id.as_str())?;
             cred_def_identifiers.push(cred_def_id);
         }
 
-        let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
+        let schemas = AnoncredsObjectList::load(schemas.as_slice())?;
         let schemas = schemas.refs_map::<SchemaId, Schema>(&schema_identifiers)?;
 
-        let cred_defs = AnonCredsObjectList::load(cred_defs.as_slice())?;
+        let cred_defs = AnoncredsObjectList::load(cred_defs.as_slice())?;
         let cred_defs = cred_defs
             .refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?;
 
@@ -201,7 +198,7 @@ pub extern "C" fn anoncreds_create_presentation(
     })
 }
 
-/// Optional value for overriding the non-revoked interval in the PresentationRequest
+/// Optional value for overriding the non-revoked interval in the [`PresentationRequest`]
 /// This only overrides the `from` value as a Revocation Status List is deemed valid until the next
 /// entry.
 ///
@@ -294,26 +291,27 @@ pub extern "C" fn anoncreds_verify_presentation(
             rev_reg_def_identifiers.push(rev_reg_def_id);
         }
 
-        let schemas = AnonCredsObjectList::load(schemas.as_slice())?;
+        let schemas = AnoncredsObjectList::load(schemas.as_slice())?;
         let schemas = schemas.refs_map::<SchemaId, Schema>(&schema_identifiers)?;
 
-        let cred_defs = AnonCredsObjectList::load(cred_defs.as_slice())?;
+        let cred_defs = AnoncredsObjectList::load(cred_defs.as_slice())?;
         let cred_defs = cred_defs
             .refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?;
 
-        let rev_reg_defs = AnonCredsObjectList::load(rev_reg_defs.as_slice())?;
+        let rev_reg_defs = AnoncredsObjectList::load(rev_reg_defs.as_slice())?;
         let rev_reg_defs = rev_reg_defs
             .refs_map::<RevocationRegistryDefinitionId, RevocationRegistryDefinition>(
                 &rev_reg_def_identifiers,
             )?;
 
-        let rev_reg_defs = match rev_reg_defs.is_empty() {
-            false => Some(&rev_reg_defs),
-            true => None,
+        let rev_reg_defs = if rev_reg_defs.is_empty() {
+            None
+        } else {
+            Some(&rev_reg_defs)
         };
 
-        let rev_status_list: AnonCredsObjectList =
-            AnonCredsObjectList::load(rev_status_list.as_slice())?;
+        let rev_status_list: AnoncredsObjectList =
+            AnoncredsObjectList::load(rev_status_list.as_slice())?;
         let rev_status_list: Result<Vec<&RevocationStatusList>> = rev_status_list.refs();
         let rev_status_list = rev_status_list.ok();
 
@@ -328,7 +326,7 @@ pub extern "C" fn anoncreds_verify_presentation(
             )?
         };
         let mut map_nonrevoked_interval_override = HashMap::new();
-        for (id, req_timestamp, override_timestamp) in override_entries.iter() {
+        for (id, req_timestamp, override_timestamp) in &override_entries {
             map_nonrevoked_interval_override
                 .entry(id)
                 .or_insert_with(HashMap::new)
@@ -341,10 +339,10 @@ pub extern "C" fn anoncreds_verify_presentation(
             &schemas,
             &cred_defs,
             rev_reg_defs,
-            rev_status_list,
+            &rev_status_list,
             Some(&map_nonrevoked_interval_override),
         )?;
-        unsafe { *result_p = verify as i8 };
+        unsafe { *result_p = i8::from(verify) };
         Ok(())
     })
 }

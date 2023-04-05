@@ -26,11 +26,13 @@ impl Nonce {
     }
 
     #[inline]
-    pub fn as_native(&self) -> &UrsaNonce {
+    #[must_use]
+    pub const fn as_native(&self) -> &UrsaNonce {
         &self.native
     }
 
     #[inline]
+    #[must_use]
     pub fn into_native(self) -> UrsaNonce {
         self.native
     }
@@ -41,7 +43,7 @@ impl Nonce {
             return Err("Invalid bignum: empty value".into());
         }
         for c in strval.chars() {
-            if !matches!(c, '0'..='9') {
+            if !c.is_ascii_digit() {
                 return Err("Invalid bignum value".into());
             }
         }
@@ -62,7 +64,7 @@ impl Hash for Nonce {
 }
 
 impl PartialEq for Nonce {
-    fn eq(&self, other: &Nonce) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.strval == other.strval
     }
 }

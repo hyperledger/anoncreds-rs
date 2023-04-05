@@ -80,7 +80,7 @@ impl<K, V> AbstractQuery<K, V> {
     pub fn get_name(&self) -> Vec<&K> {
         match self {
             Self::And(subqueries) | Self::Or(subqueries) => {
-                subqueries.iter().flat_map(|s| s.get_name()).collect()
+                subqueries.iter().flat_map(Self::get_name).collect()
             }
             Self::Exist(subquery_names) => subquery_names
                 .to_owned()

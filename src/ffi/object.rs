@@ -15,65 +15,65 @@ use super::error::{catch_error, ErrorCode};
 use crate::error::Result;
 use crate::new_handle_type;
 
-pub(crate) static FFI_OBJECTS: Lazy<Mutex<BTreeMap<ObjectHandle, AnonCredsObject>>> =
+pub static FFI_OBJECTS: Lazy<Mutex<BTreeMap<ObjectHandle, AnoncredsObject>>> =
     Lazy::new(|| Mutex::new(BTreeMap::new()));
 
 new_handle_type!(ObjectHandle, FFI_OBJECT_COUNTER);
 
 impl ObjectHandle {
-    pub(crate) fn create<O: AnyAnonCredsObject + 'static>(value: O) -> Result<Self> {
+    pub(crate) fn create<O: AnyAnoncredsObject + 'static>(value: O) -> Result<Self> {
         let handle = Self::next();
         FFI_OBJECTS
             .lock()
             .map_err(|_| err_msg!("Error locking object store"))?
-            .insert(handle, AnonCredsObject::new(value));
+            .insert(handle, AnoncredsObject::new(value));
         Ok(handle)
     }
 
-    pub(crate) fn load(&self) -> Result<AnonCredsObject> {
+    pub(crate) fn load(self) -> Result<AnoncredsObject> {
         FFI_OBJECTS
             .lock()
             .map_err(|_| err_msg!("Error locking object store"))?
-            .get(self)
+            .get(&self)
             .cloned()
             .ok_or_else(|| err_msg!("Invalid object handle"))
     }
 
-    pub(crate) fn opt_load(&self) -> Result<Option<AnonCredsObject>> {
-        if self.0 != 0 {
+    pub(crate) fn opt_load(self) -> Result<Option<AnoncredsObject>> {
+        if self.0 == 0 {
+            Ok(None)
+        } else {
             Some(
                 FFI_OBJECTS
                     .lock()
                     .map_err(|_| err_msg!("Error locking object store"))?
-                    .get(self)
+                    .get(&self)
                     .cloned()
                     .ok_or_else(|| err_msg!("Invalid object handle")),
             )
             .transpose()
-        } else {
-            Ok(None)
         }
     }
 
-    pub(crate) fn remove(&self) -> Result<AnonCredsObject> {
+    pub(crate) fn remove(self) -> Result<AnoncredsObject> {
         FFI_OBJECTS
             .lock()
             .map_err(|_| err_msg!("Error locking object store"))?
-            .remove(self)
+            .remove(&self)
             .ok_or_else(|| err_msg!("Invalid object handle"))
     }
 }
 
 #[derive(Clone, Debug)]
 #[repr(transparent)]
-pub(crate) struct AnonCredsObject(Arc<dyn AnyAnonCredsObject>);
+pub struct AnoncredsObject(Arc<dyn AnyAnoncredsObject>);
 
-impl AnonCredsObject {
-    pub fn new<O: AnyAnonCredsObject + 'static>(value: O) -> Self {
+impl AnoncredsObject {
+    pub fn new<O: AnyAnoncredsObject + 'static>(value: O) -> Self {
         Self(Arc::new(value))
     }
 
-    pub fn cast_ref<O: AnyAnonCredsObject + 'static>(&self) -> Result<&O> {
+    pub fn cast_ref<O: AnyAnoncredsObject + 'static>(&self) -> Result<&O> {
         let result = unsafe { &*(&*self.0 as *const _ as *const O) };
         if self.0.type_id() == TypeId::of::<O>() {
             Ok(result)
@@ -91,17 +91,17 @@ impl AnonCredsObject {
     }
 }
 
-impl Hash for AnonCredsObject {
+impl Hash for AnoncredsObject {
     fn hash<H: Hasher>(&self, state: &mut H) {
         std::ptr::hash(&*self.0, state);
     }
 }
 
-pub(crate) trait ToJson {
+pub trait ToJson {
     fn to_json(&self) -> Result<Vec<u8>>;
 }
 
-impl ToJson for AnonCredsObject {
+impl ToJson for AnoncredsObject {
     #[inline]
     fn to_json(&self) -> Result<Vec<u8>> {
         self.0.to_json()
@@ -117,7 +117,7 @@ where
     }
 }
 
-pub(crate) trait AnyAnonCredsObject: Debug + ToJson + Send + Sync {
+pub trait AnyAnoncredsObject: Debug + ToJson + Send + Sync {
     fn type_name(&self) -> &'static str;
 
     #[doc(hidden)]
@@ -131,7 +131,7 @@ pub(crate) trait AnyAnonCredsObject: Debug + ToJson + Send + Sync {
 
 macro_rules! impl_anoncreds_object {
     ($ident:path, $name:expr) => {
-        impl $crate::ffi::object::AnyAnonCredsObject for $ident {
+        impl $crate::ffi::object::AnyAnoncredsObject for $ident {
             fn type_name(&self) -> &'static str {
                 $name
             }
@@ -190,20 +190,14 @@ pub extern "C" fn anoncreds_object_free(handle: ObjectHandle) {
     handle.remove().ok();
 }
 
-pub(crate) trait AnonCredsObjectId: AnyAnonCredsObject {
-    type Id: Eq + Hash;
-
-    fn get_id(&self) -> Self::Id;
-}
-
 #[repr(transparent)]
-pub(crate) struct AnonCredsObjectList(Vec<AnonCredsObject>);
+pub struct AnoncredsObjectList(Vec<AnoncredsObject>);
 
-impl AnonCredsObjectList {
+impl AnoncredsObjectList {
     pub fn load(handles: &[ObjectHandle]) -> Result<Self> {
         let loaded = handles
             .iter()
-            .map(ObjectHandle::load)
+            .map(|h| ObjectHandle::load(*h))
             .collect::<Result<_>>()?;
         Ok(Self(loaded))
     }
@@ -211,10 +205,10 @@ impl AnonCredsObjectList {
     #[allow(unused)]
     pub fn refs<T>(&self) -> Result<Vec<&T>>
     where
-        T: AnyAnonCredsObject + 'static,
+        T: AnyAnoncredsObject + 'static,
     {
         let mut refs = Vec::with_capacity(self.0.len());
-        for inst in self.0.iter() {
+        for inst in &self.0 {
             let inst = inst.cast_ref::<T>()?;
             refs.push(inst);
         }
@@ -223,7 +217,7 @@ impl AnonCredsObjectList {
 
     pub fn refs_map<'a, I, T>(&'a self, ids: &'a [I]) -> Result<HashMap<&I, &T>>
     where
-        T: AnyAnonCredsObject + 'static,
+        T: AnyAnoncredsObject + 'static,
         I: Eq + Hash,
     {
         let mut refs = HashMap::with_capacity(self.0.len());
@@ -235,15 +229,15 @@ impl AnonCredsObjectList {
     }
 }
 
-impl Deref for AnonCredsObjectList {
-    type Target = Vec<AnonCredsObject>;
+impl Deref for AnoncredsObjectList {
+    type Target = Vec<AnoncredsObject>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for AnonCredsObjectList {
+impl DerefMut for AnoncredsObjectList {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

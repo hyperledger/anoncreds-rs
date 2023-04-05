@@ -4,7 +4,7 @@ use std::ptr;
 use ffi_support::{rust_string_to_c, FfiStr};
 
 use super::error::{catch_error, ErrorCode};
-use super::object::{AnonCredsObject, ObjectHandle};
+use super::object::{AnoncredsObject, ObjectHandle};
 use super::util::FfiStrList;
 use crate::data_types::link_secret::LinkSecret;
 use crate::data_types::rev_reg::RevocationRegistryId;
@@ -27,8 +27,8 @@ pub struct FfiCredRevInfo<'a> {
 }
 
 struct RevocationConfig {
-    reg_def: AnonCredsObject,
-    reg_def_private: AnonCredsObject,
+    reg_def: AnoncredsObject,
+    reg_def_private: AnoncredsObject,
     reg_idx: u32,
     tails_path: String,
 }
@@ -99,7 +99,9 @@ pub extern "C" fn anoncreds_create_credential(
                 cred_values.add_raw(name, raw)?;
             }
         }
-        let revocation_config = if !revocation.is_null() {
+        let revocation_config = if revocation.is_null() {
+            None
+        } else {
             let revocation = unsafe { &*revocation };
             let tails_path = revocation
                 .tails_path
@@ -115,8 +117,6 @@ pub extern "C" fn anoncreds_create_credential(
                     .map_err(|_| err_msg!("Invalid revocation index"))?,
                 tails_path,
             })
-        } else {
-            None
         };
 
         let cred = create_credential(
@@ -129,7 +129,7 @@ pub extern "C" fn anoncreds_create_credential(
             rev_status_list
                 .opt_load()?
                 .as_ref()
-                .map(AnonCredsObject::cast_ref)
+                .map(AnoncredsObject::cast_ref)
                 .transpose()?,
             revocation_config
                 .as_ref()
@@ -197,7 +197,7 @@ pub extern "C" fn anoncreds_process_credential(
             rev_reg_def
                 .opt_load()?
                 .as_ref()
-                .map(AnonCredsObject::cast_ref)
+                .map(AnoncredsObject::cast_ref)
                 .transpose()?,
         )?;
         let cred = ObjectHandle::create(cred)?;
@@ -220,18 +220,16 @@ pub extern "C" fn anoncreds_credential_get_attribute(
         let cred = handle.load()?;
         let cred = cred.cast_ref::<Credential>()?;
         let val = match name.as_opt_str().unwrap_or_default() {
-            "schema_id" => rust_string_to_c(cred.schema_id.to_owned()),
+            "schema_id" => rust_string_to_c(cred.schema_id.clone()),
             "cred_def_id" => rust_string_to_c(cred.cred_def_id.to_string()),
             "rev_reg_id" => cred
                 .rev_reg_id
                 .as_ref()
-                .map(|s| rust_string_to_c(s.to_string()))
-                .unwrap_or(ptr::null_mut()),
+                .map_or(ptr::null_mut(), |s| rust_string_to_c(s.to_string())),
             "rev_reg_index" => cred
                 .signature
                 .extract_index()
-                .map(|s| rust_string_to_c(s.to_string()))
-                .unwrap_or(ptr::null_mut()),
+                .map_or(ptr::null_mut(), |s| rust_string_to_c(s.to_string())),
             s => return Err(err_msg!("Unsupported attribute: {}", s)),
         };
         unsafe { *result_p = val };
