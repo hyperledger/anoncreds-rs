@@ -7,7 +7,7 @@
 # `rustup toolchain install beta`.
 
 RUSTUP=${RUSTUP:-`command -v rustup`}
-PROJECT=aries-askar
+PROJECT=anoncreds
 
 if [ ! -x "$RUSTUP" ]; then
 	echo "rustup command not found: it can be obtained from https://rustup.rs/"
