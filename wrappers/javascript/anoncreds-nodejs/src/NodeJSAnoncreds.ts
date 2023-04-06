@@ -482,7 +482,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       revocationRegistryDefinitionId,
       revocationRegistryDefinition,
       issuerId,
-      timestamp,
+      timestamp ?? -1,
       issuanceByDefault,
       ret
     )
@@ -520,7 +520,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     const ret = allocatePointer()
 
     this.nativeAnoncreds.anoncreds_update_revocation_status_list(
-      timestamp,
+      timestamp ?? -1,
       issued,
       revoked,
       revocationRegistryDefinition,

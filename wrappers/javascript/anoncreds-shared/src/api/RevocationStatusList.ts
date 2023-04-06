@@ -20,7 +20,7 @@ export type UpdateRevocationStatusListTimestampOptions = {
 }
 
 export type UpdateRevocationStatusListOptions = {
-  revocationRegstryDefinition: RevocationRegistryDefinition
+  revocationRegistryDefinition: RevocationRegistryDefinition
   timestamp?: number
   issued?: Array<number>
   revoked?: Array<number>
@@ -65,7 +65,7 @@ export class RevocationStatusList extends AnoncredsObject {
   public update(options: UpdateRevocationStatusListOptions) {
     const updatedRevocationStatusList = anoncreds.updateRevocationStatusList({
       ...options,
-      revocationRegistryDefinition: options.revocationRegstryDefinition.handle,
+      revocationRegistryDefinition: options.revocationRegistryDefinition.handle,
       currentRevocationStatusList: this.handle,
     })
 
