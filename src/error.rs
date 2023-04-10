@@ -23,7 +23,8 @@ pub enum ErrorKind {
 }
 
 impl ErrorKind {
-    pub fn as_str(&self) -> &'static str {
+    #[must_use]
+    pub const fn as_str(&self) -> &'static str {
         match self {
             Self::Input => "Input error",
             Self::IOError => "IO error",
@@ -69,10 +70,13 @@ impl Error {
         }
     }
 
-    pub fn kind(&self) -> ErrorKind {
+    #[must_use]
+    #[inline]
+    pub const fn kind(&self) -> ErrorKind {
         self.kind
     }
 
+    #[must_use]
     pub fn with_cause<T: Into<Box<dyn StdError + Send + Sync>>>(mut self, err: T) -> Self {
         self.cause = Some(err.into());
         self
@@ -120,26 +124,26 @@ impl From<ErrorKind> for Error {
 
 impl From<ConversionError> for Error {
     fn from(err: ConversionError) -> Self {
-        Error::from_opt_msg(ErrorKind::Input, err.context)
+        Self::from_opt_msg(ErrorKind::Input, err.context)
     }
 }
 
 impl From<ValidationError> for Error {
     fn from(err: ValidationError) -> Self {
-        Error::from_opt_msg(ErrorKind::Input, err.context)
+        Self::from_opt_msg(ErrorKind::Input, err.context)
     }
 }
 
 impl From<std::io::Error> for Error {
     fn from(err: std::io::Error) -> Self {
-        Error::from(ErrorKind::IOError).with_cause(err)
+        Self::from(ErrorKind::IOError).with_cause(err)
     }
 }
 
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Self {
         // FIXME could be input or output...
-        Error::from(ErrorKind::Input).with_cause(err)
+        Self::from(ErrorKind::Input).with_cause(err)
     }
 }
 
@@ -149,15 +153,16 @@ impl From<UrsaCryptoError> for Error {
         let message = err.to_string();
         let kind = match err.kind() {
             UrsaCryptoErrorKind::InvalidState => ErrorKind::InvalidState,
-            UrsaCryptoErrorKind::InvalidStructure => ErrorKind::Input,
+            UrsaCryptoErrorKind::InvalidStructure | UrsaCryptoErrorKind::InvalidParam(_) => {
+                ErrorKind::Input
+            }
             UrsaCryptoErrorKind::IOError => ErrorKind::IOError,
             UrsaCryptoErrorKind::InvalidRevocationAccumulatorIndex => ErrorKind::InvalidUserRevocId,
             UrsaCryptoErrorKind::RevocationAccumulatorIsFull => ErrorKind::RevocationRegistryFull,
             UrsaCryptoErrorKind::ProofRejected => ErrorKind::ProofRejected,
             UrsaCryptoErrorKind::CredentialRevoked => ErrorKind::CredentialRevoked,
-            UrsaCryptoErrorKind::InvalidParam(_) => ErrorKind::Input,
         };
-        Error::from_msg(kind, message)
+        Self::from_msg(kind, message)
     }
 }
 
@@ -165,8 +170,8 @@ impl<M> From<(ErrorKind, M)> for Error
 where
     M: fmt::Display + Send + Sync + 'static,
 {
-    fn from((kind, msg): (ErrorKind, M)) -> Error {
-        Error::from_msg(kind, msg.to_string())
+    fn from((kind, msg): (ErrorKind, M)) -> Self {
+        Self::from_msg(kind, msg.to_string())
     }
 }
 

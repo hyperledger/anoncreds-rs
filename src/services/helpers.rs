@@ -104,7 +104,7 @@ pub fn build_sub_proof_request(
         let names = if let Some(name) = &attr.name {
             vec![name.clone()]
         } else if let Some(names) = &attr.names {
-            names.to_owned()
+            names.clone()
         } else {
             error!(
                 r#"Attr for credential restriction should contain "name" or "names" param. Current attr: {:?}"#,
@@ -116,7 +116,7 @@ pub fn build_sub_proof_request(
         };
 
         for name in names {
-            sub_proof_request_builder.add_revealed_attr(&attr_common_view(&name))?
+            sub_proof_request_builder.add_revealed_attr(&attr_common_view(&name))?;
         }
     }
 
@@ -145,7 +145,7 @@ pub fn get_revealed_attributes_for_credential(
     sub_proof_index: usize,
     requested_proof: &RequestedProof,
     pres_req: &PresentationRequestPayload,
-) -> Result<(Vec<AttributeInfo>, Option<NonRevokedInterval>)> {
+) -> (Vec<AttributeInfo>, Option<NonRevokedInterval>) {
     trace!("_get_revealed_attributes_for_credential >>> sub_proof_index: {:?}, requested_credentials: {:?}, pres_req: {:?}",
            sub_proof_index, requested_proof, pres_req);
     let mut non_revoked_interval: Option<NonRevokedInterval> = None;
@@ -199,14 +199,14 @@ pub fn get_revealed_attributes_for_credential(
         revealed_attrs_for_credential
     );
 
-    Ok((revealed_attrs_for_credential, non_revoked_interval))
+    (revealed_attrs_for_credential, non_revoked_interval)
 }
 
 pub fn get_predicates_for_credential(
     sub_proof_index: usize,
     requested_proof: &RequestedProof,
     pres_req: &PresentationRequestPayload,
-) -> Result<(Vec<PredicateInfo>, Option<NonRevokedInterval>)> {
+) -> (Vec<PredicateInfo>, Option<NonRevokedInterval>) {
     trace!("_get_predicates_for_credential >>> sub_proof_index: {:?}, requested_credentials: {:?}, pres_req: {:?}",
            sub_proof_index, requested_proof, pres_req);
 
@@ -240,5 +240,5 @@ pub fn get_predicates_for_credential(
         predicates_for_credential
     );
 
-    Ok((predicates_for_credential, non_revoked_interval))
+    (predicates_for_credential, non_revoked_interval)
 }

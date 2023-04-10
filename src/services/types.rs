@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use super::tails::TailsReader;
 pub use crate::data_types::{
     cred_def::{CredentialDefinitionPrivate, CredentialKeyCorrectnessProof, SignatureType},
@@ -9,13 +7,13 @@ pub use crate::data_types::{
     link_secret::LinkSecret,
     pres_request::PresentationRequest,
     presentation::Presentation,
-    rev_reg::{RevocationRegistry, RevocationRegistryDelta, RevocationStatusList},
+    rev_reg::RevocationRegistry,
     rev_reg_def::{
         RegistryType, RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate,
     },
+    rev_status_list::RevocationStatusList,
     schema::AttributeNames,
 };
-
 use crate::services::helpers::encode_credential_attribute;
 use crate::ursa::cl::{RevocationRegistry as CryptoRevocationRegistry, Witness};
 use crate::{
@@ -23,6 +21,7 @@ use crate::{
     invalid,
     utils::validation::Validatable,
 };
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CredentialDefinitionConfig {
@@ -30,7 +29,8 @@ pub struct CredentialDefinitionConfig {
 }
 
 impl CredentialDefinitionConfig {
-    pub fn new(support_revocation: bool) -> Self {
+    #[must_use]
+    pub const fn new(support_revocation: bool) -> Self {
         Self { support_revocation }
     }
 }
@@ -80,11 +80,6 @@ impl From<MakeCredentialValues> for CredentialValues {
 pub struct PresentCredentials<'p>(pub(crate) Vec<PresentCredential<'p>>);
 
 impl<'p> PresentCredentials<'p> {
-    #[inline]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn add_credential(
         &mut self,
         cred: &'p Credential,
@@ -104,10 +99,14 @@ impl<'p> PresentCredentials<'p> {
         }
     }
 
+    #[inline]
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    #[inline]
+    #[must_use]
     pub fn len(&self) -> usize {
         self.0.iter().filter(|c| !c.is_empty()).count()
     }
@@ -118,14 +117,14 @@ impl Validatable for PresentCredentials<'_> {
         let mut attr_names = HashSet::new();
         let mut pred_names = HashSet::new();
 
-        for c in self.0.iter() {
-            for (name, _reveal) in c.requested_attributes.iter() {
+        for c in &self.0 {
+            for (name, _reveal) in &c.requested_attributes {
                 if !attr_names.insert(name.as_str()) {
                     return Err(invalid!("Duplicate requested attribute referent: {}", name));
                 }
             }
 
-            for name in c.requested_predicates.iter() {
+            for name in &c.requested_predicates {
                 if !pred_names.insert(name.as_str()) {
                     return Err(invalid!("Duplicate requested predicate referent: {}", name));
                 }

@@ -18,7 +18,7 @@ macro_rules! new_handle_type (($newtype:ident, $counter:ident) => (
 
     impl $newtype {
         #[allow(dead_code)]
-        pub fn invalid() -> $newtype {
+        pub const fn invalid() -> $newtype {
             $newtype(0)
         }
 

@@ -60,13 +60,13 @@ pub struct Identifier {
 
 impl Validatable for Presentation {
     fn validate(&self) -> Result<(), ValidationError> {
-        for identifier in self.identifiers.iter() {
+        for identifier in &self.identifiers {
             identifier.schema_id.validate()?;
             identifier.cred_def_id.validate()?;
             identifier
                 .rev_reg_id
                 .as_ref()
-                .map(|rri| rri.validate())
+                .map(Validatable::validate)
                 .transpose()?;
         }
         Ok(())

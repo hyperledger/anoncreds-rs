@@ -1,28 +1,34 @@
-use std::collections::{HashMap, HashSet};
-
-use once_cell::sync::Lazy;
-use regex::Regex;
-
-use super::helpers::*;
-use super::types::*;
+use super::helpers::attr_common_view;
+use super::helpers::new_nonce;
+use super::types::Presentation;
+use super::types::PresentationRequest;
+use super::types::RevocationRegistryDefinition;
+use super::types::RevocationStatusList;
 use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
+use crate::data_types::nonce::Nonce;
+use crate::data_types::pres_request::AttributeInfo;
+use crate::data_types::pres_request::NonRevokedInterval;
+use crate::data_types::pres_request::PresentationRequestPayload;
+use crate::data_types::presentation::{Identifier, RequestedProof, RevealedAttributeInfo};
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
 use crate::data_types::schema::SchemaId;
-use crate::data_types::{
-    nonce::Nonce,
-    pres_request::{AttributeInfo, NonRevokedInterval, PresentationRequestPayload},
-    presentation::{Identifier, RequestedProof, RevealedAttributeInfo},
-};
 use crate::error::Result;
-use crate::ursa::cl::{
-    verifier::Verifier as CryptoVerifier, CredentialPublicKey,
-    RevocationRegistry as CryptoRevocationRegistry,
-};
+use crate::services::helpers::build_credential_schema;
+use crate::services::helpers::build_non_credential_schema;
+use crate::services::helpers::build_sub_proof_request;
+use crate::services::helpers::get_predicates_for_credential;
+use crate::services::helpers::get_revealed_attributes_for_credential;
+use crate::ursa::cl::verifier::Verifier as CryptoVerifier;
+use crate::ursa::cl::CredentialPublicKey;
+use crate::ursa::cl::RevocationRegistry as CryptoRevocationRegistry;
 use crate::utils::query::Query;
 use crate::utils::validation::LEGACY_DID_IDENTIFIER;
+use once_cell::sync::Lazy;
+use regex::Regex;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Filter {
@@ -38,21 +44,13 @@ static INTERNAL_TAG_MATCHER: Lazy<Regex> =
     Lazy::new(|| Regex::new("^attr::([^:]+)::(value|marker)$").unwrap());
 
 /// Verify an incoming proof presentation
-///
-/// # Example
-///
-/// ```rust
-/// use anoncreds::issuer;
-/// use anoncreds::prover;
-/// use anoncreds::verifier;
-/// ```
 pub fn verify_presentation(
     presentation: &Presentation,
     pres_req: &PresentationRequest,
     schemas: &HashMap<&SchemaId, &Schema>,
     cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
     rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
-    rev_status_lists: Option<Vec<&RevocationStatusList>>,
+    rev_status_lists: &Option<Vec<&RevocationStatusList>>,
     nonrevoke_interval_override: Option<
         &HashMap<&RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
@@ -146,12 +144,9 @@ pub fn verify_presentation(
                 sub_proof_index,
                 &presentation.requested_proof,
                 pres_req,
-            )?;
-        let (predicates_for_credential, pred_nonrevoked_interval) = get_predicates_for_credential(
-            sub_proof_index,
-            &presentation.requested_proof,
-            pres_req,
-        )?;
+            );
+        let (predicates_for_credential, pred_nonrevoked_interval) =
+            get_predicates_for_credential(sub_proof_index, &presentation.requested_proof, pres_req);
 
         // Collaspe to the most stringent local interval for the attributes / predicates,
         // we can do this because there is only 1 revocation status list for this credential
@@ -226,7 +221,7 @@ pub fn verify_presentation(
             let rev_reg_def = Some(
                 rev_reg_defs
                     .as_ref()
-                    .unwrap()
+                    .ok_or_else(|| err_msg!("Could not load the Revocation Registry Definition"))?
                     .get(&rev_reg_def_id)
                     .ok_or_else(|| {
                         err_msg!(
@@ -239,7 +234,7 @@ pub fn verify_presentation(
             let rev_reg = Some(
                 rev_reg_map
                     .as_ref()
-                    .unwrap()
+                    .ok_or_else(|| err_msg!("Could not load the Revocation Registry mapping"))?
                     .get(&rev_reg_def_id)
                     .and_then(|regs| regs.get(&timestamp))
                     .ok_or_else(|| {
@@ -332,13 +327,13 @@ fn compare_attr_from_proof_and_request(
 
 fn received_revealed_attrs(proof: &Presentation) -> Result<HashMap<String, Identifier>> {
     let mut revealed_identifiers: HashMap<String, Identifier> = HashMap::new();
-    for (referent, info) in proof.requested_proof.revealed_attrs.iter() {
+    for (referent, info) in &proof.requested_proof.revealed_attrs {
         revealed_identifiers.insert(
             referent.to_string(),
             get_proof_identifier(proof, info.sub_proof_index)?,
         );
     }
-    for (referent, infos) in proof.requested_proof.revealed_attr_groups.iter() {
+    for (referent, infos) in &proof.requested_proof.revealed_attr_groups {
         revealed_identifiers.insert(
             referent.to_string(),
             get_proof_identifier(proof, infos.sub_proof_index)?,
@@ -349,7 +344,7 @@ fn received_revealed_attrs(proof: &Presentation) -> Result<HashMap<String, Ident
 
 fn received_unrevealed_attrs(proof: &Presentation) -> Result<HashMap<String, Identifier>> {
     let mut unrevealed_identifiers: HashMap<String, Identifier> = HashMap::new();
-    for (referent, info) in proof.requested_proof.unrevealed_attrs.iter() {
+    for (referent, info) in &proof.requested_proof.unrevealed_attrs {
         unrevealed_identifiers.insert(
             referent.to_string(),
             get_proof_identifier(proof, info.sub_proof_index)?,
@@ -360,7 +355,7 @@ fn received_unrevealed_attrs(proof: &Presentation) -> Result<HashMap<String, Ide
 
 fn received_predicates(proof: &Presentation) -> Result<HashMap<String, Identifier>> {
     let mut predicate_identifiers: HashMap<String, Identifier> = HashMap::new();
-    for (referent, info) in proof.requested_proof.predicates.iter() {
+    for (referent, info) in &proof.requested_proof.predicates {
         predicate_identifiers.insert(
             referent.to_string(),
             get_proof_identifier(proof, info.sub_proof_index)?,
@@ -390,7 +385,7 @@ fn verify_revealed_attribute_values(
     pres_req: &PresentationRequestPayload,
     proof: &Presentation,
 ) -> Result<()> {
-    for (attr_referent, attr_info) in proof.requested_proof.revealed_attrs.iter() {
+    for (attr_referent, attr_info) in &proof.requested_proof.revealed_attrs {
         let attr_name = pres_req
             .requested_attributes
             .get(attr_referent)
@@ -414,7 +409,7 @@ fn verify_revealed_attribute_values(
         verify_revealed_attribute_value(attr_name.as_str(), proof, attr_info)?;
     }
 
-    for (attr_referent, attr_infos) in proof.requested_proof.revealed_attr_groups.iter() {
+    for (attr_referent, attr_infos) in &proof.requested_proof.revealed_attr_groups {
         let attr_names = pres_req
             .requested_attributes
             .get(attr_referent)
@@ -528,19 +523,19 @@ fn verify_requested_restrictions(
     let requested_attributes_queries = pres_req
         .requested_attributes
         .iter()
-        .filter_map(|(_, info)| info.restrictions.to_owned());
+        .filter_map(|(_, info)| info.restrictions.clone());
 
     let requested_predicates_queries = pres_req
         .requested_predicates
         .iter()
-        .filter_map(|(_, info)| info.restrictions.to_owned());
+        .filter_map(|(_, info)| info.restrictions.clone());
 
     let filter_tags: Vec<String> = requested_attributes_queries
         .chain(requested_predicates_queries)
         .flat_map(|r| {
             r.get_name()
                 .iter()
-                .map(|n| n.to_owned().to_owned())
+                .map(|n| n.to_owned().clone())
                 .collect::<Vec<String>>()
         })
         .collect();
@@ -563,7 +558,7 @@ fn verify_requested_restrictions(
         return Err(err_msg!("Presentation request contains both restrictions for `schema_issuer_id` (new) and `schema_issuer_did` (legacy)"));
     }
 
-    for (referent, info) in requested_attrs.iter() {
+    for (referent, info) in &requested_attrs {
         if let Some(ref query) = info.restrictions {
             let filter = gather_filter_info(referent, &proof_attr_identifiers, schemas, cred_defs)?;
 
@@ -607,7 +602,7 @@ fn verify_requested_restrictions(
         }
     }
 
-    for (referent, info) in pres_req.requested_predicates.iter() {
+    for (referent, info) in &pres_req.requested_predicates {
         if let Some(ref query) = info.restrictions {
             let filter = gather_filter_info(referent, received_predicates, schemas, cred_defs)?;
 
@@ -661,7 +656,7 @@ fn is_self_attested(
     self_attested_attrs: &HashSet<String>,
 ) -> bool {
     match info.restrictions.as_ref() {
-        Some(&Query::And(ref array)) | Some(&Query::Or(ref array)) if array.is_empty() => {
+        Some(&Query::And(ref array) | &Query::Or(ref array)) if array.is_empty() => {
             self_attested_attrs.contains(referent)
         }
         None => self_attested_attrs.contains(referent),
@@ -695,12 +690,12 @@ fn gather_filter_info(
         .ok_or_else(|| err_msg!("cred_def_id {cred_def_id} could not be found in the cred_defs"))?;
 
     Ok(Filter {
-        schema_id: schema_id.to_owned(),
-        schema_name: schema.name.to_owned(),
-        schema_version: schema.version.to_owned(),
-        schema_issuer_id: schema.issuer_id.to_owned(),
-        issuer_id: cred_def.issuer_id.to_owned(),
-        cred_def_id: cred_def_id.to_owned(),
+        schema_id: schema_id.clone(),
+        schema_name: schema.name.clone(),
+        schema_version: schema.version.clone(),
+        schema_issuer_id: schema.issuer_id.clone(),
+        issuer_id: cred_def.issuer_id.clone(),
+        cred_def_id: cred_def_id.clone(),
     })
 }
 
@@ -788,21 +783,19 @@ fn process_filter(
     );
     match tag {
         tag_ @ "schema_id" => precess_filed(tag_, filter.schema_id.to_string(), tag_value),
-        tag_ @ "schema_issuer_did" => {
-            precess_filed(tag_, filter.schema_issuer_id.to_owned(), tag_value)
-        }
-        tag_ @ "schema_issuer_id" => {
-            precess_filed(tag_, filter.schema_issuer_id.to_owned(), tag_value)
+        tag_ @ ("schema_issuer_did" | "schema_issuer_id") => {
+            precess_filed(tag_, filter.schema_issuer_id.clone(), tag_value)
         }
         tag_ @ "schema_name" => precess_filed(tag_, &filter.schema_name, tag_value),
         tag_ @ "schema_version" => precess_filed(tag_, &filter.schema_version, tag_value),
         tag_ @ "cred_def_id" => precess_filed(tag_, filter.cred_def_id.to_string(), tag_value),
-        tag_ @ "issuer_did" => precess_filed(tag_, filter.issuer_id.to_owned(), tag_value),
-        tag_ @ "issuer_id" => precess_filed(tag_, filter.issuer_id.to_owned(), tag_value),
-        x if is_attr_internal_tag(x, attr_value_map) => {
-            check_internal_tag_revealed_value(x, tag_value, attr_value_map)
+        tag_ @ ("issuer_did" | "issuer_id") => {
+            precess_filed(tag_, filter.issuer_id.clone(), tag_value)
         }
-        x if is_attr_operator(x) => Ok(()),
+        key if is_attr_internal_tag(key, attr_value_map) => {
+            check_internal_tag_revealed_value(key, tag_value, attr_value_map)
+        }
+        key if is_attr_operator(key) => Ok(()),
         _ => Err(err_msg!("Unknown Filter Type")),
     }
 }
@@ -835,14 +828,11 @@ fn precess_filed(filed: &str, filter_value: impl Into<String>, tag_value: &str) 
 }
 
 fn is_attr_internal_tag(key: &str, attr_value_map: &HashMap<String, Option<&str>>) -> bool {
-    INTERNAL_TAG_MATCHER
-        .captures(key)
-        .map(|caps| {
-            caps.get(1)
-                .map(|s| attr_value_map.contains_key(&s.as_str().to_string()))
-                .unwrap_or(false)
+    INTERNAL_TAG_MATCHER.captures(key).map_or(false, |caps| {
+        caps.get(1).map_or(false, |s| {
+            attr_value_map.contains_key(&s.as_str().to_string())
         })
-        .unwrap_or(false)
+    })
 }
 
 fn check_internal_tag_revealed_value(

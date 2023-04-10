@@ -25,25 +25,25 @@ pub enum ErrorCode {
 }
 
 impl From<ErrorKind> for ErrorCode {
-    fn from(kind: ErrorKind) -> ErrorCode {
+    fn from(kind: ErrorKind) -> Self {
         match kind {
-            ErrorKind::Input => ErrorCode::Input,
-            ErrorKind::IOError => ErrorCode::IOError,
-            ErrorKind::InvalidState => ErrorCode::InvalidState,
-            ErrorKind::Unexpected => ErrorCode::Unexpected,
-            ErrorKind::CredentialRevoked => ErrorCode::CredentialRevoked,
-            ErrorKind::InvalidUserRevocId => ErrorCode::InvalidUserRevocId,
-            ErrorKind::ProofRejected => ErrorCode::ProofRejected,
-            ErrorKind::RevocationRegistryFull => ErrorCode::RevocationRegistryFull,
+            ErrorKind::Input => Self::Input,
+            ErrorKind::IOError => Self::IOError,
+            ErrorKind::InvalidState => Self::InvalidState,
+            ErrorKind::Unexpected => Self::Unexpected,
+            ErrorKind::CredentialRevoked => Self::CredentialRevoked,
+            ErrorKind::InvalidUserRevocId => Self::InvalidUserRevocId,
+            ErrorKind::ProofRejected => Self::ProofRejected,
+            ErrorKind::RevocationRegistryFull => Self::RevocationRegistryFull,
         }
     }
 }
 
 impl<T> From<Result<T>> for ErrorCode {
-    fn from(result: Result<T>) -> ErrorCode {
+    fn from(result: Result<T>) -> Self {
         match result {
-            Ok(_) => ErrorCode::Success,
-            Err(err) => ErrorCode::from(err.kind()),
+            Ok(_) => Self::Success,
+            Err(err) => Self::from(err.kind()),
         }
     }
 }
@@ -88,10 +88,9 @@ pub fn get_current_error_json() -> String {
 
 pub fn set_last_error(error: Option<Error>) -> ErrorCode {
     trace!("anoncreds_set_last_error");
-    let code = match error.as_ref() {
-        Some(err) => err.kind().into(),
-        None => ErrorCode::Success,
-    };
+    let code = error
+        .as_ref()
+        .map_or(ErrorCode::Success, |err| err.kind().into());
     *LAST_ERROR.write().unwrap() = error;
     code
 }

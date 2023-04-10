@@ -38,17 +38,18 @@ pub enum PresentationRequestVersion {
 }
 
 impl PresentationRequest {
-    pub fn value(&self) -> &PresentationRequestPayload {
+    #[must_use]
+    pub const fn value(&self) -> &PresentationRequestPayload {
         match self {
-            PresentationRequest::PresentationRequestV1(req) => req,
-            PresentationRequest::PresentationRequestV2(req) => req,
+            Self::PresentationRequestV1(req) | Self::PresentationRequestV2(req) => req,
         }
     }
 
-    pub fn version(&self) -> PresentationRequestVersion {
+    #[must_use]
+    pub const fn version(&self) -> PresentationRequestVersion {
         match self {
-            PresentationRequest::PresentationRequestV1(_) => PresentationRequestVersion::V1,
-            PresentationRequest::PresentationRequestV2(_) => PresentationRequestVersion::V2,
+            Self::PresentationRequestV1(_) => PresentationRequestVersion::V1,
+            Self::PresentationRequestV2(_) => PresentationRequestVersion::V2,
         }
     }
 }
@@ -67,25 +68,23 @@ impl<'de> Deserialize<'de> for PresentationRequest {
 
         let helper = Helper::deserialize(&v).map_err(de::Error::custom)?;
 
-        let req = match helper.ver {
-            Some(version) => match version.as_ref() {
+        let req = if let Some(version) = helper.ver {
+            match version.as_ref() {
                 "1.0" => {
                     let request =
                         PresentationRequestPayload::deserialize(v).map_err(de::Error::custom)?;
-                    PresentationRequest::PresentationRequestV1(request)
+                    Self::PresentationRequestV1(request)
                 }
                 "2.0" => {
                     let request =
                         PresentationRequestPayload::deserialize(v).map_err(de::Error::custom)?;
-                    PresentationRequest::PresentationRequestV2(request)
+                    Self::PresentationRequestV2(request)
                 }
                 _ => return Err(de::Error::unknown_variant(&version, &["2.0"])),
-            },
-            None => {
-                let request =
-                    PresentationRequestPayload::deserialize(v).map_err(de::Error::custom)?;
-                PresentationRequest::PresentationRequestV1(request)
             }
+        } else {
+            let request = PresentationRequestPayload::deserialize(v).map_err(de::Error::custom)?;
+            Self::PresentationRequestV1(request)
         };
         Ok(req)
     }
@@ -97,7 +96,7 @@ impl Serialize for PresentationRequest {
         S: Serializer,
     {
         let value = match self {
-            PresentationRequest::PresentationRequestV1(v1) => {
+            Self::PresentationRequestV1(v1) => {
                 let mut value = ::serde_json::to_value(v1).map_err(ser::Error::custom)?;
                 value
                     .as_object_mut()
@@ -105,7 +104,7 @@ impl Serialize for PresentationRequest {
                     .insert("ver".into(), Value::from("1.0"));
                 value
             }
-            PresentationRequest::PresentationRequestV2(v2) => {
+            Self::PresentationRequestV2(v2) => {
                 let mut value = ::serde_json::to_value(v2).map_err(ser::Error::custom)?;
                 value
                     .as_object_mut()
@@ -129,19 +128,20 @@ pub struct NonRevokedInterval {
 }
 
 impl NonRevokedInterval {
-    pub fn new(from: Option<u64>, to: Option<u64>) -> Self {
+    #[must_use]
+    pub const fn new(from: Option<u64>, to: Option<u64>) -> Self {
         Self { from, to }
     }
     // Returns the most stringent interval,
     // i.e. the latest from and the earliest to
-    pub fn compare_and_set(&mut self, to_compare: &NonRevokedInterval) {
+    pub fn compare_and_set(&mut self, to_compare: &Self) {
         // Update if
         // - the new `from` value is later, smaller interval
         // - the new `from` value is Some if previouly was None
         match (self.from, to_compare.from) {
             (Some(old_from), Some(new_from)) => {
                 if old_from.lt(&new_from) {
-                    self.from = to_compare.from
+                    self.from = to_compare.from;
                 }
             }
             (None, Some(_)) => self.from = to_compare.from,
@@ -153,7 +153,7 @@ impl NonRevokedInterval {
         match (self.to, to_compare.to) {
             (Some(old_to), Some(new_to)) => {
                 if new_to.lt(&old_to) {
-                    self.to = to_compare.to
+                    self.to = to_compare.to;
                 }
             }
             (None, Some(_)) => self.to = to_compare.to,
@@ -212,10 +212,10 @@ pub enum PredicateTypes {
 impl fmt::Display for PredicateTypes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            PredicateTypes::GE => write!(f, "GE"),
-            PredicateTypes::GT => write!(f, "GT"),
-            PredicateTypes::LE => write!(f, "LE"),
-            PredicateTypes::LT => write!(f, "LT"),
+            Self::GE => write!(f, "GE"),
+            Self::GT => write!(f, "GT"),
+            Self::LE => write!(f, "LE"),
+            Self::LT => write!(f, "LT"),
         }
     }
 }
@@ -242,17 +242,15 @@ impl Validatable for PresentationRequest {
             return Err(invalid!("Presentation request validation failed: both `requested_attributes` and `requested_predicates` are empty"));
         }
 
-        for (_, requested_attribute) in value.requested_attributes.iter() {
+        for requested_attribute in value.requested_attributes.values() {
             let has_name = !requested_attribute
                 .name
                 .as_ref()
-                .map(String::is_empty)
-                .unwrap_or(true);
+                .map_or(true, String::is_empty);
             let has_names = !requested_attribute
                 .names
                 .as_ref()
-                .map(Vec::is_empty)
-                .unwrap_or(true);
+                .map_or(true, Vec::is_empty);
             if !has_name && !has_names {
                 return Err(invalid!(
                     "Presentation request validation failed: there is empty requested attribute: {:?}",
@@ -269,7 +267,7 @@ impl Validatable for PresentationRequest {
             }
         }
 
-        for (_, requested_predicate) in value.requested_predicates.iter() {
+        for requested_predicate in value.requested_predicates.values() {
             if requested_predicate.name.is_empty() {
                 return Err(invalid!(
                     "Presentation request validation failed: there is empty requested attribute: {:?}",

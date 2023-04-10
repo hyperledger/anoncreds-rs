@@ -1,14 +1,9 @@
-use std::collections::BTreeSet;
-use std::os::raw::c_char;
-use std::str::FromStr;
-
-use ffi_support::{rust_string_to_c, FfiStr};
-
 use super::error::{catch_error, ErrorCode};
-use super::object::{AnonCredsObject, ObjectHandle};
+use super::object::{AnoncredsObject, ObjectHandle};
 use super::util::FfiList;
+use crate::data_types::rev_status_list::RevocationStatusList;
 use crate::data_types::{
-    rev_reg::{RevocationRegistry, RevocationRegistryDelta, RevocationStatusList},
+    rev_reg::RevocationRegistry,
     rev_reg_def::{
         RegistryType, RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate,
     },
@@ -18,6 +13,10 @@ use crate::services::issuer::create_revocation_registry_def;
 use crate::services::prover::create_or_update_revocation_state;
 use crate::services::tails::TailsFileWriter;
 use crate::services::types::CredentialRevocationState;
+use ffi_support::{rust_string_to_c, FfiStr};
+use std::collections::BTreeSet;
+use std::os::raw::c_char;
+use std::str::FromStr;
 
 #[no_mangle]
 pub extern "C" fn anoncreds_create_revocation_status_list(
@@ -212,12 +211,6 @@ impl_anoncreds_object_from_json!(
 impl_anoncreds_object!(RevocationRegistry, "RevocationRegistry");
 impl_anoncreds_object_from_json!(RevocationRegistry, anoncreds_revocation_registry_from_json);
 
-impl_anoncreds_object!(RevocationRegistryDelta, "RevocationRegistryDelta");
-impl_anoncreds_object_from_json!(
-    RevocationRegistryDelta,
-    anoncreds_revocation_registry_delta_from_json
-);
-
 impl_anoncreds_object!(RevocationStatusList, "RevocationStatusList");
 impl_anoncreds_object_from_json!(
     RevocationStatusList,
@@ -250,11 +243,11 @@ pub extern "C" fn anoncreds_create_or_update_revocation_state(
                 .map_err(|_| err_msg!("Invalid credential revocation index"))?,
             prev_rev_state
                 .as_ref()
-                .map(AnonCredsObject::cast_ref)
+                .map(AnoncredsObject::cast_ref)
                 .transpose()?,
             prev_rev_status_list
                 .as_ref()
-                .map(AnonCredsObject::cast_ref)
+                .map(AnoncredsObject::cast_ref)
                 .transpose()?,
         )?;
         let rev_state = ObjectHandle::create(rev_state)?;

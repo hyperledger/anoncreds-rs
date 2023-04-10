@@ -1,24 +1,28 @@
-use bitvec::bitvec;
-use std::{
-    collections::{HashMap, HashSet},
-    convert::TryFrom,
-    ops::BitXor,
+use super::tails::TailsFileReader;
+use super::types::{
+    Credential, CredentialOffer, CredentialRequest, CredentialRequestMetadata, LinkSecret,
+    Presentation, PresentationRequest, RevocationRegistryDefinition,
 };
-
-use super::types::*;
-use crate::data_types::{
-    cred_def::{CredentialDefinition, CredentialDefinitionId},
-    credential::AttributeValues,
-    pres_request::{PresentationRequestPayload, RequestedAttributeInfo, RequestedPredicateInfo},
-    presentation::{
-        AttributeValue, Identifier, RequestedProof, RevealedAttributeGroupInfo,
-        RevealedAttributeInfo, SubProofReferent,
-    },
-    rev_reg::RevocationStatusList,
-    schema::{Schema, SchemaId},
+use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
+use crate::data_types::credential::AttributeValues;
+use crate::data_types::pres_request::{
+    PresentationRequestPayload, RequestedAttributeInfo, RequestedPredicateInfo,
 };
+use crate::data_types::presentation::AttributeValue;
+use crate::data_types::presentation::Identifier;
+use crate::data_types::presentation::RequestedProof;
+use crate::data_types::presentation::RevealedAttributeGroupInfo;
+use crate::data_types::presentation::RevealedAttributeInfo;
+use crate::data_types::presentation::SubProofReferent;
+use crate::data_types::rev_status_list::RevocationStatusList;
+use crate::data_types::schema::{Schema, SchemaId};
 use crate::error::{Error, Result};
-use crate::services::helpers::*;
+use crate::services::helpers::{
+    attr_common_view, build_credential_schema, build_credential_values,
+    build_non_credential_schema, get_predicates_for_credential,
+    get_revealed_attributes_for_credential, new_nonce,
+};
+use crate::types::{CredentialRevocationState, PresentCredentials};
 use crate::ursa::cl::{
     issuer::Issuer as CryptoIssuer, prover::Prover as CryptoProver,
     verifier::Verifier as CryptoVerifier, CredentialPublicKey,
@@ -26,8 +30,10 @@ use crate::ursa::cl::{
     Witness,
 };
 use crate::utils::validation::Validatable;
-
-use super::tails::TailsFileReader;
+use bitvec::bitvec;
+use std::collections::{HashMap, HashSet};
+use std::convert::TryFrom;
+use std::ops::BitXor;
 
 /// Create a new random link secret which is cryptographically strong and pseudo-random
 ///
@@ -133,7 +139,7 @@ pub fn create_credential_request(
     let credential_request = CredentialRequest::new(
         entropy,
         prover_did,
-        credential_offer.cred_def_id.to_owned(),
+        credential_offer.cred_def_id.clone(),
         blinded_ms,
         blinded_ms_correctness_proof,
         nonce,
@@ -386,12 +392,7 @@ pub fn create_presentation(
     trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, link_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
             credentials, pres_req, credentials, &self_attested, secret!(&link_secret), schemas, cred_defs);
 
-    if credentials.is_empty()
-        && self_attested
-            .as_ref()
-            .map(HashMap::is_empty)
-            .unwrap_or(true)
-    {
+    if credentials.is_empty() && self_attested.as_ref().map_or(true, HashMap::is_empty) {
         return Err(err_msg!(
             "No credential mapping or self-attested attributes presented"
         ));
@@ -468,12 +469,12 @@ pub fn create_presentation(
                     sub_proof_index as usize,
                     &requested_proof,
                     pres_req_val,
-                )?,
+                ),
                 get_predicates_for_credential(
                     sub_proof_index as usize,
                     &requested_proof,
                     pres_req_val,
-                )?,
+                ),
             );
             if nonrevoked_attr.is_some() || nonrevoked_preds.is_some() {
                 (
@@ -503,15 +504,10 @@ pub fn create_presentation(
         )?;
 
         let identifier = match pres_req {
-            PresentationRequest::PresentationRequestV1(_) => Identifier {
-                schema_id: credential.schema_id.to_owned(),
-                cred_def_id: credential.cred_def_id.to_owned(),
-                rev_reg_id: credential.rev_reg_id.clone(),
-                timestamp: present.timestamp,
-            },
-            PresentationRequest::PresentationRequestV2(_) => Identifier {
-                schema_id: credential.schema_id.to_owned(),
-                cred_def_id: credential.cred_def_id.to_owned(),
+            PresentationRequest::PresentationRequestV2(_)
+            | PresentationRequest::PresentationRequestV1(_) => Identifier {
+                schema_id: credential.schema_id.clone(),
+                cred_def_id: credential.cred_def_id.clone(),
                 rev_reg_id: credential.rev_reg_id.clone(),
                 timestamp: present.timestamp,
             },
@@ -650,7 +646,7 @@ pub fn create_or_update_revocation_state(
         (rev_state, old_rev_status_list)
     {
         create_index_deltas(
-            rev_status_list
+            &rev_status_list
                 .state_owned()
                 .bitxor(source_rev_list.state()),
             rev_status_list.state(),
@@ -682,7 +678,7 @@ pub fn create_or_update_revocation_state(
         let bit: usize = 0;
         let list = bitvec![bit; list_size];
         create_index_deltas(
-            rev_status_list.state_owned().bitxor(list),
+            &rev_status_list.state_owned().bitxor(list),
             rev_status_list.state(),
             &mut issued,
             &mut revoked,
@@ -706,7 +702,7 @@ pub fn create_or_update_revocation_state(
 }
 
 fn create_index_deltas(
-    delta: bitvec::vec::BitVec,
+    delta: &bitvec::vec::BitVec,
     list: &bitvec::vec::BitVec,
     issued: &mut HashSet<u32>,
     revoked: &mut HashSet<u32>,
@@ -890,10 +886,10 @@ fn build_sub_proof_request(
     for attr in req_attrs_for_credential {
         if attr.revealed {
             if let Some(ref name) = &attr.attr_info.name {
-                sub_proof_request_builder.add_revealed_attr(&attr_common_view(name))?
+                sub_proof_request_builder.add_revealed_attr(&attr_common_view(name))?;
             } else if let Some(ref names) = &attr.attr_info.names {
                 for name in names {
-                    sub_proof_request_builder.add_revealed_attr(&attr_common_view(name))?
+                    sub_proof_request_builder.add_revealed_attr(&attr_common_view(name))?;
                 }
             }
         }
@@ -1118,7 +1114,11 @@ mod tests {
     }
 
     mod using_prover_did_with_new_and_legacy_identifiers {
-        use crate::issuer::{create_credential_definition, create_credential_offer, create_schema};
+        use crate::{
+            data_types::cred_def::{CredentialKeyCorrectnessProof, SignatureType},
+            issuer::{create_credential_definition, create_credential_offer, create_schema},
+            types::CredentialDefinitionConfig,
+        };
 
         use super::*;
 

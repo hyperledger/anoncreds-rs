@@ -28,6 +28,9 @@ pub mod rev_reg;
 /// Revocation registry definitions
 pub mod rev_reg_def;
 
+/// Revocation status list
+pub mod rev_status_list;
+
 /// Credential schemas
 pub mod schema;
 
