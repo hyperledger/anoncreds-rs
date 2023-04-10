@@ -20,7 +20,7 @@ export type UpdateRevocationStatusListTimestampOptions = {
 }
 
 export type UpdateRevocationStatusListOptions = {
-  revocationRegstryDefinition: RevocationRegistryDefinition
+  revocationRegistryDefinition: RevocationRegistryDefinition | JsonObject
   timestamp?: number
   issued?: Array<number>
   revoked?: Array<number>
@@ -63,12 +63,25 @@ export class RevocationStatusList extends AnoncredsObject {
   }
 
   public update(options: UpdateRevocationStatusListOptions) {
-    const updatedRevocationStatusList = anoncreds.updateRevocationStatusList({
-      ...options,
-      revocationRegistryDefinition: options.revocationRegstryDefinition.handle,
-      currentRevocationStatusList: this.handle,
-    })
+    const objectHandles: ObjectHandle[] = []
+    try {
+      const revocationRegistryDefinition =
+        options.revocationRegistryDefinition instanceof RevocationRegistryDefinition
+          ? options.revocationRegistryDefinition.handle
+          : pushToArray(
+              RevocationRegistryDefinition.fromJson(options.revocationRegistryDefinition).handle,
+              objectHandles
+            )
 
-    this.handle = updatedRevocationStatusList
+      const updatedRevocationStatusList = anoncreds.updateRevocationStatusList({
+        ...options,
+        revocationRegistryDefinition,
+        currentRevocationStatusList: this.handle,
+      })
+
+      this.handle = updatedRevocationStatusList
+    } finally {
+      objectHandles.forEach((handle) => handle.clear())
+    }
   }
 }

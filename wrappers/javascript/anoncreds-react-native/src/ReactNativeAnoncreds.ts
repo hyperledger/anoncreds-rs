@@ -20,7 +20,11 @@ export class ReactNativeAnoncreds implements Anoncreds {
     timestamp?: number
     issuanceByDefault: boolean
   }): ObjectHandle {
-    const handle = handleError(anoncredsReactNative.createRevocationStatusList(serializeArguments(options)))
+    const handle = handleError(
+      anoncredsReactNative.createRevocationStatusList(
+        serializeArguments({ ...options, timestamp: options.timestamp ?? -1 })
+      )
+    )
     return new ObjectHandle(handle)
   }
 
