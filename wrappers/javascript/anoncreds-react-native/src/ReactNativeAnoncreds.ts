@@ -180,7 +180,6 @@ export class ReactNativeAnoncreds implements Anoncreds {
   }
 
   public createLinkSecret(): string {
-    4
     return handleError(anoncredsReactNative.createLinkSecret({}))
   }
 
