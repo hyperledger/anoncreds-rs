@@ -281,7 +281,6 @@ jobs:
             (github.event_name == 'workflow_dispatch' &&
               github.event.inputs.publish == 'true'))
         name: Publish python package
-      - name: Publish python package
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
