@@ -104,7 +104,7 @@ const serialize = (arg: Argument): SerializedArgument => {
         } else if (arg.every((it) => typeof it === 'number')) {
           return I32ListStruct({
             count: arg.length,
-            data: Int32Array(arg as Array<number>) as unknown as Pointer<TypedArray<number>>,
+            data: Int32Array(arg as Array<number>) as unknown as TypedArray<number>,
           })
         }
       }

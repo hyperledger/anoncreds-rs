@@ -39,12 +39,12 @@ export const StringListStructPtr = ref.refType(StringListStruct)
 
 export const I64ListStruct = CStruct({
   count: FFI_ISIZE,
-  data: FFI_INT64_ARRAY_PTR,
+  data: FFI_INT64_ARRAY,
 })
 
 export const I32ListStruct = CStruct({
   count: FFI_ISIZE,
-  data: FFI_INT32_ARRAY_PTR,
+  data: FFI_INT32_ARRAY,
 })
 
 export const CredRevInfoStruct = CStruct({
