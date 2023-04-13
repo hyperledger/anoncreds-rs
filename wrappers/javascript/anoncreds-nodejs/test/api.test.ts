@@ -44,7 +44,7 @@ describe('API', () => {
       requested_predicates: {
         predicate1_referent: { name: 'age', p_type: '>=', p_value: 18 },
       },
-      non_revoked: { from: 10, to: 200 },
+      non_revoked: { from: 13, to: 200 },
     })
 
     const schema = Schema.create({
@@ -175,12 +175,30 @@ describe('API', () => {
 
     expect(presentation.handle.handle).toStrictEqual(expect.any(Number))
 
+    // Without revocation timestamp override, it shall fail
+    expect(() => {
+      presentation.verify({
+        presentationRequest,
+        schemas: { ['mock:uri']: schema },
+        credentialDefinitions: { ['mock:uri']: credentialDefinition },
+        revocationRegistryDefinitions: { ['mock:uri']: revocationRegistryDefinition },
+        revocationStatusLists: [revocationStatusList],
+      })
+    }).toThrowError('Invalid timestamp')
+
     const verify = presentation.verify({
       presentationRequest,
       schemas: { ['mock:uri']: schema },
       credentialDefinitions: { ['mock:uri']: credentialDefinition },
       revocationRegistryDefinitions: { ['mock:uri']: revocationRegistryDefinition },
       revocationStatusLists: [revocationStatusList],
+      nonRevokedIntervalOverrides: [
+        {
+          overrideRevocationStatusListTimestamp: 12,
+          requestedFromTimestamp: 13,
+          revocationRegistryDefinitionId: 'mock:uri',
+        },
+      ],
     })
 
     expect(verify).toBeTruthy()

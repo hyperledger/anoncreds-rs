@@ -425,7 +425,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialDefinitionIds,
     } = serializeArguments(options)
 
-    const nativeNonRevokedIntervalOverride = options.nonRevokedIntervalOverrides?.map((value) => {
+    const nativeNonRevokedIntervalOverrides = options.nonRevokedIntervalOverrides?.map((value) => {
       const { requestedFromTimestamp, revocationRegistryDefinitionId, overrideRevocationStatusListTimestamp } =
         serializeArguments(value)
       return NonRevokedIntervalOverrideStruct({
@@ -437,7 +437,7 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     const nonRevokedIntervalOverrideList = NonRevokedIntervalOverrideListStruct({
       count: options.nonRevokedIntervalOverrides?.length ?? 0,
-      data: nativeNonRevokedIntervalOverride as unknown as TypedArray<
+      data: nativeNonRevokedIntervalOverrides as unknown as TypedArray<
         StructObject<{
           rev_reg_def_id: string
           requested_from_ts: number
