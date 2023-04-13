@@ -176,8 +176,6 @@ export interface NativeBindings {
 
   revocationRegistryDefinitionPrivateFromJson(options: { json: string }): ReturnObject<Handle>
 
-  revocationRegistryDeltaFromJson(options: { json: string }): ReturnObject<Handle>
-
   revocationStateFromJson(options: { json: string }): ReturnObject<Handle>
 
   credentialDefinitionFromJson(options: { json: string }): ReturnObject<Handle>

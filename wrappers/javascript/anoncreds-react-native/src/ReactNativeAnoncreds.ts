@@ -356,11 +356,6 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return new ObjectHandle(handle)
   }
 
-  public revocationRegistryDeltaFromJson(options: { json: string }): ObjectHandle {
-    const handle = handleError(anoncredsReactNative.revocationRegistryDeltaFromJson(serializeArguments(options)))
-    return new ObjectHandle(handle)
-  }
-
   public revocationStateFromJson(options: { json: string }): ObjectHandle {
     const handle = handleError(anoncredsReactNative.revocationStateFromJson(serializeArguments(options)))
     return new ObjectHandle(handle)

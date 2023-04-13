@@ -214,7 +214,7 @@ typedef struct FfiList_i32 {
 } FfiList_i32;
 
 /**
- * Optional value for overriding the non-revoked interval in the PresentationRequest
+ * Optional value for overriding the non-revoked interval in the [`PresentationRequest`]
  * This only overrides the `from` value as a Revocation Status List is deemed valid until the next
  * entry.
  *
@@ -390,9 +390,6 @@ ErrorCode anoncreds_revocation_registry_definition_get_attribute(ObjectHandle ha
 
 ErrorCode anoncreds_revocation_registry_definition_private_from_json(struct ByteBuffer json,
                                                                      ObjectHandle *result_p);
-
-ErrorCode anoncreds_revocation_registry_delta_from_json(struct ByteBuffer json,
-                                                        ObjectHandle *result_p);
 
 ErrorCode anoncreds_revocation_registry_from_json(struct ByteBuffer json, ObjectHandle *result_p);
 

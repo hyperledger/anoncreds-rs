@@ -189,8 +189,6 @@ export interface Anoncreds {
 
   revocationRegistryDefinitionPrivateFromJson(options: { json: string }): ObjectHandle
 
-  revocationRegistryDeltaFromJson(options: { json: string }): ObjectHandle
-
   revocationStateFromJson(options: { json: string }): ObjectHandle
 
   credentialDefinitionFromJson(options: { json: string }): ObjectHandle

@@ -723,27 +723,6 @@ def process_credential(
     )
     return result
 
-
-def revoke_credential(
-    rev_reg_def: ObjectHandle,
-    rev_reg: ObjectHandle,
-    cred_rev_idx: int,
-    tails_path: str,
-) -> Tuple[ObjectHandle, ObjectHandle]:
-    upd_rev_reg = ObjectHandle()
-    rev_delta = ObjectHandle()
-    do_call(
-        "anoncreds_revoke_credential",
-        rev_reg_def,
-        rev_reg,
-        c_int64(cred_rev_idx),
-        encode_str(tails_path),
-        byref(upd_rev_reg),
-        byref(rev_delta),
-    )
-    return upd_rev_reg, rev_delta
-
-
 def create_credential_offer(
     schema_id: str, cred_def_id: str, key_proof: ObjectHandle
 ) -> ObjectHandle:

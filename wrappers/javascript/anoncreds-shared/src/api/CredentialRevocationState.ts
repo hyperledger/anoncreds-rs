@@ -1,6 +1,5 @@
 import type { ObjectHandle } from '../ObjectHandle'
 import type { JsonObject } from '../types'
-import type { RevocationRegistryDelta } from './RevocationRegistryDelta'
 
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
@@ -14,7 +13,7 @@ export type CreateRevocationStateOptions = {
   revocationStatusList: RevocationStatusList
   revocationRegistryIndex: number
   tailsPath: string
-  oldRevocationStatusList?: RevocationRegistryDelta
+  oldRevocationStatusList?: RevocationStatusList
   oldRevocationState?: CredentialRevocationState
 }
 
