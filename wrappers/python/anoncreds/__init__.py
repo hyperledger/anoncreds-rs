@@ -22,7 +22,6 @@ from .types import (
     RevocationStatusList,
     RevocationRegistryDefinition,
     RevocationRegistryDefinitionPrivate,
-    RevocationRegistryDelta,
 )
 
 __all__ = (
@@ -49,6 +48,5 @@ __all__ = (
     "RevocationStatusList",
     "RevocationRegistryDefinition",
     "RevocationRegistryDefinitionPrivate",
-    "RevocationRegistryDelta",
     "Schema",
 )
