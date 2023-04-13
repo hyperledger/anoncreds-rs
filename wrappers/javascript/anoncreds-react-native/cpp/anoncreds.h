@@ -56,8 +56,6 @@ jsi::Value credentialFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value revocationRegistryDefinitionPrivateFromJson(jsi::Runtime &rt,
                                                        jsi::Object options);
 jsi::Value revocationStateFromJson(jsi::Runtime &rt, jsi::Object options);
-jsi::Value revocationRegistryDeltaFromJson(jsi::Runtime &rt,
-                                           jsi::Object options);
 jsi::Value credentialDefinitionFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value credentialDefinitionPrivateFromJson(jsi::Runtime &rt,
                                                jsi::Object options);

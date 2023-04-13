@@ -631,56 +631,6 @@ class RevocationRegistry(bindings.AnoncredsObject):
             bindings._object_from_json("anoncreds_revocation_registry_from_json", value)
         )
 
-    def revoke_credential(
-        self,
-        rev_reg_def: Union[str, RevocationRegistryDefinition],
-        cred_rev_idx: int,
-        tails_path: str,
-    ) -> "RevocationRegistryDelta":
-        if not isinstance(rev_reg_def, bindings.AnoncredsObject):
-            rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
-        self.handle, rev_delta = bindings.revoke_credential(
-            rev_reg_def.handle, self.handle, cred_rev_idx, tails_path
-        )
-        return RevocationRegistryDelta(rev_delta)
-
-    def update(
-        self,
-        rev_reg_def: Union[str, RevocationRegistryDefinition],
-        issued: Sequence[int],
-        revoked: Sequence[int],
-        tails_path: str,
-    ) -> "RevocationRegistryDelta":
-        if not isinstance(rev_reg_def, bindings.AnoncredsObject):
-            rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
-        self.handle, rev_delta = bindings.update_revocation_registry(
-            rev_reg_def.handle, self.handle, issued, revoked, tails_path
-        )
-        return RevocationRegistryDelta(rev_delta)
-
-
-class RevocationRegistryDelta(bindings.AnoncredsObject):
-    @classmethod
-    def load(
-        cls, value: Union[dict, str, bytes, memoryview]
-    ) -> "RevocationRegistryDelta":
-        return RevocationRegistryDelta(
-            bindings._object_from_json(
-                "anoncreds_revocation_registry_delta_from_json", value
-            )
-        )
-
-    def update_with(
-        self, next_delta: Union[str, "RevocationRegistryDelta"]
-    ) -> "RevocationRegistryDelta":
-        if not isinstance(next_delta, bindings.AnoncredsObject):
-            next_delta = RevocationRegistryDelta.load(next_delta)
-        self.handle = bindings.merge_revocation_registry_deltas(
-            self.handle, next_delta.handle
-        )
-        return self
-
-
 class CredentialRevocationConfig:
     def __init__(
         self,

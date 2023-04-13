@@ -681,10 +681,6 @@ export class NodeJSAnoncreds implements Anoncreds {
     return this.objectFromJson(this.nativeAnoncreds.anoncreds_revocation_registry_definition_private_from_json, options)
   }
 
-  public revocationRegistryDeltaFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(this.nativeAnoncreds.anoncreds_revocation_registry_delta_from_json, options)
-  }
-
   public credentialDefinitionFromJson(options: { json: string }): ObjectHandle {
     return this.objectFromJson(this.nativeAnoncreds.anoncreds_credential_definition_from_json, options)
   }

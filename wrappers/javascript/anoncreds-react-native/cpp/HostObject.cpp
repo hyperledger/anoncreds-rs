@@ -78,8 +78,6 @@ fMap.insert(std::make_tuple("createRevocationStatusList",
   fMap.insert(
       std::make_tuple("revocationRegistryDefinitionPrivateFromJson",
                       &anoncreds::revocationRegistryDefinitionPrivateFromJson));
-  fMap.insert(std::make_tuple("revocationRegistryDeltaFromJson",
-                              &anoncreds::revocationRegistryDeltaFromJson));
   fMap.insert(std::make_tuple("revocationStateFromJson",
                               &anoncreds::revocationStateFromJson));
   fMap.insert(std::make_tuple("credentialDefinitionFromJson",
