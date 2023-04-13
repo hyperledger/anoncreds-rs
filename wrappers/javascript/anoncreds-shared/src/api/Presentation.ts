@@ -58,7 +58,7 @@ export type VerifyPresentationOptions = {
   credentialDefinitions: Record<string, CredentialDefinition | JsonObject>
   revocationRegistryDefinitions?: Record<string, RevocationRegistryDefinition | JsonObject>
   revocationStatusLists?: Array<RevocationStatusList | JsonObject>
-  nonRevokedIntervalOverride?: NonRevokedIntervalOverride[]
+  nonRevokedIntervalOverrides?: NonRevokedIntervalOverride[]
 }
 
 export class Presentation extends AnoncredsObject {
@@ -168,7 +168,7 @@ export class Presentation extends AnoncredsObject {
             ? o.handle
             : pushToArray(RevocationStatusList.fromJson(o).handle, objectHandles)
         ),
-        nonRevokedIntervalOverride: options.nonRevokedIntervalOverride,
+        nonRevokedIntervalOverrides: options.nonRevokedIntervalOverrides,
       })
     } finally {
       objectHandles.forEach((handle) => handle.clear())

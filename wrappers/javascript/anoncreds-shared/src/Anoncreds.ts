@@ -117,7 +117,7 @@ export interface Anoncreds {
     revocationRegistryDefinitions?: ObjectHandle[]
     revocationRegistryDefinitionIds?: string[]
     revocationStatusLists?: ObjectHandle[]
-    nonRevokedIntervalOverride?: NativeNonRevokedIntervalOverride[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
   }): boolean
 
   createRevocationRegistryDefinition(options: {
