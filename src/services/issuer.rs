@@ -121,7 +121,7 @@ pub fn create_credential_definition<SI, II>(
     issuer_id: II,
     tag: &str,
     signature_type: SignatureType,
-    config: &CredentialDefinitionConfig,
+    config: CredentialDefinitionConfig,
 ) -> Result<(
     CredentialDefinition,
     CredentialDefinitionPrivate,
@@ -836,7 +836,7 @@ mod tests {
             credential_definition_issuer_id,
             "default",
             SignatureType::CL,
-            &CredentialDefinitionConfig {
+            CredentialDefinitionConfig {
                 support_revocation: true,
             },
         )?;
@@ -868,7 +868,7 @@ mod tests {
             credential_definition_issuer_id,
             "default",
             SignatureType::CL,
-            &CredentialDefinitionConfig {
+            CredentialDefinitionConfig {
                 support_revocation: true,
             },
         )?;

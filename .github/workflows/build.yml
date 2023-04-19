@@ -1,6 +1,7 @@
 name: 'Anoncreds'
 
 env:
+  RUST_VERSION: '1.63.0'
   CROSS_VERSION: '0.2.4'
 
 on:
@@ -35,6 +36,9 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy, rustfmt
 
       - name: Cache cargo resources
         uses: Swatinem/rust-cache@v2
@@ -60,6 +64,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
 
       - name: Cache cargo resources
         uses: Swatinem/rust-cache@v2
@@ -80,19 +86,26 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: anoncreds-ubuntu-latest
-            arch: linux-x86_64
+          - architecture: linux-aarch64
+            os: anoncreds-ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            lib: libanoncreds.so
+            use_cross: true
+          - architecture: linux-x86_64
+            os: anoncreds-ubuntu-latest
             target: x86_64-unknown-linux-gnu
             lib: libanoncreds.so
-          - os: macos-latest
-            arch: darwin-x86_64
-            lib: libanoncreds.dylib
+            use_cross: true
+          - architecture: darwin-x86_64
+            os: macos-latest
             target: x86_64-apple-darwin
-          - os: macos-latest
-            arch: darwin-aarch64
+            lib: libanoncreds.dylib
+          - architecture: darwin-aarch64
+            os: macos-latest
             target: aarch64-apple-darwin
             lib: libanoncreds.dylib
-          - os: anoncreds-windows-latest
+          - architecture: windows-x86_64
+            os: anoncreds-windows-latest
             arch: windows-x86_64
             target: x86_64-pc-windows-msvc
             lib: anoncreds.dll
@@ -110,6 +123,9 @@ jobs:
 
       - name: Cache cargo resources
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: deps
+          save-if: false
 
       - name: Build library for Windows
         if: "runner.os == 'Windows'"
@@ -119,12 +135,18 @@ jobs:
 
       - name: Build library for macOS and Linux
         if: "runner.os != 'Windows'"
-        run: cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
+        run: |
+          if [ -n "${{ matrix.use_cross }}" ]; then
+            cargo install --bins --git https://github.com/rust-embedded/cross --tag v${{ env.CROSS_VERSION }} cross
+            cross build --release --package anoncreds --target ${{matrix.target}} --features vendored
+          else
+            cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
+          fi
 
       - name: Upload library artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: library-${{ matrix.arch }}
+          name: library-${{ matrix.architecture }}
           path: target/${{ matrix.target }}/release/${{ matrix.lib }}
 
       - name: Create library artifacts directory
@@ -144,7 +166,7 @@ jobs:
           command: c
           cwd: release-artifacts
           files: .
-          outPath: 'library-${{ matrix.arch }}.tar.gz'
+          outPath: 'library-${{ matrix.architecture }}.tar.gz'
 
       - name: Add library artifacts to release
         if: |
@@ -152,8 +174,8 @@ jobs:
           (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true')
         uses: svenstaro/upload-release-action@v2
         with:
-          file: library-${{ matrix.arch }}.tar.gz
-          asset_name: 'library-${{ matrix.arch }}.tar.gz'
+          file: library-${{ matrix.architecture }}.tar.gz
+          asset_name: 'library-${{ matrix.architecture }}.tar.gz'
 
   build-javascript:
     name: Build and Test JavaScript wrapper

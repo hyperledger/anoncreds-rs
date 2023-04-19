@@ -50,7 +50,7 @@ pub fn verify_presentation(
     schemas: &HashMap<&SchemaId, &Schema>,
     cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
     rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
-    rev_status_lists: &Option<Vec<&RevocationStatusList>>,
+    rev_status_lists: Option<Vec<&RevocationStatusList>>,
     nonrevoke_interval_override: Option<
         &HashMap<&RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,

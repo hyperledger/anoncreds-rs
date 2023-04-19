@@ -339,7 +339,7 @@ pub extern "C" fn anoncreds_verify_presentation(
             &schemas,
             &cred_defs,
             rev_reg_defs,
-            &rev_status_list,
+            rev_status_list,
             Some(&map_nonrevoked_interval_override),
         )?;
         unsafe { *result_p = i8::from(verify) };
