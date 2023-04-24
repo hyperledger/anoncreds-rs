@@ -707,7 +707,7 @@ def encode_credential_attributes(
 def process_credential(
     cred: ObjectHandle,
     cred_req_metadata: ObjectHandle,
-    link_secret: ObjectHandle,
+    link_secret: str,
     cred_def: ObjectHandle,
     rev_reg_def: Optional[ObjectHandle],
 ) -> ObjectHandle:
@@ -716,7 +716,7 @@ def process_credential(
         "anoncreds_process_credential",
         cred,
         cred_req_metadata,
-        link_secret,
+        encode_str(link_secret),
         cred_def,
         rev_reg_def or ObjectHandle(),
         byref(result),
@@ -741,7 +741,7 @@ def create_credential_request(
     entropy: Optional[str],
     prover_did: Optional[str],
     cred_def: ObjectHandle,
-    link_secret: ObjectHandle,
+    link_secret: str,
     link_secret_id: str,
     cred_offer: ObjectHandle,
 ) -> Tuple[ObjectHandle, ObjectHandle]:
@@ -751,7 +751,7 @@ def create_credential_request(
         encode_str(entropy),
         encode_str(prover_did),
         cred_def,
-        link_secret,
+        encode_str(link_secret),
         encode_str(link_secret_id),
         cred_offer,
         byref(cred_req),
@@ -760,13 +760,13 @@ def create_credential_request(
     return (cred_req, cred_req_metadata)
 
 
-def create_link_secret() -> ObjectHandle:
-    secret = ObjectHandle()
+def create_link_secret() -> str:
+    result = StrBuffer()
     do_call(
         "anoncreds_create_link_secret",
-        byref(secret),
+        byref(result),
     )
-    return secret
+    return str(result)
 
 
 def create_presentation(
@@ -774,7 +774,7 @@ def create_presentation(
     credentials: Sequence[CredentialEntry],
     credentials_prove: Sequence[CredentialProve],
     self_attest: Optional[Mapping[str, str]],
-    link_secret: ObjectHandle,
+    link_secret: str,
     schemas: Sequence[ObjectHandle],
     schema_ids: Sequence[str],
     cred_defs: Sequence[ObjectHandle],
@@ -795,7 +795,7 @@ def create_presentation(
         prove_list,
         FfiStrList.create(self_attest.keys() if self_attest else None),
         FfiStrList.create(self_attest.values() if self_attest else None),
-        link_secret,
+        encode_str(link_secret),
         FfiObjectHandleList.create(schemas),
         FfiStrList.create(schema_ids),
         FfiObjectHandleList.create(cred_defs),

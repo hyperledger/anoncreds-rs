@@ -2,6 +2,7 @@ from time import time
 
 from anoncreds import (
     generate_nonce,
+    create_link_secret,
     Credential,
     CredentialDefinition,
     CredentialOffer,
@@ -11,7 +12,6 @@ from anoncreds import (
     PresentationRequest,
     Presentation,
     PresentCredentials,
-    LinkSecret,
     RevocationRegistryDefinition,
     RevocationStatusList,
     NonrevokedIntervalOverride,
@@ -54,7 +54,7 @@ revocation_status_list = RevocationStatusList.create(
     True
 )
 
-link_secret = LinkSecret.create()
+link_secret = create_link_secret()
 link_secret_id = "default"
 
 cred_offer = CredentialOffer.create(
@@ -266,8 +266,6 @@ verified = presentation.verify(
     rev_reg_defs,
     rev_status_lists,
 )
-
-print(verified)
 
 assert not verified
 
