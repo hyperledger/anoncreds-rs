@@ -402,7 +402,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{matrix.architecture}}
-          path: target/${{matrix.architecture}}/release/libanoncreds.dylib
+          path: target/${{matrix.architecture}}/release/libanoncreds.a
 
   create-ios-xcframework:
     name: Create ios xcframework
@@ -416,7 +416,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Fetch dynamic libraries
+      - name: Fetch static libraries
         uses: actions/download-artifact@v3
       - run: >
           ./build-xcframework.sh aarch64-apple-ios \
