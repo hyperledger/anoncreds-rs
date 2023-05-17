@@ -179,10 +179,13 @@ pub extern "C" fn anoncreds_process_credential(
     catch_error(|| {
         check_useful_c_ptr!(cred_p);
 
-        let link_secret = link_secret
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing link secret"))?;
-        let link_secret = LinkSecret::try_from(link_secret)?;
+        let link_secret = {
+            let ls = link_secret
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing link secret"))?;
+
+            LinkSecret::from(ls)
+        };
 
         let mut cred = cred
             .load()?

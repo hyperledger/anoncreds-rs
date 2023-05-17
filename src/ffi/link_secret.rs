@@ -7,9 +7,8 @@ use std::os::raw::c_char;
 pub extern "C" fn anoncreds_create_link_secret(link_secret_p: *mut *const c_char) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(link_secret_p);
-        let secret = create_link_secret()?;
-        let dec_secret: String = secret.try_into()?;
-        unsafe { *link_secret_p = rust_string_to_c(dec_secret) };
+        let secret = create_link_secret();
+        unsafe { *link_secret_p = rust_string_to_c(secret) };
         Ok(())
     })
 }

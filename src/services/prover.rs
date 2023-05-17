@@ -42,12 +42,11 @@ use std::ops::BitXor;
 /// ```rust
 /// use anoncreds::prover;
 ///
-/// let link_secret = prover::create_link_secret()
-///     .expect("Unable to create link secret");
+/// let link_secret = prover::create_link_secret();
 ///
 /// ```
-pub fn create_link_secret() -> Result<LinkSecret> {
-    LinkSecret::new().map_err(err_map!(Unexpected))
+pub fn create_link_secret() -> LinkSecret {
+    LinkSecret::new()
 }
 
 /// Create an Anoncreds credential request according to the [Anoncreds v1.0 specification -
@@ -122,7 +121,9 @@ pub fn create_credential_request(
     )?;
 
     let mut credential_values_builder = CryptoIssuer::new_credential_values_builder()?;
-    credential_values_builder.add_value_hidden("master_secret", &link_secret.0)?;
+
+    let bn: ursa::bn::BigNumber = (*link_secret).try_into().unwrap();
+    credential_values_builder.add_value_hidden("master_secret", &bn)?;
     let cred_values = credential_values_builder.finalize()?;
 
     let nonce = new_nonce()?;
@@ -243,7 +244,7 @@ pub fn process_credential(
         cred_def.value.revocation.as_ref(),
     )?;
     let credential_values =
-        build_credential_values(&credential.values.0, Some(&link_secret.try_into()?))?;
+        build_credential_values(&credential.values.0, Some(&(*link_secret).try_into()?))?;
     let rev_pub_key = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
 
     CryptoProver::process_credential_signature(
@@ -438,7 +439,7 @@ pub fn create_presentation(
 
         let credential_schema = build_credential_schema(&schema.attr_names.0)?;
         let credential_values =
-            build_credential_values(&credential.values.0, Some(&link_secret.try_into()?))?;
+            build_credential_values(&credential.values.0, Some(&(*link_secret).try_into()?))?;
         let (req_attrs, req_predicates) = prepare_credential_for_proving(
             present.requested_attributes,
             present.requested_predicates,
@@ -1131,7 +1132,7 @@ mod tests {
         const LEGACY_CRED_DEF_IDENTIFIER: &str = "DXoTtQJNtXtiwWaZAK3rB1:3:CL:98153:default";
 
         fn _link_secret() -> LinkSecret {
-            LinkSecret::new().expect("Error creating prover link secret")
+            LinkSecret::new()
         }
 
         fn _schema() -> Schema {

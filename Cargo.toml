@@ -24,6 +24,7 @@ vendored = ["openssl", "openssl/vendored"]
 
 [dependencies]
 bs58 = "0.4.0"
+crypto-bigint = { version = "0.5.2", features = ["zeroize", "serde", "alloc"] }
 env_logger = { version = "0.9.3", optional = true }
 ffi-support = { version = "0.4.0", optional = true }
 log = "0.4.17"
@@ -32,7 +33,7 @@ rand = "0.8.5"
 regex = "1.7.1"
 serde = { version = "1.0.155", features = ["derive"] }
 bitvec = { version = "1.0.1", features = ["serde"] }
-serde_json = { version = "1.0.94", features = ["raw_value"]}
+serde_json = { version = "1.0.94", features = ["raw_value", "arbitrary_precision"]}
 sha2 = "0.10.6"
 tempfile = "3.4.0"
 thiserror = "1.0.39"
@@ -43,6 +44,9 @@ zeroize = { version = "1.5.7", optional = true, features = ["zeroize_derive"] }
 # Since we use "cl_native" as a feature, which uses openssl, we can add a vendored build with 
 # the new exposed "vendored" feature
 openssl = { version = "0.10.45", optional = true }
+
+# This needs to be added because the 'alloc' feature from 'crypto-bigint' does not enable the 'serdect/alloc' which is needed to transform 
+serdect = { version = "0.2.0", features = ["alloc", "zeroize"] }
 
 [profile.release]
 lto = true

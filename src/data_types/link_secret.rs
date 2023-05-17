@@ -1,28 +1,18 @@
 use crate::error::ConversionError;
+use crypto_bigint::{self, rand_core::OsRng, Encoding, Random, U256};
+use serde::Serialize;
+use zeroize::Zeroize;
 use std::fmt;
-use ursa::{
-    bn::BigNumber,
-    cl::{prover::Prover as UrsaProver, MasterSecret},
-};
-pub struct LinkSecret(pub ursa::bn::BigNumber);
+use ursa::cl::MasterSecret;
+
+// TODO: This should serialize to decimal and not lower le hex
+#[derive(Zeroize, Clone, Copy, Serialize)]
+pub struct LinkSecret(pub U256);
 
 impl LinkSecret {
-    pub fn new() -> Result<Self, ConversionError> {
-        let value = UrsaProver::new_master_secret()
-            .and_then(|v| v.value())
-            .map_err(|err| {
-                ConversionError::from_msg(format!("Error creating link secret: {err}"))
-            })?;
-
-        Ok(Self(value))
-    }
-
-    pub fn try_clone(&self) -> Result<Self, ConversionError> {
-        let cloned = self.0.try_clone().map_err(|err| {
-            ConversionError::from_msg(format!("Error cloning link secret: {err}"))
-        })?;
-
-        Ok(Self(cloned))
+    pub fn new() -> Self {
+        let bn = U256::random(&mut OsRng);
+        Self(bn)
     }
 }
 
@@ -46,36 +36,28 @@ impl TryInto<MasterSecret> for LinkSecret {
     }
 }
 
-impl TryInto<MasterSecret> for &LinkSecret {
+impl TryInto<ursa::bn::BigNumber> for LinkSecret {
     type Error = ConversionError;
 
-    fn try_into(self) -> Result<MasterSecret, Self::Error> {
-        let j = serde_json::json!({
-            "ms": self.0
-        });
-
-        serde_json::from_value(j)
-            .map_err(|err| ConversionError::from_msg(format!("Error creating link secret: {err}")))
+    fn try_into(self) -> Result<ursa::bn::BigNumber, Self::Error> {
+        let b = self.0.to_be_bytes();
+        ursa::bn::BigNumber::from_bytes(&b).map_err(|err| {
+            ConversionError::from_msg(format!(
+                "Error transforming link secret into bignumber: {err}"
+            ))
+        })
     }
 }
 
-impl TryInto<String> for LinkSecret {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<String, Self::Error> {
-        self.0
-            .to_dec()
-            .map_err(|err| ConversionError::from_msg(format!("Error creating link secret: {err}")))
+impl Into<String> for LinkSecret {
+    fn into(self) -> String {
+        self.0.to_string()
     }
 }
 
-impl TryFrom<&str> for LinkSecret {
-    type Error = ConversionError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Ok(Self(BigNumber::from_dec(value).map_err(|err| {
-            ConversionError::from_msg(format!("Error creating link secret: {err}"))
-        })?))
+impl From<&str> for LinkSecret {
+    fn from(value: &str) -> Self {
+        Self(U256::from_be_hex(value))
     }
 }
 
@@ -85,13 +67,19 @@ mod link_secret_tests {
 
     #[test]
     fn should_create_new_link_secret() {
+        let _ = LinkSecret::new();
+    }
+
+    #[test]
+    fn should_convert_between_link_secret_and_ursa_bignumber() {
         let link_secret = LinkSecret::new();
-        assert!(link_secret.is_ok());
+        let bn: ursa::bn::BigNumber = link_secret.try_into().expect("Unable to convert between link secret and ursa bn");
+        let s = serde_json::to_string(&link_secret).unwrap();
     }
 
     #[test]
     fn should_convert_between_string_and_link_secret_roundtrip() {
-        let ls = "123";
+        let ls = "663D8C61E2F5DE3B00FDFB3F43C593B4BA8BAD2CF7178E65D89BFE1A817FB177";
         let link_secret = LinkSecret::try_from(ls).expect("Error creating link secret");
         let link_secret_str: String = link_secret.try_into().expect("Error creating link secret");
         assert_eq!(link_secret_str, ls);
@@ -99,28 +87,10 @@ mod link_secret_tests {
 
     #[test]
     fn should_convert_between_master_secret() {
-        let link_secret = LinkSecret::new().expect("Unable to create link secret");
+        let link_secret = LinkSecret::new();
+        println!("{link_secret:?}");
         let master_secret: MasterSecret = link_secret
-            .try_clone()
-            .expect("Error cloning link secret")
             .try_into()
-            .expect("error converting to master secret");
-
-        assert_eq!(
-            link_secret.0,
-            master_secret
-                .value()
-                .expect("Error getting value from master secret")
-        );
-    }
-
-    #[test]
-    fn should_clone_link_secret() {
-        let link_secret = LinkSecret::new().expect("Unable to create link secret");
-        let cloned_link_secret = link_secret
-            .try_clone()
-            .expect("Unable to clone link secret");
-
-        assert_eq!(link_secret.0, cloned_link_secret.0);
+            .expect("Unable to tranform link secret into master secret");
     }
 }

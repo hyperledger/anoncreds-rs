@@ -64,7 +64,7 @@ pub struct ProverWallet<'a> {
 
 impl<'a> Default for ProverWallet<'a> {
     fn default() -> Self {
-        let link_secret = LinkSecret::new().expect("Error creating prover link secret");
+        let link_secret = LinkSecret::new();
         Self {
             credentials: vec![],
             rev_states: HashMap::new(),

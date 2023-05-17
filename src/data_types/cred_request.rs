@@ -137,7 +137,7 @@ mod cred_req_tests {
     }
 
     fn link_secret() -> LinkSecret {
-        LinkSecret::new().unwrap()
+        LinkSecret::new()
     }
 
     fn credential_offer(

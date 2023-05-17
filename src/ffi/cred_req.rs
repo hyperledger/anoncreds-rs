@@ -24,10 +24,13 @@ pub extern "C" fn anoncreds_create_credential_request(
         check_useful_c_ptr!(cred_req_p);
         check_useful_c_ptr!(cred_req_meta_p);
 
-        let link_secret = link_secret
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing link secret"))?;
-        let link_secret = LinkSecret::try_from(link_secret)?;
+        let link_secret = {
+            let ls = link_secret
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing link secret"))?;
+
+            LinkSecret::from(ls)
+        };
 
         let link_secret_id = link_secret_id
             .as_opt_str()
