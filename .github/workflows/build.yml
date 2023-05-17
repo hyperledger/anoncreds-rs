@@ -305,9 +305,9 @@ jobs:
         name: Publish python package
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_ANONCREDS }}
         run: |
-          twine upload --repository testpypi --skip-existing wrappers/python/dist/*
+          twine upload --repository pypi --skip-existing wrappers/python/dist/*
 
   build-android-libraries:
     name: Build Android Libraries
