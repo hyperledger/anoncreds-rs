@@ -51,3 +51,6 @@ android/app/libs
 android/keystores/debug.keystore
 
 **/native/mobile
+**/native/*.dll
+**/native/*.so
+**/native/*.dylib
