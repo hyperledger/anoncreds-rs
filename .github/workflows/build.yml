@@ -104,6 +104,10 @@ jobs:
             os: macos-latest
             target: aarch64-apple-darwin
             lib: libanoncreds.dylib
+          - architecture: darwin-universal
+            os: macos-latest
+            target: darwin-universal
+            lib: libanoncreds.dylib
           - architecture: windows-x86_64
             os: anoncreds-windows-latest
             arch: windows-x86_64
@@ -117,6 +121,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install Rust toolchain
+        if: "matrix.target != 'darwin-universal'"
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -133,13 +138,22 @@ jobs:
           OPENSSL_STATIC: 1
         run: cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
 
-      - name: Build library for macOS and Linux
-        if: "runner.os != 'Windows'"
+      - name: Build library for Linux
+        if: "runner.os == 'Linux'"
         run: |
           if [ -n "${{ matrix.use_cross }}" ]; then
             cargo install --bins --git https://github.com/rust-embedded/cross --tag v${{ env.CROSS_VERSION }} cross
             cross build --release --package anoncreds --target ${{matrix.target}} --features vendored
           else
+            cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
+          fi
+
+      - name: Build library for macOS
+        if: "runner.os == 'macOS'"
+        run: |
+          if [ "${{ matrix.architecture }}" == "darwin-universal" ]; then
+            ./build-universal.sh
+          else 
             cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
           fi
 
@@ -241,19 +255,20 @@ jobs:
 
     strategy:
       matrix:
+        python-version: ['3.8']
         include:
           - runner: anoncreds-ubuntu-latest
-            os: ubuntu-x86_64
-            library: library-linux-x86_64
+            architecture: linux-aarch64
+            plat-name: manylinux2014_aarch64
+          - runner: anoncreds-ubuntu-latest
+            architecture: linux-x86_64
             plat-name: manylinux2014_x86_64
-          - runner: anoncreds-windows-latest
-            os: windows-x86_64
-            library: library-windows-x86_64
-            plat-name: win_amd64
           - runner: macos-latest
-            os: macos-x86_64
-            library: library-darwin-x86_64
+            architecture: darwin-universal
             plat-name: macosx_10_9_universal2 # macosx_10_9_x86_64
+          - runner: anoncreds-windows-latest
+            architecture: windows-x86_64
+            plat-name: win_amd64
 
     runs-on: ${{ matrix.runner }}
 
@@ -261,22 +276,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up Python 3.8
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install setuptools wheel twine auditwheel
+
       - name: Fetch library artifacts
         uses: actions/download-artifact@v3
         with:
-          name: ${{matrix.library}}
+          name: library-${{ matrix.architecture }}
           path: wrappers/python/anoncreds/
 
-      - name: Build python package
+      - name: Build wheel package
         run: |
           python setup.py bdist_wheel --python-tag=py3 --plat-name=${{ matrix.plat-name }}
         working-directory: wrappers/python
@@ -292,22 +308,17 @@ jobs:
         name: Auditwheel
         run: auditwheel show wrappers/python/dist/*
 
-      - name: Upload python package
-        uses: actions/upload-artifact@v3
-        with:
-          name: python-${{ runner.os }}
-          path: wrappers/python/dist/*
-
       - if: |
           (github.event_name == 'release' ||
             (github.event_name == 'workflow_dispatch' &&
               github.event.inputs.publish == 'true'))
         name: Publish python package
+        working-directory: wrappers/python
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_ANONCREDS }}
         run: |
-          twine upload --repository pypi --skip-existing wrappers/python/dist/*
+          twine upload --repository pypi --skip-existing dist/*
 
   build-android-libraries:
     name: Build Android Libraries
