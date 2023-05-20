@@ -14,63 +14,104 @@ buildscript {
   }
 }
 
-apply plugin: 'com.android.library'
-apply plugin: 'de.undercouch.download'
-
-def getExtOrDefault(name) {
-  return rootProject.ext.get(name)
-}
-
-def getExtOrIntegerDefault(name) {
-  return rootProject.ext.get(name)
-}
-
-static def findNodeModules(baseDir, isHermesEnabled) {
+static def findNodeModules(baseDir) {
   def basePath = baseDir.toPath().normalize()
-  while (basePath) {
+  while (basePath) {/
     def nodeModulesPath = Paths.get(basePath.toString(), "node_modules")
     def reactNativePath = Paths.get(nodeModulesPath.toString(), "react-native")
-    def jscAndroidPath = Paths.get(nodeModulesPath.toString(), "jsc-android/dist/org/webkit/android-jsc")
     if (nodeModulesPath.toFile().exists() && reactNativePath.toFile().exists()) {
-    if(isHermesEnabled || (!isHermesEnabled && jscAndroidPath.toFile().exists()))
       return nodeModulesPath.toString()
     }
     basePath = basePath.getParent()
   }
-  throw new GradleException("anoncreds: Failed to find node_modules path!")
+  throw new GradleException("anoncreds: Failed to find node_modules/ path!")
 }
 
-def isHermesEnabled = "False"
-rootProject.getSubprojects().forEach({project ->
-  if (project.plugins.hasPlugin("com.android.application")) {
-    isHermesEnabled = project.ext.react.enableHermes
-  }
-})
-def nodeModules = findNodeModules(projectDir, isHermesEnabled);
+static def findNodeModulePath(baseDir, packageName) {
+    def basePath = baseDir.toPath().normalize()
+    while (basePath) {
+        def candidatePath = Paths.get(basePath.toString(), "node_modules", packageName)
+        if (candidatePath.toFile().exists()) {
+            return candidatePath.toString()
+        }
+        basePath = basePath.getParent()
+    }
+    return null
+}
+
+def isNewArchitectureEnabled() {
+    return project.hasProperty("newArchEnabled") && project.newArchEnabled == "true"
+}
+
+def nodeModules = findNodeModules(projectDir)
 
 def reactNative = new File("$nodeModules/react-native")
-
+def CMAKE_NODE_MODULES_DIR = project.getProjectDir().getParentFile().getParent()
 def reactProperties = new Properties()
 file("$nodeModules/react-native/ReactAndroid/gradle.properties").withInputStream { reactProperties.load(it) }
+def REACT_NATIVE_FULL_VERSION = reactProperties.getProperty("VERSION_NAME")
 def REACT_NATIVE_VERSION = reactProperties.getProperty("VERSION_NAME").split("\\.")[1].toInteger()
 
+def FOR_HERMES = System.getenv("FOR_HERMES") == "True"
+rootProject.getSubprojects().forEach({project ->
+  if (project.plugins.hasPlugin("com.android.application")) {
+    FOR_HERMES = REACT_NATIVE_VERSION >= 71 && project.hermesEnabled || project.ext.react.enableHermes
+  }
+})
+
+def jsRuntimeDir = {
+  if (FOR_HERMES) {
+      if (REACT_NATIVE_VERSION >= 69) {
+          return Paths.get(CMAKE_NODE_MODULES_DIR, "react-native", "sdks", "hermes")
+      } else {
+          return Paths.get(CMAKE_NODE_MODULES_DIR, "hermes-engine")
+      }
+  } else {
+      return Paths.get(CMAKE_NODE_MODULES_DIR, "react-native", "ReactCommon", "jsi")
+  }
+}.call()
+
+apply plugin: 'com.android.library'
+apply plugin: 'de.undercouch.download'
+
+def getExt(name) {
+  return rootProject.ext.get(name)
+}
+
+def resolveBuildType() {
+    def buildType = "debug"
+    tasks.all({ task ->
+        if (task.name == "buildCMakeRelease") {
+            buildType = "release"
+        }
+    })
+    return buildType
+}
+
 android {
-  
-  compileSdkVersion getExtOrIntegerDefault('compileSdkVersion')
-  buildToolsVersion getExtOrDefault('buildToolsVersion')
+  compileSdkVersion getExt('compileSdkVersion')
+  buildToolsVersion getExt('buildToolsVersion')
+  ndkVersion getExt('ndkVersion')
+
+  if (REACT_NATIVE_VERSION >= 71) {
+    buildFeatures {
+      prefab true
+    }
+  }
   
   defaultConfig {
     minSdkVersion 21 
-    targetSdkVersion getExtOrIntegerDefault('targetSdkVersion')
-    versionCode 1
-    versionName "1.0"
+    targetSdkVersion getExt('targetSdkVersion')
     
     externalNativeBuild {
         cmake {
-            cppFlags "-O2", "-fexceptions", "-frtti", "-std=c++1y", "-DONANDROID"
+            cppFlags "-fexceptions", "-frtti", "-std=c++1y", "-DONANDROID"
             abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
-            arguments '-DANDROID_STL=c++_shared',
-              "-DNODE_MODULES_DIR=${nodeModules}"
+            arguments "-DANDROID_STL=c++_shared",
+                      "-DREACT_NATIVE_VERSION=${REACT_NATIVE_VERSION}",
+                      "-DNODE_MODULES_DIR=${nodeModules}",
+                      "-DFOR_HERMES=${FOR_HERMES}",
+                      "-DJS_RUNTIME_DIR=${jsRuntimeDir}"
         }
     }
     
@@ -83,7 +124,13 @@ android {
   }
 
   packagingOptions {
-    excludes = ["**/libc++_shared.so", "**/libfbjni.so", "**/libjsi.so", "**/libreactnativejni.so", "**/libjscexecutor.so", "**/libhermes.so"]
+    excludes = ["**/libc++_shared.so", 
+                "**/libfbjni.so", 
+                "**/libjsi.so", 
+                "**/libreactnativejni.so", 
+                "**/libjscexecutor.so", 
+                "**/libhermes.so"
+    ]
   }
   
   buildTypes {
@@ -91,9 +138,11 @@ android {
       minifyEnabled false
     }
   }
+
   lintOptions {
     disable 'GradleCompatible'
   }
+
   compileOptions {
     sourceCompatibility JavaVersion.VERSION_1_8
     targetCompatibility JavaVersion.VERSION_1_8
@@ -122,7 +171,10 @@ repositories {
   if (rootProject.ext.has('reactNativeAndroidRoot')) {
     defaultDir = rootProject.ext.get('reactNativeAndroidRoot')
   } else {
-    defaultDir = file("$nodeModules/react-native/android")
+    defaultDir = new File(
+            projectDir,
+            '/../../../node_modules/react-native/android'
+    )
   }
 
   if (defaultDir.exists()) {
@@ -180,31 +232,29 @@ repositories {
 
 
 dependencies {
-  // noinspection GradleDynamicVersion
-  api 'com.facebook.react:react-native:+'
-  //noinspection GradleDynamicVersion
-  extractHeaders("com.facebook.fbjni:fbjni:+:headers")
-  //noinspection GradleDynamicVersion
-  extractJNI("com.facebook.fbjni:fbjni:+")
+  if (REACT_NATIVE_VERSION >= 71) {
+      implementation "com.facebook.react:react-android:"
+      implementation "com.facebook.react:hermes-android:"
+  } else {
+      // noinspection GradleDynamicVersion
+      implementation 'com.facebook.react:react-native:' + REACT_NATIVE_FULL_VERSION
+  }
 
-  def buildType = "debug"
-  tasks.all({ task ->
-    if (task.name == "buildCMakeRelease") {
-      buildType = "release"
+  if (REACT_NATIVE_VERSION < 71) {
+    //noinspection GradleDynamicVersion
+    extractHeaders("com.facebook.fbjni:fbjni:+:headers")
+    //noinspection GradleDynamicVersion
+    extractJNI("com.facebook.fbjni:fbjni:+")
+
+    def rnAarMatcher = "**/react-native/**/*${resolveBuildType()}.aar"
+    if (REACT_NATIVE_VERSION < 69) {
+      rnAarMatcher = "**/**/*.aar"
     }
-  })
-  def rnAarMatcher = "**/react-native/**/*${buildType}.aar"
-  if (REACT_NATIVE_VERSION < 69) {
-      rnAarMatcher = "**/react-native/**/*.aar"
-  }
-  def rnAAR = fileTree("$reactNative/android").matching({ it.include rnAarMatcher }).singleFile
 
-  if(!isHermesEnabled) {
+    def rnAAR = fileTree("$reactNative/android").matching({ it.include rnAarMatcher }).singleFile
     def jscAAR = fileTree("${nodeModules}/jsc-android/dist/org/webkit/android-jsc").matching({ it.include "**/**/*.aar" }).singleFile
-    extractJNI(files(jscAAR))
+    extractJNI(files(rnAAR, jscAAR))
   }
-
-  extractJNI(files(rnAAR))
 }
 
 def downloadsDir = new File("$buildDir/downloads")
