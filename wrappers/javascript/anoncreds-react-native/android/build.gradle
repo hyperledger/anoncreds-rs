@@ -16,7 +16,7 @@ buildscript {
 
 static def findNodeModules(baseDir) {
   def basePath = baseDir.toPath().normalize()
-  while (basePath) {/
+  while (basePath) {
     def nodeModulesPath = Paths.get(basePath.toString(), "node_modules")
     def reactNativePath = Paths.get(nodeModulesPath.toString(), "react-native")
     if (nodeModulesPath.toFile().exists() && reactNativePath.toFile().exists()) {
