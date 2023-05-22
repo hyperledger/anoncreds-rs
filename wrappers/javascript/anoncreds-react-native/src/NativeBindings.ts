@@ -1,4 +1,4 @@
-import type { ReturnObject } from '../utils/serialize'
+import type { ReturnObject } from './serialize'
 import type { NativeCredentialProve, NativeNonRevokedIntervalOverride } from '@hyperledger/anoncreds-shared'
 
 // Alias for _Handle.handle
