@@ -1,6 +1,6 @@
 {
   "name": "@hyperledger/anoncreds-react-native",
-  "version": "0.1.0-dev.16",
+  "version": "0.1.0-dev.17",
   "license": "Apache-2.0",
   "description": "React Native wrapper for Anoncreds",
   "main": "build/index",
@@ -35,7 +35,7 @@
     "install": "node-pre-gyp install"
   },
   "dependencies": {
-    "@hyperledger/anoncreds-shared": "0.1.0-dev.16",
+    "@hyperledger/anoncreds-shared": "0.1.0-dev.17",
     "@mapbox/node-pre-gyp": "^1.0.10"
   },
   "devDependencies": {
@@ -52,7 +52,7 @@
   "binary": {
     "module_name": "anoncreds",
     "module_path": "native",
-    "remote_path": "v0.1.0-dev.16",
+    "remote_path": "v0.1.0-dev.17",
     "host": "https://github.com/hyperledger/anoncreds-rs/releases/download/",
     "package_name": "library-ios-android.tar.gz"
   }
