@@ -1,6 +1,6 @@
 [package]
 name = "anoncreds"
-version = "0.1.0-dev.16"
+version = "0.1.0-dev.17"
 authors = ["Hyperledger AnonCreds Contributors <anoncreds@lists.hyperledger.org>"]
 description = "Verifiable credential issuance and presentation for Hyperledger AnonCreds (https://www.hyperledger.org/projects), which provides a foundation for self-sovereign identity."
 edition = "2021"
