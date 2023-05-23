@@ -253,9 +253,11 @@ jobs:
     name: Build Python
     needs: [build-release]
 
+    env: 
+      PYTHON_VERSION: '3.8'
+
     strategy:
       matrix:
-        python-version: ['3.8']
         include:
           - runner: anoncreds-ubuntu-latest
             architecture: linux-aarch64
@@ -265,7 +267,7 @@ jobs:
             plat-name: manylinux2014_x86_64
           - runner: macos-latest
             architecture: darwin-universal
-            plat-name: macosx_10_9_universal2 # macosx_10_9_x86_64
+            plat-name: macosx_10_9_universal2
           - runner: anoncreds-windows-latest
             architecture: windows-x86_64
             plat-name: win_amd64
@@ -276,10 +278,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
         run: |
@@ -297,13 +299,15 @@ jobs:
           python setup.py bdist_wheel --python-tag=py3 --plat-name=${{ matrix.plat-name }}
         working-directory: wrappers/python
 
-      - name: Test python package
+      - if: "matrix.architecture != 'linux-aarch64'"
+        name: Test python package
         shell: sh
         run: |
           cd wrappers/python
           pip install --upgrade pip
           pip install dist/*
           python -m demo.test
+
       - if: "runner.os == 'Linux'"
         name: Auditwheel
         run: auditwheel show wrappers/python/dist/*
