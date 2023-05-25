@@ -1,7 +1,7 @@
 name: 'Anoncreds'
 
 env:
-  RUST_VERSION: '1.63.0'
+  RUST_VERSION: '1.64.0'
   CROSS_VERSION: '0.2.4'
 
 on:
@@ -124,6 +124,7 @@ jobs:
         if: "matrix.target != 'darwin-universal'"
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: ${{ env.RUST_VERSION }}
           targets: ${{ matrix.target }}
 
       - name: Cache cargo resources
@@ -142,7 +143,7 @@ jobs:
         if: "runner.os == 'Linux'"
         run: |
           if [ -n "${{ matrix.use_cross }}" ]; then
-            cargo install --bins --git https://github.com/rust-embedded/cross --tag v${{ env.CROSS_VERSION }} cross
+            cargo install --git https://github.com/cross-rs/cross --tag v${{ env.CROSS_VERSION }} cross
             cross build --release --package anoncreds --target ${{matrix.target}} --features vendored
           else
             cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
@@ -344,6 +345,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: ${{ env.RUST_VERSION }}
           targets: ${{ matrix.target }}
 
       - name: Cache cargo resources
@@ -351,7 +353,7 @@ jobs:
 
       - name: Build
         run: |
-          cargo install --bins --git https://github.com/rust-embedded/cross --tag v${{ env.CROSS_VERSION }} cross
+          cargo install --git https://github.com/cross-rs/cross --tag v${{ env.CROSS_VERSION }} cross
           cross build --release --target ${{ matrix.target }} --features=vendored
 
       - name: Upload artifacts

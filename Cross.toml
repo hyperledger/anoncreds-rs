@@ -5,13 +5,13 @@ image = "ghcr.io/rust-cross/manylinux2014-cross:aarch64"
 image = "ghcr.io/rust-cross/manylinux2014-cross:x86_64"
 
 [target.x86_64-linux-android]
-image = "ghcr.io/cross-rs/x86_64-linux-android:main"
+image = "ghcr.io/hyperledger/aries-builder-images/cross/x86_64-linux-android:main"
 
 [target.i686-linux-android]
-image = "ghcr.io/cross-rs/i686-linux-android:main"
+image = "ghcr.io/hyperledger/aries-builder-images/cross/i686-linux-android:main"
 
 [target.aarch64-linux-android]
-image = "ghcr.io/cross-rs/aarch64-linux-android:main"
+image = "ghcr.io/hyperledger/aries-builder-images/cross/aarch64-linux-android:main"
 
 [target.armv7-linux-androideabi]
-image = "ghcr.io/cross-rs/armv7-linux-androideabi:main"
+image = "ghcr.io/hyperledger/aries-builder-images/cross/armv7-linux-androideabi:main"
