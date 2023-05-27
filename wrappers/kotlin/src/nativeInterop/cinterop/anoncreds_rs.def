@@ -1,0 +1,18 @@
+package = anoncreds_rs
+headers = libanoncreds.h
+headerFilter = **
+
+staticLibraries.ios = libanoncreds.a
+libraryPaths.ios = ../../target/x86_64-apple-ios/release ../../target/aarch64-apple-ios-sim/release
+libraryPaths.ios_x64 = ../../target/x86_64-apple-ios/release
+libraryPaths.ios_arm64 = ../../target/aarch64-apple-ios/release
+
+staticLibraries.osx = libanoncreds.a
+libraryPaths.macos_x64 = ../../target/x86_64-apple-darwin/release ../../target/aarch64-apple-darwin/release
+libraryPaths.osx = ../../target/x86_64-apple-darwin/release ../../target/aarch64-apple-darwin/release
+
+staticLibraries.android = libanoncreds.a
+libraryPaths.android_x64 = ../../target/i686-linux-android/release
+libraryPaths.android_arm64 = ../../target/aarch64-linux-android/release
+libraryPaths.android_arm32 = ../../target/armv7-linux-androideabi/release
+libraryPaths.android_x86 = ../../target/x86_64-linux-android/release
