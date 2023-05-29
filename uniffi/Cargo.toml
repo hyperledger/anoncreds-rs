@@ -1,0 +1,45 @@
+[package]
+name = 'anoncreds-uniffi'
+version = '0.0.1'
+authors = ['Goncalo Frade <goncalo.frade@iohk.io>']
+edition = '2018'
+description = 'FFI wrapper for Anoncreds'
+license = 'Apache-2.0'
+
+[lib]
+crate-type = [
+  'cdylib',
+  'staticlib'
+]
+name = "anoncreds_uniffi"
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "uniffi-bindgen.rs"
+
+[dependencies.anoncreds_core]
+path = '..'
+package = "anoncreds"
+
+[dependencies]
+uniffi_macros = "0.23.0"
+uniffi = { version = "0.23.0", features = ["cli"] }
+lazy_static = "1.3"
+futures = { version = "0.3.17", features = ["thread-pool"] }
+num_cpus = "1.8.0"
+async-trait = '0.1'
+serde = { version = "1.0", features = ["derive"] }
+serde_json = '1.0'
+swift-bridge = "0.1.51"
+ursa = { version = "0.3.7", default-features = false, features = ["cl_native", "serde"] }
+
+[dev-dependencies.tokio]
+version = '1.9'
+features = [
+    'rt',
+    'macros',
+]
+
+[build-dependencies]
+uniffi = { version = "0.23.0", features = ["build"] }
+swift-bridge-build = "0.1.51"
