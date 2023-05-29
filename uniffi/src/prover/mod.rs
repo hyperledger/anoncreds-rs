@@ -1,5 +1,6 @@
 use anoncreds_core::prover::*;
 use super::types::*;
+use std::sync::Arc;
 
 enum AnoncredsError {
     CreateCrentialRequestError
@@ -35,7 +36,7 @@ impl Prover {
         credential_offer: &CredentialOffer,
     ) -> String {
         let cred_def_core = cred_def.to_core().unwrap();
-        let link_secret_core = link_secret.to_core().unwrap();
+        let link_secret_core = link_secret.to_core();
         let cred_offer_core = credential_offer.to_core().unwrap();
 
         let result = anoncreds_core::prover::create_credential_request(
@@ -48,5 +49,10 @@ impl Prover {
         );
 
         return String::from("Hello world!")
+    }
+
+    pub fn create_link_secret(&self) -> Arc<SecretLink> {
+        let secret = SecretLink::new();
+        Arc::new(secret)
     }
 }

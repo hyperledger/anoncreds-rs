@@ -49,29 +49,32 @@ impl CredentialDefinitionID {
 }
 
 pub struct SecretLink {
-    pub secret: String
+    secret: LinkSecret,
 }
 
 impl SecretLink {
-    pub fn to_core(&self) -> std::result::Result<LinkSecret, AnoncredsError> {
-        LinkSecret::try_from(self.secret.as_str()).map_err(|err| {
-            match err {
-                // Replace `SomeError` and `AnotherError` with the actual error types you're handling
-                ConversionError => AnoncredsError::ConversionError,
-                _ => AnoncredsError::SomethingWentWrong,
-            }
-        })
+    pub fn new() -> Self {
+        let secret = LinkSecret::new().unwrap();
+        SecretLink { secret: secret }
+    }
+
+    pub fn to_core(&self) -> LinkSecret {
+        self.secret.try_clone().unwrap()
+    }
+
+    pub fn get_big_number(&self) -> String {
+        self.secret.0.to_hex().unwrap()
     }
 }
 
 pub struct Nonce {
-    //priv nonce: anoncreds_core::data_types::nonce::Nonce,
+    nonce: anoncreds_core::data_types::nonce::Nonce,
 }
 
 impl Nonce {
     pub fn new() -> Self {
-        //let nonce = anoncreds_core::data_types::nonce::Nonce::new().unwrap();
-        return Nonce {}
+        let nonce = anoncreds_core::data_types::nonce::Nonce::new().unwrap();
+        return Nonce { nonce: nonce }
     }
 }
 
