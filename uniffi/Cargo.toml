@@ -13,17 +13,14 @@ crate-type = [
 ]
 name = "anoncreds_uniffi"
 
-[[bin]]
-name = "uniffi-bindgen"
-path = "uniffi-bindgen.rs"
-
 [dependencies.anoncreds_core]
 path = '..'
 package = "anoncreds"
+features = ["vendored"]
 
 [dependencies]
-uniffi_macros = "0.23.0"
-uniffi = { version = "0.23.0", features = ["cli"] }
+uniffi_macros = "0.20.0"
+uniffi = { version = "0.20.0", features=["builtin-bindgen"] }
 lazy_static = "1.3"
 futures = { version = "0.3.17", features = ["thread-pool"] }
 num_cpus = "1.8.0"
@@ -41,5 +38,5 @@ features = [
 ]
 
 [build-dependencies]
-uniffi = { version = "0.23.0", features = ["build"] }
+uniffi_build = { version = "0.20.0", features=["builtin-bindgen"] }
 swift-bridge-build = "0.1.51"

@@ -1,3 +1,3 @@
 fn main() {
-    uniffi::generate_scaffolding("./src/anoncreds.udl").unwrap();
+    uniffi_build::generate_scaffolding("./src/anoncreds.udl").unwrap();
 }
