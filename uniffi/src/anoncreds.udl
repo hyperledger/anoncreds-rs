@@ -1,0 +1,64 @@
+enum SignatureType {
+    "CL",
+};
+
+dictionary SchemaID {
+    string id;
+};
+
+dictionary IssuerID {
+    string id;
+};
+
+dictionary CredentialDefinitionID {
+    string id;
+};
+
+dictionary SecretLink {
+    string secret;
+};
+
+interface Nonce {
+    constructor();
+};
+
+dictionary CredentialDefinitionData {
+    string primary;
+    string? revocation;
+};
+
+dictionary CredentialDefinition {
+    SchemaID schema_id;
+    SignatureType signature_type;
+    string tag;
+    CredentialDefinitionData value;
+    IssuerID issuer_id;
+};
+
+dictionary CredentialOffer {
+    SchemaID schema_id;
+    CredentialDefinitionID cred_def_id;
+    string key_correctness_proof;
+    Nonce nonce;
+    string? method_name;
+};
+
+dictionary CreateCrendentialRequestResponse {
+    string request;
+    string metadata;
+};
+
+interface Prover {
+  constructor();
+
+  string create_credential_request(
+    [ByRef] string entropy,
+    [ByRef] string prover_did,
+    [ByRef] CredentialDefinition cred_def,
+    [ByRef] SecretLink link_secret,
+    [ByRef] string link_secret_id,
+    [ByRef] CredentialOffer credential_offer
+    );
+};
+
+namespace anoncreds {};
