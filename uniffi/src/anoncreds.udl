@@ -14,8 +14,9 @@ dictionary CredentialDefinitionID {
     string id;
 };
 
-dictionary SecretLink {
-    string secret;
+interface SecretLink {
+    constructor();
+    string get_big_number();
 };
 
 interface Nonce {
@@ -58,7 +59,9 @@ interface Prover {
     [ByRef] SecretLink link_secret,
     [ByRef] string link_secret_id,
     [ByRef] CredentialOffer credential_offer
-    );
+  );
+
+  SecretLink create_link_secret();
 };
 
 namespace anoncreds {};
