@@ -52,25 +52,6 @@ file("$nodeModules/react-native/ReactAndroid/gradle.properties").withInputStream
 def REACT_NATIVE_FULL_VERSION = reactProperties.getProperty("VERSION_NAME")
 def REACT_NATIVE_VERSION = reactProperties.getProperty("VERSION_NAME").split("\\.")[1].toInteger()
 
-def FOR_HERMES = System.getenv("FOR_HERMES") == "True"
-rootProject.getSubprojects().forEach({project ->
-  if (project.plugins.hasPlugin("com.android.application")) {
-    FOR_HERMES = REACT_NATIVE_VERSION >= 71 && project.hermesEnabled || project.ext.react.enableHermes
-  }
-})
-
-def jsRuntimeDir = {
-  if (FOR_HERMES) {
-      if (REACT_NATIVE_VERSION >= 69) {
-          return Paths.get(CMAKE_NODE_MODULES_DIR, "react-native", "sdks", "hermes")
-      } else {
-          return Paths.get(CMAKE_NODE_MODULES_DIR, "hermes-engine")
-      }
-  } else {
-      return Paths.get(CMAKE_NODE_MODULES_DIR, "react-native", "ReactCommon", "jsi")
-  }
-}.call()
-
 apply plugin: 'com.android.library'
 apply plugin: 'de.undercouch.download'
 
@@ -109,9 +90,7 @@ android {
             abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
             arguments "-DANDROID_STL=c++_shared",
                       "-DREACT_NATIVE_VERSION=${REACT_NATIVE_VERSION}",
-                      "-DNODE_MODULES_DIR=${nodeModules}",
-                      "-DFOR_HERMES=${FOR_HERMES}",
-                      "-DJS_RUNTIME_DIR=${jsRuntimeDir}"
+                      "-DNODE_MODULES_DIR=${nodeModules}"
         }
     }
     
@@ -129,7 +108,6 @@ android {
                 "**/libjsi.so", 
                 "**/libreactnativejni.so", 
                 "**/libjscexecutor.so", 
-                "**/libhermes.so"
     ]
   }
   
@@ -234,7 +212,6 @@ repositories {
 dependencies {
   if (REACT_NATIVE_VERSION >= 71) {
       implementation "com.facebook.react:react-android:"
-      implementation "com.facebook.react:hermes-android:"
   } else {
       // noinspection GradleDynamicVersion
       implementation 'com.facebook.react:react-native:' + REACT_NATIVE_FULL_VERSION
