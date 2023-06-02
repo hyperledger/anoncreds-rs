@@ -15,7 +15,7 @@ repositories {
 ext["githubUsername"] = null
 ext["githubToken"] = null
 ext["anoncredsVersion"] = "0.1.0-dev.18"
-ext["wrapperVersion"] = "1"
+ext["wrapperVersion"] = "3"
 
 val secretPropsFile = project.rootProject.file("local.properties")
 if(secretPropsFile.exists()) {
@@ -27,7 +27,7 @@ if(secretPropsFile.exists()) {
         ext[name.toString()] = value
     }
 } else {
-    ext["githubUsername"] = System.getenv("GITHUB_USERNAME")
+    ext["githubUsername"] = System.getenv("GITHUB_ACTOR")
     ext["githubToken"] = System.getenv("GITHUB_TOKEN")
 }
 
@@ -94,12 +94,12 @@ kotlin {
     }
 
     iosX64 {
-        val libDirectory = "${projectDir}/../../target/x86_64-apple-ios/release"
+        val libDirectory = "${projectDir}/../../target/universal-ios-sim"
         addLibs(libDirectory, this)
     }
 
     iosSimulatorArm64 {
-        val libDirectory = "${projectDir}/../../target/aarch64-apple-ios-sim/release"
+        val libDirectory = "${projectDir}/../../target/universal-ios-sim"
         addLibs(libDirectory, this)
     }
 

@@ -1,10 +1,10 @@
 # INSTALL IOS TARGETS
-rustup target add aarch64-apple-ios & 
+rustup target add aarch64-apple-ios &
 rustup toolchain install stable --target aarch64-apple-ios  --profile minimal --no-self-update &
 rustup target add aarch64-apple-ios-sim &
 rustup toolchain install stable --target aarch64-apple-ios-sim  --profile minimal --no-self-update &
 rustup target add x86_64-apple-ios &
-rustup toolchain install stable --target x86_64-apple-ios  --profile minimal --no-self-update & 
+rustup toolchain install stable --target x86_64-apple-ios  --profile minimal --no-self-update &
 
 # INSTALL ANDROID TARGETS
 rustup target add aarch64-linux-android &
@@ -26,6 +26,12 @@ wait
 cargo  build --release --target aarch64-apple-ios --features=vendored
 cargo  build --release --target aarch64-apple-ios-sim --features=vendored
 cargo  build --release --target x86_64-apple-ios --features=vendored
+
+# COMBINE IOS SIMULATORS
+mkdir ../../target/universal-ios-sim/
+lipo -create ../../target/aarch64-apple-ios-sim/release/libanoncreds.a \
+ ../../target/x86_64-apple-ios/release/libanoncreds.a \
+ -output ../../target/universal-ios-sim/libanoncreds.a
 
 # BUILD ANDROID TARGETS
 cross build --release --target aarch64-linux-android --features=vendored
