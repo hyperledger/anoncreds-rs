@@ -3,8 +3,9 @@ headers = libanoncreds.h
 headerFilter = **
 
 staticLibraries.ios = libanoncreds.a
-libraryPaths.ios = ../../target/universal-ios-sim
+libraryPaths.ios_x64 = ../../target/x86_64-apple-ios/release
 libraryPaths.ios_arm64 = ../../target/aarch64-apple-ios/release
+libraryPaths.ios_simulator_arm64 = ../../target/aarch64-apple-ios-sim/release
 
 staticLibraries.osx = libanoncreds.a
 libraryPaths.macos_x64 = ../../target/x86_64-apple-darwin/release ../../target/aarch64-apple-darwin/release

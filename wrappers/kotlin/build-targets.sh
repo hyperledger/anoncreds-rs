@@ -27,12 +27,6 @@ cargo  build --release --target aarch64-apple-ios --features=vendored
 cargo  build --release --target aarch64-apple-ios-sim --features=vendored
 cargo  build --release --target x86_64-apple-ios --features=vendored
 
-# COMBINE IOS SIMULATORS
-mkdir ../../target/universal-ios-sim/
-lipo -create ../../target/aarch64-apple-ios-sim/release/libanoncreds.a \
- ../../target/x86_64-apple-ios/release/libanoncreds.a \
- -output ../../target/universal-ios-sim/libanoncreds.a
-
 # BUILD ANDROID TARGETS
 cross build --release --target aarch64-linux-android --features=vendored
 cross build --release --target armv7-linux-androideabi --features=vendored
