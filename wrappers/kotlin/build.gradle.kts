@@ -15,7 +15,7 @@ repositories {
 ext["githubUsername"] = null
 ext["githubToken"] = null
 ext["anoncredsVersion"] = "0.1.0-dev.18"
-ext["wrapperVersion"] = "0"
+ext["wrapperVersion"] = "1"
 
 val secretPropsFile = project.rootProject.file("local.properties")
 if(secretPropsFile.exists()) {
@@ -83,12 +83,12 @@ kotlin {
 
     }
 
-    macosX64{
+    macosX64("macosNative"){
         val libDirectory = "${projectDir}/../../target/x86_64-apple-darwin/release"
         addLibs(libDirectory, this)
     }
 
-    macosArm64{
+    macosArm64(){
         val libDirectory = "${projectDir}/../../target/aarch64-apple-darwin/release"
         addLibs(libDirectory, this)
     }
