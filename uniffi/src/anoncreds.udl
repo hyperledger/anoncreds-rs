@@ -1,3 +1,10 @@
+[Error]
+enum AnoncredsError {
+  "ConversionError",
+  "SomethingWentWrong", 
+  "CreateCrentialRequestError",
+};
+
 enum SignatureType {
     "CL",
 };
@@ -14,7 +21,7 @@ dictionary CredentialDefinitionID {
     string id;
 };
 
-interface SecretLink {
+interface LinkSecret {
     constructor();
     string get_big_number();
 };
@@ -44,24 +51,38 @@ dictionary CredentialOffer {
     string? method_name;
 };
 
+interface CredentialRequest {
+    string get_blinded_credential_secrets_json();
+    string get_blinded_credential_secrets_correctness_proof_json();
+    Nonce get_nonce();
+    string get_json();
+};
+
+dictionary CredentialRequestMetadata {
+    string link_secret_blinding_data;
+    Nonce nonce;
+    string link_secret_name;
+};
+
 dictionary CreateCrendentialRequestResponse {
-    string request;
-    string metadata;
+    CredentialRequest request;
+    CredentialRequestMetadata metadata;
 };
 
 interface Prover {
   constructor();
 
-  string create_credential_request(
+  [Throws=AnoncredsError]
+  CreateCrendentialRequestResponse create_credential_request(
     [ByRef] string entropy,
     [ByRef] string prover_did,
     [ByRef] CredentialDefinition cred_def,
-    [ByRef] SecretLink link_secret,
+    [ByRef] LinkSecret link_secret,
     [ByRef] string link_secret_id,
     [ByRef] CredentialOffer credential_offer
   );
 
-  SecretLink create_link_secret();
+  LinkSecret create_link_secret();
 };
 
 namespace anoncreds {};
