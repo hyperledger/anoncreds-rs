@@ -35,20 +35,24 @@ dictionary CredentialDefinitionData {
     string? revocation;
 };
 
-dictionary CredentialDefinition {
-    SchemaID schema_id;
-    SignatureType signature_type;
-    string tag;
-    CredentialDefinitionData value;
-    IssuerID issuer_id;
+interface CredentialDefinition {
+    [Throws=AnoncredsError]
+    constructor(string json_string);
+    SchemaID get_schema_id();
+    SignatureType get_signature_type();
+    string get_tag();
+    CredentialDefinitionData get_value();
+    IssuerID get_issuer_id();
 };
 
-dictionary CredentialOffer {
-    SchemaID schema_id;
-    CredentialDefinitionID cred_def_id;
-    string key_correctness_proof;
-    Nonce nonce;
-    string? method_name;
+interface CredentialOffer {
+    [Throws=AnoncredsError]
+    constructor(string json_string);
+    SchemaID get_schema_id();
+    CredentialDefinitionID get_cred_def_id();
+    string get_key_correctness_proof();
+    Nonce get_nonce();
+    string? get_method_name();
 };
 
 interface CredentialRequest {

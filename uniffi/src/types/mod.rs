@@ -217,6 +217,33 @@ pub struct CredentialDefinition {
     pub issuer_id: IssuerID,
 }
 
+impl CredentialDefinition {
+    pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
+        let core_def: AnoncredsCredentialDefinition = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
+        return CredentialDefinition::try_from(core_def)
+    }
+
+    pub fn get_schema_id(&self) -> SchemaID {
+        self.schema_id.clone()
+    }
+
+    pub fn get_signature_type(&self) -> SignatureType {
+        self.signature_type.clone()
+    }
+
+    pub fn get_tag(&self) -> String {
+        self.tag.clone()
+    }
+
+    pub fn get_value(&self) -> CredentialDefinitionData {
+        self.value.clone()
+    }
+
+    pub fn get_issuer_id(&self) -> IssuerID {
+        self.issuer_id.clone()
+    }
+}
+
 impl TryInto<AnoncredsCredentialDefinition> for CredentialDefinition {
     type Error = AnoncredsError;
 
@@ -279,6 +306,33 @@ pub struct CredentialOffer {
     pub method_name: Option<String>,
 }
 
+impl CredentialOffer {
+    pub fn new(jsonString: String) -> Result<Self, AnoncredsError> {
+        let core_def: AnoncredsCredentialOffer = serde_json::from_str(&jsonString).map_err(|_| AnoncredsError::ConversionError)?;
+        return CredentialOffer::try_from(core_def)
+    }
+
+    pub fn get_schema_id(&self) -> SchemaID {
+        self.schema_id.clone()
+    }
+
+    pub fn get_cred_def_id(&self) -> CredentialDefinitionID {
+        self.cred_def_id.clone()
+    }
+
+    pub fn get_key_correctness_proof(&self) -> String {
+        self.key_correctness_proof.clone()
+    }
+
+    pub fn get_nonce(&self) -> Arc<Nonce> {
+        self.nonce.clone()
+    }
+
+    pub fn get_method_name(&self) -> Option<String> {
+        self.method_name.clone()
+    }
+}
+
 impl TryFrom<AnoncredsCredentialOffer> for CredentialOffer {
     type Error = AnoncredsError;
 
@@ -319,26 +373,6 @@ impl TryFrom<&CredentialOffer> for AnoncredsCredentialOffer {
         })
     }
 }
-
-// impl CredentialOffer {
-//     pub fn to_core(&self) -> Result<AnoncredsCredentialOffer, AnoncredsError> {
-//         let schema_id_core = self.schema_id.clone().into();
-//         let cred_def_id_core = self.cred_def_id.clone().into();
-//         let key_correctness_proof_core: ursa::cl::CredentialKeyCorrectnessProof = serde_json::from_str(&self.key_correctness_proof)
-//             .map_err(|_| AnoncredsError::ConversionError)?; // Handle serde_json::Error here
-//         let nonce_unwrap = (*self.nonce).clone();
-//         let nonce_core = nonce_unwrap.anoncreds_nonce;
-//         let method_name_core = self.method_name.clone();
-
-//         Ok(AnoncredsCredentialOffer {
-//             schema_id: schema_id_core,
-//             cred_def_id: cred_def_id_core,
-//             key_correctness_proof: key_correctness_proof_core,
-//             nonce: nonce_core,
-//             method_name: method_name_core,
-//         })
-//     }
-// }
 
 pub struct CredentialRequest {
     pub anoncreds_request: AnoncredsCredentialRequest

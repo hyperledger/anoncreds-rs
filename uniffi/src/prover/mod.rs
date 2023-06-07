@@ -24,12 +24,14 @@ impl Prover {
         &self,
         entropy: &str,
         prover_did: &str,
-        cred_def: &CredentialDefinition,
+        cred_def: &Arc<CredentialDefinition>,
         link_secret: &LinkSecret,
         link_secret_id: &str,
         credential_offer: &CredentialOffer,
     ) -> Result<CreateCrendentialRequestResponse, AnoncredsError> {
-        let cred_def_core = cred_def.try_into()?;
+        let cred_def_clone = Arc::clone(&cred_def);
+        let cred_def_inner = cred_def_clone.as_ref();
+        let cred_def_core = cred_def_inner.clone().try_into()?;
         let link_secret_core = link_secret.try_into()?;
         let cred_offer_core = credential_offer.try_into()?;
 
