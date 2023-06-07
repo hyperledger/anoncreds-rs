@@ -1,14 +1,12 @@
 use anoncreds_core::prover::*;
+use anoncreds_core::data_types::cred_request::{CredentialRequest as AnoncredsCredentialRequest, CredentialRequestMetadata as AnoncredsCredentialRequestMetadata};
 use super::types::*;
 use std::sync::Arc;
-
-enum AnoncredsError {
-    CreateCrentialRequestError
-}
+use std::convert::TryInto;
 
 pub struct CreateCrendentialRequestResponse {
-    pub request: String,
-    pub metadata: String,
+    pub request: Arc<CredentialRequest>,
+    pub metadata: CredentialRequestMetadata,
 }
 
 pub struct Prover {
@@ -22,37 +20,36 @@ impl Prover {
         }
     }
 
-    // pub fn create_credential_request(&self, schema_id: &SchemaID) -> String {
-    //     return self.str.clone();
-    // }
-
     pub fn create_credential_request(
         &self,
         entropy: &str,
         prover_did: &str,
         cred_def: &CredentialDefinition,
-        link_secret: &SecretLink,
+        link_secret: &LinkSecret,
         link_secret_id: &str,
         credential_offer: &CredentialOffer,
-    ) -> String {
-        let cred_def_core = cred_def.to_core().unwrap();
-        let link_secret_core = link_secret.to_core();
-        let cred_offer_core = credential_offer.to_core().unwrap();
+    ) -> Result<CreateCrendentialRequestResponse, AnoncredsError> {
+        let cred_def_core = cred_def.try_into()?;
+        let link_secret_core = link_secret.try_into()?;
+        let cred_offer_core = credential_offer.try_into()?;
 
-        let result = anoncreds_core::prover::create_credential_request(
+        let (request, metadata) = anoncreds_core::prover::create_credential_request(
             Some(entropy),
             Some(prover_did),
             &cred_def_core,
             &link_secret_core,
             link_secret_id,
             &cred_offer_core
-        );
+        ).map_err(|_| AnoncredsError::CreateCrentialRequestError)?;
 
-        return String::from("Hello world!")
+        return Ok(CreateCrendentialRequestResponse {
+            request: Arc::new(CredentialRequest { anoncreds_request: request }),
+            metadata: CredentialRequestMetadata::from(metadata)
+        })
     }
 
-    pub fn create_link_secret(&self) -> Arc<SecretLink> {
-        let secret = SecretLink::new();
+    pub fn create_link_secret(&self) -> Arc<LinkSecret> {
+        let secret = LinkSecret::new();
         Arc::new(secret)
     }
 }
