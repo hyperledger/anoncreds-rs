@@ -5,3 +5,7 @@ Cargo.lock
 .DS_Store
 .tmp
 *.tgz
+uniffi/targets
+uniffi/wrappers
+libanoncreds.xcframework.zip
+*.swift
