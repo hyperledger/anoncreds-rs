@@ -5,6 +5,7 @@ use crate::types::credential::{Credential};
 use crate::CredentialRequest;
 use crate::types::rev_status_list::RevocationStatusList;
 use crate::types::rev_reg_def::{RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate};
+use crate::custom_types::AttributeValues;
 
 use anoncreds_core::types::CredentialRevocationConfig as AnoncredsCredentialRevocationConfig;
 use anoncreds_core::data_types::rev_reg::RevocationRegistryId;
@@ -12,7 +13,7 @@ use anoncreds_core::data_types::rev_reg_def::RegistryType;
 use anoncreds_core::data_types::schema::Schema;
 use anoncreds_core::issuer::{create_credential, create_credential_definition, create_credential_offer, create_revocation_registry_def, create_revocation_status_list, create_schema, update_revocation_status_list, update_revocation_status_list_timestamp_only};
 use anoncreds_core::tails::{TailsFileWriter, TailsFileReader};
-use anoncreds_core::types::{AttributeNames, CredentialDefinitionConfig, CredentialValues, SignatureType};
+use anoncreds_core::types::{AttributeNames, CredentialValues, CredentialDefinitionConfig, SignatureType, MakeCredentialValues};
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
 use std::sync::Arc;
@@ -184,17 +185,22 @@ impl Issuer {
         cred_def_private: Arc<CredentialDefinitionPrivate>,
         cred_offer: Arc<CredentialOffer>,
         cred_request: Arc<CredentialRequest>,
-        cred_values: CredentialValues,
+        cred_values: Vec<AttributeValues>,
         rev_reg_id: Option<RevocationRegistryId>,
         rev_status_list: Option<Arc<RevocationStatusList>>,
         revocation_config: Option<CredentialRevocationConfig>
     ) -> Result<Arc<Credential>, AnoncredsError> {
+        let mut values = MakeCredentialValues::default();
+        for val in cred_values.iter() {
+            values.add_raw(val.raw.to_owned(), val.encoded.to_owned()).expect("Something went wrong");
+        }
+        let _cred_values = CredentialValues::from(values);
         let credential = create_credential(
             &(*cred_def).core,
             &(*cred_def_private).core,
             &(*cred_offer).core,
             &(*cred_request).core,
-            cred_values,
+            _cred_values,
             rev_reg_id,
             rev_status_list.as_ref().map(|list| &(*list).core),
             revocation_config.as_ref().map(|config| config.to_cred_rev_config()),

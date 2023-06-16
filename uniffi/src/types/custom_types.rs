@@ -6,10 +6,12 @@ use anoncreds_core::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use anoncreds_core::data_types::cred_def::CredentialDefinitionId;
 use anoncreds_core::types::{
     AttributeNames, 
-    AttributeValues
+    AttributeValues as AnoncredsAttributeValues
 };
-use anoncreds_core::data_types::credential::CredentialValues;
+use anoncreds_core::data_types::credential::CredentialValues as AnoncredsCredentialValues;
 use crate::UniffiCustomTypeConverter;
+use std::convert::TryFrom;
+use std::convert::TryInto;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Result as SerdeResult;
@@ -84,21 +86,6 @@ impl UniffiCustomTypeConverter for RevocationRegistryDefinitionId {
     }
 }
 
-// /// Make sure [CredentialValues] implements [UniffiCustomTypeConverter] so that UniFFI can use it as
-// /// it is a Tuple Struct in Rust
-impl UniffiCustomTypeConverter for CredentialValues {
-    type Builtin = String;
-
-    fn into_custom(val: Self::Builtin) -> uniffi::Result<Self> {
-        let json: HashMap<String, AttributeValues> = serde_json::from_str(&val).map_err(|_| AnoncredsError::ConversionError)?;
-        Ok(CredentialValues(json))
-    }
-
-    fn from_custom(obj: Self) -> Self::Builtin {
-        serde_json::to_string(&obj.0).unwrap()
-    }
-}
-
 /// Make sure [RevocationRegistryId] implements [UniffiCustomTypeConverter] so that UniFFI can use it as
 /// it is a Tuple Struct in Rust
 impl UniffiCustomTypeConverter for RevocationRegistryId {
@@ -110,5 +97,44 @@ impl UniffiCustomTypeConverter for RevocationRegistryId {
 
     fn from_custom(obj: Self) -> Self::Builtin {
         obj.0
+    }
+}
+
+pub struct CredentialValues {
+    pub values: HashMap<String, AttributeValues>
+}
+
+impl From<AnoncredsCredentialValues> for CredentialValues {
+    fn from(acr: AnoncredsCredentialValues) -> Self {
+        let mapped: HashMap<String, AttributeValues> = acr.0.iter()
+            .map(|(k, v)| (k.clone(), v.clone().into()))
+            .collect();
+        return CredentialValues { values: mapped }
+    }
+}
+
+impl From<CredentialValues> for AnoncredsCredentialValues {
+    fn from(def: CredentialValues) -> AnoncredsCredentialValues {
+        let mapped: HashMap<String, AnoncredsAttributeValues> = def.values.into_iter()
+            .map(|(k, v)| (k, v.into()))
+            .collect();
+        AnoncredsCredentialValues(mapped)
+    }
+}
+
+pub struct AttributeValues {
+    pub raw: String,
+    pub encoded: String,
+}
+
+impl From<AnoncredsAttributeValues> for AttributeValues {
+    fn from(acr: AnoncredsAttributeValues) -> Self {
+        return AttributeValues { raw: acr.raw, encoded: acr.encoded }
+    }
+}
+
+impl From<AttributeValues> for AnoncredsAttributeValues {
+    fn from(def: AttributeValues) -> AnoncredsAttributeValues {
+        AnoncredsAttributeValues { raw: def.raw, encoded: def.encoded }
     }
 }

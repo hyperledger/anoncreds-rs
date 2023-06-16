@@ -7,7 +7,6 @@ pub use anoncreds_core::data_types::cred_def::CredentialDefinitionId;
 pub use anoncreds_core::data_types::issuer_id::IssuerId;
 pub use anoncreds_core::data_types::rev_reg::RevocationRegistryId;
 pub use anoncreds_core::data_types::rev_reg_def::RevocationRegistryDefinitionId;
-pub use anoncreds_core::data_types::credential::CredentialValues;
 pub use anoncreds_core::data_types::schema::{Schema, SchemaId};
 pub use anoncreds_core::types::{AttributeNames, CredentialDefinitionConfig, SignatureType, RegistryType};
 pub use crate::types::cred_def::{CredentialDefinition, CredentialDefinitionData, CredentialKeyCorrectnessProof};
@@ -23,6 +22,7 @@ pub use crate::types::rev_reg_def::RevocationRegistryDefinitionValuePublicKeys;
 pub use crate::types::rev_reg_def::RevocationRegistryDefinitionValue;
 pub use crate::types::rev_status_list::RevocationStatusList;
 pub use crate::cred_def::CredentialDefinitionPrivate;
+pub use crate::custom_types::{AttributeValues, CredentialValues};
 
 pub use types::*;
 pub use issuer::CredentialRevocationConfig;

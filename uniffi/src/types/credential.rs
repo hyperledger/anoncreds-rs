@@ -1,5 +1,6 @@
 use crate::types::error::AnoncredsError;
 use crate::types::nonce::Nonce;
+pub use crate::custom_types::CredentialValues;
 use anoncreds_core::data_types::schema::SchemaId;
 use anoncreds_core::data_types::cred_def::{
     CredentialDefinitionId,
@@ -7,7 +8,6 @@ use anoncreds_core::data_types::cred_def::{
 };
 use anoncreds_core::data_types::rev_reg::RevocationRegistryId;
 use anoncreds_core::data_types::credential::Credential as AnoncredsCredential;
-use anoncreds_core::types::CredentialValues;
 
 pub struct Credential {
     pub core: AnoncredsCredential
@@ -32,7 +32,7 @@ impl Credential {
     }
 
     pub fn get_values(&self) -> CredentialValues {
-        self.core.values.clone()
+        self.core.values.clone().into()
     }
 
     pub fn get_signature_json(&self) -> String {
