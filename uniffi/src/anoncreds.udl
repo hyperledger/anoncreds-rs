@@ -10,8 +10,6 @@ typedef string CredentialDefinitionId;
 typedef string RevocationRegistryDefinitionId;
 [Custom]
 typedef string RevocationRegistryId;
-[Custom]
-typedef string CredentialValues;
 
 [Error]
 enum AnoncredsError {
@@ -54,6 +52,15 @@ dictionary Schema {
     string version;
     AttributeNames attr_names;
     IssuerId issuer_id;
+};
+
+dictionary CredentialValues {
+    record<string, AttributeValues> values;
+};
+
+dictionary AttributeValues {
+    string raw;
+    string encoded;
 };
 
 dictionary CredentialDefinitionData {
@@ -252,7 +259,7 @@ interface Issuer {
         CredentialDefinitionPrivate cred_def_private,
         CredentialOffer cred_offer,
         CredentialRequest cred_request,
-        CredentialValues cred_values,
+        sequence<AttributeValues> cred_values,
         RevocationRegistryId? rev_reg_id,
         RevocationStatusList? rev_status_list,
         CredentialRevocationConfig? revocation_config
