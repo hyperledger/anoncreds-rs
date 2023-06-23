@@ -24,8 +24,8 @@ impl CredentialRequest {
         return Arc::new(Nonce { anoncreds_nonce: self.core.nonce.try_clone().unwrap() })
     }
 
-    pub fn get_json(&self) -> String {
-        serde_json::to_string(&self.core).unwrap()
+    pub fn get_json(&self) -> Result<String, AnoncredsError> {
+        serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
     }
 }
 
