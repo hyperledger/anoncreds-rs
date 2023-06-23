@@ -84,6 +84,10 @@ impl CredentialDefinition {
     pub fn get_issuer_id(&self) -> IssuerId {
         self.core.issuer_id.clone()
     }
+
+    pub fn get_json(&self) -> Result<String, AnoncredsError> {
+        serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
+    }
 }
 
 impl TryInto<AnoncredsCredentialDefinition> for CredentialDefinition {
@@ -191,8 +195,8 @@ impl CredentialKeyCorrectnessProof {
         return Ok(CredentialKeyCorrectnessProof { core: core_def })
     }
 
-    pub fn get_json(&self) -> String {
-        serde_json::to_string(&self.core.value).unwrap()
+    pub fn get_json(&self) -> Result<String, AnoncredsError> {
+        serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
     }
 }
 

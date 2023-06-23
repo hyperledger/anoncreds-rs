@@ -36,7 +36,11 @@ enum RegistryType {
 
 interface LinkSecret {
     constructor();
+    [Throws=AnoncredsError, Name=new_from_json]
+    constructor(string json_string);
     string get_big_number();
+    [Throws=AnoncredsError]
+    string get_json();
 };
 
 interface Nonce {
@@ -75,6 +79,8 @@ interface CredentialDefinition {
     SignatureType get_signature_type();
     string get_tag();
     IssuerId get_issuer_id();
+    [Throws=AnoncredsError]
+    string get_json();
 };
 
 interface CredentialOffer {
@@ -85,18 +91,22 @@ interface CredentialOffer {
     string get_key_correctness_proof();
     Nonce get_nonce();
     string? get_method_name();
+    [Throws=AnoncredsError]
+    string get_json();
 };
 
 interface CredentialRequest {
     string get_blinded_credential_secrets_json();
     string get_blinded_credential_secrets_correctness_proof_json();
     Nonce get_nonce();
+    [Throws=AnoncredsError]
     string get_json();
 };
 
 interface CredentialKeyCorrectnessProof {
     [Throws=AnoncredsError]
     constructor(string json_string);
+    [Throws=AnoncredsError]
     string get_json();
 };
 

@@ -14,9 +14,19 @@ impl LinkSecret {
         LinkSecret { secret: secret }
     }
 
+    pub fn new_from_json(json_string: String) -> Result<Self, AnoncredsError> {
+        let core_def = AnoncredsLinkSecret::try_from(json_string.as_str()).map_err(|_| AnoncredsError::ConversionError)?;
+        return Ok(LinkSecret { secret: core_def })
+    }
+
     pub fn get_big_number(&self) -> String {
         let clone = self.clone();
         clone.into()
+    }
+
+    pub fn get_json(&self) -> Result<String, AnoncredsError> {
+        let clone = self.clone();
+        return Ok(clone.into())
     }
 }
 

@@ -42,6 +42,10 @@ impl CredentialOffer {
     pub fn get_method_name(&self) -> Option<String> {
         self.core.method_name.clone()
     }
+
+    pub fn get_json(&self) -> Result<String, AnoncredsError> {
+        serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
+    }
 }
 
 impl Clone for CredentialOffer {
