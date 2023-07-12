@@ -5,7 +5,7 @@
 repository:
   name: anoncreds-rs
   description: anoncreds-rs
-  homepage: https://wiki.hyperledger.org/display/indy
+  homepage: https://wiki.hyperledger.org/display/anoncreds
   default_branch: main 
   has_downloads: false
   has_issues: true
