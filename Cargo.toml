@@ -22,7 +22,6 @@ crate-type = ["staticlib", "rlib", "cdylib"]
 default = ["ffi", "logger", "zeroize"]
 ffi = ["ffi-support"]
 logger = ["env_logger"]
-vendored = ["openssl", "openssl/vendored"]
 
 [dependencies]
 bs58 = "0.4.0"
@@ -40,12 +39,6 @@ tempfile = "3.4.0"
 thiserror = "1.0.39"
 zeroize = { version = "1.5.7", optional = true, features = ["zeroize_derive"] }
 anoncreds-clsignatures = "0.1"
-
-# TODO: Can we remove this since ursa is no longer a dependency?
-# We add the openssl dependency here because ursa does not expose a vendored openssl feature
-# Since we use "cl_native" as a feature, which uses openssl, we can add a vendored build with 
-# the new exposed "vendored" feature
-openssl = { version = "0.10.45", optional = true }
 
 [profile.release]
 lto = true
