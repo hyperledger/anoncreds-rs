@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-
 use zeroize::Zeroize;
 
+use crate::cl::{CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, Witness};
 use crate::error::{ConversionError, ValidationError};
 use crate::utils::validation::Validatable;
 
@@ -13,10 +13,10 @@ pub struct Credential {
     pub cred_def_id: CredentialDefinitionId,
     pub rev_reg_id: Option<RevocationRegistryId>,
     pub values: CredentialValues,
-    pub signature: ursa::cl::CredentialSignature,
-    pub signature_correctness_proof: ursa::cl::SignatureCorrectnessProof,
-    pub rev_reg: Option<ursa::cl::RevocationRegistry>,
-    pub witness: Option<ursa::cl::Witness>,
+    pub signature: CredentialSignature,
+    pub signature_correctness_proof: SignatureCorrectnessProof,
+    pub rev_reg: Option<RevocationRegistry>,
+    pub witness: Option<Witness>,
 }
 
 impl Credential {

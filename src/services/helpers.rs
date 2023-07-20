@@ -1,21 +1,17 @@
 use std::collections::HashMap;
 
+use crate::cl::{
+    bn::BigNumber, CredentialSchema, CredentialValues, Issuer, MasterSecret, NonCredentialSchema,
+    SubProofRequest, Verifier,
+};
 use crate::data_types::{
     credential::AttributeValues,
     nonce::Nonce,
     pres_request::{AttributeInfo, NonRevokedInterval, PredicateInfo, PresentationRequestPayload},
     presentation::RequestedProof,
 };
-use crate::utils::hash::SHA256;
-
 use crate::error::Result;
-use crate::ursa::{
-    bn::BigNumber,
-    cl::{
-        issuer, verifier, CredentialSchema, CredentialValues as CryptoCredentialValues,
-        MasterSecret as CryptoMasterSecret, NonCredentialSchema, SubProofRequest,
-    },
-};
+use crate::utils::hash::SHA256;
 
 pub fn attr_common_view(attr: &str) -> String {
     attr.replace(' ', "").to_lowercase()
@@ -24,7 +20,7 @@ pub fn attr_common_view(attr: &str) -> String {
 pub fn build_credential_schema(attrs: &[String]) -> Result<CredentialSchema> {
     trace!("build_credential_schema >>> attrs: {:?}", attrs);
 
-    let mut credential_schema_builder = issuer::Issuer::new_credential_schema_builder()?;
+    let mut credential_schema_builder = Issuer::new_credential_schema_builder()?;
     for attr in attrs {
         credential_schema_builder.add_attr(&attr_common_view(attr))?;
     }
@@ -39,7 +35,7 @@ pub fn build_credential_schema(attrs: &[String]) -> Result<CredentialSchema> {
 pub fn build_non_credential_schema() -> Result<NonCredentialSchema> {
     trace!("build_non_credential_schema");
 
-    let mut non_credential_schema_builder = issuer::Issuer::new_non_credential_schema_builder()?;
+    let mut non_credential_schema_builder = Issuer::new_non_credential_schema_builder()?;
     // value is master_secret as that's what's historically been used in published credential definitions
     non_credential_schema_builder.add_attr("master_secret")?;
     let res = non_credential_schema_builder.finalize()?;
@@ -50,14 +46,14 @@ pub fn build_non_credential_schema() -> Result<NonCredentialSchema> {
 
 pub fn build_credential_values(
     credential_values: &HashMap<String, AttributeValues>,
-    link_secret: Option<&CryptoMasterSecret>,
-) -> Result<CryptoCredentialValues> {
+    link_secret: Option<&MasterSecret>,
+) -> Result<CredentialValues> {
     trace!(
         "build_credential_values >>> credential_values: {:?}",
         credential_values
     );
 
-    let mut credential_values_builder = issuer::Issuer::new_credential_values_builder()?;
+    let mut credential_values_builder = Issuer::new_credential_values_builder()?;
     for (attr, values) in credential_values {
         credential_values_builder.add_dec_known(&attr_common_view(attr), &values.encoded)?;
     }
@@ -98,7 +94,7 @@ pub fn build_sub_proof_request(
         predicates_for_credential
     );
 
-    let mut sub_proof_request_builder = verifier::Verifier::new_sub_proof_request_builder()?;
+    let mut sub_proof_request_builder = Verifier::new_sub_proof_request_builder()?;
 
     for attr in attrs_for_credential {
         let names = if let Some(name) = &attr.name {

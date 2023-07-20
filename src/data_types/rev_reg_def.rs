@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use crate::cl::{RevocationKeyPrivate, RevocationKeyPublic};
 use crate::{error::ConversionError, impl_anoncreds_object_identifier};
 
 use super::{cred_def::CredentialDefinitionId, issuer_id::IssuerId};
@@ -37,7 +38,7 @@ pub struct RevocationRegistryDefinitionValue {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RevocationRegistryDefinitionValuePublicKeys {
-    pub accum_key: ursa::cl::RevocationKeyPublic,
+    pub accum_key: RevocationKeyPublic,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -61,5 +62,5 @@ impl Validatable for RevocationRegistryDefinition {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RevocationRegistryDefinitionPrivate {
-    pub value: ursa::cl::RevocationKeyPrivate,
+    pub value: RevocationKeyPrivate,
 }

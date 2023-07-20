@@ -2,13 +2,13 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
+use crate::cl::{new_nonce, Nonce as CryptoNonce};
 use crate::error::ConversionError;
-use crate::ursa::cl::{new_nonce, Nonce as UrsaNonce};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 
 pub struct Nonce {
     strval: String,
-    native: UrsaNonce,
+    native: CryptoNonce,
 }
 
 impl Nonce {
@@ -20,20 +20,20 @@ impl Nonce {
     }
 
     #[inline]
-    pub fn from_native(native: UrsaNonce) -> Result<Self, ConversionError> {
+    pub fn from_native(native: CryptoNonce) -> Result<Self, ConversionError> {
         let strval = native.to_dec().map_err(|e| e.to_string())?;
         Ok(Self { strval, native })
     }
 
     #[inline]
     #[must_use]
-    pub const fn as_native(&self) -> &UrsaNonce {
+    pub const fn as_native(&self) -> &CryptoNonce {
         &self.native
     }
 
     #[inline]
     #[must_use]
-    pub fn into_native(self) -> UrsaNonce {
+    pub fn into_native(self) -> CryptoNonce {
         self.native
     }
 
@@ -48,7 +48,7 @@ impl Nonce {
             }
         }
 
-        let native = UrsaNonce::from_dec(&strval).map_err(|e| e.to_string())?;
+        let native = CryptoNonce::from_dec(&strval).map_err(|e| e.to_string())?;
         Ok(Self { strval, native })
     }
 
@@ -229,11 +229,11 @@ mod tests {
 
     #[test]
     fn nonce_convert() {
-        let nonce = UrsaNonce::new().expect("Error creating nonce");
+        let nonce = CryptoNonce::new().expect("Error creating nonce");
         let ser = serde_json::to_string(&nonce).unwrap();
         let des = serde_json::from_str::<Nonce>(&ser).unwrap();
         let ser2 = serde_json::to_string(&des).unwrap();
-        let nonce_des = serde_json::from_str::<UrsaNonce>(&ser2).unwrap();
+        let nonce_des = serde_json::from_str::<CryptoNonce>(&ser2).unwrap();
         assert_eq!(nonce, nonce_des);
 
         let nonce = Nonce::new().unwrap();

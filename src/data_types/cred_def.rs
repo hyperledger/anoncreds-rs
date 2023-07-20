@@ -1,5 +1,10 @@
 use std::str::FromStr;
 
+use crate::cl::{
+    CredentialKeyCorrectnessProof as CryptoCredentialKeyCorrectnessProof,
+    CredentialPrimaryPublicKey, CredentialPrivateKey, CredentialPublicKey,
+    CredentialRevocationPublicKey,
+};
 use crate::{error::ConversionError, impl_anoncreds_object_identifier};
 
 use super::{issuer_id::IssuerId, schema::SchemaId};
@@ -26,9 +31,9 @@ impl FromStr for SignatureType {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CredentialDefinitionData {
-    pub primary: ursa::cl::CredentialPrimaryPublicKey,
+    pub primary: CredentialPrimaryPublicKey,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub revocation: Option<ursa::cl::CredentialRevocationPublicKey>,
+    pub revocation: Option<CredentialRevocationPublicKey>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -43,8 +48,8 @@ pub struct CredentialDefinition {
 }
 
 impl CredentialDefinition {
-    pub fn get_public_key(&self) -> Result<ursa::cl::CredentialPublicKey, ConversionError> {
-        let key = ursa::cl::CredentialPublicKey::build_from_parts(
+    pub fn get_public_key(&self) -> Result<CredentialPublicKey, ConversionError> {
+        let key = CredentialPublicKey::build_from_parts(
             &self.value.primary,
             self.value.revocation.as_ref(),
         )
@@ -64,13 +69,13 @@ impl Validatable for CredentialDefinition {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialDefinitionPrivate {
-    pub value: ursa::cl::CredentialPrivateKey,
+    pub value: CredentialPrivateKey,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(transparent)]
 pub struct CredentialKeyCorrectnessProof {
-    pub value: ursa::cl::CredentialKeyCorrectnessProof,
+    pub value: CryptoCredentialKeyCorrectnessProof,
 }
 
 impl CredentialKeyCorrectnessProof {

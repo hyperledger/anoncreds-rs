@@ -1,6 +1,7 @@
+use crate::cl::{Issuer, RevocationRegistry, RevocationRegistryDelta, Witness};
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
-use crate::data_types::rev_reg::{RevocationRegistryId, UrsaRevocationRegistry};
+use crate::data_types::rev_reg::{CLSignaturesRevocationRegistry, RevocationRegistryId};
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
 use crate::data_types::{
@@ -14,10 +15,6 @@ use crate::services::helpers::{
     build_credential_schema, build_credential_values, build_non_credential_schema,
 };
 use crate::types::{CredentialDefinitionConfig, CredentialRevocationConfig};
-use crate::ursa::cl::{
-    issuer::Issuer as CryptoIssuer, RevocationRegistryDelta as CryptoRevocationRegistryDelta,
-    Witness,
-};
 use crate::utils::validation::Validatable;
 use bitvec::bitvec;
 use std::collections::{BTreeSet, HashSet};
@@ -143,7 +140,7 @@ where
     let non_credential_schema = build_non_credential_schema()?;
 
     let (credential_public_key, credential_private_key, correctness_proof) =
-        CryptoIssuer::new_credential_def(
+        Issuer::new_credential_def(
             &credential_schema,
             &non_credential_schema,
             config.support_revocation,
@@ -155,8 +152,8 @@ where
         issuer_id,
         tag: tag.to_owned(),
         value: CredentialDefinitionData {
-            primary: credential_public_key.get_primary_key()?.try_clone()?,
-            revocation: credential_public_key.get_revocation_key()?,
+            primary: credential_public_key.get_primary_key().try_clone()?,
+            revocation: credential_public_key.get_revocation_key().cloned(),
         },
     };
 
@@ -256,7 +253,7 @@ where
     // NOTE: registry is created with issuance_by_default: false  and it is not used.
     // The accum value in the registy is derived from issuance by default: false in `create_revocation_status_list`
     let (revoc_key_pub, revoc_key_priv, _, mut rev_tails_generator) =
-        CryptoIssuer::new_revocation_registry_def(&credential_pub_key, max_cred_num, false)?;
+        Issuer::new_revocation_registry_def(&credential_pub_key, max_cred_num, false)?;
 
     let rev_keys_pub = RevocationRegistryDefinitionValuePublicKeys {
         accum_key: revoc_key_pub,
@@ -350,11 +347,11 @@ pub fn create_revocation_status_list(
     timestamp: Option<u64>,
     issuance_by_default: bool,
 ) -> Result<RevocationStatusList> {
-    let rev_reg = UrsaRevocationRegistry::try_from(ACCUM_NO_ISSUED)?;
+    let rev_reg = CLSignaturesRevocationRegistry::try_from(ACCUM_NO_ISSUED)?;
     let max_cred_num = rev_reg_def.value.max_cred_num;
     let rev_reg_def_id = rev_reg_def_id.try_into()?;
     let issuer_id = issuer_id.try_into()?;
-    let mut rev_reg: ursa::cl::RevocationRegistry = rev_reg.try_into()?;
+    let mut rev_reg: RevocationRegistry = rev_reg.try_into()?;
 
     if issuer_id != rev_reg_def.issuer_id {
         return Err(err_msg!(
@@ -366,12 +363,13 @@ pub fn create_revocation_status_list(
         let tails_reader = TailsFileReader::new_tails_reader(&rev_reg_def.value.tails_location);
         let issued = (1..=max_cred_num).collect::<BTreeSet<_>>();
 
-        CryptoIssuer::update_revocation_registry(
+        Issuer::update_revocation_registry(
             &mut rev_reg,
             max_cred_num,
             issued,
             BTreeSet::new(),
-            &tails_reader,
+            // &credential_pub_key
+            // &rev_key_priv,
         )?;
         bitvec![0; max_cred_num as usize ]
     } else {
@@ -534,7 +532,7 @@ pub fn update_revocation_status_list(
             .collect::<BTreeSet<_>>()
     });
 
-    let rev_reg_opt: Option<ursa::cl::RevocationRegistry> = current_list.try_into()?;
+    let rev_reg_opt: Option<RevocationRegistry> = current_list.try_into()?;
     let mut rev_reg = rev_reg_opt.ok_or_else(|| {
         Error::from_msg(
             ErrorKind::Unexpected,
@@ -544,12 +542,14 @@ pub fn update_revocation_status_list(
     let tails_reader = TailsFileReader::new_tails_reader(&rev_reg_def.value.tails_location);
     let max_cred_num = rev_reg_def.value.max_cred_num;
 
-    CryptoIssuer::update_revocation_registry(
+    // TODO: need to pass in credential_pub_key and rev_key_priv
+    Issuer::update_revocation_registry(
         &mut rev_reg,
         max_cred_num,
         issued.clone().unwrap_or_default(),
         revoked.clone().unwrap_or_default(),
-        &tails_reader,
+        // &credential_pub_key
+        // &rev_key_priv,
     )?;
     new_list.update(Some(rev_reg), issued, revoked, timestamp)?;
 
@@ -707,7 +707,7 @@ pub fn create_credential(
             (revocation_config, rev_status_list)
         {
             let rev_reg_def = &revocation_config.reg_def.value;
-            let rev_reg: Option<UrsaRevocationRegistry> = rev_status_list.into();
+            let rev_reg: Option<CLSignaturesRevocationRegistry> = rev_status_list.into();
             let rev_reg = rev_reg.ok_or_else(|| {
                 err_msg!(
                     Unexpected,
@@ -715,7 +715,7 @@ pub fn create_credential(
                 )
             })?;
 
-            let mut rev_reg: ursa::cl::RevocationRegistry = rev_reg.try_into()?;
+            let mut rev_reg: RevocationRegistry = rev_reg.try_into()?;
 
             let status = rev_status_list
                 .get(revocation_config.registry_idx as usize)
@@ -740,8 +740,8 @@ pub fn create_credential(
             // `issuance_by_default`.
             let issuance_by_default = !status;
 
-            let (credential_signature, signature_correctness_proof, delta) =
-                CryptoIssuer::sign_credential_with_revoc(
+            let (credential_signature, signature_correctness_proof, delta, options) =
+                Issuer::sign_credential_with_revoc(
                     &cred_request.entropy()?,
                     &cred_request.blinded_ms,
                     &cred_request.blinded_ms_correctness_proof,
@@ -755,7 +755,6 @@ pub fn create_credential(
                     issuance_by_default,
                     &mut rev_reg,
                     &revocation_config.reg_def_private.value,
-                    &revocation_config.tails_reader,
                 )?;
 
             let witness = {
@@ -767,7 +766,7 @@ pub fn create_credential(
                 // ursa::cl::Witness type
                 let rev_reg_delta = delta.unwrap_or_else(|| {
                     let empty = HashSet::new();
-                    CryptoRevocationRegistryDelta::from_parts(None, &rev_reg, &empty, &empty)
+                    RevocationRegistryDelta::from_parts(None, &rev_reg, &empty, &empty)
                 });
                 Witness::new(
                     revocation_config.registry_idx,
@@ -784,7 +783,7 @@ pub fn create_credential(
                 Some(witness),
             )
         } else {
-            let (signature, correctness_proof) = CryptoIssuer::sign_credential(
+            let (signature, correctness_proof) = Issuer::sign_credential(
                 &cred_request.entropy()?,
                 &cred_request.blinded_ms,
                 &cred_request.blinded_ms_correctness_proof,

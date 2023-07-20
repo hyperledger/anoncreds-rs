@@ -12,7 +12,7 @@ extern crate serde;
 extern crate serde_json;
 
 #[doc(hidden)]
-pub use ursa;
+pub use anoncreds_clsignatures as cl;
 
 #[macro_use]
 mod error;

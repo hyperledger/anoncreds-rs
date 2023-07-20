@@ -1,17 +1,16 @@
+use sha2::{Digest, Sha256};
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
-
-use crate::utils::base58;
-use sha2::{Digest, Sha256};
 use tempfile;
 
-use crate::error::Result;
-use crate::ursa::{
-    cl::{RevocationTailsAccessor, RevocationTailsGenerator, Tail},
-    errors::{UrsaCryptoError, UrsaCryptoErrorKind},
+use crate::cl::{
+    Error as CryptoError, ErrorKind as CryptoErrorKind, RevocationTailsAccessor,
+    RevocationTailsGenerator, Tail,
 };
+use crate::error::Result;
+use crate::utils::base58;
 
 const TAILS_BLOB_TAG_SZ: u8 = 2;
 const TAIL_SIZE: usize = Tail::BYTES_REPR_SIZE;
@@ -39,7 +38,7 @@ impl RevocationTailsAccessor for TailsReader {
         &self,
         tail_id: u32,
         accessor: &mut dyn FnMut(&Tail),
-    ) -> std::result::Result<(), UrsaCryptoError> {
+    ) -> std::result::Result<(), CryptoError> {
         trace!("access_tail >>> tail_id: {:?}", tail_id);
 
         let tail_bytes = self
@@ -50,8 +49,8 @@ impl RevocationTailsAccessor for TailsReader {
                 TAIL_SIZE * tail_id as usize + TAILS_BLOB_TAG_SZ as usize,
             )
             .map_err(|_| {
-                UrsaCryptoError::from_msg(
-                    UrsaCryptoErrorKind::InvalidState,
+                CryptoError::new(
+                    CryptoErrorKind::InvalidState,
                     "Can't read tail bytes from file",
                 )
             })?; // FIXME: IO error should be returned

@@ -1,3 +1,7 @@
+use crate::cl::{
+    BlindedCredentialSecrets, BlindedCredentialSecretsCorrectnessProof,
+    CredentialSecretsBlindingFactors,
+};
 use crate::error::{Result, ValidationError};
 use crate::invalid;
 use crate::utils::validation::{Validatable, LEGACY_DID_IDENTIFIER};
@@ -11,8 +15,8 @@ pub struct CredentialRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     prover_did: Option<String>,
     cred_def_id: CredentialDefinitionId,
-    pub blinded_ms: ursa::cl::BlindedCredentialSecrets,
-    pub blinded_ms_correctness_proof: ursa::cl::BlindedCredentialSecretsCorrectnessProof,
+    pub blinded_ms: BlindedCredentialSecrets,
+    pub blinded_ms_correctness_proof: BlindedCredentialSecretsCorrectnessProof,
     pub nonce: Nonce,
 }
 
@@ -55,8 +59,8 @@ impl CredentialRequest {
         entropy: Option<&str>,
         prover_did: Option<&str>,
         cred_def_id: CredentialDefinitionId,
-        blinded_ms: ursa::cl::BlindedCredentialSecrets,
-        blinded_ms_correctness_proof: ursa::cl::BlindedCredentialSecretsCorrectnessProof,
+        blinded_ms: BlindedCredentialSecrets,
+        blinded_ms_correctness_proof: BlindedCredentialSecretsCorrectnessProof,
         nonce: Nonce,
     ) -> Result<Self> {
         let s = Self {
@@ -85,7 +89,7 @@ impl CredentialRequest {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CredentialRequestMetadata {
-    pub link_secret_blinding_data: ursa::cl::CredentialSecretsBlindingFactors,
+    pub link_secret_blinding_data: CredentialSecretsBlindingFactors,
     pub nonce: Nonce,
     pub link_secret_name: String,
 }
