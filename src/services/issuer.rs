@@ -1,4 +1,4 @@
-use crate::cl::{Issuer, RevocationRegistry, RevocationRegistryDelta, Witness};
+use crate::cl::{Issuer, RevocationRegistry};
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
 use crate::data_types::rev_reg::{CLSignaturesRevocationRegistry, RevocationRegistryId};
@@ -17,7 +17,7 @@ use crate::services::helpers::{
 use crate::types::{CredentialDefinitionConfig, CredentialRevocationConfig};
 use crate::utils::validation::Validatable;
 use bitvec::bitvec;
-use std::collections::{BTreeSet, HashSet};
+use std::collections::BTreeSet;
 
 use super::tails::TailsWriter;
 use super::types::{
@@ -743,7 +743,7 @@ pub fn create_credential(
             // `issuance_by_default`.
             let issuance_by_default = !status;
 
-            let (credential_signature, signature_correctness_proof, witness, opt_delta) =
+            let (credential_signature, signature_correctness_proof, witness, _opt_delta) =
                 Issuer::sign_credential_with_revoc(
                     &cred_request.entropy()?,
                     &cred_request.blinded_ms,
