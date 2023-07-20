@@ -19,7 +19,7 @@ use crate::utils::validation::Validatable;
 use bitvec::bitvec;
 use std::collections::{BTreeSet, HashSet};
 
-use super::tails::{TailsFileReader, TailsWriter};
+use super::tails::TailsWriter;
 use super::types::{
     AttributeNames, Credential, CredentialDefinitionPrivate, CredentialKeyCorrectnessProof,
     CredentialOffer, CredentialRequest, CredentialValues, RegistryType,
@@ -341,11 +341,13 @@ where
 ///                                           ).expect("Unable to create revocation status list");
 /// ```
 pub fn create_revocation_status_list(
+    cred_def: &CredentialDefinition,
     rev_reg_def_id: impl TryInto<RevocationRegistryDefinitionId, Error = ValidationError>,
     rev_reg_def: &RevocationRegistryDefinition,
+    rev_reg_priv: &RevocationRegistryDefinitionPrivate,
     issuer_id: impl TryInto<IssuerId, Error = ValidationError>,
-    timestamp: Option<u64>,
     issuance_by_default: bool,
+    timestamp: Option<u64>,
 ) -> Result<RevocationStatusList> {
     let rev_reg = CLSignaturesRevocationRegistry::try_from(ACCUM_NO_ISSUED)?;
     let max_cred_num = rev_reg_def.value.max_cred_num;
@@ -360,7 +362,7 @@ pub fn create_revocation_status_list(
     }
 
     let list = if issuance_by_default {
-        let tails_reader = TailsFileReader::new_tails_reader(&rev_reg_def.value.tails_location);
+        let cred_pub_key = cred_def.get_public_key()?;
         let issued = (1..=max_cred_num).collect::<BTreeSet<_>>();
 
         Issuer::update_revocation_registry(
@@ -368,8 +370,8 @@ pub fn create_revocation_status_list(
             max_cred_num,
             issued,
             BTreeSet::new(),
-            // &credential_pub_key
-            // &rev_key_priv,
+            &cred_pub_key,
+            &rev_reg_priv.value,
         )?;
         bitvec![0; max_cred_num as usize ]
     } else {
@@ -511,11 +513,13 @@ pub fn update_revocation_status_list_timestamp_only(
 ///                                                                     ).expect("Unable to update revocation status list");
 /// ```
 pub fn update_revocation_status_list(
-    timestamp: Option<u64>,
+    cred_def: &CredentialDefinition,
+    rev_reg_def: &RevocationRegistryDefinition,
+    rev_reg_priv: &RevocationRegistryDefinitionPrivate,
+    current_list: &RevocationStatusList,
     issued: Option<BTreeSet<u32>>,
     revoked: Option<BTreeSet<u32>>,
-    rev_reg_def: &RevocationRegistryDefinition,
-    current_list: &RevocationStatusList,
+    timestamp: Option<u64>,
 ) -> Result<RevocationStatusList> {
     let mut new_list = current_list.clone();
     let issued = issued.map(|i_list| {
@@ -539,17 +543,16 @@ pub fn update_revocation_status_list(
             "Require Accumulator Value to update Rev Status List",
         )
     })?;
-    let tails_reader = TailsFileReader::new_tails_reader(&rev_reg_def.value.tails_location);
+    let cred_pub_key = cred_def.get_public_key()?;
     let max_cred_num = rev_reg_def.value.max_cred_num;
 
-    // TODO: need to pass in credential_pub_key and rev_key_priv
     Issuer::update_revocation_registry(
         &mut rev_reg,
         max_cred_num,
         issued.clone().unwrap_or_default(),
         revoked.clone().unwrap_or_default(),
-        // &credential_pub_key
-        // &rev_key_priv,
+        &cred_pub_key,
+        &rev_reg_priv.value,
     )?;
     new_list.update(Some(rev_reg), issued, revoked, timestamp)?;
 
@@ -740,7 +743,7 @@ pub fn create_credential(
             // `issuance_by_default`.
             let issuance_by_default = !status;
 
-            let (credential_signature, signature_correctness_proof, delta, options) =
+            let (credential_signature, signature_correctness_proof, witness, opt_delta) =
                 Issuer::sign_credential_with_revoc(
                     &cred_request.entropy()?,
                     &cred_request.blinded_ms,
@@ -756,26 +759,6 @@ pub fn create_credential(
                     &mut rev_reg,
                     &revocation_config.reg_def_private.value,
                 )?;
-
-            let witness = {
-                // `delta` is None if `issuance_type == issuance_by_default`
-                // So in this case the delta goes from none to the new one,
-                // which is all issued (by default) and non is revoked
-                //
-                // Note: delta is actually never used but we keep it so it is inline with
-                // ursa::cl::Witness type
-                let rev_reg_delta = delta.unwrap_or_else(|| {
-                    let empty = HashSet::new();
-                    RevocationRegistryDelta::from_parts(None, &rev_reg, &empty, &empty)
-                });
-                Witness::new(
-                    revocation_config.registry_idx,
-                    rev_reg_def.max_cred_num,
-                    issuance_by_default,
-                    &rev_reg_delta,
-                    &revocation_config.tails_reader,
-                )?
-            };
             (
                 credential_signature,
                 signature_correctness_proof,
