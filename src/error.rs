@@ -149,18 +149,10 @@ impl From<serde_json::Error> for Error {
 
 impl From<CryptoError> for Error {
     fn from(err: CryptoError) -> Self {
-        // let message = format!("Ursa Crypto Error: {}", Fail::iter_causes(&err).map(|e| e.to_string()).collect::<String>());
         let message = err.to_string();
         let kind = match err.kind() {
             CryptoErrorKind::InvalidState => ErrorKind::InvalidState,
-            // CryptoErrorKind::InvalidStructure | CryptoErrorKind::InvalidParam(_) => {
-            //     ErrorKind::Input
-            // }
-            // CryptoErrorKind::IOError => ErrorKind::IOError,
-            // CryptoErrorKind::InvalidRevocationAccumulatorIndex => ErrorKind::InvalidUserRevocId,
-            // CryptoErrorKind::RevocationAccumulatorIsFull => ErrorKind::RevocationRegistryFull,
             CryptoErrorKind::ProofRejected => ErrorKind::ProofRejected,
-            // CryptoErrorKind::CredentialRevoked => ErrorKind::CredentialRevoked,
         };
         Self::from_msg(kind, message)
     }
