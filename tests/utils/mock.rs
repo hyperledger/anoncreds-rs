@@ -172,12 +172,19 @@ impl<'a> Mock<'a> {
                     },
                 );
 
+                let rev_reg_def_priv = match iw_mut.rev_defs.get(rev_reg_id) {
+                    Some(rev_def) => &rev_def.private,
+                    None => panic!("Revocation definition not found for ID {}", rev_reg_id),
+                };
+
                 let revocation_status_list = issuer::create_revocation_status_list(
+                    &cred_def_pub,
                     *rev_reg_id,
                     &rev_reg_def_pub,
+                    rev_reg_def_priv,
                     issuer_id,
-                    Some(time_now),
                     issuance_by_default,
+                    Some(time_now),
                 )
                 .unwrap();
 
@@ -343,6 +350,11 @@ impl<'a> Mock<'a> {
                 .get(*rev_reg_id)
                 .map(|e| &e.public);
 
+            let rev_def_priv = self.issuer_wallets[issuer_id]
+                .rev_defs
+                .get(*rev_reg_id)
+                .map(|e| &e.private);
+
             // prover processes it
             prover::process_credential(
                 &mut recv_cred,
@@ -368,11 +380,13 @@ impl<'a> Mock<'a> {
                     .unwrap();
 
                 let updated_list = issuer::update_revocation_status_list(
-                    Some(time_new_rev_reg),
+                    cred_def,
+                    rev_def,
+                    rev_def_priv.unwrap(),
+                    list,
                     Some(BTreeSet::from([*rev_idx])),
                     None,
-                    rev_def,
-                    list,
+                    Some(time_new_rev_reg),
                 )
                 .unwrap();
 
