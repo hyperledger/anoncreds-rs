@@ -27,7 +27,7 @@ impl TryFrom<&RevocationStatusList> for Option<CryptoRevocationRegistry> {
     type Error = Error;
 
     fn try_from(value: &RevocationStatusList) -> std::result::Result<Self, Self::Error> {
-        value.registry.map(TryInto::try_into).transpose()
+        Ok(value.registry.map(From::from))
     }
 }
 
@@ -42,10 +42,9 @@ impl TryFrom<&RevocationStatusList> for Option<RevocationRegistry> {
 
     fn try_from(value: &RevocationStatusList) -> std::result::Result<Self, Self::Error> {
         let value = match value.registry {
-            Some(registry) => {
-                let reg: CryptoRevocationRegistry = registry.try_into()?;
-                Some(RevocationRegistry { value: reg })
-            }
+            Some(registry) => Some(RevocationRegistry {
+                value: registry.into(),
+            }),
             None => None,
         };
 
@@ -71,7 +70,7 @@ impl RevocationStatusList {
     }
 
     pub fn set_registry(&mut self, registry: CryptoRevocationRegistry) -> Result<()> {
-        self.registry = Some(registry.try_into()?);
+        self.registry = Some(registry.into());
         Ok(())
     }
 
@@ -88,7 +87,7 @@ impl RevocationStatusList {
     ) -> Result<()> {
         // only update if input is Some
         if let Some(reg) = registry {
-            self.registry = Some(reg.try_into()?);
+            self.registry = Some(reg.into());
         }
         if let Some(issued) = issued {
             // issued credentials are assigned `false`

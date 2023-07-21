@@ -27,8 +27,6 @@ use super::types::{
     SignatureType,
 };
 
-const ACCUM_NO_ISSUED: &str = "1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000 2 095E45DDF417D05FB10933FFC63D474548B7FFFF7888802F07FFFFFF7D07A8A8 1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000 1 0000000000000000000000000000000000000000000000000000000000000000";
-
 /// Create an Anoncreds schema according to the [Anoncreds v1.0
 /// specification - Schema](https://hyperledger.github.io/anoncreds-spec/#schema-publisher-publish-schema-object)
 ///
@@ -349,11 +347,10 @@ pub fn create_revocation_status_list(
     issuance_by_default: bool,
     timestamp: Option<u64>,
 ) -> Result<RevocationStatusList> {
-    let rev_reg = CLSignaturesRevocationRegistry::try_from(ACCUM_NO_ISSUED)?;
     let max_cred_num = rev_reg_def.value.max_cred_num;
     let rev_reg_def_id = rev_reg_def_id.try_into()?;
     let issuer_id = issuer_id.try_into()?;
-    let mut rev_reg: RevocationRegistry = rev_reg.try_into()?;
+    let mut rev_reg = RevocationRegistry::from(CLSignaturesRevocationRegistry::empty()?);
 
     if issuer_id != rev_reg_def.issuer_id {
         return Err(err_msg!(
@@ -382,7 +379,7 @@ pub fn create_revocation_status_list(
         Some(rev_reg_def_id.to_string().as_str()),
         issuer_id,
         list,
-        Some(rev_reg.try_into()?),
+        Some(rev_reg.into()),
         timestamp,
     )
 }
@@ -718,7 +715,7 @@ pub fn create_credential(
                 )
             })?;
 
-            let mut rev_reg: RevocationRegistry = rev_reg.try_into()?;
+            let mut rev_reg: RevocationRegistry = rev_reg.into();
 
             let status = rev_status_list
                 .get(revocation_config.registry_idx as usize)

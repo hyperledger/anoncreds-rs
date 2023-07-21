@@ -14,6 +14,13 @@ pub struct RevocationRegistry {
 #[derive(Clone, Copy, Debug, Serialize)]
 pub struct CLSignaturesRevocationRegistry(Accumulator);
 
+impl CLSignaturesRevocationRegistry {
+    pub fn empty() -> Result<Self, Error> {
+        let accum = Accumulator::new_inf()?;
+        Ok(Self(accum))
+    }
+}
+
 impl TryFrom<&str> for CLSignaturesRevocationRegistry {
     type Error = Error;
 
@@ -23,22 +30,15 @@ impl TryFrom<&str> for CLSignaturesRevocationRegistry {
     }
 }
 
-impl TryFrom<CryptoRevocationRegistry> for CLSignaturesRevocationRegistry {
-    type Error = Error;
-
-    fn try_from(value: CryptoRevocationRegistry) -> Result<Self, Self::Error> {
-        let s = serde_json::to_string(&value)?;
-        Ok(serde_json::from_str(&s)?)
+impl From<CryptoRevocationRegistry> for CLSignaturesRevocationRegistry {
+    fn from(value: CryptoRevocationRegistry) -> Self {
+        Self(value.accum)
     }
 }
 
-impl TryFrom<CLSignaturesRevocationRegistry> for CryptoRevocationRegistry {
-    type Error = Error;
-
-    fn try_from(value: CLSignaturesRevocationRegistry) -> Result<Self, Self::Error> {
-        let s = serde_json::to_string(&value)?;
-        let json = format!("{{\"accum\": {s}}}");
-        Ok(serde_json::from_str(&json)?)
+impl From<CLSignaturesRevocationRegistry> for CryptoRevocationRegistry {
+    fn from(value: CLSignaturesRevocationRegistry) -> Self {
+        Self { accum: value.0 }
     }
 }
 

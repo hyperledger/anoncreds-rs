@@ -8,10 +8,7 @@ use anoncreds::tails::{TailsFileReader, TailsFileWriter};
 use anoncreds::types::{CredentialRevocationConfig, PresentCredentials};
 use anoncreds::verifier;
 use serde_json::json;
-use std::{
-    collections::{BTreeSet, HashMap},
-    fs::create_dir,
-};
+use std::collections::{BTreeSet, HashMap};
 
 use utils::*;
 mod utils;
@@ -203,19 +200,8 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
     let ((gvt_cred_def, gvt_cred_def_priv, gvt_cred_key_correctness_proof), gvt_cred_def_id) =
         fixtures::create_cred_def(&gvt_schema, true);
 
-    // This will create a tails file locally in the .tmp dir
-    let tf_path = "../.tmp";
-    create_dir(tf_path)
-        .or_else(|e| -> Result<(), std::io::Error> {
-            println!(
-                "Tail file path creation error but test can still proceed {}",
-                e
-            );
-            Ok(())
-        })
-        .unwrap();
-
-    let mut tf = TailsFileWriter::new(Some(tf_path.to_owned()));
+    // Create tails file writer
+    let mut tf = TailsFileWriter::new(None);
 
     let ((gvt_rev_reg_def, gvt_rev_reg_def_priv), gvt_rev_reg_def_id) =
         fixtures::create_rev_reg_def(&gvt_cred_def, &mut tf);
@@ -256,8 +242,8 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
     let gvt_rev_reg_id = RevocationRegistryId::new_unchecked(gvt_rev_reg_def_id.clone());
 
     // Get the location of the tails_file so it can be read
-    let location = gvt_rev_reg_def.clone().value.tails_location;
-    let tr = TailsFileReader::new_tails_reader(location.as_str());
+    let tails_location = gvt_rev_reg_def.value.tails_location.clone();
+    let tr = TailsFileReader::new_tails_reader(tails_location.as_str());
 
     let issue_cred = issuer::create_credential(
         &gvt_cred_def,
@@ -331,7 +317,7 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
     .expect("Error creating proof request");
 
     let rev_state = prover::create_or_update_revocation_state(
-        &gvt_rev_reg_def.value.tails_location,
+        &tails_location,
         &gvt_rev_reg_def,
         &gvt_revocation_status_list,
         fixtures::GVT_REV_IDX,
@@ -381,8 +367,8 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
         &gvt_rev_reg_def,
         &gvt_rev_reg_def_priv,
         &issued_rev_status_list,
-        Some(BTreeSet::from([fixtures::GVT_REV_IDX])),
         None,
+        Some(BTreeSet::from([fixtures::GVT_REV_IDX])),
         Some(time_revoke_cred),
     )
     .unwrap();
@@ -391,9 +377,9 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
     rev_status_list.push(&revoked_status_list);
 
     let rev_state = prover::create_or_update_revocation_state(
-        &gvt_rev_reg_def.value.tails_location,
+        &tails_location,
         &gvt_rev_reg_def,
-        &gvt_revocation_status_list,
+        &revoked_status_list,
         fixtures::GVT_REV_IDX,
         Some(&rev_state),
         Some(&issued_rev_status_list),
