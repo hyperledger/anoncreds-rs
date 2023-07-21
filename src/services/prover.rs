@@ -594,11 +594,13 @@ pub fn create_revocation_state_with_witness(
 ///                                            ).expect("Unable to create revocation registry");
 ///
 /// let rev_status_list =
-///     issuer::create_revocation_status_list("did:web:xyz/resource/rev-reg-def",
+///     issuer::create_revocation_status_list(&cred_def,
+///                                           "did:web:xyz/resource/rev-reg-def",
 ///                                           &rev_reg_def,
+///                                           &rev_reg_def_priv,
 ///                                           "did:web:xyz",
-///                                           Some(10),
-///                                           true
+///                                           true,
+///                                           Some(10)
 ///                                           ).expect("Unable to create revocation status list");
 ///
 /// let rev_state =
@@ -608,7 +610,7 @@ pub fn create_revocation_state_with_witness(
 ///                                               0,
 ///                                               None,
 ///                                               None
-///                                              ).expect("Unable to create or update the revocation state");
+///                                               ).expect("Unable to create or update the revocation state");
 /// ```
 pub fn create_or_update_revocation_state(
     tails_path: &str,

@@ -331,11 +331,13 @@ where
 ///                                            ).expect("Unable to create revocation registry");
 ///
 /// let rev_status_list =
-///     issuer::create_revocation_status_list("did:web:xyz/resource/rev-reg-def",
+///     issuer::create_revocation_status_list(&cred_def,
+///                                           "did:web:xyz/resource/rev-reg-def",
 ///                                           &rev_reg_def,
+///                                           &rev_reg_def_priv,
 ///                                           "did:web:xyz",
-///                                           None,
-///                                           true
+///                                           true,
+///                                           None
 ///                                           ).expect("Unable to create revocation status list");
 /// ```
 pub fn create_revocation_status_list(
@@ -427,11 +429,13 @@ pub fn create_revocation_status_list(
 ///                                            &mut tw
 ///                                            ).expect("Unable to create revocation registry");
 ///
-/// let rev_status_list = issuer::create_revocation_status_list("did:web:xyz/resource/rev-reg-def",
+/// let rev_status_list = issuer::create_revocation_status_list(&cred_def,
+///                                                             "did:web:xyz/resource/rev-reg-def",
 ///                                                             &rev_reg_def,
+///                                                             &rev_reg_def_priv,
 ///                                                             "did:web:xyz",
-///                                                             None,
-///                                                             true
+///                                                             true,
+///                                                             None
 ///                                                             ).expect("Unable to create revocation status list");
 ///
 /// let updated_rev_status_list = issuer::update_revocation_status_list_timestamp_only(1000,
@@ -492,21 +496,25 @@ pub fn update_revocation_status_list_timestamp_only(
 ///                                            &mut tw
 ///                                            ).expect("Unable to create revocation registry");
 ///
-/// let rev_status_list = issuer::create_revocation_status_list("did:web:xyz/resource/rev-reg-def",
+/// let rev_status_list = issuer::create_revocation_status_list(&cred_def,
+///                                                             "did:web:xyz/resource/rev-reg-def",
 ///                                                             &rev_reg_def,
+///                                                             &rev_reg_def_priv,
 ///                                                             "did:web:xyz",
-///                                                             None,
-///                                                             true
+///                                                             true,
+///                                                             None
 ///                                                             ).expect("Unable to create revocation status list");
 ///
 /// let mut issued: BTreeSet<u32> = BTreeSet::new();
 /// issued.insert(1);
 ///
-/// let updated_rev_status_list = issuer::update_revocation_status_list(None,
+/// let updated_rev_status_list = issuer::update_revocation_status_list(&cred_def,
+///                                                                     &rev_reg_def,
+///                                                                     &rev_reg_def_priv,
+///                                                                     &rev_status_list,
 ///                                                                     Some(issued),
 ///                                                                     None,
-///                                                                     &rev_reg_def,
-///                                                                     &rev_status_list
+///                                                                     None
 ///                                                                     ).expect("Unable to update revocation status list");
 /// ```
 pub fn update_revocation_status_list(
