@@ -47,11 +47,13 @@ cred_def_pub, cred_def_priv, cred_def_correctness = CredentialDefinition.create(
 
 time_create_rev_status_list = 12
 revocation_status_list = RevocationStatusList.create(
+    cred_def_pub,
     rev_reg_id,
     rev_reg_def_pub,
+    rev_reg_def_private,
     issuer_id,
+    True,
     time_create_rev_status_list,
-    True
 )
 
 link_secret = create_link_secret()
@@ -103,10 +105,12 @@ recv_cred = issue_cred.process(
 
 time_after_creating_cred = time_create_rev_status_list + 1
 issued_rev_status_list = revocation_status_list.update(
-    time_after_creating_cred,
+    cred_def_pub,
+    rev_reg_def_pub,
+    rev_reg_def_private,
     [rev_idx],
     None,
-    rev_reg_def_pub
+    time_after_creating_cred,
 )
 
 nonce = generate_nonce()
@@ -202,10 +206,12 @@ assert verified
 
 time_revoke_cred = time_after_creating_cred + 1
 revoked_status_list = issued_rev_status_list.update(
-    time_revoke_cred,
+    cred_def_pub,
+    rev_reg_def_pub,
+    rev_reg_def_private,
     None,
     [rev_idx],
-    rev_reg_def_pub
+    time_revoke_cred,
 )
 
 rev_status_lists.append(revoked_status_list)
@@ -266,7 +272,6 @@ verified = presentation.verify(
     rev_reg_defs,
     rev_status_lists,
 )
-
 assert not verified
 
 print("ok")

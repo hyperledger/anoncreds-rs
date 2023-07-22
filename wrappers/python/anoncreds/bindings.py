@@ -867,45 +867,55 @@ def create_revocation_registry_definition(
 
 
 def create_revocation_status_list(
+    cred_def: ObjectHandle,
     rev_reg_def_id: str,
     rev_reg_def: ObjectHandle,
+    rev_reg_def_private: ObjectHandle,
     issuer_id: str,
-    timestamp: Optional[int],
     issuance_by_default: bool,
+    timestamp: Optional[int],
 ) -> ObjectHandle:
     revocation_status_list = ObjectHandle()
 
     do_call(
         "anoncreds_create_revocation_status_list",
+        cred_def,
         encode_str(rev_reg_def_id),
         rev_reg_def,
+        rev_reg_def_private,
         encode_str(issuer_id),
-        timestamp if timestamp else -1,
         int(issuance_by_default),
+        timestamp if timestamp else -1,
         byref(revocation_status_list),
     )
     return revocation_status_list
 
+
 def update_revocation_status_list(
-    timestamp: Optional[int],
+    cred_def: ObjectHandle,
+    rev_reg_def: ObjectHandle,
+    rev_reg_def_private: ObjectHandle,
+    rev_current_list: ObjectHandle,
     issued: Optional[Sequence[int]],
     revoked: Optional[Sequence[int]],
-    rev_reg_def: ObjectHandle,
-    rev_current_list: ObjectHandle,
+    timestamp: Optional[int],
 ) -> ObjectHandle:
     new_revocation_status_list = ObjectHandle()
 
     do_call(
         "anoncreds_update_revocation_status_list",
-        timestamp if timestamp else -1,
+        cred_def,
+        rev_reg_def,
+        rev_reg_def_private,
+        rev_current_list,
         FfiInt32List.create(issued),
         FfiInt32List.create(revoked),
-        rev_reg_def,
-        rev_current_list,
-        byref(new_revocation_status_list)
+        timestamp if timestamp else -1,
+        byref(new_revocation_status_list),
     )
 
     return new_revocation_status_list
+
 
 def update_revocation_status_list_timestamp_only(
     timestamp: int,
