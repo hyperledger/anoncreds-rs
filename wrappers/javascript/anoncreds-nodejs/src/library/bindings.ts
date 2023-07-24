@@ -148,9 +148,19 @@ export const nativeBindings = {
       FFI_INT8_PTR,
     ],
   ],
+
   anoncreds_create_revocation_status_list: [
     FFI_ERRORCODE,
-    [FFI_STRING, FFI_OBJECT_HANDLE, FFI_STRING, FFI_INT64, FFI_INT8, FFI_OBJECT_HANDLE_PTR],
+    [
+      FFI_OBJECT_HANDLE,
+      FFI_STRING,
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE,
+      FFI_STRING,
+      FFI_INT8,
+      FFI_INT64,
+      FFI_OBJECT_HANDLE_PTR,
+    ],
   ],
   anoncreds_update_revocation_status_list_timestamp_only: [
     FFI_ERRORCODE,
@@ -158,7 +168,16 @@ export const nativeBindings = {
   ],
   anoncreds_update_revocation_status_list: [
     FFI_ERRORCODE,
-    [FFI_INT64, I32ListStruct, I32ListStruct, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR],
+    [
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE,
+      I32ListStruct,
+      I32ListStruct,
+      FFI_INT64,
+      FFI_OBJECT_HANDLE_PTR,
+    ],
   ],
   anoncreds_version: [FFI_STRING, []],
   anoncreds_credential_request_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],

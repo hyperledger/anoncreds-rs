@@ -467,23 +467,34 @@ export class NodeJSAnoncreds implements Anoncreds {
   }
 
   public createRevocationStatusList(options: {
+    credentialDefinition: ObjectHandle
     revocationRegistryDefinitionId: string
     revocationRegistryDefinition: ObjectHandle
+    revocationRegistryDefinitionPrivate: ObjectHandle
     issuerId: string
-    timestamp?: number
     issuanceByDefault: boolean
+    timestamp?: number
   }): ObjectHandle {
-    const { timestamp, issuanceByDefault, revocationRegistryDefinition, revocationRegistryDefinitionId, issuerId } =
-      serializeArguments(options)
+    const {
+      credentialDefinition,
+      revocationRegistryDefinitionId,
+      revocationRegistryDefinition,
+      revocationRegistryDefinitionPrivate,
+      issuerId,
+      issuanceByDefault,
+      timestamp,
+    } = serializeArguments(options)
 
     const ret = allocatePointer()
 
     this.nativeAnoncreds.anoncreds_create_revocation_status_list(
+      credentialDefinition,
       revocationRegistryDefinitionId,
       revocationRegistryDefinition,
+      revocationRegistryDefinitionPrivate,
       issuerId,
-      timestamp ?? -1,
       issuanceByDefault,
+      timestamp ?? -1,
       ret
     )
     this.handleError()
@@ -509,22 +520,33 @@ export class NodeJSAnoncreds implements Anoncreds {
   }
 
   public updateRevocationStatusList(options: {
-    timestamp?: number
+    credentialDefinition: ObjectHandle
+    revocationRegistryDefinition: ObjectHandle
+    revocationRegistryDefinitionPrivate: ObjectHandle
+    currentRevocationStatusList: ObjectHandle
     issued?: number[]
     revoked?: number[]
-    revocationRegistryDefinition: ObjectHandle
-    currentRevocationStatusList: ObjectHandle
+    timestamp?: number
   }): ObjectHandle {
-    const { currentRevocationStatusList, timestamp, revocationRegistryDefinition, revoked, issued } =
-      serializeArguments(options)
+    const {
+      credentialDefinition,
+      revocationRegistryDefinition,
+      revocationRegistryDefinitionPrivate,
+      currentRevocationStatusList,
+      issued,
+      revoked,
+      timestamp,
+    } = serializeArguments(options)
     const ret = allocatePointer()
 
     this.nativeAnoncreds.anoncreds_update_revocation_status_list(
-      timestamp ?? -1,
+      credentialDefinition,
+      revocationRegistryDefinition,
+      revocationRegistryDefinitionPrivate,
+      currentRevocationStatusList,
       issued,
       revoked,
-      revocationRegistryDefinition,
-      currentRevocationStatusList,
+      timestamp ?? -1,
       ret
     )
     this.handleError()

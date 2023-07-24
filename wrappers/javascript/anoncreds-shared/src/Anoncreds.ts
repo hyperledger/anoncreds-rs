@@ -143,11 +143,13 @@ export interface Anoncreds {
   }): ObjectHandle
 
   createRevocationStatusList(options: {
+    credentialDefinition: ObjectHandle
     revocationRegistryDefinitionId: string
     revocationRegistryDefinition: ObjectHandle
+    revocationRegistryDefinitionPrivate: ObjectHandle
     issuerId: string
-    timestamp?: number
     issuanceByDefault: boolean
+    timestamp?: number
   }): ObjectHandle
 
   updateRevocationStatusListTimestampOnly(options: {

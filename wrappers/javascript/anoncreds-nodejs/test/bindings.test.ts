@@ -259,11 +259,13 @@ describe('bindings', () => {
 
     const timeCreateRevStatusList = 12
     const revocationStatusList = anoncreds.createRevocationStatusList({
-      issuerId: 'mock:uri',
-      timestamp: timeCreateRevStatusList,
-      issuanceByDefault: true,
-      revocationRegistryDefinition,
+      credentialDefinition,
       revocationRegistryDefinitionId: 'mock:uri',
+      revocationRegistryDefinition,
+      revocationRegistryDefinitionPrivate,
+      issuerId: 'mock:uri',
+      issuanceByDefault: true,
+      timestamp: timeCreateRevStatusList,
     })
 
     const credentialOffer = anoncreds.createCredentialOffer({
@@ -394,11 +396,13 @@ describe('bindings', () => {
 
     const timeCreateRevStatusList = 12
     const revocationStatusList = anoncreds.createRevocationStatusList({
-      issuerId: 'mock:uri',
-      timestamp: timeCreateRevStatusList,
-      issuanceByDefault: true,
-      revocationRegistryDefinition,
+      credentialDefinition,
       revocationRegistryDefinitionId: 'mock:uri',
+      revocationRegistryDefinition,
+      revocationRegistryDefinitionPrivate,
+      issuerId: 'mock:uri',
+      issuanceByDefault: true,
+      timestamp: timeCreateRevStatusList,
     })
 
     const credentialOffer = anoncreds.createCredentialOffer({
