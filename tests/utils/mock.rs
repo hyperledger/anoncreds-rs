@@ -178,10 +178,9 @@ impl<'a> Mock<'a> {
 
                 let revocation_status_list = issuer::create_revocation_status_list(
                     &cred_def_pub,
-                    *rev_reg_id,
+                    (*rev_reg_id).try_into().unwrap(),
                     &rev_reg_def_pub,
                     rev_reg_def_priv,
-                    issuer_id,
                     issuance_by_default,
                     Some(time_now),
                 )

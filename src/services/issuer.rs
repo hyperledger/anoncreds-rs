@@ -325,23 +325,14 @@ where
 /// ```
 pub fn create_revocation_status_list(
     cred_def: &CredentialDefinition,
-    rev_reg_def_id: impl TryInto<RevocationRegistryDefinitionId, Error = ValidationError>,
+    rev_reg_def_id: RevocationRegistryDefinitionId,
     rev_reg_def: &RevocationRegistryDefinition,
     rev_reg_priv: &RevocationRegistryDefinitionPrivate,
-    issuer_id: impl TryInto<IssuerId, Error = ValidationError>,
     issuance_by_default: bool,
     timestamp: Option<u64>,
 ) -> Result<RevocationStatusList> {
     let max_cred_num = rev_reg_def.value.max_cred_num;
-    let rev_reg_def_id = rev_reg_def_id.try_into()?;
-    let issuer_id = issuer_id.try_into()?;
     let mut rev_reg = RevocationRegistry::from(CLSignaturesRevocationRegistry::empty()?);
-
-    if issuer_id != rev_reg_def.issuer_id {
-        return Err(err_msg!(
-            "Issuer id must be the same as the issuer id in the revocation registry definition"
-        ));
-    }
 
     let list = if issuance_by_default {
         let cred_pub_key = cred_def.get_public_key()?;
@@ -362,7 +353,7 @@ pub fn create_revocation_status_list(
 
     RevocationStatusList::new(
         Some(rev_reg_def_id.to_string().as_str()),
-        issuer_id,
+        rev_reg_def.issuer_id.clone(),
         list,
         Some(rev_reg.into()),
         timestamp,

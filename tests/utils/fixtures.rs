@@ -164,20 +164,18 @@ pub fn create_revocation_status_list(
     match rev_reg_def.tag.as_str() {
         GVT_REV_REG_TAG => issuer::create_revocation_status_list(
             cred_def,
-            GVT_REV_REG_DEF_ID,
+            GVT_REV_REG_DEF_ID.try_into().unwrap(),
             rev_reg_def,
             rev_reg_priv,
-            GVT_ISSUER_ID,
             issuance_by_default,
             time,
         )
         .expect("Error while creating GVT rev status list"),
         EMP_REV_REG_TAG => issuer::create_revocation_status_list(
             cred_def,
-            EMP_REV_REG_DEF_ID,
+            EMP_REV_REG_DEF_ID.try_into().unwrap(),
             rev_reg_def,
             rev_reg_priv,
-            EMP_ISSUER_ID,
             issuance_by_default,
             time,
         )
