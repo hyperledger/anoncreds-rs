@@ -253,7 +253,7 @@ mod rev_reg_tests {
 
         list.update(None, Some(BTreeSet::from([0u32])), None, Some(1245))
             .unwrap();
-        assert_eq!(list.get(0usize).unwrap(), false);
+        assert!(!list.get(0usize).unwrap());
         assert_eq!(list.timestamp().unwrap(), 1245);
     }
 }

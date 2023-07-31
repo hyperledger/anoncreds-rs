@@ -98,7 +98,7 @@ impl<'a> Mock<'a> {
 
         for (i, presentation) in presentations.iter().enumerate() {
             let valid = verifier::verify_presentation(
-                &presentation,
+                presentation,
                 &reqs[i],
                 &schemas,
                 &cred_defs,
@@ -165,7 +165,7 @@ impl<'a> Mock<'a> {
 
                 let iw_mut = self.issuer_wallets.get_mut(issuer_id).unwrap();
                 iw_mut.rev_defs.insert(
-                    &rev_reg_id,
+                    rev_reg_id,
                     StoredRevDef {
                         public: rev_reg_def_pub.clone(),
                         private: rev_reg_def_priv,
@@ -250,8 +250,7 @@ impl<'a> Mock<'a> {
             .ledger
             .revcation_list
             .get(rev_reg_id)
-            .map(|h| h.get(&prev_rev_reg_time))
-            .flatten();
+            .and_then(|h| h.get(&prev_rev_reg_time));
         let mut cred_values = MakeCredentialValues::default();
         let names: Vec<String> = schema.attr_names.clone().0.into_iter().collect();
         for (i, v) in names.iter().enumerate() {
@@ -286,7 +285,7 @@ impl<'a> Mock<'a> {
         };
 
         let issue_cred = issuer::create_credential(
-            &ledger
+            ledger
                 .cred_defs
                 .get(&CredentialDefinitionId::new_unchecked(cred_def_id))
                 .unwrap(),
@@ -319,16 +318,16 @@ impl<'a> Mock<'a> {
             let cred_def = self
                 .ledger
                 .cred_defs
-                .get(&CredentialDefinitionId::new_unchecked(cred_def_id.clone()))
+                .get(&CredentialDefinitionId::new_unchecked(*cred_def_id))
                 .unwrap();
             // Prover creates a Credential Request
             let cred_req_data = prover::create_credential_request(
                 Some("entropy"),
                 None,
-                &cred_def,
+                cred_def,
                 &self.prover_wallets[prover_id].link_secret,
                 "default",
-                &offer,
+                offer,
             )
             .expect("Error creating credential request");
 
@@ -337,8 +336,8 @@ impl<'a> Mock<'a> {
                 &self.issuer_wallets[issuer_id],
                 &self.ledger,
                 &cred_req_data.0,
-                &offer,
-                *rev_reg_id,
+                offer,
+                rev_reg_id,
                 cred_def_id,
                 cred_values,
                 time_prev_rev_reg,
@@ -360,7 +359,7 @@ impl<'a> Mock<'a> {
                 &mut recv_cred,
                 &cred_req_data.1,
                 &self.prover_wallets[prover_id].link_secret,
-                &cred_def,
+                cred_def,
                 rev_def,
             )
             .expect("Error processing credential");
@@ -390,7 +389,7 @@ impl<'a> Mock<'a> {
                 )
                 .unwrap();
 
-                let map = self.ledger.revcation_list.get_mut(&*rev_reg_id).unwrap();
+                let map = self.ledger.revcation_list.get_mut(rev_reg_id).unwrap();
                 map.insert(time_new_rev_reg, updated_list);
             }
         }
@@ -446,31 +445,29 @@ impl<'a> Mock<'a> {
                 .unwrap();
             {
                 let (rev_state, timestamp) = if let Some(id) = &cred.rev_reg_id {
-                    self.prover_wallets[prover_id].rev_states.get(&id).unwrap()
+                    self.prover_wallets[prover_id].rev_states.get(id).unwrap()
                 } else {
                     &(None, None)
                 };
 
                 let mut cred1 = present.add_credential(cred, *timestamp, rev_state.as_ref());
                 for a in &values.0 {
-                    cred1.add_requested_attribute(a.clone(), true);
+                    cred1.add_requested_attribute(*a, true);
                 }
                 for p in &values.1 {
-                    cred1.add_requested_predicate(p.clone());
+                    cred1.add_requested_predicate(*p);
                 }
             }
         }
 
-        let presentation = prover::create_presentation(
+        prover::create_presentation(
             req,
             present,
-            Some(self_attested.clone()),
+            Some(self_attested),
             &self.prover_wallets[prover_id].link_secret,
             &schemas,
             &cred_defs,
         )
-        .expect("Error creating presentation");
-
-        presentation
+        .expect("Error creating presentation")
     }
 }
