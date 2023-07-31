@@ -17,6 +17,7 @@ pub struct Schema {
     pub issuer_id: IssuerId,
 }
 
+// QUESTION: If these must be unique, why not directly store them as a set?
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AttributeNames(pub Vec<String>);
 
@@ -55,11 +56,7 @@ impl Validatable for Schema {
 impl Validatable for AttributeNames {
     fn validate(&self) -> Result<(), ValidationError> {
         let mut unique = HashSet::new();
-        let is_unique = self
-            .0
-            .clone()
-            .into_iter()
-            .all(move |name| unique.insert(name));
+        let is_unique = self.0.iter().all(move |name| unique.insert(name));
 
         if !is_unique {
             return Err("Attributes inside the schema must be unique".into());
