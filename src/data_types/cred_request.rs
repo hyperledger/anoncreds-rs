@@ -122,13 +122,14 @@ mod cred_req_tests {
     const LINK_SECRET_ID: &str = "link:secret:id";
 
     fn cred_def() -> Result<(CredentialDefinition, CredentialKeyCorrectnessProof)> {
-        let credential_definition_issuer_id = "sample:id";
-
-        let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
         let issuer_id = "sample:uri".try_into()?;
+        let schema_id = "schema:id".try_into()?;
+        let credential_definition_issuer_id = "sample:id".try_into()?;
+        let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
+        
         let schema = create_schema("schema:name", "1.0", issuer_id, attr_names)?;
         let cred_def = create_credential_definition(
-            "schema:id",
+            schema_id,
             &schema,
             credential_definition_issuer_id,
             "default",

@@ -32,7 +32,8 @@ pub extern "C" fn anoncreds_create_credential_definition(
         let tag = tag.as_opt_str().ok_or_else(|| err_msg!("Missing tag"))?;
         let schema_id = schema_id
             .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing schema id"))?;
+            .ok_or_else(|| err_msg!("Missing schema id"))?
+            .try_into()?;
         let signature_type = {
             let stype = signature_type
                 .as_opt_str()
@@ -41,7 +42,9 @@ pub extern "C" fn anoncreds_create_credential_definition(
         };
         let issuer_id = issuer_id
             .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing issuer id"))?;
+            .ok_or_else(|| err_msg!("Missing issuer id"))?
+            .try_into()?;
+        
         let (cred_def, cred_def_pvt, key_proof) = create_credential_definition(
             schema_id,
             schema.load()?.cast_ref()?,

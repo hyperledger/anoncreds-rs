@@ -128,9 +128,9 @@ impl<'a> Mock<'a> {
         for (cred_def_id, (schema_id, _, support_revocation, rev_reg_id, _)) in values.iter() {
             let (cred_def_pub, cred_def_priv, cred_def_correctness) =
                 issuer::create_credential_definition(
-                    schema_id.to_string(),
+                    (*schema_id).try_into().unwrap(),
                     &self.ledger.schemas[&SchemaId::new_unchecked(*schema_id)],
-                    issuer_id,
+                    issuer_id.try_into().unwrap(),
                     "tag",
                     SignatureType::CL,
                     CredentialDefinitionConfig {
@@ -154,8 +154,8 @@ impl<'a> Mock<'a> {
                 let mut tf = TailsFileWriter::new(Some(self.tails_path.to_owned()));
                 let (rev_reg_def_pub, rev_reg_def_priv) = issuer::create_revocation_registry_def(
                     &cred_def_pub,
-                    *cred_def_id,
-                    issuer_id,
+                    (*cred_def_id).try_into().unwrap(),
+                    issuer_id.try_into().unwrap(),
                     "some_tag",
                     RegistryType::CL_ACCUM,
                     self.max_cred_num,

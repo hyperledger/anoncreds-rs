@@ -106,10 +106,10 @@ pub fn create_schema(
 ///                                          CredentialDefinitionConfig::default()
 ///                                          ).expect("Unable to create Credential Definition");
 /// ```
-pub fn create_credential_definition<SI, II>(
-    schema_id: SI,
+pub fn create_credential_definition(
+    schema_id: SchemaId,
     schema: &Schema,
-    issuer_id: II,
+    issuer_id: IssuerId,
     tag: &str,
     signature_type: SignatureType,
     config: CredentialDefinitionConfig,
@@ -117,18 +117,12 @@ pub fn create_credential_definition<SI, II>(
     CredentialDefinition,
     CredentialDefinitionPrivate,
     CredentialKeyCorrectnessProof,
-)>
-where
-    SI: TryInto<SchemaId, Error = ValidationError>,
-    II: TryInto<IssuerId, Error = ValidationError>,
-{
+)> {
     trace!(
         "create_credential_definition >>> schema: {:?}, config: {:?}",
         schema,
         config
     );
-    let issuer_id = issuer_id.try_into()?;
-    let schema_id = schema_id.try_into()?;
 
     let credential_schema = build_credential_schema(&schema.attr_names.0)?;
     let non_credential_schema = build_non_credential_schema()?;
@@ -215,8 +209,8 @@ where
 /// ```
 pub fn create_revocation_registry_def<TW>(
     cred_def: &CredentialDefinition,
-    cred_def_id: impl TryInto<CredentialDefinitionId, Error = ValidationError>,
-    issuer_id: impl TryInto<IssuerId, Error = ValidationError>,
+    cred_def_id: CredentialDefinitionId,
+    issuer_id: IssuerId,
     tag: &str,
     rev_reg_type: RegistryType,
     max_cred_num: u32,
@@ -230,8 +224,6 @@ where
 {
     trace!("create_revocation_registry >>> cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}",
              cred_def, tag, max_cred_num, rev_reg_type);
-    let cred_def_id = cred_def_id.try_into()?;
-    let issuer_id = issuer_id.try_into()?;
 
     if issuer_id != cred_def.issuer_id {
         return Err(err_msg!(
@@ -808,14 +800,16 @@ mod tests {
     #[test]
     fn test_issuer_id_equal_in_revocation_registry_definiton_and_credential_definition(
     ) -> Result<()> {
-        let credential_definition_issuer_id = "sample:id";
-        let revocation_registry_definition_issuer_id = credential_definition_issuer_id;
-
-        let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
         let issuer_id = "sample:uri".try_into()?;
+        let schema_id = "schema:id".try_into()?;
+        let cred_def_id = "sample:uri".try_into()?;
+        let credential_definition_issuer_id: IssuerId = "sample:id".try_into()?;
+        let revocation_registry_definition_issuer_id = credential_definition_issuer_id.clone();
+        let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
+
         let schema = create_schema("schema:name", "1.0", issuer_id, attr_names)?;
         let cred_def = create_credential_definition(
-            "schema:id",
+            schema_id,
             &schema,
             credential_definition_issuer_id,
             "default",
@@ -826,7 +820,7 @@ mod tests {
         )?;
         let res = create_revocation_registry_def(
             &cred_def.0,
-            "sample:uri",
+            cred_def_id,
             revocation_registry_definition_issuer_id,
             "default",
             RegistryType::CL_ACCUM,
@@ -841,14 +835,16 @@ mod tests {
     #[test]
     fn test_issuer_id_unequal_in_revocation_registry_definiton_and_credential_definition(
     ) -> Result<()> {
-        let credential_definition_issuer_id = "sample:id";
-        let revocation_registry_definition_issuer_id = "another:id";
-
-        let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
         let issuer_id = "sample:uri".try_into()?;
+        let schema_id = "schema:id".try_into()?;
+        let cred_def_id = "sample:uri".try_into()?;
+        let credential_definition_issuer_id: IssuerId = "sample:id".try_into()?;
+        let revocation_registry_definition_issuer_id = credential_definition_issuer_id.clone();
+        let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
+
         let schema = create_schema("schema:name", "1.0", issuer_id, attr_names)?;
         let cred_def = create_credential_definition(
-            "schema:id",
+            schema_id,
             &schema,
             credential_definition_issuer_id,
             "default",
@@ -859,7 +855,7 @@ mod tests {
         )?;
         let res = create_revocation_registry_def(
             &cred_def.0,
-            "sample:uri",
+            cred_def_id,
             revocation_registry_definition_issuer_id,
             "default",
             RegistryType::CL_ACCUM,

@@ -1147,9 +1147,9 @@ mod tests {
         fn _cred_def_and_key_correctness_proof(
         ) -> (CredentialDefinition, CredentialKeyCorrectnessProof) {
             let (cred_def, _, key_correctness_proof) = create_credential_definition(
-                SCHEMA_ID,
+                SCHEMA_ID.try_into().unwrap(),
                 &_schema(),
-                ISSUER_ID,
+                ISSUER_ID.try_into().unwrap(),
                 "tag",
                 SignatureType::CL,
                 CredentialDefinitionConfig {
@@ -1177,9 +1177,9 @@ mod tests {
         fn _legacy_cred_def_and_key_correctness_proof(
         ) -> (CredentialDefinition, CredentialKeyCorrectnessProof) {
             let (cred_def, _, key_correctness_proof) = create_credential_definition(
-                LEGACY_SCHEMA_IDENTIFIER,
+                LEGACY_SCHEMA_IDENTIFIER.try_into().unwrap(),
                 &_legacy_schema(),
-                LEGACY_DID_IDENTIFIER,
+                LEGACY_DID_IDENTIFIER.try_into().unwrap(),
                 "tag",
                 SignatureType::CL,
                 CredentialDefinitionConfig {

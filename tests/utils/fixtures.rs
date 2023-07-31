@@ -89,9 +89,9 @@ pub fn create_cred_def(
     match schema.name.as_str() {
         GVT_SCHEMA_NAME => (
             issuer::create_credential_definition(
-                GVT_SCHEMA_ID,
+                GVT_SCHEMA_ID.try_into().unwrap(),
                 schema,
-                GVT_ISSUER_ID,
+                GVT_ISSUER_ID.try_into().unwrap(),
                 GVT_CRED_DEF_TAG,
                 anoncreds::types::SignatureType::CL,
                 anoncreds::types::CredentialDefinitionConfig { support_revocation },
@@ -101,9 +101,9 @@ pub fn create_cred_def(
         ),
         EMP_SCHEMA_NAME => (
             issuer::create_credential_definition(
-                EMP_SCHEMA_ID,
+                EMP_SCHEMA_ID.try_into().unwrap(),
                 schema,
-                EMP_ISSUER_ID,
+                EMP_ISSUER_ID.try_into().unwrap(),
                 EMP_CRED_DEF_TAG,
                 anoncreds::types::SignatureType::CL,
                 anoncreds::types::CredentialDefinitionConfig { support_revocation },
@@ -129,8 +129,8 @@ pub fn create_rev_reg_def<'a>(
         GVT_CRED_DEF_TAG => (
             issuer::create_revocation_registry_def(
                 cred_def,
-                GVT_CRED_DEF_ID,
-                GVT_ISSUER_ID,
+                GVT_CRED_DEF_ID.try_into().unwrap(),
+                GVT_ISSUER_ID.try_into().unwrap(),
                 GVT_REV_REG_TAG,
                 anoncreds::types::RegistryType::CL_ACCUM,
                 GVT_REV_MAX_CRED_NUM,
@@ -142,8 +142,8 @@ pub fn create_rev_reg_def<'a>(
         EMP_CRED_DEF_TAG => (
             issuer::create_revocation_registry_def(
                 cred_def,
-                EMP_CRED_DEF_ID,
-                EMP_ISSUER_ID,
+                EMP_CRED_DEF_ID.try_into().unwrap(),
+                EMP_ISSUER_ID.try_into().unwrap(),
                 EMP_REV_REG_TAG,
                 anoncreds::types::RegistryType::CL_ACCUM,
                 EMP_REV_MAX_CRED_NUM,

@@ -110,9 +110,9 @@ mod test_cred_def {
     ) {
         let schema = schema();
         issuer::create_credential_definition(
-            "did:example/schema",
+            "did:example/schema".try_into().unwrap(),
             &schema,
-            "did:exampple",
+            "did:exampple".try_into().unwrap(),
             "default-tag",
             SignatureType::CL,
             CredentialDefinitionConfig::default(),
@@ -124,9 +124,9 @@ mod test_cred_def {
     fn should_create_credential_definition() {
         let schema = schema();
         let result = issuer::create_credential_definition(
-            "did:example/schema",
+            "did:example/schema".try_into().unwrap(),
             &schema,
-            "did:exampple",
+            "did:exampple".try_into().unwrap(),
             "default-tag",
             SignatureType::CL,
             CredentialDefinitionConfig::default(),

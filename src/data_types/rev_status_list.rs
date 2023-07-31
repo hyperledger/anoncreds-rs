@@ -41,12 +41,9 @@ impl TryFrom<&RevocationStatusList> for Option<RevocationRegistry> {
     type Error = Error;
 
     fn try_from(value: &RevocationStatusList) -> std::result::Result<Self, Self::Error> {
-        let value = match value.registry {
-            Some(registry) => Some(RevocationRegistry {
-                value: registry.into(),
-            }),
-            None => None,
-        };
+        let value = value.registry.map(|registry| RevocationRegistry {
+            value: registry.into(),
+        });
 
         Ok(value)
     }

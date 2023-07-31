@@ -148,10 +148,12 @@ pub extern "C" fn anoncreds_create_revocation_registry_def(
         let tag = tag.as_opt_str().ok_or_else(|| err_msg!("Missing tag"))?;
         let cred_def_id = cred_def_id
             .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing cred def id"))?;
+            .ok_or_else(|| err_msg!("Missing cred def id"))?
+            .try_into()?;
         let issuer_id = issuer_id
             .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing issuer id"))?;
+            .ok_or_else(|| err_msg!("Missing issuer id"))?
+            .try_into()?;
         let rev_reg_type = {
             let rtype = rev_reg_type
                 .as_opt_str()
