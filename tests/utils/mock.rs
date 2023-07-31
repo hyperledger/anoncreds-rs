@@ -155,7 +155,6 @@ impl<'a> Mock<'a> {
                 let (rev_reg_def_pub, rev_reg_def_priv) = issuer::create_revocation_registry_def(
                     &cred_def_pub,
                     (*cred_def_id).try_into().unwrap(),
-                    issuer_id.try_into().unwrap(),
                     "some_tag",
                     RegistryType::CL_ACCUM,
                     self.max_cred_num,

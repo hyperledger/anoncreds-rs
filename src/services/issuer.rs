@@ -134,6 +134,8 @@ pub fn create_credential_definition(
             config.support_revocation,
         )?;
 
+    // should be better to deconstruct the key than cloning it here
+    // as it's only being used here
     let cred_def = CredentialDefinition {
         schema_id,
         signature_type,
@@ -210,7 +212,6 @@ pub fn create_credential_definition(
 pub fn create_revocation_registry_def<TW>(
     cred_def: &CredentialDefinition,
     cred_def_id: CredentialDefinitionId,
-    issuer_id: IssuerId,
     tag: &str,
     rev_reg_type: RegistryType,
     max_cred_num: u32,
@@ -224,12 +225,6 @@ where
 {
     trace!("create_revocation_registry >>> cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}",
              cred_def, tag, max_cred_num, rev_reg_type);
-
-    if issuer_id != cred_def.issuer_id {
-        return Err(err_msg!(
-            "Issuer id must be the same as the issuer id in the credential definition"
-        ));
-    }
 
     let credential_pub_key = cred_def.get_public_key().map_err(err_map!(
         Unexpected,
@@ -256,7 +251,7 @@ where
 
     let revoc_reg_def = RevocationRegistryDefinition {
         revoc_def_type: rev_reg_type,
-        issuer_id,
+        issuer_id: cred_def.issuer_id.clone(),
         tag: tag.to_string(),
         cred_def_id,
         value: revoc_reg_def_value,
@@ -804,7 +799,6 @@ mod tests {
         let schema_id = "schema:id".try_into()?;
         let cred_def_id = "sample:uri".try_into()?;
         let credential_definition_issuer_id: IssuerId = "sample:id".try_into()?;
-        let revocation_registry_definition_issuer_id = credential_definition_issuer_id.clone();
         let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
 
         let schema = create_schema("schema:name", "1.0", issuer_id, attr_names)?;
@@ -821,7 +815,6 @@ mod tests {
         let res = create_revocation_registry_def(
             &cred_def.0,
             cred_def_id,
-            revocation_registry_definition_issuer_id,
             "default",
             RegistryType::CL_ACCUM,
             1,
@@ -839,7 +832,6 @@ mod tests {
         let schema_id = "schema:id".try_into()?;
         let cred_def_id = "sample:uri".try_into()?;
         let credential_definition_issuer_id: IssuerId = "sample:id".try_into()?;
-        let revocation_registry_definition_issuer_id = credential_definition_issuer_id.clone();
         let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
 
         let schema = create_schema("schema:name", "1.0", issuer_id, attr_names)?;
@@ -856,7 +848,6 @@ mod tests {
         let res = create_revocation_registry_def(
             &cred_def.0,
             cred_def_id,
-            revocation_registry_definition_issuer_id,
             "default",
             RegistryType::CL_ACCUM,
             1,
