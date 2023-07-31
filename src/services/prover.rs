@@ -1135,7 +1135,13 @@ mod tests {
         }
 
         fn _schema() -> Schema {
-            create_schema("test", "1.0", ISSUER_ID, ["a", "b", "c"][..].into()).unwrap()
+            create_schema(
+                "test",
+                "1.0",
+                ISSUER_ID.try_into().unwrap(),
+                ["a", "b", "c"][..].into(),
+            )
+            .unwrap()
         }
 
         fn _cred_def_and_key_correctness_proof(
@@ -1162,7 +1168,7 @@ mod tests {
             create_schema(
                 "test",
                 "1.0",
-                LEGACY_DID_IDENTIFIER,
+                LEGACY_DID_IDENTIFIER.try_into().unwrap(),
                 ["a", "b", "c"][..].into(),
             )
             .unwrap()

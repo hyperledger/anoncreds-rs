@@ -97,7 +97,7 @@ mod test_cred_def {
         issuer::create_schema(
             "name",
             "1.0",
-            "did:example",
+            "did:example".try_into().unwrap(),
             vec!["name".to_owned(), "age".to_owned()].into(),
         )
         .expect("Unable to create Schema")

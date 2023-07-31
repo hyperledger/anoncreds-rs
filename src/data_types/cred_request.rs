@@ -125,7 +125,8 @@ mod cred_req_tests {
         let credential_definition_issuer_id = "sample:id";
 
         let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
-        let schema = create_schema("schema:name", "1.0", "sample:uri", attr_names)?;
+        let issuer_id = "sample:uri".try_into()?;
+        let schema = create_schema("schema:name", "1.0", issuer_id, attr_names)?;
         let cred_def = create_credential_definition(
             "schema:id",
             &schema,

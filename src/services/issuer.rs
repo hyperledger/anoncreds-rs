@@ -45,22 +45,18 @@ use super::types::{
 ///                                    attribute_names.into()
 ///                                    ).expect("Unable to create schema");
 /// ```
-pub fn create_schema<II>(
+pub fn create_schema(
     schema_name: &str,
     schema_version: &str,
-    issuer_id: II,
+    issuer_id: IssuerId,
     attr_names: AttributeNames,
-) -> Result<Schema>
-where
-    II: TryInto<IssuerId, Error = ValidationError>,
-{
+) -> Result<Schema> {
     trace!(
         "create_schema >>> schema_name: {}, schema_version: {}, attr_names: {:?}",
         schema_name,
         schema_version,
         attr_names,
     );
-    let issuer_id = issuer_id.try_into()?;
 
     let schema = Schema {
         name: schema_name.to_string(),
@@ -816,7 +812,8 @@ mod tests {
         let revocation_registry_definition_issuer_id = credential_definition_issuer_id;
 
         let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
-        let schema = create_schema("schema:name", "1.0", "sample:uri", attr_names)?;
+        let issuer_id = "sample:uri".try_into()?;
+        let schema = create_schema("schema:name", "1.0", issuer_id, attr_names)?;
         let cred_def = create_credential_definition(
             "schema:id",
             &schema,
@@ -848,7 +845,8 @@ mod tests {
         let revocation_registry_definition_issuer_id = "another:id";
 
         let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
-        let schema = create_schema("schema:name", "1.0", "sample:uri", attr_names)?;
+        let issuer_id = "sample:uri".try_into()?;
+        let schema = create_schema("schema:name", "1.0", issuer_id, attr_names)?;
         let cred_def = create_credential_definition(
             "schema:id",
             &schema,

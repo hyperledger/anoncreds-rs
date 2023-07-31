@@ -55,7 +55,7 @@ pub fn create_schema(name: &str) -> (Schema, &str) {
             issuer::create_schema(
                 GVT_SCHEMA_NAME,
                 GVT_SCHEMA_VERSION,
-                GVT_ISSUER_ID,
+                GVT_ISSUER_ID.try_into().unwrap(),
                 GVT_SCHEMA_ATTRIBUTES[..].into(),
             )
             .expect("error while creating GVT schema"),
@@ -65,7 +65,7 @@ pub fn create_schema(name: &str) -> (Schema, &str) {
             issuer::create_schema(
                 EMP_SCHEMA_NAME,
                 EMP_SCHEMA_VERSION,
-                EMP_ISSUER_ID,
+                EMP_ISSUER_ID.try_into().unwrap(),
                 EMP_SCHEMA_ATTRIBUTES[..].into(),
             )
             .expect("error while creating EMP schema"),
