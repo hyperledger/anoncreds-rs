@@ -10,7 +10,7 @@ use crate::data_types::{
     rev_reg_def::{RevocationRegistryDefinitionValue, RevocationRegistryDefinitionValuePublicKeys},
     schema::Schema,
 };
-use crate::error::{Error, ErrorKind, Result, ValidationError};
+use crate::error::{Error, ErrorKind, Result};
 use crate::services::helpers::{
     build_credential_schema, build_credential_values, build_non_credential_schema,
 };
@@ -573,12 +573,10 @@ pub fn update_revocation_status_list(
 ///                                     ).expect("Unable to create Credential Offer");
 /// ```
 pub fn create_credential_offer(
-    schema_id: impl TryInto<SchemaId, Error = ValidationError>,
-    cred_def_id: impl TryInto<CredentialDefinitionId, Error = ValidationError>,
+    schema_id: SchemaId,
+    cred_def_id: CredentialDefinitionId,
     correctness_proof: &CredentialKeyCorrectnessProof,
 ) -> Result<CredentialOffer> {
-    let schema_id = schema_id.try_into()?;
-    let cred_def_id = cred_def_id.try_into()?;
     trace!("create_credential_offer >>> cred_def_id: {:?}", cred_def_id);
 
     let nonce = Nonce::new().map_err(err_map!(Unexpected, "Error creating nonce"))?;
@@ -678,10 +676,11 @@ pub fn create_credential(
             cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&cred_values), revocation_config,
             );
 
-    let cred_public_key = cred_def.get_public_key().map_err(err_map!(
-        Unexpected,
-        "Error fetching public key from credential definition"
-    ))?;
+    let cred_public_key: anoncreds_clsignatures::CredentialPublicKey =
+        cred_def.get_public_key().map_err(err_map!(
+            Unexpected,
+            "Error fetching public key from credential definition"
+        ))?;
     let credential_values = build_credential_values(&cred_values.0, None)?;
 
     let (credential_signature, signature_correctness_proof, rev_reg, witness) =

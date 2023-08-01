@@ -126,7 +126,7 @@ mod cred_req_tests {
         let schema_id = "schema:id".try_into()?;
         let credential_definition_issuer_id = "sample:id".try_into()?;
         let attr_names = AttributeNames::from(vec!["name".to_owned(), "age".to_owned()]);
-        
+
         let schema = create_schema("schema:name", "1.0", issuer_id, attr_names)?;
         let cred_def = create_credential_definition(
             schema_id,
@@ -152,12 +152,16 @@ mod cred_req_tests {
     ) -> Result<CredentialOffer> {
         if is_legacy {
             create_credential_offer(
-                LEGACY_SCHEMA_IDENTIFIER,
-                LEGACY_CRED_DEF_IDENTIFIER,
+                LEGACY_SCHEMA_IDENTIFIER.try_into()?,
+                LEGACY_CRED_DEF_IDENTIFIER.try_into()?,
                 &correctness_proof,
             )
         } else {
-            create_credential_offer(NEW_IDENTIFIER, NEW_IDENTIFIER, &correctness_proof)
+            create_credential_offer(
+                NEW_IDENTIFIER.try_into()?,
+                NEW_IDENTIFIER.try_into()?,
+                &correctness_proof,
+            )
         }
     }
 

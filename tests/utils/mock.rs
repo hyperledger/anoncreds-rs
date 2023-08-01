@@ -199,8 +199,8 @@ impl<'a> Mock<'a> {
 
             // Issuer creates a Credential Offer
             let cred_offer = issuer::create_credential_offer(
-                schema_id.to_string(),
-                *cred_def_id,
+                schema_id.to_string().try_into().unwrap(),
+                (*cred_def_id).try_into().unwrap(),
                 &cred_def_correctness,
             )
             .expect("Error creating credential offer");

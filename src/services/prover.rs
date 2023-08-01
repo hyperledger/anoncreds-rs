@@ -1161,7 +1161,12 @@ mod tests {
         }
 
         fn _cred_offer(key_correctness_proof: CredentialKeyCorrectnessProof) -> CredentialOffer {
-            create_credential_offer(SCHEMA_ID, CRED_DEF_ID, &key_correctness_proof).unwrap()
+            create_credential_offer(
+                SCHEMA_ID.try_into().unwrap(),
+                CRED_DEF_ID.try_into().unwrap(),
+                &key_correctness_proof,
+            )
+            .unwrap()
         }
 
         fn _legacy_schema() -> Schema {
@@ -1194,8 +1199,8 @@ mod tests {
             key_correctness_proof: CredentialKeyCorrectnessProof,
         ) -> CredentialOffer {
             create_credential_offer(
-                LEGACY_SCHEMA_IDENTIFIER,
-                LEGACY_CRED_DEF_IDENTIFIER,
+                LEGACY_SCHEMA_IDENTIFIER.try_into().unwrap(),
+                LEGACY_CRED_DEF_IDENTIFIER.try_into().unwrap(),
                 &key_correctness_proof,
             )
             .unwrap()
