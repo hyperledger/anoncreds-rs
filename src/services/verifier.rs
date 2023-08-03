@@ -4,6 +4,7 @@ use super::types::Presentation;
 use super::types::PresentationRequest;
 use super::types::RevocationRegistryDefinition;
 use super::types::RevocationStatusList;
+use crate::cl::{CredentialPublicKey, RevocationRegistry, Verifier};
 use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
@@ -21,11 +22,9 @@ use crate::services::helpers::build_non_credential_schema;
 use crate::services::helpers::build_sub_proof_request;
 use crate::services::helpers::get_predicates_for_credential;
 use crate::services::helpers::get_revealed_attributes_for_credential;
-use crate::ursa::cl::verifier::Verifier as CryptoVerifier;
-use crate::ursa::cl::CredentialPublicKey;
-use crate::ursa::cl::RevocationRegistry as CryptoRevocationRegistry;
 use crate::utils::query::Query;
 use crate::utils::validation::LEGACY_DID_IDENTIFIER;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -92,7 +91,7 @@ pub fn verify_presentation(
         &received_self_attested_attrs,
     )?;
 
-    let mut proof_verifier = CryptoVerifier::new_proof_verifier()?;
+    let mut proof_verifier = Verifier::new_proof_verifier()?;
     let non_credential_schema = build_non_credential_schema()?;
 
     for sub_proof_index in 0..presentation.identifiers.len() {
@@ -111,10 +110,8 @@ pub fn verify_presentation(
         })?;
 
         let rev_reg_map = if let Some(ref lists) = rev_status_lists {
-            let mut map: HashMap<
-                RevocationRegistryDefinitionId,
-                HashMap<u64, CryptoRevocationRegistry>,
-            > = HashMap::new();
+            let mut map: HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>> =
+                HashMap::new();
 
             for list in lists.iter() {
                 let id = list
@@ -125,7 +122,7 @@ pub fn verify_presentation(
                     .timestamp()
                     .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing timestamp"))?;
 
-                let rev_reg: Option<ursa::cl::RevocationRegistry> = (*list).try_into()?;
+                let rev_reg: Option<RevocationRegistry> = (*list).try_into()?;
                 let rev_reg = rev_reg.ok_or_else(|| {
                     err_msg!(Unexpected, "Revocation status list missing accumulator")
                 })?;

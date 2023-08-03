@@ -1,7 +1,9 @@
 [package]
 name = "anoncreds"
 version = "0.1.0"
-authors = ["Hyperledger AnonCreds Contributors <anoncreds@lists.hyperledger.org>"]
+authors = [
+    "Hyperledger AnonCreds Contributors <anoncreds@lists.hyperledger.org>",
+]
 description = "Verifiable credential issuance and presentation for Hyperledger AnonCreds (https://www.hyperledger.org/projects), which provides a foundation for self-sovereign identity."
 edition = "2021"
 license = "Apache-2.0"
@@ -20,7 +22,7 @@ crate-type = ["staticlib", "rlib", "cdylib"]
 default = ["ffi", "logger", "zeroize"]
 ffi = ["ffi-support"]
 logger = ["env_logger"]
-vendored = ["openssl", "openssl/vendored"]
+vendored = ["anoncreds-clsignatures/openssl_vendored"]
 
 [dependencies]
 bs58 = "0.4.0"
@@ -32,17 +34,12 @@ rand = "0.8.5"
 regex = "1.7.1"
 serde = { version = "1.0.155", features = ["derive"] }
 bitvec = { version = "1.0.1", features = ["serde"] }
-serde_json = { version = "1.0.94", features = ["raw_value"]}
+serde_json = { version = "1.0.94", features = ["raw_value"] }
 sha2 = "0.10.6"
 tempfile = "3.4.0"
 thiserror = "1.0.39"
-ursa = { version = "0.3.7", default-features = false, features = ["cl_native", "serde"] }
 zeroize = { version = "1.5.7", optional = true, features = ["zeroize_derive"] }
-
-# We add the openssl dependency here because ursa does not expose a vendored openssl feature
-# Since we use "cl_native" as a feature, which uses openssl, we can add a vendored build with 
-# the new exposed "vendored" feature
-openssl = { version = "0.10.45", optional = true }
+anoncreds-clsignatures = "0.1"
 
 [profile.release]
 lto = true

@@ -1,19 +1,27 @@
-use crate::{impl_anoncreds_object_identifier, Error};
 use serde::de::{self, Deserialize, Deserializer, MapAccess, Visitor};
 use serde::Serialize;
-use ursa::cl::Accumulator;
+
+use crate::cl::{Accumulator, RevocationRegistry as CryptoRevocationRegistry};
+use crate::{impl_anoncreds_object_identifier, Error};
 
 impl_anoncreds_object_identifier!(RevocationRegistryId);
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RevocationRegistry {
-    pub value: ursa::cl::RevocationRegistry,
+    pub value: CryptoRevocationRegistry,
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
-pub struct UrsaRevocationRegistry(Accumulator);
+pub struct CLSignaturesRevocationRegistry(Accumulator);
 
-impl TryFrom<&str> for UrsaRevocationRegistry {
+impl CLSignaturesRevocationRegistry {
+    pub fn empty() -> Result<Self, Error> {
+        let accum = Accumulator::new_inf()?;
+        Ok(Self(accum))
+    }
+}
+
+impl TryFrom<&str> for CLSignaturesRevocationRegistry {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -22,34 +30,27 @@ impl TryFrom<&str> for UrsaRevocationRegistry {
     }
 }
 
-impl TryFrom<ursa::cl::RevocationRegistry> for UrsaRevocationRegistry {
-    type Error = Error;
-
-    fn try_from(value: ursa::cl::RevocationRegistry) -> Result<Self, Self::Error> {
-        let s = serde_json::to_string(&value)?;
-        Ok(serde_json::from_str(&s)?)
+impl From<CryptoRevocationRegistry> for CLSignaturesRevocationRegistry {
+    fn from(value: CryptoRevocationRegistry) -> Self {
+        Self(value.accum)
     }
 }
 
-impl TryFrom<UrsaRevocationRegistry> for ursa::cl::RevocationRegistry {
-    type Error = Error;
-
-    fn try_from(value: UrsaRevocationRegistry) -> Result<Self, Self::Error> {
-        let s = serde_json::to_string(&value)?;
-        let json = format!("{{\"accum\": {s}}}");
-        Ok(serde_json::from_str(&json)?)
+impl From<CLSignaturesRevocationRegistry> for CryptoRevocationRegistry {
+    fn from(value: CLSignaturesRevocationRegistry) -> Self {
+        Self { accum: value.0 }
     }
 }
 
-impl<'de> Deserialize<'de> for UrsaRevocationRegistry {
+impl<'de> Deserialize<'de> for CLSignaturesRevocationRegistry {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        struct UrsaRevocationRegistryVisitor;
+        struct CLSignaturesRevocationRegistryVisitor;
 
-        impl<'de> Visitor<'de> for UrsaRevocationRegistryVisitor {
-            type Value = UrsaRevocationRegistry;
+        impl<'de> Visitor<'de> for CLSignaturesRevocationRegistryVisitor {
+            type Value = CLSignaturesRevocationRegistry;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 write!(formatter, "string or map")
@@ -58,12 +59,12 @@ impl<'de> Deserialize<'de> for UrsaRevocationRegistry {
             fn visit_str<E: serde::de::Error>(
                 self,
                 value: &str,
-            ) -> Result<UrsaRevocationRegistry, E> {
+            ) -> Result<CLSignaturesRevocationRegistry, E> {
                 let accum = Accumulator::from_string(value).map_err(de::Error::custom)?;
-                Ok(UrsaRevocationRegistry(accum))
+                Ok(CLSignaturesRevocationRegistry(accum))
             }
 
-            fn visit_map<V>(self, mut map: V) -> Result<UrsaRevocationRegistry, V::Error>
+            fn visit_map<V>(self, mut map: V) -> Result<CLSignaturesRevocationRegistry, V::Error>
             where
                 V: MapAccess<'de>,
             {
@@ -83,9 +84,9 @@ impl<'de> Deserialize<'de> for UrsaRevocationRegistry {
                 }
                 let accum: Accumulator =
                     accum.ok_or_else(|| de::Error::missing_field("(accum|currentAccumulator)"))?;
-                Ok(UrsaRevocationRegistry(accum))
+                Ok(CLSignaturesRevocationRegistry(accum))
             }
         }
-        deserializer.deserialize_any(UrsaRevocationRegistryVisitor)
+        deserializer.deserialize_any(CLSignaturesRevocationRegistryVisitor)
     }
 }

@@ -84,9 +84,6 @@ class ObjectHandle(Structure):
             type_name = "<none>"
         return f"{self.__class__.__name__}({type_name}, {self.value})"
 
-    def __del__(self):
-        object_free(self)
-
     @classmethod
     def _cleanup(cls, value: c_int64):
         """Destructor."""
@@ -262,6 +259,7 @@ class FfiIntList(Structure):
             inst.data = (c_int64 * inst.count)(*ffi_values)
         return inst
 
+
 class FfiInt32List(Structure):
     _fields_ = [
         ("count", c_size_t),
@@ -276,6 +274,7 @@ class FfiInt32List(Structure):
             inst.count = len(ffi_values)
             inst.data = (c_int32 * inst.count)(*ffi_values)
         return inst
+
 
 class FfiStrList(Structure):
     _fields_ = [
@@ -358,11 +357,13 @@ class CredentialProve(Structure):
             reveal=True,
         )
 
+
 class CredentialProveList(Structure):
     _fields_ = [
         ("count", c_int64),
         ("data", POINTER(CredentialProve)),
     ]
+
 
 class NonrevokedIntervalOverride(Structure):
     _fields_ = [
@@ -384,11 +385,13 @@ class NonrevokedIntervalOverride(Structure):
             override_rev_status_list_ts=override_rev_status_list_ts,
         )
 
+
 class NonrevokedIntervalOverrideList(Structure):
     _fields_ = [
         ("count", c_int64),
         ("data", POINTER(NonrevokedIntervalOverride)),
     ]
+
 
 class RevocationConfig(Structure):
     _fields_ = [
@@ -414,36 +417,6 @@ class RevocationConfig(Structure):
         )
         keepalive(config, rev_reg_def, rev_reg_def_private)
         return config
-
-
-class RevocationEntry(Structure):
-    _fields_ = [
-        ("def_entry_idx", c_int64),
-        ("registry", ObjectHandle),
-        ("timestamp", c_int64),
-    ]
-
-    @classmethod
-    def create(
-        cls,
-        def_entry_idx: int,
-        registry: AnoncredsObject,
-        timestamp: int,
-    ) -> "RevocationEntry":
-        entry = RevocationEntry(
-            def_entry_idx=def_entry_idx,
-            registry=registry.handle,
-            timestamp=timestamp,
-        )
-        keepalive(entry, registry)
-        return entry
-
-
-class RevocationEntryList(Structure):
-    _fields_ = [
-        ("count", c_int64),
-        ("data", POINTER(RevocationEntry)),
-    ]
 
 
 def get_library() -> CDLL:
@@ -723,6 +696,7 @@ def process_credential(
     )
     return result
 
+
 def create_credential_offer(
     schema_id: str, cred_def_id: str, key_proof: ObjectHandle
 ) -> ObjectHandle:
@@ -804,6 +778,7 @@ def create_presentation(
     )
     return present
 
+
 def verify_presentation(
     presentation: ObjectHandle,
     pres_req: ObjectHandle,
@@ -867,45 +842,55 @@ def create_revocation_registry_definition(
 
 
 def create_revocation_status_list(
+    cred_def: ObjectHandle,
     rev_reg_def_id: str,
     rev_reg_def: ObjectHandle,
+    rev_reg_def_private: ObjectHandle,
     issuer_id: str,
-    timestamp: Optional[int],
     issuance_by_default: bool,
+    timestamp: Optional[int],
 ) -> ObjectHandle:
     revocation_status_list = ObjectHandle()
 
     do_call(
         "anoncreds_create_revocation_status_list",
+        cred_def,
         encode_str(rev_reg_def_id),
         rev_reg_def,
+        rev_reg_def_private,
         encode_str(issuer_id),
-        timestamp if timestamp else -1,
-        int(issuance_by_default),
+        c_int8(issuance_by_default),
+        c_int64(timestamp if timestamp else -1),
         byref(revocation_status_list),
     )
     return revocation_status_list
 
+
 def update_revocation_status_list(
-    timestamp: Optional[int],
+    cred_def: ObjectHandle,
+    rev_reg_def: ObjectHandle,
+    rev_reg_def_private: ObjectHandle,
+    rev_current_list: ObjectHandle,
     issued: Optional[Sequence[int]],
     revoked: Optional[Sequence[int]],
-    rev_reg_def: ObjectHandle,
-    rev_current_list: ObjectHandle,
+    timestamp: Optional[int],
 ) -> ObjectHandle:
     new_revocation_status_list = ObjectHandle()
 
     do_call(
         "anoncreds_update_revocation_status_list",
-        timestamp if timestamp else -1,
+        cred_def,
+        rev_reg_def,
+        rev_reg_def_private,
+        rev_current_list,
         FfiInt32List.create(issued),
         FfiInt32List.create(revoked),
-        rev_reg_def,
-        rev_current_list,
-        byref(new_revocation_status_list)
+        c_int64(timestamp if timestamp else -1),
+        byref(new_revocation_status_list),
     )
 
     return new_revocation_status_list
+
 
 def update_revocation_status_list_timestamp_only(
     timestamp: int,
@@ -915,7 +900,7 @@ def update_revocation_status_list_timestamp_only(
 
     do_call(
         "anoncreds_update_revocation_status_list_timestamp_only",
-        timestamp,
+        c_int64(timestamp),
         rev_current_list.handle,
         byref(new_revocation_status_list)
     )

@@ -76,11 +76,13 @@ describe('API', () => {
 
     const timeCreateRevStatusList = 12
     const revocationStatusList = RevocationStatusList.create({
-      issuerId: 'mock:uri',
-      timestamp: timeCreateRevStatusList,
-      issuanceByDefault: true,
-      revocationRegistryDefinition,
+      credentialDefinition,
       revocationRegistryDefinitionId: 'mock:uri',
+      revocationRegistryDefinition,
+      revocationRegistryDefinitionPrivate,
+      issuerId: 'mock:uri',
+      issuanceByDefault: true,
+      timestamp: timeCreateRevStatusList,
     })
 
     const credentialOffer = CredentialOffer.create({
@@ -393,11 +395,13 @@ test('create and verify presentation passing only JSON objects as parameters', (
 
   const timeCreateRevStatusList = 12
   const revocationStatusList = RevocationStatusList.create({
-    issuerId: 'mock:uri',
-    timestamp: timeCreateRevStatusList,
-    issuanceByDefault: true,
-    revocationRegistryDefinition,
+    credentialDefinition,
     revocationRegistryDefinitionId: 'mock:uri',
+    revocationRegistryDefinition,
+    revocationRegistryDefinitionPrivate,
+    issuerId: 'mock:uri',
+    issuanceByDefault: true,
+    timestamp: timeCreateRevStatusList,
   })
 
   const credentialOffer = CredentialOffer.fromJson({

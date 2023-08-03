@@ -1,7 +1,10 @@
 use super::issuer_id::IssuerId;
-use super::rev_reg::{RevocationRegistry, UrsaRevocationRegistry};
+use super::rev_reg::{CLSignaturesRevocationRegistry, RevocationRegistry};
 use super::rev_reg_def::RevocationRegistryDefinitionId;
+
+use crate::cl::RevocationRegistry as CryptoRevocationRegistry;
 use crate::{Error, Result};
+
 use std::collections::BTreeSet;
 
 /// Data model for the revocation status list as defined in the [Anoncreds V1.0
@@ -15,20 +18,20 @@ pub struct RevocationStatusList {
     #[serde(with = "serde_revocation_list")]
     revocation_list: bitvec::vec::BitVec,
     #[serde(rename = "currentAccumulator", skip_serializing_if = "Option::is_none")]
-    registry: Option<UrsaRevocationRegistry>,
+    registry: Option<CLSignaturesRevocationRegistry>,
     #[serde(skip_serializing_if = "Option::is_none")]
     timestamp: Option<u64>,
 }
 
-impl TryFrom<&RevocationStatusList> for Option<ursa::cl::RevocationRegistry> {
+impl TryFrom<&RevocationStatusList> for Option<CryptoRevocationRegistry> {
     type Error = Error;
 
     fn try_from(value: &RevocationStatusList) -> std::result::Result<Self, Self::Error> {
-        value.registry.map(TryInto::try_into).transpose()
+        Ok(value.registry.map(From::from))
     }
 }
 
-impl From<&RevocationStatusList> for Option<UrsaRevocationRegistry> {
+impl From<&RevocationStatusList> for Option<CLSignaturesRevocationRegistry> {
     fn from(rev_status_list: &RevocationStatusList) -> Self {
         rev_status_list.registry.map(Into::into)
     }
@@ -39,10 +42,9 @@ impl TryFrom<&RevocationStatusList> for Option<RevocationRegistry> {
 
     fn try_from(value: &RevocationStatusList) -> std::result::Result<Self, Self::Error> {
         let value = match value.registry {
-            Some(registry) => {
-                let reg: ursa::cl::RevocationRegistry = registry.try_into()?;
-                Some(RevocationRegistry { value: reg })
-            }
+            Some(registry) => Some(RevocationRegistry {
+                value: registry.into(),
+            }),
             None => None,
         };
 
@@ -67,8 +69,8 @@ impl RevocationStatusList {
         self.revocation_list.clone()
     }
 
-    pub fn set_registry(&mut self, registry: ursa::cl::RevocationRegistry) -> Result<()> {
-        self.registry = Some(registry.try_into()?);
+    pub fn set_registry(&mut self, registry: CryptoRevocationRegistry) -> Result<()> {
+        self.registry = Some(registry.into());
         Ok(())
     }
 
@@ -78,14 +80,14 @@ impl RevocationStatusList {
 
     pub(crate) fn update(
         &mut self,
-        registry: Option<ursa::cl::RevocationRegistry>,
+        registry: Option<CryptoRevocationRegistry>,
         issued: Option<BTreeSet<u32>>,
         revoked: Option<BTreeSet<u32>>,
         timestamp: Option<u64>,
     ) -> Result<()> {
         // only update if input is Some
         if let Some(reg) = registry {
-            self.registry = Some(reg.try_into()?);
+            self.registry = Some(reg.into());
         }
         if let Some(issued) = issued {
             // issued credentials are assigned `false`
@@ -124,7 +126,7 @@ impl RevocationStatusList {
         rev_reg_def_id: Option<&str>,
         issuer_id: IssuerId,
         revocation_list: bitvec::vec::BitVec,
-        registry: Option<UrsaRevocationRegistry>,
+        registry: Option<CLSignaturesRevocationRegistry>,
         timestamp: Option<u64>,
     ) -> Result<Self> {
         Ok(Self {

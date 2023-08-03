@@ -1,3 +1,4 @@
+use crate::cl::CredentialKeyCorrectnessProof;
 use crate::error::ValidationError;
 use crate::utils::validation::Validatable;
 
@@ -7,7 +8,7 @@ use super::{cred_def::CredentialDefinitionId, nonce::Nonce, schema::SchemaId};
 pub struct CredentialOffer {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
-    pub key_correctness_proof: ursa::cl::CredentialKeyCorrectnessProof,
+    pub key_correctness_proof: CredentialKeyCorrectnessProof,
     pub nonce: Nonce,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub method_name: Option<String>,

@@ -20,11 +20,13 @@ use std::str::FromStr;
 
 #[no_mangle]
 pub extern "C" fn anoncreds_create_revocation_status_list(
+    cred_def: ObjectHandle,
     rev_reg_def_id: FfiStr,
     rev_reg_def: ObjectHandle,
+    reg_rev_priv: ObjectHandle,
     issuer_id: FfiStr,
-    timestamp: i64,
     issuance_by_default: i8,
+    timestamp: i64,
     rev_status_list_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
@@ -42,11 +44,13 @@ pub extern "C" fn anoncreds_create_revocation_status_list(
         };
 
         let rev_status_list = issuer::create_revocation_status_list(
+            cred_def.load()?.cast_ref()?,
             rev_reg_def_id,
             rev_reg_def.load()?.cast_ref()?,
+            reg_rev_priv.load()?.cast_ref()?,
             issuer_id,
-            timestamp,
             issuance_by_default != 0,
+            timestamp,
         )?;
 
         let rev_status_list_handle = ObjectHandle::create(rev_status_list)?;
@@ -59,11 +63,13 @@ pub extern "C" fn anoncreds_create_revocation_status_list(
 
 #[no_mangle]
 pub extern "C" fn anoncreds_update_revocation_status_list(
-    timestamp: i64,
+    cred_def: ObjectHandle,
+    rev_reg_def: ObjectHandle,
+    rev_reg_priv: ObjectHandle,
+    rev_current_list: ObjectHandle,
     issued: FfiList<i32>,
     revoked: FfiList<i32>,
-    rev_reg_def: ObjectHandle,
-    rev_current_list: ObjectHandle,
+    timestamp: i64,
     new_rev_status_list_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
@@ -84,11 +90,13 @@ pub extern "C" fn anoncreds_update_revocation_status_list(
             Some(issued.as_slice().iter().map(|r| *r as u32).collect())
         };
         let new_rev_status_list = issuer::update_revocation_status_list(
-            timestamp,
+            cred_def.load()?.cast_ref()?,
+            rev_reg_def.load()?.cast_ref()?,
+            rev_reg_priv.load()?.cast_ref()?,
+            rev_current_list.load()?.cast_ref()?,
             issued,
             revoked,
-            rev_reg_def.load()?.cast_ref()?,
-            rev_current_list.load()?.cast_ref()?,
+            timestamp,
         )?;
 
         let new_rev_status_list = ObjectHandle::create(new_rev_status_list)?;

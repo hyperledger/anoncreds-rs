@@ -560,28 +560,32 @@ class RevocationRegistryDefinitionPrivate(bindings.AnoncredsObject):
 class RevocationStatusList(bindings.AnoncredsObject):
     @classmethod
     def create(
-        cls,
+        self,
+        cred_def: Union[dict, str, bytes, CredentialDefinition],
         rev_reg_def_id: str,
         rev_reg_def: Union[dict, str, bytes, RevocationRegistryDefinition],
+        rev_reg_def_private: Union[dict, str, bytes, RevocationRegistryDefinitionPrivate],
         issuer_id: str,
-        timestamp: Optional[int] = None,
         issuance_by_default: bool = True,
+        timestamp: Optional[int] = None,
     ) -> "RevocationStatusList":
         if not isinstance(rev_reg_def, bindings.AnoncredsObject):
             rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
 
         return RevocationStatusList(
             bindings.create_revocation_status_list(
+                cred_def.handle,
                 rev_reg_def_id,
                 rev_reg_def.handle,
+                rev_reg_def_private.handle,
                 issuer_id,
-                timestamp,
                 issuance_by_default,
+                timestamp,
             )
         )
 
     @classmethod
-    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "RevocationStatusList":
+    def load(self, value: Union[dict, str, bytes, memoryview]) -> "RevocationStatusList":
         return RevocationStatusList(
             bindings._object_from_json("anoncreds_revocation_status_list_from_json", value)
         )
@@ -591,16 +595,24 @@ class RevocationStatusList(bindings.AnoncredsObject):
 
     def update(
         self,
-        timestamp: Optional[int],
+        cred_def: Union[dict, str, bytes, CredentialDefinition],
+        rev_reg_def: Union[dict, str, bytes, RevocationRegistryDefinition],
+        rev_reg_def_private: Union[dict, str, bytes, RevocationRegistryDefinitionPrivate],
         issued: Optional[Sequence[int]],
         revoked: Optional[Sequence[int]],
-        rev_reg_def: Union[dict, str, bytes, RevocationRegistryDefinition],
+        timestamp: Optional[int],
     ):
         if not isinstance(rev_reg_def, bindings.AnoncredsObject):
             rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
 
         new_list = bindings.update_revocation_status_list(
-            timestamp, issued, revoked, rev_reg_def.handle, self.handle
+            cred_def.handle,
+            rev_reg_def.handle,
+            rev_reg_def_private.handle,
+            self.handle,
+            issued,
+            revoked,
+            timestamp,
         )
         return RevocationStatusList(new_list)
 

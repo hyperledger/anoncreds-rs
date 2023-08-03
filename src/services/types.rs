@@ -1,4 +1,5 @@
 use super::tails::TailsReader;
+use crate::cl::{RevocationRegistry as CryptoRevocationRegistry, Witness};
 pub use crate::data_types::{
     cred_def::{CredentialDefinitionPrivate, CredentialKeyCorrectnessProof, SignatureType},
     cred_offer::CredentialOffer,
@@ -15,7 +16,6 @@ pub use crate::data_types::{
     schema::AttributeNames,
 };
 use crate::services::helpers::encode_credential_attribute;
-use crate::ursa::cl::{RevocationRegistry as CryptoRevocationRegistry, Witness};
 use crate::{
     error::{Error, ValidationError},
     invalid,

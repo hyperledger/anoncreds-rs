@@ -3,6 +3,10 @@ use super::types::{
     Credential, CredentialOffer, CredentialRequest, CredentialRequestMetadata, LinkSecret,
     Presentation, PresentationRequest, RevocationRegistryDefinition,
 };
+use crate::cl::{
+    CredentialPublicKey, Issuer, Prover, RevocationRegistry, RevocationRegistryDelta,
+    SubProofRequest, Verifier, Witness,
+};
 use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
 use crate::data_types::credential::AttributeValues;
 use crate::data_types::pres_request::{
@@ -23,12 +27,6 @@ use crate::services::helpers::{
     get_revealed_attributes_for_credential, new_nonce,
 };
 use crate::types::{CredentialRevocationState, PresentCredentials};
-use crate::ursa::cl::{
-    issuer::Issuer as CryptoIssuer, prover::Prover as CryptoProver,
-    verifier::Verifier as CryptoVerifier, CredentialPublicKey,
-    RevocationRegistry as CryptoRevocationRegistry, RevocationRegistryDelta, SubProofRequest,
-    Witness,
-};
 use crate::utils::validation::Validatable;
 use bitvec::bitvec;
 use std::collections::{HashMap, HashSet};
@@ -121,7 +119,7 @@ pub fn create_credential_request(
         cred_def.value.revocation.as_ref(),
     )?;
 
-    let mut credential_values_builder = CryptoIssuer::new_credential_values_builder()?;
+    let mut credential_values_builder = Issuer::new_credential_values_builder()?;
     credential_values_builder.add_value_hidden("master_secret", &link_secret.0)?;
     let cred_values = credential_values_builder.finalize()?;
 
@@ -129,7 +127,7 @@ pub fn create_credential_request(
     let nonce_copy = nonce.try_clone().map_err(err_map!(Unexpected))?;
 
     let (blinded_ms, link_secret_blinding_data, blinded_ms_correctness_proof) =
-        CryptoProver::blind_credential_secrets(
+        Prover::blind_credential_secrets(
             &credential_pub_key,
             &credential_offer.key_correctness_proof,
             &cred_values,
@@ -246,7 +244,7 @@ pub fn process_credential(
         build_credential_values(&credential.values.0, Some(&link_secret.try_into()?))?;
     let rev_pub_key = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
 
-    CryptoProver::process_credential_signature(
+    Prover::process_credential_signature(
         &mut credential.signature,
         &credential_values,
         &credential.signature_correctness_proof,
@@ -401,7 +399,7 @@ pub fn create_presentation(
     credentials.validate()?;
 
     let pres_req_val = pres_req.value();
-    let mut proof_builder = CryptoProver::new_proof_builder()?;
+    let mut proof_builder = Prover::new_proof_builder()?;
     proof_builder.add_common_attribute("master_secret")?;
 
     let mut requested_proof = RequestedProof {
@@ -538,7 +536,7 @@ pub fn create_revocation_state_with_witness(
     revocation_status_list: &RevocationStatusList,
     timestamp: u64,
 ) -> Result<CredentialRevocationState> {
-    let rev_reg = <&RevocationStatusList as TryInto<Option<CryptoRevocationRegistry>>>::try_into(
+    let rev_reg = <&RevocationStatusList as TryInto<Option<RevocationRegistry>>>::try_into(
         revocation_status_list,
     )?
     .ok_or_else(|| err_msg!(Unexpected, "Revocation Status List must have accum value"))?;
@@ -596,11 +594,13 @@ pub fn create_revocation_state_with_witness(
 ///                                            ).expect("Unable to create revocation registry");
 ///
 /// let rev_status_list =
-///     issuer::create_revocation_status_list("did:web:xyz/resource/rev-reg-def",
+///     issuer::create_revocation_status_list(&cred_def,
+///                                           "did:web:xyz/resource/rev-reg-def",
 ///                                           &rev_reg_def,
+///                                           &rev_reg_def_priv,
 ///                                           "did:web:xyz",
-///                                           Some(10),
-///                                           true
+///                                           true,
+///                                           Some(10)
 ///                                           ).expect("Unable to create revocation status list");
 ///
 /// let rev_state =
@@ -610,7 +610,7 @@ pub fn create_revocation_state_with_witness(
 ///                                               0,
 ///                                               None,
 ///                                               None
-///                                              ).expect("Unable to create or update the revocation state");
+///                                               ).expect("Unable to create or update the revocation state");
 /// ```
 pub fn create_or_update_revocation_state(
     tails_path: &str,
@@ -630,7 +630,7 @@ pub fn create_or_update_revocation_state(
         old_rev_status_list,
     );
 
-    let rev_reg: Option<ursa::cl::RevocationRegistry> = rev_status_list.try_into()?;
+    let rev_reg: Option<RevocationRegistry> = rev_status_list.try_into()?;
     let rev_reg = rev_reg.ok_or_else(|| {
         err_msg!("revocation registry is required to create or update the revocation state")
     })?;
@@ -654,7 +654,7 @@ pub fn create_or_update_revocation_state(
             &mut revoked,
         );
 
-        let source_rev_reg: Option<ursa::cl::RevocationRegistry> = source_rev_list.try_into()?;
+        let source_rev_reg: Option<RevocationRegistry> = source_rev_list.try_into()?;
 
         let rev_reg_delta = RevocationRegistryDelta::from_parts(
             source_rev_reg.as_ref(),
@@ -881,7 +881,7 @@ fn build_sub_proof_request(
     trace!("_build_sub_proof_request <<< req_attrs_for_credential: {:?}, req_predicates_for_credential: {:?}",
            req_attrs_for_credential, req_predicates_for_credential);
 
-    let mut sub_proof_request_builder = CryptoVerifier::new_sub_proof_request_builder()?;
+    let mut sub_proof_request_builder = Verifier::new_sub_proof_request_builder()?;
 
     for attr in req_attrs_for_credential {
         if attr.revealed {

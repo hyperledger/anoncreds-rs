@@ -1,14 +1,11 @@
+use crate::cl::{bn::BigNumber, MasterSecret, Prover as CryptoProver};
 use crate::error::ConversionError;
 use std::fmt;
-use ursa::{
-    bn::BigNumber,
-    cl::{prover::Prover as UrsaProver, MasterSecret},
-};
-pub struct LinkSecret(pub ursa::bn::BigNumber);
+pub struct LinkSecret(pub BigNumber);
 
 impl LinkSecret {
     pub fn new() -> Result<Self, ConversionError> {
-        let value = UrsaProver::new_master_secret()
+        let value = CryptoProver::new_master_secret()
             .and_then(|v| v.value())
             .map_err(|err| {
                 ConversionError::from_msg(format!("Error creating link secret: {err}"))

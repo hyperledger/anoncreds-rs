@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::cl::Proof;
 use crate::error::ValidationError;
 use crate::utils::validation::Validatable;
 
@@ -7,7 +8,7 @@ use super::{cred_def::CredentialDefinitionId, rev_reg::RevocationRegistryId, sch
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Presentation {
-    pub proof: ursa::cl::Proof,
+    pub proof: Proof,
     pub requested_proof: RequestedProof,
     pub identifiers: Vec<Identifier>,
 }

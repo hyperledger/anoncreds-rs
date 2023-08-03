@@ -157,25 +157,31 @@ pub fn create_rev_reg_def<'a>(
 }
 
 pub fn create_revocation_status_list(
+    cred_def: &CredentialDefinition,
     rev_reg_def: &RevocationRegistryDefinition,
+    rev_reg_priv: &RevocationRegistryDefinitionPrivate,
     time: Option<u64>,
     issuance_by_default: bool,
 ) -> RevocationStatusList {
     match rev_reg_def.tag.as_str() {
         GVT_REV_REG_TAG => issuer::create_revocation_status_list(
+            cred_def,
             GVT_REV_REG_DEF_ID,
             rev_reg_def,
+            rev_reg_priv,
             GVT_ISSUER_ID,
-            time,
             issuance_by_default,
+            time,
         )
         .expect("Error while creating GVT rev status list"),
         EMP_REV_REG_TAG => issuer::create_revocation_status_list(
+            cred_def,
             EMP_REV_REG_DEF_ID,
             rev_reg_def,
+            rev_reg_priv,
             EMP_ISSUER_ID,
-            time,
             issuance_by_default,
+            time,
         )
         .expect("Error while creating EMP rev status list"),
         unsupported => panic!("Unsupported rev reg def. {unsupported}"),

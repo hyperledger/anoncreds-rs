@@ -4,15 +4,19 @@ import type { JsonObject } from '../types'
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
 
+import { CredentialDefinition } from './CredentialDefinition'
 import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
+import { RevocationRegistryDefinitionPrivate } from './RevocationRegistryDefinitionPrivate'
 import { pushToArray } from './utils'
 
 export type CreateRevocationStatusListOptions = {
+  credentialDefinition: CredentialDefinition | JsonObject
   revocationRegistryDefinitionId: string
   revocationRegistryDefinition: RevocationRegistryDefinition | JsonObject
+  revocationRegistryDefinitionPrivate: RevocationRegistryDefinitionPrivate | JsonObject
   issuerId: string
-  timestamp?: number
   issuanceByDefault: boolean
+  timestamp?: number
 }
 
 export type UpdateRevocationStatusListTimestampOptions = {
@@ -31,6 +35,11 @@ export class RevocationStatusList extends AnoncredsObject {
     let revocationStatusListHandle
     const objectHandles: ObjectHandle[] = []
     try {
+      const credentialDefinition =
+        options.credentialDefinition instanceof CredentialDefinition
+          ? options.credentialDefinition.handle
+          : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
+
       const revocationRegistryDefinition =
         options.revocationRegistryDefinition instanceof RevocationRegistryDefinition
           ? options.revocationRegistryDefinition.handle
@@ -39,9 +48,19 @@ export class RevocationStatusList extends AnoncredsObject {
               objectHandles
             )
 
+      const revocationRegistryDefinitionPrivate =
+        options.revocationRegistryDefinitionPrivate instanceof RevocationRegistryDefinitionPrivate
+          ? options.revocationRegistryDefinitionPrivate.handle
+          : pushToArray(
+              RevocationRegistryDefinitionPrivate.fromJson(options.revocationRegistryDefinitionPrivate).handle,
+              objectHandles
+            )
+
       revocationStatusListHandle = anoncreds.createRevocationStatusList({
         ...options,
+        credentialDefinition,
         revocationRegistryDefinition,
+        revocationRegistryDefinitionPrivate,
       }).handle
     } finally {
       objectHandles.forEach((handle) => handle.clear())

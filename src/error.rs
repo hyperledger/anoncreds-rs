@@ -2,7 +2,7 @@ use std::error::Error as StdError;
 use std::fmt::{self, Display, Formatter};
 use std::result::Result as StdResult;
 
-use crate::ursa::errors::{UrsaCryptoError, UrsaCryptoErrorKind};
+use crate::cl::{Error as CryptoError, ErrorKind as CryptoErrorKind};
 
 use thiserror::Error;
 
@@ -147,20 +147,12 @@ impl From<serde_json::Error> for Error {
     }
 }
 
-impl From<UrsaCryptoError> for Error {
-    fn from(err: UrsaCryptoError) -> Self {
-        // let message = format!("Ursa Crypto Error: {}", Fail::iter_causes(&err).map(|e| e.to_string()).collect::<String>());
+impl From<CryptoError> for Error {
+    fn from(err: CryptoError) -> Self {
         let message = err.to_string();
         let kind = match err.kind() {
-            UrsaCryptoErrorKind::InvalidState => ErrorKind::InvalidState,
-            UrsaCryptoErrorKind::InvalidStructure | UrsaCryptoErrorKind::InvalidParam(_) => {
-                ErrorKind::Input
-            }
-            UrsaCryptoErrorKind::IOError => ErrorKind::IOError,
-            UrsaCryptoErrorKind::InvalidRevocationAccumulatorIndex => ErrorKind::InvalidUserRevocId,
-            UrsaCryptoErrorKind::RevocationAccumulatorIsFull => ErrorKind::RevocationRegistryFull,
-            UrsaCryptoErrorKind::ProofRejected => ErrorKind::ProofRejected,
-            UrsaCryptoErrorKind::CredentialRevoked => ErrorKind::CredentialRevoked,
+            CryptoErrorKind::InvalidState => ErrorKind::InvalidState,
+            CryptoErrorKind::ProofRejected => ErrorKind::ProofRejected,
         };
         Self::from_msg(kind, message)
     }
