@@ -91,7 +91,7 @@ impl RevocationStatusList {
         }
         let slots_count = self.revocation_list.len();
         if let Some(issued) = issued {
-            if let Some(max_idx) = issued.last().copied() {
+            if let Some(max_idx) = issued.iter().last().copied() {
                 if max_idx as usize >= slots_count {
                     return Err(Error::from_msg(
                         crate::ErrorKind::Unexpected,
@@ -106,7 +106,7 @@ impl RevocationStatusList {
             }
         }
         if let Some(revoked) = revoked {
-            if let Some(max_idx) = revoked.last().copied() {
+            if let Some(max_idx) = revoked.iter().last().copied() {
                 if max_idx as usize >= slots_count {
                     return Err(Error::from_msg(
                         crate::ErrorKind::Unexpected,
