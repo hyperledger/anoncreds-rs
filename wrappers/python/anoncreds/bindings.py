@@ -398,7 +398,6 @@ class RevocationConfig(Structure):
         ("rev_reg_def", ObjectHandle),
         ("rev_reg_def_private", ObjectHandle),
         ("rev_reg_index", c_int64),
-        ("tails_path", c_char_p),
     ]
 
     @classmethod
@@ -407,13 +406,11 @@ class RevocationConfig(Structure):
         rev_reg_def: AnoncredsObject,
         rev_reg_def_private: AnoncredsObject,
         rev_reg_index: int,
-        tails_path: str,
     ) -> "RevocationConfig":
         config = RevocationConfig(
             rev_reg_def=rev_reg_def.handle,
             rev_reg_def_private=rev_reg_def_private.handle,
             rev_reg_index=rev_reg_index,
-            tails_path=encode_str(tails_path),
         )
         keepalive(config, rev_reg_def, rev_reg_def_private)
         return config

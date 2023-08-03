@@ -630,7 +630,6 @@ class CredentialRevocationConfig:
         rev_reg_def: Union[str, "RevocationRegistryDefinition"],
         rev_reg_def_private: Union[str, "RevocationRegistryDefinitionPrivate"],
         rev_reg_index: int,
-        tails_path: str,
     ):
         if not isinstance(rev_reg_def, bindings.AnoncredsObject):
             rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
@@ -641,7 +640,6 @@ class CredentialRevocationConfig:
             )
         self.rev_reg_def_private = rev_reg_def_private
         self.rev_reg_index = rev_reg_index
-        self.tails_path = tails_path
 
     @property
     def _native(self) -> bindings.RevocationConfig:
@@ -649,7 +647,6 @@ class CredentialRevocationConfig:
             self.rev_reg_def,
             self.rev_reg_def_private,
             self.rev_reg_index,
-            self.tails_path,
         )
 
 class NonrevokedIntervalOverride:

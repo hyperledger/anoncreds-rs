@@ -15,7 +15,7 @@ use anoncreds::{
         schema::{Schema, SchemaId},
     },
     issuer, prover,
-    tails::{TailsFileReader, TailsFileWriter},
+    tails::TailsFileWriter,
     types::{
         CredentialDefinitionConfig, CredentialRequest, CredentialRevocationConfig,
         MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType, SignatureType,
@@ -268,20 +268,14 @@ impl<'a> Mock<'a> {
         }
 
         let (rev_config, rev_id) = match issuer_wallet.rev_defs.get(rev_reg_id) {
-            Some(stored_rev_def) => {
-                let tr = TailsFileReader::new_tails_reader(
-                    stored_rev_def.public.value.tails_location.as_str(),
-                );
-                (
-                    Some(CredentialRevocationConfig {
-                        reg_def: &stored_rev_def.public,
-                        reg_def_private: &stored_rev_def.private,
-                        registry_idx: rev_idx,
-                        tails_reader: tr,
-                    }),
-                    Some(RevocationRegistryId::new_unchecked(rev_reg_id)),
-                )
-            }
+            Some(stored_rev_def) => (
+                Some(CredentialRevocationConfig {
+                    reg_def: &stored_rev_def.public,
+                    reg_def_private: &stored_rev_def.private,
+                    registry_idx: rev_idx,
+                }),
+                Some(RevocationRegistryId::new_unchecked(rev_reg_id)),
+            ),
             None => (None, None),
         };
 

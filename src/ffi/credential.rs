@@ -12,7 +12,6 @@ use crate::error::Result;
 use crate::services::{
     issuer::create_credential,
     prover::process_credential,
-    tails::TailsFileReader,
     types::{Credential, CredentialRevocationConfig, MakeCredentialValues},
     utils::encode_credential_attribute,
 };
@@ -30,7 +29,6 @@ struct RevocationConfig {
     reg_def: AnoncredsObject,
     reg_def_private: AnoncredsObject,
     reg_idx: u32,
-    tails_path: String,
 }
 
 impl RevocationConfig {
@@ -39,7 +37,6 @@ impl RevocationConfig {
             reg_def: self.reg_def.cast_ref()?,
             reg_def_private: self.reg_def_private.cast_ref()?,
             registry_idx: self.reg_idx,
-            tails_reader: TailsFileReader::new_tails_reader(self.tails_path.as_str()),
         })
     }
 }
@@ -103,11 +100,6 @@ pub extern "C" fn anoncreds_create_credential(
             None
         } else {
             let revocation = unsafe { &*revocation };
-            let tails_path = revocation
-                .tails_path
-                .as_opt_str()
-                .ok_or_else(|| err_msg!("Missing tails file path"))?
-                .to_string();
             Some(RevocationConfig {
                 reg_def: revocation.reg_def.load()?,
                 reg_def_private: revocation.reg_def_private.load()?,
@@ -115,7 +107,6 @@ pub extern "C" fn anoncreds_create_credential(
                     .reg_idx
                     .try_into()
                     .map_err(|_| err_msg!("Invalid revocation index"))?,
-                tails_path,
             })
         };
 

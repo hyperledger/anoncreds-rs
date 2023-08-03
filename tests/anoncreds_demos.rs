@@ -4,7 +4,7 @@ use anoncreds::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use anoncreds::data_types::schema::SchemaId;
 use anoncreds::issuer;
 use anoncreds::prover;
-use anoncreds::tails::{TailsFileReader, TailsFileWriter};
+use anoncreds::tails::TailsFileWriter;
 use anoncreds::types::{CredentialRevocationConfig, PresentCredentials};
 use anoncreds::verifier;
 use serde_json::json;
@@ -243,7 +243,6 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
 
     // Get the location of the tails_file so it can be read
     let tails_location = gvt_rev_reg_def.value.tails_location.clone();
-    let tr = TailsFileReader::new_tails_reader(tails_location.as_str());
 
     let issue_cred = issuer::create_credential(
         &gvt_cred_def,
@@ -257,7 +256,6 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
             reg_def: &gvt_rev_reg_def,
             reg_def_private: &gvt_rev_reg_def_priv,
             registry_idx: fixtures::GVT_REV_IDX,
-            tails_reader: tr,
         }),
     )
     .expect("Error creating credential");
