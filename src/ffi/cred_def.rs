@@ -44,7 +44,7 @@ pub extern "C" fn anoncreds_create_credential_definition(
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing issuer id"))?
             .try_into()?;
-        
+
         let (cred_def, cred_def_pvt, key_proof) = create_credential_definition(
             schema_id,
             schema.load()?.cast_ref()?,

@@ -132,6 +132,7 @@ pub extern "C" fn anoncreds_update_revocation_status_list_timestamp_only(
 pub extern "C" fn anoncreds_create_revocation_registry_def(
     cred_def: ObjectHandle,
     cred_def_id: FfiStr,
+    _issuer_id: FfiStr, // leaving it here not to break existing code
     tag: FfiStr,
     rev_reg_type: FfiStr,
     max_cred_num: i64,
