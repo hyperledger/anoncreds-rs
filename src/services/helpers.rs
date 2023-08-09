@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::cl::{
-    bn::BigNumber, CredentialSchema, CredentialValues, Issuer, MasterSecret, NonCredentialSchema,
-    SubProofRequest, Verifier,
+    bn::BigNumber, CredentialSchema, CredentialValues, Issuer, LinkSecret as ClLinkSecret,
+    NonCredentialSchema, SubProofRequest, Verifier,
 };
 use crate::data_types::{
     credential::AttributeValues,
@@ -46,7 +46,7 @@ pub fn build_non_credential_schema() -> Result<NonCredentialSchema> {
 
 pub fn build_credential_values(
     credential_values: &HashMap<String, AttributeValues>,
-    link_secret: Option<&MasterSecret>,
+    link_secret: Option<&ClLinkSecret>,
 ) -> Result<CredentialValues> {
     trace!(
         "build_credential_values >>> credential_values: {:?}",

@@ -89,30 +89,35 @@ impl RevocationStatusList {
         if let Some(reg) = registry {
             self.registry = Some(reg.into());
         }
+        let slots_count = self.revocation_list.len();
         if let Some(issued) = issued {
+            if let Some(max_idx) = issued.iter().last().copied() {
+                if max_idx as usize >= slots_count {
+                    return Err(Error::from_msg(
+                        crate::ErrorKind::Unexpected,
+                        "Update Revocation List Index Out of Range",
+                    ));
+                }
+            }
             // issued credentials are assigned `false`
             // i.e. NOT revoked
             for i in issued {
-                let mut bit = self.revocation_list.get_mut(i as usize).ok_or_else(|| {
-                    Error::from_msg(
-                        crate::ErrorKind::Unexpected,
-                        "Update Revocation List Index Out of Range",
-                    )
-                })?;
-                *bit = false;
+                self.revocation_list.set(i as usize, false);
             }
         }
         if let Some(revoked) = revoked {
+            if let Some(max_idx) = revoked.iter().last().copied() {
+                if max_idx as usize >= slots_count {
+                    return Err(Error::from_msg(
+                        crate::ErrorKind::Unexpected,
+                        "Update Revocation List Index Out of Range",
+                    ));
+                }
+            }
             // revoked credentials are assigned `true`
             // i.e. IS revoked
             for i in revoked {
-                let mut bit = self.revocation_list.get_mut(i as usize).ok_or_else(|| {
-                    Error::from_msg(
-                        crate::ErrorKind::Unexpected,
-                        "Update Revocation List Index Out of Range",
-                    )
-                })?;
-                *bit = true;
+                self.revocation_list.set(i as usize, true);
             }
         }
         // only update if input is Some

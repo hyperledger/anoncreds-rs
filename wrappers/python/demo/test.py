@@ -1,5 +1,3 @@
-from time import time
-
 from anoncreds import (
     generate_nonce,
     create_link_secret,
@@ -14,7 +12,6 @@ from anoncreds import (
     PresentCredentials,
     RevocationRegistryDefinition,
     RevocationStatusList,
-    NonrevokedIntervalOverride,
     Schema,
 )
 
@@ -92,7 +89,6 @@ issue_cred = Credential.create(
         rev_reg_def_pub,
         rev_reg_def_private,
         rev_idx,
-        rev_reg_def_pub.tails_location,
     ),
 )
 

@@ -1,11 +1,12 @@
-use crate::cl::{bn::BigNumber, MasterSecret, Prover as CryptoProver};
+use crate::cl::{bn::BigNumber, LinkSecret as ClLinkSecret, Prover as CryptoProver};
 use crate::error::ConversionError;
 use std::fmt;
+
 pub struct LinkSecret(pub BigNumber);
 
 impl LinkSecret {
     pub fn new() -> Result<Self, ConversionError> {
-        let value = CryptoProver::new_master_secret()
+        let value = CryptoProver::new_link_secret()
             .and_then(|v| v.value())
             .map_err(|err| {
                 ConversionError::from_msg(format!("Error creating link secret: {err}"))
@@ -31,10 +32,10 @@ impl fmt::Debug for LinkSecret {
     }
 }
 
-impl TryInto<MasterSecret> for LinkSecret {
+impl TryInto<ClLinkSecret> for LinkSecret {
     type Error = ConversionError;
 
-    fn try_into(self) -> Result<MasterSecret, Self::Error> {
+    fn try_into(self) -> Result<ClLinkSecret, Self::Error> {
         let j = serde_json::json!({
             "ms": self.0
         });
@@ -43,10 +44,10 @@ impl TryInto<MasterSecret> for LinkSecret {
     }
 }
 
-impl TryInto<MasterSecret> for &LinkSecret {
+impl TryInto<ClLinkSecret> for &LinkSecret {
     type Error = ConversionError;
 
-    fn try_into(self) -> Result<MasterSecret, Self::Error> {
+    fn try_into(self) -> Result<ClLinkSecret, Self::Error> {
         let j = serde_json::json!({
             "ms": self.0
         });
@@ -95,19 +96,19 @@ mod link_secret_tests {
     }
 
     #[test]
-    fn should_convert_between_master_secret() {
+    fn should_convert_between_link_secret() {
         let link_secret = LinkSecret::new().expect("Unable to create link secret");
-        let master_secret: MasterSecret = link_secret
+        let cl_link_secret: ClLinkSecret = link_secret
             .try_clone()
             .expect("Error cloning link secret")
             .try_into()
-            .expect("error converting to master secret");
+            .expect("error converting to CL link secret");
 
         assert_eq!(
             link_secret.0,
-            master_secret
+            cl_link_secret
                 .value()
-                .expect("Error getting value from master secret")
+                .expect("Error getting value from CL link secret")
         );
     }
 
