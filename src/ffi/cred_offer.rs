@@ -15,10 +15,12 @@ pub extern "C" fn anoncreds_create_credential_offer(
         check_useful_c_ptr!(cred_offer_p);
         let schema_id = schema_id
             .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing schema ID"))?;
+            .ok_or_else(|| err_msg!("Missing schema ID"))?
+            .try_into()?;
         let cred_def_id = cred_def_id
             .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing cred def ID"))?;
+            .ok_or_else(|| err_msg!("Missing cred def ID"))?
+            .try_into()?;
         let cred_offer =
             create_credential_offer(schema_id, cred_def_id, key_proof.load()?.cast_ref()?)?;
         let cred_offer = ObjectHandle::create(cred_offer)?;

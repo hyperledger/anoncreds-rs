@@ -27,8 +27,8 @@ fn anoncreds_demo_works_for_single_issuer_single_prover() {
 
     // Issuer creates a Credential Offer
     let cred_offer = issuer::create_credential_offer(
-        gvt_schema_id,
-        gvt_cred_def_id,
+        gvt_schema_id.try_into().unwrap(),
+        gvt_cred_def_id.try_into().unwrap(),
         &gvt_cred_key_correctness_proof,
     )
     .expect("Error creating credential offer");
@@ -218,8 +218,8 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
 
     // Issuer creates a Credential Offer
     let cred_offer = issuer::create_credential_offer(
-        gvt_schema_id,
-        gvt_cred_def_id,
+        gvt_schema_id.try_into().unwrap(),
+        gvt_cred_def_id.try_into().unwrap(),
         &gvt_cred_key_correctness_proof,
     )
     .expect("Error creating credential offer");
@@ -426,8 +426,8 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
         fixtures::create_cred_def(&emp_schema, false);
 
     let gvt_cred_offer = issuer::create_credential_offer(
-        gvt_schema_id,
-        gvt_cred_def_id,
+        gvt_schema_id.try_into().unwrap(),
+        gvt_cred_def_id.try_into().unwrap(),
         &gvt_cred_key_correctness_proof,
     )
     .expect("Unable to create credential offer");
@@ -469,8 +469,8 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
     prover_wallet.credentials.push(gvt_recv_cred);
 
     let emp_cred_offer = issuer::create_credential_offer(
-        emp_schema_id,
-        emp_cred_def_id,
+        emp_schema_id.try_into().unwrap(),
+        emp_cred_def_id.try_into().unwrap(),
         &emp_cred_key_correctness_proof,
     )
     .expect("Unable to create credential offer");
@@ -598,8 +598,8 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
 
     // Issuer creates a Credential Offer
     let cred_offer = issuer::create_credential_offer(
-        gvt_schema_id,
-        gvt_cred_def_id,
+        gvt_schema_id.try_into().unwrap(),
+        gvt_cred_def_id.try_into().unwrap(),
         &gvt_cred_key_correctness_proof,
     )
     .expect("Error creating credential offer");
@@ -727,8 +727,8 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case() {
 
     // Issuer creates a Credential Offer
     let cred_offer = issuer::create_credential_offer(
-        gvt_schema_id,
-        gvt_cred_def_id,
+        gvt_schema_id.try_into().unwrap(),
+        gvt_cred_def_id.try_into().unwrap(),
         &gvt_cred_key_correctness_proof,
     )
     .expect("Error creating credential offer");
@@ -905,8 +905,8 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
         fixtures::create_cred_def(&emp_schema, false);
 
     let gvt_cred_offer = issuer::create_credential_offer(
-        gvt_schema_id,
-        gvt_cred_def_id,
+        gvt_schema_id.try_into().unwrap(),
+        gvt_cred_def_id.try_into().unwrap(),
         &gvt_cred_key_correctness_proof,
     )
     .expect("Unable to create credential offer");
@@ -948,8 +948,8 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
     prover_wallet.credentials.push(gvt_recv_cred);
 
     let emp_cred_offer = issuer::create_credential_offer(
-        emp_schema_id,
-        emp_cred_def_id,
+        emp_schema_id.try_into().unwrap(),
+        emp_cred_def_id.try_into().unwrap(),
         &emp_cred_key_correctness_proof,
     )
     .expect("Unable to create credential offer");

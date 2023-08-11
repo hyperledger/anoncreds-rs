@@ -35,21 +35,12 @@ pub struct Ledger<'a> {
 }
 
 // A struct for keeping all issuer-related objects together
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct IssuerWallet<'a> {
     // cred_def_id: StoredRevDef
     pub cred_defs: HashMap<&'a str, StoredCredDef>,
     // revocation_reg_id: StoredRevDef
     pub rev_defs: HashMap<&'a str, StoredRevDef>,
-}
-
-impl<'a> Default for IssuerWallet<'a> {
-    fn default() -> Self {
-        Self {
-            cred_defs: HashMap::new(),
-            rev_defs: HashMap::new(),
-        }
-    }
 }
 
 // A struct for keeping all issuer-related objects together

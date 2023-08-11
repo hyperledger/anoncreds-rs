@@ -2860,9 +2860,9 @@ mod tests {
 
     #[test]
     fn test_old_format_empty() {
-        let json = format!(r#"[]"#);
+        let json = r#"[]"#;
 
-        let query: Query = ::serde_json::from_str(&json).unwrap();
+        let query: Query = ::serde_json::from_str(json).unwrap();
 
         let expected = Query::And(vec![]);
 
@@ -2876,8 +2876,8 @@ mod tests {
         let value1 = _random_string(10);
 
         let json = json!(vec![
-            json ! ({name1.clone(): value1.clone()}),
-            json!({ name2.clone(): ::serde_json::Value::Null })
+            json!({ &name1: value1 }),
+            json!({ name2: ::serde_json::Value::Null })
         ])
         .to_string();
 
@@ -2901,7 +2901,7 @@ mod tests {
     fn test_optimise_or() {
         let json = r#"[]"#;
 
-        let query: Query = ::serde_json::from_str(&json).unwrap();
+        let query: Query = ::serde_json::from_str(json).unwrap();
 
         assert_eq!(query.optimise(), None);
     }

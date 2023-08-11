@@ -33,10 +33,10 @@ const SCHEMA_ID_1: &str = "mock:uri:schema1";
 const SCHEMA_ID_2: &str = "mock:uri:schema2";
 const SCHEMA_1: &str = r#"{"name":"gvt","version":"1.0","attrNames":["name","sex","age","height"],"issuerId":"mock:issuer_id/path&q=bar"}"#;
 const SCHEMA_2: &str = r#"{"name":"hogwarts","version":"1.0","attrNames":["wand","house","year"],"issuerId":"mock:issuer_id/path&q=hogwarts"}"#;
-static CRED_DEF_ID_1: &'static str = "mock:uri:1";
-static CRED_DEF_ID_2: &'static str = "mock:uri:2";
-static REV_REG_ID_1: &'static str = "mock:uri:revregid1";
-static REV_REG_ID_2: &'static str = "mock:uri:revregid2";
+static CRED_DEF_ID_1: &str = "mock:uri:1";
+static CRED_DEF_ID_2: &str = "mock:uri:2";
+static REV_REG_ID_1: &str = "mock:uri:revregid1";
+static REV_REG_ID_2: &str = "mock:uri:revregid2";
 
 fn create_request(input: &ReqInput) -> PresentationRequest {
     let nonce = verifier::generate_nonce().unwrap();
@@ -222,7 +222,7 @@ fn anoncreds_with_multiple_credentials_per_request() {
     // [4]: no NRP required
     let reqs: Vec<PresentationRequest> = test_requests_generate()
         .iter()
-        .map(|x| create_request(&x))
+        .map(create_request)
         .collect();
 
     // 1: Issuer setup (credate cred defs, rev defs(optional), cred_offers)

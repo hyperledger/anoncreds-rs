@@ -24,7 +24,7 @@ pub extern "C" fn anoncreds_create_revocation_status_list(
     rev_reg_def_id: FfiStr,
     rev_reg_def: ObjectHandle,
     reg_rev_priv: ObjectHandle,
-    issuer_id: FfiStr,
+    _issuer_id: FfiStr, // leaving it here not to break existing code
     issuance_by_default: i8,
     timestamp: i64,
     rev_status_list_p: *mut ObjectHandle,
@@ -33,10 +33,9 @@ pub extern "C" fn anoncreds_create_revocation_status_list(
         check_useful_c_ptr!(rev_status_list_p);
         let rev_reg_def_id = rev_reg_def_id
             .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing rev_reg_def_id"))?;
-        let issuer_id = issuer_id
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing issuer_id"))?;
+            .ok_or_else(|| err_msg!("Missing rev_reg_def_id"))?
+            .try_into()?;
+
         let timestamp = if timestamp <= 0 {
             None
         } else {
@@ -48,7 +47,6 @@ pub extern "C" fn anoncreds_create_revocation_status_list(
             rev_reg_def_id,
             rev_reg_def.load()?.cast_ref()?,
             reg_rev_priv.load()?.cast_ref()?,
-            issuer_id,
             issuance_by_default != 0,
             timestamp,
         )?;
@@ -134,7 +132,7 @@ pub extern "C" fn anoncreds_update_revocation_status_list_timestamp_only(
 pub extern "C" fn anoncreds_create_revocation_registry_def(
     cred_def: ObjectHandle,
     cred_def_id: FfiStr,
-    issuer_id: FfiStr,
+    _issuer_id: FfiStr, // leaving it here not to break existing code
     tag: FfiStr,
     rev_reg_type: FfiStr,
     max_cred_num: i64,
@@ -148,10 +146,8 @@ pub extern "C" fn anoncreds_create_revocation_registry_def(
         let tag = tag.as_opt_str().ok_or_else(|| err_msg!("Missing tag"))?;
         let cred_def_id = cred_def_id
             .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing cred def id"))?;
-        let issuer_id = issuer_id
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing issuer id"))?;
+            .ok_or_else(|| err_msg!("Missing cred def id"))?
+            .try_into()?;
         let rev_reg_type = {
             let rtype = rev_reg_type
                 .as_opt_str()
@@ -162,7 +158,6 @@ pub extern "C" fn anoncreds_create_revocation_registry_def(
         let (reg_def, reg_def_private) = create_revocation_registry_def(
             cred_def.load()?.cast_ref()?,
             cred_def_id,
-            issuer_id,
             tag,
             rev_reg_type,
             max_cred_num
