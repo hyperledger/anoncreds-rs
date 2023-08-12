@@ -297,7 +297,6 @@ describe('bindings', () => {
         revocationRegistryDefinition,
         revocationRegistryDefinitionPrivate,
         registryIndex: 9,
-        tailsPath,
       },
     })
 
@@ -434,7 +433,6 @@ describe('bindings', () => {
         revocationRegistryDefinition,
         revocationRegistryDefinitionPrivate,
         registryIndex: 9,
-        tailsPath,
       },
     })
 

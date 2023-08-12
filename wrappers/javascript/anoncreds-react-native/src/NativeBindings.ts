@@ -61,7 +61,6 @@ export interface NativeBindings {
       registryIndex: number
       revocationRegistryDefinition: number
       revocationRegistryDefinitionPrivate: number
-      tailsPath: string
     }
   }): ReturnObject<Handle>
   encodeCredentialAttributes(options: { attributeRawValues: Array<string> }): ReturnObject<string>

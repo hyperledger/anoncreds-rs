@@ -114,7 +114,6 @@ describe('API', () => {
         registryDefinition: revocationRegistryDefinition,
         registryDefinitionPrivate: revocationRegistryDefinitionPrivate,
         registryIndex: 9,
-        tailsPath,
       }),
     })
 
@@ -434,7 +433,6 @@ test('create and verify presentation passing only JSON objects as parameters', (
       registryDefinition: revocationRegistryDefinition,
       registryDefinitionPrivate: revocationRegistryDefinitionPrivate,
       registryIndex: 9,
-      tailsPath,
     }),
   })
 

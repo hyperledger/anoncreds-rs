@@ -138,7 +138,6 @@ export class ReactNativeAnoncreds implements Anoncreds {
               revocationRegistryDefinition: options.revocationConfiguration.revocationRegistryDefinition.handle,
               revocationRegistryDefinitionPrivate:
                 options.revocationConfiguration.revocationRegistryDefinitionPrivate.handle,
-              tailsPath: options.revocationConfiguration.tailsPath,
             }
           : undefined,
       })

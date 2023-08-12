@@ -32,7 +32,6 @@ export type NativeCredentialRevocationConfig = {
   revocationRegistryDefinition: ObjectHandle
   revocationRegistryDefinitionPrivate: ObjectHandle
   registryIndex: number
-  tailsPath: string
 }
 
 export interface Anoncreds {
