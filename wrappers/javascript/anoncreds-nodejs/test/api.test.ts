@@ -390,8 +390,6 @@ test('create and verify presentation passing only JSON objects as parameters', (
     maximumCredentialNumber: 10,
   })
 
-  const tailsPath = revocationRegistryDefinition.getTailsLocation()
-
   const timeCreateRevStatusList = 12
   const revocationStatusList = RevocationStatusList.create({
     credentialDefinition,
@@ -403,6 +401,12 @@ test('create and verify presentation passing only JSON objects as parameters', (
     timestamp: timeCreateRevStatusList,
   })
 
+  revocationStatusList.update({
+    credentialDefinition,
+    revocationRegistryDefinition,
+    revocationRegistryDefinitionPrivate,
+    revoked: [1],
+  })
   const credentialOffer = CredentialOffer.fromJson({
     schema_id: 'mock:uri',
     cred_def_id: 'mock:uri',

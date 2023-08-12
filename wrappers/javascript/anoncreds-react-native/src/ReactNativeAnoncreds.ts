@@ -29,8 +29,10 @@ export class ReactNativeAnoncreds implements Anoncreds {
   }
 
   public createRevocationStatusList(options: {
+    credentialDefinition: ObjectHandle
     revocationRegistryDefinitionId: string
     revocationRegistryDefinition: ObjectHandle
+    revocationRegistryDefinitionPrivate: ObjectHandle
     issuerId: string
     timestamp?: number
     issuanceByDefault: boolean
@@ -50,11 +52,13 @@ export class ReactNativeAnoncreds implements Anoncreds {
   }
 
   public updateRevocationStatusList(options: {
-    timestamp?: number
+    credentialDefinition: ObjectHandle
+    revocationRegistryDefinition: ObjectHandle
+    revocationRegistryDefinitionPrivate: ObjectHandle
+    currentRevocationStatusList: ObjectHandle
     issued?: number[]
     revoked?: number[]
-    revocationRegistryDefinition: ObjectHandle
-    currentRevocationStatusList: ObjectHandle
+    timestamp?: number
   }): ObjectHandle {
     const handle = this.handleError(this.anoncreds.updateRevocationStatusList(serializeArguments(options)))
     return new ObjectHandle(handle)
