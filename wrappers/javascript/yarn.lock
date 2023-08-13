@@ -2478,7 +2478,7 @@
     "@types/ref-napi" "*"
     "@types/ref-struct-di" "*"
 
-"@types/2060.io__ref-napi@npm:@types/ref-napi", "@types/ref-napi@*", "@types/ref-napi@3.0.7":
+"@types/2060.io__ref-napi@npm:@types/ref-napi":
   name "@types/2060.io__ref-napi"
   version "3.0.7"
   resolved "https://registry.yarnpkg.com/@types/ref-napi/-/ref-napi-3.0.7.tgz#20adc93a7a2f9f992dfb17409fd748e6f4bf403d"
@@ -2646,6 +2646,14 @@
   integrity sha512-vD2JoXDSe4p4NDTWHLcwfb+y17fkJ6wOWu2q9B7wYBwXZ2qoWHRyHc2zuZdz6Xr1/gC+Asp09tuNbDGeWupQ7A==
   dependencies:
     "@types/ref-napi" "*"
+
+"@types/ref-napi@*", "@types/ref-napi@3.0.7":
+  name "@types/ref-napi"
+  version "3.0.7"
+  resolved "https://registry.yarnpkg.com/@types/ref-napi/-/ref-napi-3.0.7.tgz#20adc93a7a2f9f992dfb17409fd748e6f4bf403d"
+  integrity sha512-CzPwr36VkezSpaJGdQX/UrczMSDsDgsWQQFEfQkS799Ft7n/s183a53lsql7RwVq+Ik4yLEgI84pRnLC0XXRlA==
+  dependencies:
+    "@types/node" "*"
 
 "@types/ref-struct-di@*":
   version "1.1.9"
