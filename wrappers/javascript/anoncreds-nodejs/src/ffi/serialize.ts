@@ -1,10 +1,10 @@
 import type { ByteBufferStruct } from './structures'
+import type { Pointer } from '@2060.io/ref-napi'
 import type { TypedArray } from 'ref-array-di'
-import type { Pointer } from 'ref-napi'
 import type { StructObject } from 'ref-struct-di'
 
+import { NULL } from '@2060.io/ref-napi'
 import { ObjectHandle } from '@hyperledger/anoncreds-shared'
-import { NULL } from 'ref-napi'
 
 import { ObjectHandleListStruct, StringListStruct, I32ListStruct, Int32Array } from './structures'
 

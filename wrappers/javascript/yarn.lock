@@ -2,6 +2,28 @@
 # yarn lockfile v1
 
 
+"@2060.io/ffi-napi@4.0.5":
+  version "4.0.5"
+  resolved "https://registry.yarnpkg.com/@2060.io/ffi-napi/-/ffi-napi-4.0.5.tgz#52fd369f25cba85319eb5625e2d598925a1713ce"
+  integrity sha512-CdV4y/gXYI7yzSiSHWvY/JdW06Li57Gdc3ZKzNesXrCQg4IoHL0S+zIxEr6Mbr0fCNVvj1GNSh8Uz9vSQkCXYA==
+  dependencies:
+    "@2060.io/ref-napi" "3.0.4"
+    debug "^4.1.1"
+    get-uv-event-loop-napi-h "^1.0.5"
+    node-addon-api "^3.0.0"
+    node-gyp-build "^4.2.1"
+    ref-struct-di "^1.1.0"
+
+"@2060.io/ref-napi@3.0.4":
+  version "3.0.4"
+  resolved "https://registry.yarnpkg.com/@2060.io/ref-napi/-/ref-napi-3.0.4.tgz#6a78093b36e8f4ffeb750f706433869382e73eb1"
+  integrity sha512-Aqf699E+DKs2xANx8bSkuzXyG9gcZ2iFkAk1kUTA8KbV5BSPQtIcBJexzohSRi9QWDhP4X54NLm7xwGA0UNCdQ==
+  dependencies:
+    debug "^4.1.1"
+    get-symbol-from-current-process-h "^1.0.2"
+    node-addon-api "^3.0.0"
+    node-gyp-build "^4.2.1"
+
 "@aashutoshrathi/word-wrap@^1.2.3":
   version "1.2.6"
   resolved "https://registry.yarnpkg.com/@aashutoshrathi/word-wrap/-/word-wrap-1.2.6.tgz#bd9154aec9983f77b3a034ecaa015c2e4201f6cf"
@@ -2447,6 +2469,23 @@
   resolved "https://registry.yarnpkg.com/@tsconfig/node16/-/node16-1.0.4.tgz#0b92dcc0cc1c81f6f306a381f28e31b1a56536e9"
   integrity sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==
 
+"@types/2060.io__ffi-napi@npm:@types/ffi-napi":
+  version "4.0.5"
+  resolved "https://registry.yarnpkg.com/@types/ffi-napi/-/ffi-napi-4.0.5.tgz#0b2dc2d549361947a117d55156ff34fd9632c3df"
+  integrity sha512-WDPpCcHaPhHmP1FIw3ds/+OLt8bYQ/h3SO7o+8kH771PL21kHVzTwii7+WyMBXMQrBsR6xVU2y7w+h+9ggpaQw==
+  dependencies:
+    "@types/node" "*"
+    "@types/ref-napi" "*"
+    "@types/ref-struct-di" "*"
+
+"@types/2060.io__ref-napi@npm:@types/ref-napi", "@types/ref-napi@*", "@types/ref-napi@3.0.7":
+  name "@types/2060.io__ref-napi"
+  version "3.0.7"
+  resolved "https://registry.yarnpkg.com/@types/ref-napi/-/ref-napi-3.0.7.tgz#20adc93a7a2f9f992dfb17409fd748e6f4bf403d"
+  integrity sha512-CzPwr36VkezSpaJGdQX/UrczMSDsDgsWQQFEfQkS799Ft7n/s183a53lsql7RwVq+Ik4yLEgI84pRnLC0XXRlA==
+  dependencies:
+    "@types/node" "*"
+
 "@types/babel__core@^7.1.14":
   version "7.20.1"
   resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.20.1.tgz#916ecea274b0c776fec721e333e55762d3a9614b"
@@ -2492,15 +2531,6 @@
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.1.tgz#aa22750962f3bf0e79d753d3cc067f010c95f194"
   integrity sha512-LG4opVs2ANWZ1TJoKc937iMmNstM/d0ae1vNbnBvBhqCSezgVUOzcLCqbI5elV8Vy6WKwKjaqR+zO9VKirBBCA==
-
-"@types/ffi-napi@4.0.5":
-  version "4.0.5"
-  resolved "https://registry.yarnpkg.com/@types/ffi-napi/-/ffi-napi-4.0.5.tgz#0b2dc2d549361947a117d55156ff34fd9632c3df"
-  integrity sha512-WDPpCcHaPhHmP1FIw3ds/+OLt8bYQ/h3SO7o+8kH771PL21kHVzTwii7+WyMBXMQrBsR6xVU2y7w+h+9ggpaQw==
-  dependencies:
-    "@types/node" "*"
-    "@types/ref-napi" "*"
-    "@types/ref-struct-di" "*"
 
 "@types/graceful-fs@^4.1.2", "@types/graceful-fs@^4.1.3":
   version "4.1.6"
@@ -2616,13 +2646,6 @@
   integrity sha512-vD2JoXDSe4p4NDTWHLcwfb+y17fkJ6wOWu2q9B7wYBwXZ2qoWHRyHc2zuZdz6Xr1/gC+Asp09tuNbDGeWupQ7A==
   dependencies:
     "@types/ref-napi" "*"
-
-"@types/ref-napi@*", "@types/ref-napi@3.0.7":
-  version "3.0.7"
-  resolved "https://registry.yarnpkg.com/@types/ref-napi/-/ref-napi-3.0.7.tgz#20adc93a7a2f9f992dfb17409fd748e6f4bf403d"
-  integrity sha512-CzPwr36VkezSpaJGdQX/UrczMSDsDgsWQQFEfQkS799Ft7n/s183a53lsql7RwVq+Ik4yLEgI84pRnLC0XXRlA==
-  dependencies:
-    "@types/node" "*"
 
 "@types/ref-struct-di@*":
   version "1.1.9"
@@ -4929,18 +4952,6 @@ fb-watchman@^2.0.0:
   integrity sha512-p5161BqbuCaSnB8jIbzQHOlpgsPmK5rJVDfDKO91Axs5NC1uu3HRQm6wt9cd9/+GtQQIO53JdGXXoyDpTAsgYA==
   dependencies:
     bser "2.1.1"
-
-ffi-napi@4.0.3:
-  version "4.0.3"
-  resolved "https://registry.yarnpkg.com/ffi-napi/-/ffi-napi-4.0.3.tgz#27a8d42a8ea938457154895c59761fbf1a10f441"
-  integrity sha512-PMdLCIvDY9mS32RxZ0XGb95sonPRal8aqRhLbeEtWKZTe2A87qRFG9HjOhvG8EX2UmQw5XNRMIOT+1MYlWmdeg==
-  dependencies:
-    debug "^4.1.1"
-    get-uv-event-loop-napi-h "^1.0.5"
-    node-addon-api "^3.0.0"
-    node-gyp-build "^4.2.1"
-    ref-napi "^2.0.1 || ^3.0.2"
-    ref-struct-di "^1.1.0"
 
 figures@3.2.0, figures@^3.0.0:
   version "3.2.0"
@@ -8928,16 +8939,6 @@ ref-array-di@1.2.2:
   dependencies:
     array-index "^1.0.0"
     debug "^3.1.0"
-
-ref-napi@3.0.3, "ref-napi@^2.0.1 || ^3.0.2", "ref-napi@npm:@2060.io/ref-napi":
-  version "3.0.4"
-  resolved "https://registry.yarnpkg.com/@2060.io/ref-napi/-/ref-napi-3.0.4.tgz#6a78093b36e8f4ffeb750f706433869382e73eb1"
-  integrity sha512-Aqf699E+DKs2xANx8bSkuzXyG9gcZ2iFkAk1kUTA8KbV5BSPQtIcBJexzohSRi9QWDhP4X54NLm7xwGA0UNCdQ==
-  dependencies:
-    debug "^4.1.1"
-    get-symbol-from-current-process-h "^1.0.2"
-    node-addon-api "^3.0.0"
-    node-gyp-build "^4.2.1"
 
 ref-struct-di@1.1.1, ref-struct-di@^1.1.0:
   version "1.1.1"

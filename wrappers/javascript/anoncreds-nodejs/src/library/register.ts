@@ -1,6 +1,6 @@
 import type { NativeMethods } from './NativeBindingInterface'
 
-import { Library } from 'ffi-napi'
+import { Library } from '@2060.io/ffi-napi'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
