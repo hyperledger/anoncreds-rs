@@ -5,6 +5,7 @@ use anoncreds::data_types::schema::SchemaId;
 use anoncreds::issuer;
 use anoncreds::prover;
 use anoncreds::tails::TailsFileWriter;
+use anoncreds::types::RevocationRegistryDefinition;
 use anoncreds::types::{CredentialRevocationConfig, PresentCredentials};
 use anoncreds::verifier;
 use serde_json::json;
@@ -179,9 +180,9 @@ fn anoncreds_demo_works_for_single_issuer_single_prover() {
         &pres_request,
         &schemas,
         &cred_defs,
+        None::<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
         None,
-        None,
-        None,
+        None::<&HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>>,
     )
     .expect("Error verifying presentation");
 
@@ -353,7 +354,7 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
         &cred_defs,
         Some(&rev_reg_def_map),
         Some(rev_status_list.clone()),
-        None,
+        None::<&HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>>,
     )
     .expect("Error verifying presentation");
     assert!(valid);
@@ -401,7 +402,7 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
         &cred_defs,
         Some(&rev_reg_def_map),
         Some(rev_status_list),
-        None,
+        None::<&HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>>,
     )
     .expect("Error verifying presentation");
     assert!(!valid);
@@ -576,9 +577,9 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
         &pres_request,
         &schemas,
         &cred_defs,
+        None::<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
         None,
-        None,
-        None,
+        None::<&HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>>,
     )
     .expect("Error verifying presentation");
     assert!(valid);
@@ -705,9 +706,9 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
         &pres_request,
         &schemas,
         &cred_defs,
+        None::<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
         None,
-        None,
-        None,
+        None::<&HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>>,
     );
 
     assert!(valid.is_err())
@@ -877,9 +878,9 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case() {
         &pres_request,
         &schemas,
         &cred_defs,
+        None::<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
         None,
-        None,
-        None,
+        None::<&HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>>,
     )
     .expect("Error verifying presentation");
 
@@ -1060,9 +1061,9 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
         &pres_request,
         &schemas,
         &cred_defs,
+        None::<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
         None,
-        None,
-        None,
+        None::<&HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>>,
     )
     .expect("Error verifying presentation");
     assert!(valid);

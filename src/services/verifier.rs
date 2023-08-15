@@ -22,6 +22,7 @@ use crate::services::helpers::build_non_credential_schema;
 use crate::services::helpers::build_sub_proof_request;
 use crate::services::helpers::get_predicates_for_credential;
 use crate::services::helpers::get_revealed_attributes_for_credential;
+use crate::utils::map::ReferencesMap;
 use crate::utils::query::Query;
 use crate::utils::validation::LEGACY_DID_IDENTIFIER;
 
@@ -43,17 +44,22 @@ static INTERNAL_TAG_MATCHER: Lazy<Regex> =
     Lazy::new(|| Regex::new("^attr::([^:]+)::(value|marker)$").unwrap());
 
 /// Verify an incoming proof presentation
-pub fn verify_presentation(
+pub fn verify_presentation<T, U, V, Z>(
     presentation: &Presentation,
     pres_req: &PresentationRequest,
-    schemas: &HashMap<&SchemaId, &Schema>,
-    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
-    rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
+    schemas: &T,
+    cred_defs: &U,
+    rev_reg_defs: Option<&V>,
     rev_status_lists: Option<Vec<&RevocationStatusList>>,
-    nonrevoke_interval_override: Option<
-        &HashMap<&RevocationRegistryDefinitionId, HashMap<u64, u64>>,
-    >,
-) -> Result<bool> {
+    nonrevoke_interval_override: Option<&Z>,
+) -> Result<bool>
+where
+    T: ReferencesMap<SchemaId, Schema> + std::fmt::Debug,
+    U: ReferencesMap<CredentialDefinitionId, CredentialDefinition> + std::fmt::Debug,
+    V: ReferencesMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>
+        + std::fmt::Debug,
+    Z: ReferencesMap<RevocationRegistryDefinitionId, HashMap<u64, u64>> + std::fmt::Debug,
+{
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
 
@@ -98,11 +104,11 @@ pub fn verify_presentation(
         let identifier = presentation.identifiers[sub_proof_index].clone();
 
         let schema = schemas
-            .get(&identifier.schema_id)
+            .get_ref(&identifier.schema_id)
             .ok_or_else(|| err_msg!("Schema not provided for ID: {:?}", identifier.schema_id))?;
 
         let cred_def_id = CredentialDefinitionId::new(identifier.cred_def_id.clone())?;
-        let cred_def = cred_defs.get(&cred_def_id).ok_or_else(|| {
+        let cred_def = cred_defs.get_ref(&cred_def_id).ok_or_else(|| {
             err_msg!(
                 "Credential Definition not provided for ID: {:?}",
                 identifier.cred_def_id
@@ -203,7 +209,7 @@ pub fn verify_presentation(
 
             // Override Interval if an earlier `from` value is accepted by the verifier
             nonrevoke_interval_override.map(|maps| {
-                maps.get(&rev_reg_def_id).map(|map| {
+                maps.get_ref(&rev_reg_def_id).map(|map| {
                     cred_nonrevoked_interval
                         .as_mut()
                         .map(|int| int.update_with_override(map))
@@ -217,9 +223,8 @@ pub fn verify_presentation(
 
             let rev_reg_def = Some(
                 rev_reg_defs
-                    .as_ref()
                     .ok_or_else(|| err_msg!("Could not load the Revocation Registry Definition"))?
-                    .get(&rev_reg_def_id)
+                    .get_ref(&rev_reg_def_id)
                     .ok_or_else(|| {
                         err_msg!(
                             "Revocation Registry Definition not provided for ID: {:?}",
@@ -494,16 +499,20 @@ fn verify_revealed_attribute_value(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn verify_requested_restrictions(
+fn verify_requested_restrictions<T, U>(
     pres_req: &PresentationRequestPayload,
-    schemas: &HashMap<&SchemaId, &Schema>,
-    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
+    schemas: &T,
+    cred_defs: &U,
     requested_proof: &RequestedProof,
     received_revealed_attrs: &HashMap<String, Identifier>,
     received_unrevealed_attrs: &HashMap<String, Identifier>,
     received_predicates: &HashMap<String, Identifier>,
     self_attested_attrs: &HashSet<String>,
-) -> Result<()> {
+) -> Result<()>
+where
+    T: ReferencesMap<SchemaId, Schema>,
+    U: ReferencesMap<CredentialDefinitionId, CredentialDefinition>,
+{
     let proof_attr_identifiers: HashMap<String, Identifier> = received_revealed_attrs
         .iter()
         .chain(received_unrevealed_attrs)
@@ -661,12 +670,16 @@ fn is_self_attested(
     }
 }
 
-fn gather_filter_info(
+fn gather_filter_info<T, U>(
     referent: &str,
     identifiers: &HashMap<String, Identifier>,
-    schemas: &HashMap<&SchemaId, &Schema>,
-    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
-) -> Result<Filter> {
+    schemas: &T,
+    cred_defs: &U,
+) -> Result<Filter>
+where
+    T: ReferencesMap<SchemaId, Schema>,
+    U: ReferencesMap<CredentialDefinitionId, CredentialDefinition>,
+{
     let identifier = identifiers.get(referent).ok_or_else(|| {
         err_msg!(
             InvalidState,
@@ -679,11 +692,11 @@ fn gather_filter_info(
     let cred_def_id = &identifier.cred_def_id;
 
     let schema = schemas
-        .get(schema_id)
+        .get_ref(schema_id)
         .ok_or_else(|| err_msg!("schema_id {schema_id} could not be found in the schemas"))?;
 
     let cred_def = cred_defs
-        .get(cred_def_id)
+        .get_ref(cred_def_id)
         .ok_or_else(|| err_msg!("cred_def_id {cred_def_id} could not be found in the cred_defs"))?;
 
     Ok(Filter {

@@ -27,6 +27,7 @@ use crate::services::helpers::{
     get_revealed_attributes_for_credential, new_nonce,
 };
 use crate::types::{CredentialRevocationState, PresentCredentials};
+use crate::utils::map::ReferencesMap;
 use crate::utils::validation::Validatable;
 use bitvec::bitvec;
 use std::collections::{HashMap, HashSet};
@@ -398,14 +399,18 @@ pub fn process_credential(
 ///                                 &cred_defs
 ///                                 ).expect("Unable to create presentation");
 /// ```
-pub fn create_presentation(
+pub fn create_presentation<T, U>(
     pres_req: &PresentationRequest,
     credentials: PresentCredentials,
     self_attested: Option<HashMap<String, String>>,
     link_secret: &LinkSecret,
-    schemas: &HashMap<&SchemaId, &Schema>,
-    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
-) -> Result<Presentation> {
+    schemas: &T,
+    cred_defs: &U,
+) -> Result<Presentation>
+where
+    T: ReferencesMap<SchemaId, Schema> + std::fmt::Debug,
+    U: ReferencesMap<CredentialDefinitionId, CredentialDefinition> + std::fmt::Debug,
+{
     trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, link_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
             credentials, pres_req, credentials, &self_attested, secret!(&link_secret), schemas, cred_defs);
 
@@ -436,12 +441,12 @@ pub fn create_presentation(
         }
         let credential = present.cred;
 
-        let schema = *schemas
-            .get(&credential.schema_id)
+        let schema = schemas
+            .get_ref(&credential.schema_id)
             .ok_or_else(|| err_msg!("Schema not provided for ID: {}", credential.schema_id))?;
 
         let cred_def_id = CredentialDefinitionId::new(credential.cred_def_id.clone())?;
-        let cred_def = *cred_defs.get(&cred_def_id).ok_or_else(|| {
+        let cred_def = cred_defs.get_ref(&cred_def_id).ok_or_else(|| {
             err_msg!(
                 "Credential Definition not provided for ID: {}",
                 credential.cred_def_id
