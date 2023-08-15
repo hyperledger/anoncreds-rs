@@ -665,7 +665,7 @@ pub fn create_or_update_revocation_state(
 
     let mut issued = HashSet::<u32>::new();
     let mut revoked = HashSet::<u32>::new();
-    let tails_reader = TailsFileReader::new(tails_path);
+    let tails_reader = TailsFileReader::new(tails_path)?;
     let witness = if let (Some(source_rev_state), Some(source_rev_list)) =
         (rev_state, old_rev_status_list)
     {
