@@ -181,7 +181,7 @@ fn anoncreds_demo_works_for_single_issuer_single_prover() {
         &schemas,
         &cred_defs,
         None::<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
-        None,
+        None::<&[_; 0]>,
         None::<&HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>>,
     )
     .expect("Error verifying presentation");
@@ -578,7 +578,7 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
         &schemas,
         &cred_defs,
         None::<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
-        None,
+        None::<&[_; 0]>,
         None::<&HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>>,
     )
     .expect("Error verifying presentation");
@@ -707,7 +707,7 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
         &schemas,
         &cred_defs,
         None::<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
-        None,
+        None::<&[_; 0]>,
         None::<&HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>>,
     );
 
@@ -879,7 +879,7 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case() {
         &schemas,
         &cred_defs,
         None::<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
-        None,
+        None::<&[_; 0]>,
         None::<&HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>>,
     )
     .expect("Error verifying presentation");
@@ -1062,7 +1062,7 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
         &schemas,
         &cred_defs,
         None::<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
-        None,
+        None::<&[_; 0]>,
         None::<&HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>>,
     )
     .expect("Error verifying presentation");

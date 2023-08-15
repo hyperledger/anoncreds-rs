@@ -27,7 +27,7 @@ use crate::services::helpers::{
     get_revealed_attributes_for_credential, new_nonce,
 };
 use crate::types::{CredentialRevocationState, PresentCredentials};
-use crate::utils::map::ReferencesMap;
+use crate::utils::ref_map::ReferencesMap;
 use crate::utils::validation::Validatable;
 use bitvec::bitvec;
 use std::collections::{HashMap, HashSet};

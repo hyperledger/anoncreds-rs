@@ -333,13 +333,15 @@ pub extern "C" fn anoncreds_verify_presentation(
                 .insert(*req_timestamp, *override_timestamp);
         }
 
+        let rev_status_lists = rev_status_list.as_ref().map(|v| v.iter().copied());
+
         let verify = verify_presentation(
             presentation.load()?.cast_ref()?,
             pres_req.load()?.cast_ref()?,
             &schemas,
             &cred_defs,
             rev_reg_defs,
-            rev_status_list,
+            rev_status_lists,
             Some(&map_nonrevoked_interval_override),
         )?;
         unsafe { *result_p = i8::from(verify) };

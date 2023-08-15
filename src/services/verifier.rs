@@ -22,8 +22,8 @@ use crate::services::helpers::build_non_credential_schema;
 use crate::services::helpers::build_sub_proof_request;
 use crate::services::helpers::get_predicates_for_credential;
 use crate::services::helpers::get_revealed_attributes_for_credential;
-use crate::utils::map::ReferencesMap;
 use crate::utils::query::Query;
+use crate::utils::ref_map::ReferencesMap;
 use crate::utils::validation::LEGACY_DID_IDENTIFIER;
 
 use once_cell::sync::Lazy;
@@ -44,13 +44,13 @@ static INTERNAL_TAG_MATCHER: Lazy<Regex> =
     Lazy::new(|| Regex::new("^attr::([^:]+)::(value|marker)$").unwrap());
 
 /// Verify an incoming proof presentation
-pub fn verify_presentation<T, U, V, Z>(
+pub fn verify_presentation<'a, T, U, V, I, Z>(
     presentation: &Presentation,
     pres_req: &PresentationRequest,
     schemas: &T,
     cred_defs: &U,
     rev_reg_defs: Option<&V>,
-    rev_status_lists: Option<Vec<&RevocationStatusList>>,
+    rev_status_lists: Option<I>,
     nonrevoke_interval_override: Option<&Z>,
 ) -> Result<bool>
 where
@@ -58,6 +58,7 @@ where
     U: ReferencesMap<CredentialDefinitionId, CredentialDefinition> + std::fmt::Debug,
     V: ReferencesMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>
         + std::fmt::Debug,
+    I: IntoIterator<Item = &'a RevocationStatusList> + Clone + std::fmt::Debug,
     Z: ReferencesMap<RevocationRegistryDefinitionId, HashMap<u64, u64>> + std::fmt::Debug,
 {
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
@@ -115,7 +116,7 @@ where
             )
         })?;
 
-        let rev_reg_map = if let Some(ref lists) = rev_status_lists {
+        let rev_reg_map = if let Some(lists) = rev_status_lists.clone() {
             let mut map: HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>> =
                 HashMap::new();
 
@@ -128,7 +129,7 @@ where
                     .timestamp()
                     .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing timestamp"))?;
 
-                let rev_reg: Option<RevocationRegistry> = (*list).into();
+                let rev_reg: Option<RevocationRegistry> = list.into();
                 let rev_reg = rev_reg.ok_or_else(|| {
                     err_msg!(Unexpected, "Revocation status list missing accumulator")
                 })?;
