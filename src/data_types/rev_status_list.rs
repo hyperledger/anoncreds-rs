@@ -1,8 +1,8 @@
 use super::issuer_id::IssuerId;
-use super::rev_reg::{CLSignaturesRevocationRegistry, RevocationRegistry};
+use super::rev_reg::RevocationRegistry;
 use super::rev_reg_def::RevocationRegistryDefinitionId;
 
-use crate::cl::RevocationRegistry as CryptoRevocationRegistry;
+use crate::cl::{Accumulator, RevocationRegistry as CryptoRevocationRegistry};
 use crate::{Error, Result};
 
 use std::collections::BTreeSet;
@@ -17,35 +17,27 @@ pub struct RevocationStatusList {
     issuer_id: IssuerId,
     #[serde(with = "serde_revocation_list")]
     revocation_list: bitvec::vec::BitVec,
-    #[serde(rename = "currentAccumulator", skip_serializing_if = "Option::is_none")]
-    registry: Option<CLSignaturesRevocationRegistry>,
+    #[serde(
+        rename = "currentAccumulator",
+        skip_serializing_if = "Option::is_none",
+        with = "serde_opt_accumulator"
+    )]
+    registry: Option<Accumulator>,
     #[serde(skip_serializing_if = "Option::is_none")]
     timestamp: Option<u64>,
 }
 
-impl TryFrom<&RevocationStatusList> for Option<CryptoRevocationRegistry> {
-    type Error = Error;
-
-    fn try_from(value: &RevocationStatusList) -> std::result::Result<Self, Self::Error> {
-        Ok(value.registry.map(From::from))
+impl From<&RevocationStatusList> for Option<CryptoRevocationRegistry> {
+    fn from(value: &RevocationStatusList) -> Self {
+        value.registry.map(From::from)
     }
 }
 
-impl From<&RevocationStatusList> for Option<CLSignaturesRevocationRegistry> {
-    fn from(rev_status_list: &RevocationStatusList) -> Self {
-        rev_status_list.registry.map(Into::into)
-    }
-}
-
-impl TryFrom<&RevocationStatusList> for Option<RevocationRegistry> {
-    type Error = Error;
-
-    fn try_from(value: &RevocationStatusList) -> std::result::Result<Self, Self::Error> {
-        let value = value.registry.map(|registry| RevocationRegistry {
+impl From<&RevocationStatusList> for Option<RevocationRegistry> {
+    fn from(value: &RevocationStatusList) -> Self {
+        value.registry.map(|registry| RevocationRegistry {
             value: registry.into(),
-        });
-
-        Ok(value)
+        })
     }
 }
 
@@ -67,7 +59,7 @@ impl RevocationStatusList {
     }
 
     pub fn set_registry(&mut self, registry: CryptoRevocationRegistry) -> Result<()> {
-        self.registry = Some(registry.into());
+        self.registry = Some(registry.accum);
         Ok(())
     }
 
@@ -84,7 +76,7 @@ impl RevocationStatusList {
     ) -> Result<()> {
         // only update if input is Some
         if let Some(reg) = registry {
-            self.registry = Some(reg.into());
+            self.registry = Some(reg.accum);
         }
         let slots_count = self.revocation_list.len();
         if let Some(issued) = issued {
@@ -124,11 +116,11 @@ impl RevocationStatusList {
         Ok(())
     }
 
-    pub fn new(
+    pub(crate) fn new(
         rev_reg_def_id: Option<&str>,
         issuer_id: IssuerId,
         revocation_list: bitvec::vec::BitVec,
-        registry: Option<CLSignaturesRevocationRegistry>,
+        registry: Option<CryptoRevocationRegistry>,
         timestamp: Option<u64>,
     ) -> Result<Self> {
         Ok(Self {
@@ -137,7 +129,7 @@ impl RevocationStatusList {
                 .transpose()?,
             issuer_id,
             revocation_list,
-            registry,
+            registry: registry.map(|r| r.accum),
             timestamp,
         })
     }
@@ -145,10 +137,8 @@ impl RevocationStatusList {
 
 pub mod serde_revocation_list {
     use bitvec::vec::BitVec;
-    use serde::de::Error as DeError;
-    use serde::de::SeqAccess;
     use serde::{
-        de::{Deserializer, Visitor},
+        de::{Deserializer, Error as DeError, SeqAccess, Visitor},
         ser::{SerializeSeq, Serializer},
     };
 
@@ -199,6 +189,69 @@ pub mod serde_revocation_list {
             }
         }
         deserializer.deserialize_seq(JsonBitStringVisitor)
+    }
+}
+
+pub mod serde_opt_accumulator {
+    use crate::cl::Accumulator;
+    use serde::{
+        de::{Deserializer, Error, MapAccess, Visitor},
+        ser::Serializer,
+        Serialize,
+    };
+
+    pub fn serialize<S>(value: &Option<Accumulator>, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if let Some(acc) = value {
+            acc.serialize(s)
+        } else {
+            s.serialize_none()
+        }
+    }
+
+    pub fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> std::result::Result<Option<Accumulator>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct AccumulatorVisitor;
+
+        impl<'de> Visitor<'de> for AccumulatorVisitor {
+            type Value = Option<Accumulator>;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(formatter, "accumulator value as a string or map")
+            }
+
+            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Option<Accumulator>, E> {
+                let accum = Accumulator::from_string(value).map_err(Error::custom)?;
+                Ok(Some(accum))
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Option<Accumulator>, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut accum = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        "currentAccumulator " | "accum" => {
+                            if accum.is_some() {
+                                return Err(Error::duplicate_field("(accum|currentAccumulator)"));
+                            }
+                            accum = map.next_value()?;
+                        }
+                        _ => (),
+                    }
+                }
+                Ok(accum)
+            }
+        }
+
+        deserializer.deserialize_any(AccumulatorVisitor)
     }
 }
 

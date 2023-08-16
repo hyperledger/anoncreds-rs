@@ -113,7 +113,7 @@ pub fn verify_presentation(
             let mut map: HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>> =
                 HashMap::new();
 
-            for list in lists.iter() {
+            for list in lists {
                 let id = list
                     .id()
                     .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing Id"))?;
@@ -122,7 +122,7 @@ pub fn verify_presentation(
                     .timestamp()
                     .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing timestamp"))?;
 
-                let rev_reg: Option<RevocationRegistry> = (*list).try_into()?;
+                let rev_reg: Option<RevocationRegistry> = (*list).into();
                 let rev_reg = rev_reg.ok_or_else(|| {
                     err_msg!(Unexpected, "Revocation status list missing accumulator")
                 })?;
