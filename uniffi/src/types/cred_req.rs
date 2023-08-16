@@ -12,6 +12,12 @@ pub struct CredentialRequest {
 }
 
 impl CredentialRequest {
+    pub fn new(jsonString: String) -> Result<Self, AnoncredsError> {
+        let core_def: AnoncredsCredentialRequest =
+            serde_json::from_str(&jsonString).map_err(|_| AnoncredsError::ConversionError)?;
+        return Ok(CredentialRequest { core: core_def });
+    }
+
     pub fn get_blinded_credential_secrets_json(&self) -> String {
         serde_json::to_string(&self.core.blinded_ms).unwrap()
     }
@@ -34,6 +40,18 @@ pub struct CredentialRequestMetadata {
     pub nonce: Arc<Nonce>,
     pub link_secret_name: String,
 }
+
+// impl CredentialRequestMetadata {
+//     pub fn new(jsonString: String) -> Result<Self, AnoncredsError> {
+//         let core_def: AnoncredsCredentialRequest =
+//             serde_json::from_str(&jsonString).map_err(|_| AnoncredsError::ConversionError)?;
+//         return Ok(CredentialRequestMetadata { core: core_def });
+//     }
+
+//     pub fn get_json(&self) -> Result<String, AnoncredsError> {
+//         serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
+//     }
+// }
 
 impl Into<AnoncredsCredentialRequestMetadata> for CredentialRequestMetadata {
     fn into(self) -> AnoncredsCredentialRequestMetadata {
