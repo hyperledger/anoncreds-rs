@@ -13,6 +13,7 @@ use crate::cl::{
 };
 use crate::error::Error;
 use crate::utils::base58;
+use crate::ErrorKind;
 
 const TAILS_BLOB_TAG_SZ: u8 = 2;
 const TAIL_SIZE: usize = Tail::BYTES_REPR_SIZE;
@@ -35,7 +36,11 @@ impl TailsFileReader {
     fn read(&self, size: usize, offset: usize) -> Result<Vec<u8>, Error> {
         let mut buf = vec![0u8; size];
 
-        let mut file = self.file.try_borrow_mut()?;
+        let mut file = self
+            .file
+            .try_borrow_mut()
+            .map_err(|err| Error::from(ErrorKind::IOError).with_cause(err))?;
+
         file.seek(SeekFrom::Start(offset as u64))?;
         file.read_exact(buf.as_mut_slice())?;
 

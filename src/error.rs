@@ -140,12 +140,6 @@ impl From<std::io::Error> for Error {
     }
 }
 
-impl From<std::cell::BorrowMutError> for Error {
-    fn from(err: std::cell::BorrowMutError) -> Self {
-        Self::from(ErrorKind::IOError).with_cause(err)
-    }
-}
-
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Self {
         // FIXME could be input or output...
