@@ -45,6 +45,10 @@ interface LinkSecret {
 
 interface Nonce {
     constructor();
+    [Throws=AnoncredsError, Name=new_from_value]
+    constructor(string value_string);
+    [Throws=AnoncredsError]
+    string get_value();
 };
 
 dictionary CredentialDefinitionConfig {
@@ -96,6 +100,8 @@ interface CredentialOffer {
 };
 
 interface CredentialRequest {
+    [Throws=AnoncredsError]
+    constructor(string json_string);
     string get_blinded_credential_secrets_json();
     string get_blinded_credential_secrets_correctness_proof_json();
     Nonce get_nonce();
