@@ -22,20 +22,20 @@ pub struct RevocationStatusList {
         skip_serializing_if = "Option::is_none",
         with = "serde_opt_accumulator"
     )]
-    registry: Option<Accumulator>,
+    accum: Option<Accumulator>,
     #[serde(skip_serializing_if = "Option::is_none")]
     timestamp: Option<u64>,
 }
 
 impl From<&RevocationStatusList> for Option<CryptoRevocationRegistry> {
     fn from(value: &RevocationStatusList) -> Self {
-        value.registry.map(From::from)
+        value.accum.map(From::from)
     }
 }
 
 impl From<&RevocationStatusList> for Option<RevocationRegistry> {
     fn from(value: &RevocationStatusList) -> Self {
-        value.registry.map(|registry| RevocationRegistry {
+        value.accum.map(|registry| RevocationRegistry {
             value: registry.into(),
         })
     }
@@ -59,7 +59,7 @@ impl RevocationStatusList {
     }
 
     pub fn set_registry(&mut self, registry: CryptoRevocationRegistry) -> Result<()> {
-        self.registry = Some(registry.accum);
+        self.accum = Some(registry.accum);
         Ok(())
     }
 
@@ -76,7 +76,7 @@ impl RevocationStatusList {
     ) -> Result<()> {
         // only update if input is Some
         if let Some(reg) = registry {
-            self.registry = Some(reg.accum);
+            self.accum = Some(reg.accum);
         }
         let slots_count = self.revocation_list.len();
         if let Some(issued) = issued {
@@ -129,7 +129,7 @@ impl RevocationStatusList {
                 .transpose()?,
             issuer_id,
             revocation_list,
-            registry: registry.map(|r| r.accum),
+            accum: registry.map(|r| r.accum),
             timestamp,
         })
     }
