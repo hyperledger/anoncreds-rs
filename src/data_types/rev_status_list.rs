@@ -19,8 +19,8 @@ pub struct RevocationStatusList {
     revocation_list: bitvec::vec::BitVec,
     #[serde(
         rename = "currentAccumulator",
-        skip_serializing_if = "Option::is_none",
-        with = "serde_opt_accumulator"
+        alias = "accum",
+        skip_serializing_if = "Option::is_none"
     )]
     accum: Option<Accumulator>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -189,69 +189,6 @@ pub mod serde_revocation_list {
             }
         }
         deserializer.deserialize_seq(JsonBitStringVisitor)
-    }
-}
-
-pub mod serde_opt_accumulator {
-    use crate::cl::Accumulator;
-    use serde::{
-        de::{Deserializer, Error, MapAccess, Visitor},
-        ser::Serializer,
-        Serialize,
-    };
-
-    pub fn serialize<S>(value: &Option<Accumulator>, s: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        if let Some(acc) = value {
-            acc.serialize(s)
-        } else {
-            s.serialize_none()
-        }
-    }
-
-    pub fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> std::result::Result<Option<Accumulator>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct AccumulatorVisitor;
-
-        impl<'de> Visitor<'de> for AccumulatorVisitor {
-            type Value = Option<Accumulator>;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                write!(formatter, "accumulator value as a string or map")
-            }
-
-            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Option<Accumulator>, E> {
-                let accum = Accumulator::from_string(value).map_err(Error::custom)?;
-                Ok(Some(accum))
-            }
-
-            fn visit_map<V>(self, mut map: V) -> Result<Option<Accumulator>, V::Error>
-            where
-                V: MapAccess<'de>,
-            {
-                let mut accum = None;
-                while let Some(key) = map.next_key()? {
-                    match key {
-                        "currentAccumulator " | "accum" => {
-                            if accum.is_some() {
-                                return Err(Error::duplicate_field("(accum|currentAccumulator)"));
-                            }
-                            accum = map.next_value()?;
-                        }
-                        _ => (),
-                    }
-                }
-                Ok(accum)
-            }
-        }
-
-        deserializer.deserialize_any(AccumulatorVisitor)
     }
 }
 
