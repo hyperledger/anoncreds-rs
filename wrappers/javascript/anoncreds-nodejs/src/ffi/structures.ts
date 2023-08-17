@@ -1,5 +1,5 @@
+import * as ref from '@2060.io/ref-napi'
 import RefArray from 'ref-array-di'
-import * as ref from 'ref-napi'
 import RefStruct from 'ref-struct-di'
 
 import { FFI_INT64, FFI_INT8, FFI_ISIZE, FFI_OBJECT_HANDLE, FFI_STRING, FFI_INT32 } from './primitives'
@@ -51,7 +51,6 @@ export const CredRevInfoStruct = CStruct({
   reg_def: FFI_OBJECT_HANDLE,
   reg_def_private: FFI_OBJECT_HANDLE,
   reg_idx: FFI_INT64,
-  tails_path: FFI_STRING,
 })
 
 export const CredentialEntryStruct = CStruct({

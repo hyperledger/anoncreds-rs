@@ -179,14 +179,12 @@ export class NodeJSAnoncreds implements Anoncreds {
         revocationRegistryDefinition: registryDefinition,
         revocationRegistryDefinitionPrivate: registryDefinitionPrivate,
         registryIndex,
-        tailsPath,
       } = serializeArguments(options.revocationConfiguration)
 
       revocationConfiguration = CredRevInfoStruct({
         reg_def: registryDefinition,
         reg_def_private: registryDefinitionPrivate,
         reg_idx: registryIndex,
-        tails_path: tailsPath,
       })
     }
 

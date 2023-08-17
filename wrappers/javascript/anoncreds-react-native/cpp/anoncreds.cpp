@@ -592,37 +592,47 @@ jsi::Value createOrUpdateRevocationState(jsi::Runtime &rt,
 };
 
 jsi::Value createRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
+  auto credentialDefinition =
+      jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
   auto revocationRegistryDefinitionId =
       jsiToValue<std::string>(rt, options, "revocationRegistryDefinitionId");
-  auto issuerId = jsiToValue<std::string>(rt, options, "issuerId");
   auto revocationRegistryDefinition =
       jsiToValue<ObjectHandle>(rt, options, "revocationRegistryDefinition");
+  auto revocationRegistryDefinitionPrivate =
+      jsiToValue<ObjectHandle>(rt, options, "revocationRegistryDefinitionPrivate");      
+  auto issuerId = jsiToValue<std::string>(rt, options, "issuerId");      
   auto timestamp = jsiToValue<int64_t>(rt, options, "timestamp");
   auto issuanceByDefault = jsiToValue<int8_t>(rt, options, "issuanceByDefault");
 
   ObjectHandle out;
 
   ErrorCode code = anoncreds_create_revocation_status_list(
-      revocationRegistryDefinitionId.c_str(), revocationRegistryDefinition,
+      credentialDefinition, revocationRegistryDefinitionId.c_str(), 
+      revocationRegistryDefinition, revocationRegistryDefinitionPrivate,
       issuerId.c_str(), timestamp, issuanceByDefault, &out);
 
   return createReturnValue(rt, code, &out);
 }
 
 jsi::Value updateRevocationStatusList(jsi::Runtime &rt, jsi::Object options) {
-  auto timestamp = jsiToValue<int64_t>(rt, options, "timestamp");
-  auto issued = jsiToValue<FfiList_i32>(rt, options, "issued");
-  auto revoked = jsiToValue<FfiList_i32>(rt, options, "revoked");
+  auto credentialDefinition =
+      jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
   auto revocationRegistryDefinition =
       jsiToValue<ObjectHandle>(rt, options, "revocationRegistryDefinition");
+  auto revocationRegistryDefinitionPrivate =
+      jsiToValue<ObjectHandle>(rt, options, "revocationRegistryDefinitionPrivate");      
   auto revocationStatusList =
       jsiToValue<ObjectHandle>(rt, options, "revocationStatusList");
+  auto issued = jsiToValue<FfiList_i32>(rt, options, "issued");
+  auto revoked = jsiToValue<FfiList_i32>(rt, options, "revoked");
+  auto timestamp = jsiToValue<int64_t>(rt, options, "timestamp");
 
   ObjectHandle out;
 
   ErrorCode code = anoncreds_update_revocation_status_list(
-      timestamp, issued, revoked, revocationRegistryDefinition,
-      revocationStatusList, &out);
+    credentialDefinition, revocationRegistryDefinition, 
+    revocationRegistryDefinitionPrivate, revocationStatusList,
+    issued, revoked, timestamp, &out);
 
   return createReturnValue(rt, code, &out);
 }

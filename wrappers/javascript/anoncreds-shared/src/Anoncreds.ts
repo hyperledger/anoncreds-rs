@@ -32,7 +32,6 @@ export type NativeCredentialRevocationConfig = {
   revocationRegistryDefinition: ObjectHandle
   revocationRegistryDefinitionPrivate: ObjectHandle
   registryIndex: number
-  tailsPath: string
 }
 
 export interface Anoncreds {
@@ -158,11 +157,13 @@ export interface Anoncreds {
   }): ObjectHandle
 
   updateRevocationStatusList(options: {
-    timestamp?: number
+    credentialDefinition: ObjectHandle
+    revocationRegistryDefinition: ObjectHandle
+    revocationRegistryDefinitionPrivate: ObjectHandle
+    currentRevocationStatusList: ObjectHandle
     issued?: Array<number>
     revoked?: Array<number>
-    revocationRegistryDefinition: ObjectHandle
-    currentRevocationStatusList: ObjectHandle
+    timestamp?: number
   }): ObjectHandle
 
   credentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string

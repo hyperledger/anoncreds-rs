@@ -18,19 +18,23 @@ export interface NativeBindings {
   }): ReturnObject<Handle>
 
   createRevocationStatusList(options: {
+    credentialDefinition: Handle
     revocationRegistryDefinitionId: string
     revocationRegistryDefinition: Handle
+    revocationRegistryDefinitionPrivate: Handle
     issuerId: string
     timestamp?: number
     issuanceByDefault: number
   }): ReturnObject<Handle>
 
   updateRevocationStatusList(options: {
-    timestamp?: number
+    credentialDefinition: Handle
+    revocationRegistryDefinition: Handle
+    revocationRegistryDefinitionPrivate: Handle
+    currentRevocationStatusList: Handle
     issued?: number[]
     revoked?: number[]
-    revocationRegistryDefinition: Handle
-    currentRevocationStatusList: Handle
+    timestamp?: number
   }): ReturnObject<Handle>
 
   updateRevocationStatusListTimestampOnly(options: {
@@ -61,7 +65,6 @@ export interface NativeBindings {
       registryIndex: number
       revocationRegistryDefinition: number
       revocationRegistryDefinitionPrivate: number
-      tailsPath: string
     }
   }): ReturnObject<Handle>
   encodeCredentialAttributes(options: { attributeRawValues: Array<string> }): ReturnObject<string>

@@ -1,4 +1,4 @@
-import { types, refType } from 'ref-napi'
+import { types, refType } from '@2060.io/ref-napi'
 
 // Primitives
 
