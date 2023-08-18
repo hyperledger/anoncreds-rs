@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::cl::{bn::BigNumber, LinkSecret as ClLinkSecret, Prover as CryptoProver};
+use crate::cl::{bn::BigNumber, Prover as CryptoProver};
 use crate::error::ConversionError;
 
 pub struct LinkSecret(pub(crate) BigNumber);
@@ -28,18 +28,6 @@ impl fmt::Debug for LinkSecret {
         f.debug_tuple("LinkSecret")
             .field(if cfg!(test) { &self.0 } else { &"<hidden>" })
             .finish()
-    }
-}
-
-impl From<LinkSecret> for ClLinkSecret {
-    fn from(sec: LinkSecret) -> ClLinkSecret {
-        sec.0.into()
-    }
-}
-
-impl From<ClLinkSecret> for LinkSecret {
-    fn from(sec: ClLinkSecret) -> LinkSecret {
-        Self(sec.into())
     }
 }
 
@@ -79,23 +67,6 @@ mod link_secret_tests {
         let link_secret = LinkSecret::try_from(ls).expect("Error creating link secret");
         let link_secret_str: String = link_secret.try_into().expect("Error creating link secret");
         assert_eq!(link_secret_str, ls);
-    }
-
-    #[test]
-    fn should_convert_between_link_secret() {
-        let link_secret = LinkSecret::new().expect("Unable to create link secret");
-        let cl_link_secret: ClLinkSecret = link_secret
-            .try_clone()
-            .expect("Error cloning link secret")
-            .try_into()
-            .expect("error converting to CL link secret");
-
-        assert_eq!(
-            link_secret.0,
-            cl_link_secret
-                .value()
-                .expect("Error getting value from CL link secret")
-        );
     }
 
     #[test]
