@@ -256,6 +256,7 @@ describe('bindings', () => {
       objectHandle: revocationRegistryDefinition,
       name: 'tails_location',
     })
+    expect(tailsPath).toBeTruthy()
 
     const timeCreateRevStatusList = 12
     const revocationStatusList = anoncreds.createRevocationStatusList({
