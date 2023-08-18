@@ -254,8 +254,7 @@ pub fn process_credential(
         &cred_def.value.primary,
         cred_def.value.revocation.as_ref(),
     )?;
-    let credential_values =
-        build_credential_values(&credential.values.0, Some(&link_secret.try_into()?))?;
+    let credential_values = build_credential_values(&credential.values.0, Some(&link_secret))?;
     let rev_pub_key = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
 
     Prover::process_credential_signature(
@@ -454,8 +453,7 @@ pub fn create_presentation(
         )?;
 
         let credential_schema = build_credential_schema(&schema.attr_names.0)?;
-        let credential_values =
-            build_credential_values(&credential.values.0, Some(&link_secret.try_into()?))?;
+        let credential_values = build_credential_values(&credential.values.0, Some(&link_secret))?;
         let (req_attrs, req_predicates) = prepare_credential_for_proving(
             present.requested_attributes,
             present.requested_predicates,

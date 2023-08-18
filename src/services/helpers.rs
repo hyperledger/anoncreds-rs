@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
 use crate::cl::{
-    bn::BigNumber, CredentialSchema, CredentialValues, Issuer, LinkSecret as ClLinkSecret,
-    NonCredentialSchema, SubProofRequest, Verifier,
+    bn::BigNumber, CredentialSchema, CredentialValues, Issuer, NonCredentialSchema,
+    SubProofRequest, Verifier,
 };
 use crate::data_types::{
     credential::AttributeValues,
+    link_secret::LinkSecret,
     nonce::Nonce,
     pres_request::{AttributeInfo, NonRevokedInterval, PredicateInfo, PresentationRequestPayload},
     presentation::RequestedProof,
@@ -46,7 +47,7 @@ pub fn build_non_credential_schema() -> Result<NonCredentialSchema> {
 
 pub fn build_credential_values(
     credential_values: &HashMap<String, AttributeValues>,
-    link_secret: Option<&ClLinkSecret>,
+    link_secret: Option<&LinkSecret>,
 ) -> Result<CredentialValues> {
     trace!(
         "build_credential_values >>> credential_values: {:?}",
@@ -57,9 +58,9 @@ pub fn build_credential_values(
     for (attr, values) in credential_values {
         credential_values_builder.add_dec_known(&attr_common_view(attr), &values.encoded)?;
     }
-    if let Some(ms) = link_secret {
+    if let Some(ls) = link_secret {
         // value is master_secret as that's what's historically been used in published credential definitions
-        credential_values_builder.add_value_hidden("master_secret", &ms.value()?)?;
+        credential_values_builder.add_value_hidden("master_secret", &ls.0)?;
     }
 
     let res = credential_values_builder.finalize()?;
