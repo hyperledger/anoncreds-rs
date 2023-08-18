@@ -4,12 +4,6 @@ import type { RevocationRegistryDefinition } from './RevocationRegistryDefinitio
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
 
-export type RevokeCredentialOptions = {
-  revocationRegistryDefinition: RevocationRegistryDefinition
-  credentialRevocationIndex: number
-  tailsPath: string
-}
-
 export type UpdateRevocationRegistryOptions = {
   revocationRegistryDefinition: RevocationRegistryDefinition
   issued: number[]

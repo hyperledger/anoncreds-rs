@@ -521,12 +521,10 @@ FfiCredRevInfo jsiToValue(jsi::Runtime &rt, jsi::Object &options,
         rt, valueAsObject, "registryDefinitionPrivate");
     auto registryIndex =
         jsiToValue<int64_t>(rt, valueAsObject, "registryIndex");
-    auto tailsPath = jsiToValue<std::string>(rt, valueAsObject, "tailsPath");
 
     return FfiCredRevInfo{.reg_def = registryDefinition,
                           .reg_def_private = registryDefinitionPrivate,
-                          .reg_idx = registryIndex,
-                          .tails_path = tailsPath.c_str()};
+                          .reg_idx = registryIndex};
   }
 
   throw jsi::JSError(rt, errorPrefix + name + errorInfix +

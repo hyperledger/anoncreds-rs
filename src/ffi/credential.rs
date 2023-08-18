@@ -18,11 +18,10 @@ use crate::services::{
 
 #[derive(Debug)]
 #[repr(C)]
-pub struct FfiCredRevInfo<'a> {
+pub struct FfiCredRevInfo {
     reg_def: ObjectHandle,
     reg_def_private: ObjectHandle,
     reg_idx: i64,
-    tails_path: FfiStr<'a>,
 }
 
 struct RevocationConfig {

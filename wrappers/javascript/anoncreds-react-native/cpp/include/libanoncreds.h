@@ -177,7 +177,6 @@ typedef struct FfiCredRevInfo {
   ObjectHandle reg_def;
   ObjectHandle reg_def_private;
   int64_t reg_idx;
-  FfiStr tails_path;
 } FfiCredRevInfo;
 
 typedef struct FfiCredentialEntry {
