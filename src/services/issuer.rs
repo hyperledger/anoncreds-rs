@@ -1,7 +1,7 @@
-use crate::cl::{Issuer, RevocationRegistry};
+use crate::cl::{Issuer, RevocationRegistry as CryptoRevocationRegistry};
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
-use crate::data_types::rev_reg::{CLSignaturesRevocationRegistry, RevocationRegistryId};
+use crate::data_types::rev_reg::RevocationRegistryId;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
 use crate::data_types::{
@@ -353,30 +353,20 @@ pub fn create_revocation_status_list(
     timestamp: Option<u64>,
 ) -> Result<RevocationStatusList> {
     let max_cred_num = rev_reg_def.value.max_cred_num;
-    let mut rev_reg = RevocationRegistry::from(CLSignaturesRevocationRegistry::empty()?);
-
-    let list = if issuance_by_default {
-        let cred_pub_key = cred_def.get_public_key()?;
-        let issued = (1..=max_cred_num).collect::<BTreeSet<_>>();
-
-        Issuer::update_revocation_registry(
-            &mut rev_reg,
-            max_cred_num,
-            issued,
-            BTreeSet::new(),
-            &cred_pub_key,
-            &rev_reg_priv.value,
-        )?;
-        bitvec![0; max_cred_num as usize ]
-    } else {
-        bitvec![1; max_cred_num as usize ]
-    };
+    let cred_pub_key = cred_def.get_public_key()?;
+    let rev_reg = CryptoRevocationRegistry::initial_state(
+        &cred_pub_key,
+        &rev_reg_priv.value,
+        max_cred_num,
+        issuance_by_default,
+    )?;
+    let list = bitvec![if issuance_by_default { 0 } else { 1 }; max_cred_num as usize ];
 
     RevocationStatusList::new(
         Some(rev_reg_def_id.to_string().as_str()),
         rev_reg_def.issuer_id.clone(),
         list,
-        Some(rev_reg.into()),
+        Some(rev_reg),
         timestamp,
     )
 }
@@ -552,7 +542,7 @@ pub fn update_revocation_status_list(
             .collect::<BTreeSet<_>>()
     });
 
-    let rev_reg_opt: Option<RevocationRegistry> = current_list.try_into()?;
+    let rev_reg_opt: Option<CryptoRevocationRegistry> = current_list.into();
     let mut rev_reg = rev_reg_opt.ok_or_else(|| {
         Error::from_msg(
             ErrorKind::Unexpected,
@@ -739,15 +729,13 @@ pub fn create_credential(
             (revocation_config, rev_status_list)
         {
             let rev_reg_def = &revocation_config.reg_def.value;
-            let rev_reg: Option<CLSignaturesRevocationRegistry> = rev_status_list.into();
-            let rev_reg = rev_reg.ok_or_else(|| {
+            let rev_reg: Option<CryptoRevocationRegistry> = rev_status_list.into();
+            let mut rev_reg = rev_reg.ok_or_else(|| {
                 err_msg!(
                     Unexpected,
                     "RevocationStatusList should have accumulator value"
                 )
             })?;
-
-            let mut rev_reg: RevocationRegistry = rev_reg.into();
 
             let status = rev_status_list
                 .get(revocation_config.registry_idx as usize)

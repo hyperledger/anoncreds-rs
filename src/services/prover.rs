@@ -555,10 +555,8 @@ pub fn create_revocation_state_with_witness(
     revocation_status_list: &RevocationStatusList,
     timestamp: u64,
 ) -> Result<CredentialRevocationState> {
-    let rev_reg = <&RevocationStatusList as TryInto<Option<RevocationRegistry>>>::try_into(
-        revocation_status_list,
-    )?
-    .ok_or_else(|| err_msg!(Unexpected, "Revocation Status List must have accum value"))?;
+    let rev_reg = Option::<RevocationRegistry>::from(revocation_status_list)
+        .ok_or_else(|| err_msg!(Unexpected, "Revocation Status List must have accum value"))?;
 
     Ok(CredentialRevocationState {
         witness,
@@ -656,7 +654,7 @@ pub fn create_or_update_revocation_state(
         old_rev_status_list,
     );
 
-    let rev_reg: Option<RevocationRegistry> = rev_status_list.try_into()?;
+    let rev_reg: Option<RevocationRegistry> = rev_status_list.into();
     let rev_reg = rev_reg.ok_or_else(|| {
         err_msg!("revocation registry is required to create or update the revocation state")
     })?;
@@ -680,7 +678,7 @@ pub fn create_or_update_revocation_state(
             &mut revoked,
         );
 
-        let source_rev_reg: Option<RevocationRegistry> = source_rev_list.try_into()?;
+        let source_rev_reg: Option<RevocationRegistry> = source_rev_list.into();
 
         let rev_reg_delta = RevocationRegistryDelta::from_parts(
             source_rev_reg.as_ref(),
