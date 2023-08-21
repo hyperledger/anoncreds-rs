@@ -27,7 +27,6 @@ use crate::services::helpers::{
     get_revealed_attributes_for_credential, new_nonce,
 };
 use crate::types::{CredentialRevocationState, PresentCredentials};
-use crate::utils::ref_map::ReferencesMap;
 use crate::utils::validation::Validatable;
 use bitvec::bitvec;
 use std::collections::{HashMap, HashSet};
@@ -375,11 +374,11 @@ pub fn process_credential(
 ///
 /// let mut schemas = HashMap::new();
 /// let schema_id = SchemaId::new_unchecked("did:web:xyz/resource/schema");
-/// schemas.insert(&schema_id, &schema);
+/// schemas.insert(schema_id, schema);
 ///
 /// let mut cred_defs = HashMap::new();
 /// let cred_def_id = CredentialDefinitionId::new_unchecked("did:web:xyz/resource/cred-def");
-/// cred_defs.insert(&cred_def_id, &cred_def);
+/// cred_defs.insert(cred_def_id, cred_def);
 ///
 /// let mut present = PresentCredentials::default();
 /// let mut cred1 = present.add_credential(
@@ -399,18 +398,14 @@ pub fn process_credential(
 ///                                 &cred_defs
 ///                                 ).expect("Unable to create presentation");
 /// ```
-pub fn create_presentation<T, U>(
+pub fn create_presentation(
     pres_req: &PresentationRequest,
     credentials: PresentCredentials,
     self_attested: Option<HashMap<String, String>>,
     link_secret: &LinkSecret,
-    schemas: &T,
-    cred_defs: &U,
-) -> Result<Presentation>
-where
-    T: ReferencesMap<SchemaId, Schema> + std::fmt::Debug,
-    U: ReferencesMap<CredentialDefinitionId, CredentialDefinition> + std::fmt::Debug,
-{
+    schemas: &HashMap<SchemaId, Schema>,
+    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
+) -> Result<Presentation> {
     trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, link_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
             credentials, pres_req, credentials, &self_attested, secret!(&link_secret), schemas, cred_defs);
 
@@ -442,11 +437,11 @@ where
         let credential = present.cred;
 
         let schema = schemas
-            .get_ref(&credential.schema_id)
+            .get(&credential.schema_id)
             .ok_or_else(|| err_msg!("Schema not provided for ID: {}", credential.schema_id))?;
 
         let cred_def_id = CredentialDefinitionId::new(credential.cred_def_id.clone())?;
-        let cred_def = cred_defs.get_ref(&cred_def_id).ok_or_else(|| {
+        let cred_def = cred_defs.get(&cred_def_id).ok_or_else(|| {
             err_msg!(
                 "Credential Definition not provided for ID: {}",
                 credential.cred_def_id

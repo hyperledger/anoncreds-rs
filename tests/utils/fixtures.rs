@@ -185,8 +185,8 @@ pub fn create_revocation_status_list(
 }
 
 pub fn create_presentation(
-    schemas: &HashMap<&SchemaId, &Schema>,
-    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
+    schemas: &HashMap<SchemaId, Schema>,
+    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
     pres_request: &PresentationRequest,
     prover_wallet: &ProverWallet,
     rev_state_timestamp: Option<u64>,

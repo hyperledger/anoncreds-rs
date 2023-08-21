@@ -177,11 +177,18 @@ pub extern "C" fn anoncreds_create_presentation(
         }
 
         let schemas = AnoncredsObjectList::load(schemas.as_slice())?;
-        let schemas = schemas.refs_map::<SchemaId, Schema>(&schema_identifiers)?;
+        let schemas = schemas
+            .refs_map::<SchemaId, Schema>(&schema_identifiers)?
+            .into_iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
 
         let cred_defs = AnoncredsObjectList::load(cred_defs.as_slice())?;
         let cred_defs = cred_defs
-            .refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?;
+            .refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?
+            .into_iter()
+            .map(|(k, v)| v.try_clone().map(|v| (k.clone(), v)))
+            .collect::<Result<_>>()?;
 
         let presentation = create_presentation(
             pres_req.load()?.cast_ref()?,
@@ -292,17 +299,27 @@ pub extern "C" fn anoncreds_verify_presentation(
         }
 
         let schemas = AnoncredsObjectList::load(schemas.as_slice())?;
-        let schemas = schemas.refs_map::<SchemaId, Schema>(&schema_identifiers)?;
+        let schemas = schemas
+            .refs_map::<SchemaId, Schema>(&schema_identifiers)?
+            .into_iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
 
         let cred_defs = AnoncredsObjectList::load(cred_defs.as_slice())?;
         let cred_defs = cred_defs
-            .refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?;
+            .refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?
+            .into_iter()
+            .map(|(k, v)| v.try_clone().map(|v| (k.clone(), v)))
+            .collect::<Result<_>>()?;
 
         let rev_reg_defs = AnoncredsObjectList::load(rev_reg_defs.as_slice())?;
         let rev_reg_defs = rev_reg_defs
             .refs_map::<RevocationRegistryDefinitionId, RevocationRegistryDefinition>(
                 &rev_reg_def_identifiers,
-            )?;
+            )?
+            .into_iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect::<HashMap<_, _>>();
 
         let rev_reg_defs = if rev_reg_defs.is_empty() {
             None
@@ -328,12 +345,14 @@ pub extern "C" fn anoncreds_verify_presentation(
         let mut map_nonrevoked_interval_override = HashMap::new();
         for (id, req_timestamp, override_timestamp) in &override_entries {
             map_nonrevoked_interval_override
-                .entry(id)
+                .entry(id.clone())
                 .or_insert_with(HashMap::new)
                 .insert(*req_timestamp, *override_timestamp);
         }
 
-        let rev_status_lists = rev_status_list.as_ref().map(|v| v.iter().copied());
+        let rev_status_lists = rev_status_list
+            .as_ref()
+            .map(|v| v.iter().copied().cloned().collect());
 
         let verify = verify_presentation(
             presentation.load()?.cast_ref()?,

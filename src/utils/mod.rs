@@ -9,5 +9,3 @@ pub mod query;
 
 #[macro_use]
 pub mod macros;
-
-pub mod ref_map;

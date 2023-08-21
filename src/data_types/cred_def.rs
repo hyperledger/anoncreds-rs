@@ -56,6 +56,21 @@ impl CredentialDefinition {
         .map_err(|e| e.to_string())?;
         Ok(key)
     }
+
+    pub fn try_clone(&self) -> Result<Self, crate::Error> {
+        let cred_data = CredentialDefinitionData {
+            primary: self.value.primary.try_clone()?,
+            revocation: self.value.revocation.clone(),
+        };
+
+        Ok(Self {
+            schema_id: self.schema_id.clone(),
+            signature_type: self.signature_type,
+            tag: self.tag.clone(),
+            value: cred_data,
+            issuer_id: self.issuer_id.clone(),
+        })
+    }
 }
 
 impl Validatable for CredentialDefinition {
