@@ -72,6 +72,7 @@ zip -r "$dest_dir/$zip_name" "$source_dir/$target_dir_name"
 
 echo "Copy .swift binders"
 rm -f "./output-frameworks/anoncreds-swift/AnoncredsSwift/Sources/Swift/anoncreds.swift" || true
+mkdir -p ./output-frameworks/anoncreds-swift/AnoncredsSwift/Sources/Swift || true
 mv "./wrappers/swift/anoncreds/anoncreds.swift" "./output-frameworks/anoncreds-swift/AnoncredsSwift/Sources/Swift/anoncreds.swift"
 
 rm -f "/wrappers/swift/anoncreds/anoncreds.swift" || true
