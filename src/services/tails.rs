@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::fmt::Debug;
 use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Read, Seek, SeekFrom, Write};
+use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 use rand::random;
@@ -13,29 +13,42 @@ use crate::cl::{
 };
 use crate::error::Error;
 use crate::utils::base58;
+use crate::ErrorKind;
 
 const TAILS_BLOB_TAG_SZ: u8 = 2;
 const TAIL_SIZE: usize = Tail::BYTES_REPR_SIZE;
 
 #[derive(Debug)]
-pub struct TailsReader {
-    inner: Box<RefCell<dyn TailsReaderImpl>>,
+pub struct TailsFileReader {
+    file: RefCell<BufReader<File>>,
 }
 
-impl TailsReader {
-    pub(crate) fn new<TR: TailsReaderImpl + 'static>(inner: TR) -> Self {
-        Self {
-            inner: Box::new(RefCell::new(inner)),
-        }
+impl TailsFileReader {
+    pub fn new<P>(path: P) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
+        let file = RefCell::new(BufReader::new(File::open(path)?));
+        let reader = Self { file };
+        Ok(reader)
+    }
+
+    fn read(&self, size: usize, offset: usize) -> Result<Vec<u8>, Error> {
+        let mut buf = vec![0u8; size];
+
+        let mut file = self
+            .file
+            .try_borrow_mut()
+            .map_err(|err| Error::from(ErrorKind::IOError).with_cause(err))?;
+
+        file.seek(SeekFrom::Start(offset as u64))?;
+        file.read_exact(buf.as_mut_slice())?;
+
+        Ok(buf)
     }
 }
 
-pub trait TailsReaderImpl: Debug + Send {
-    fn hash(&mut self) -> Result<Vec<u8>, Error>;
-    fn read(&mut self, size: usize, offset: usize) -> Result<Vec<u8>, Error>;
-}
-
-impl RevocationTailsAccessor for TailsReader {
+impl RevocationTailsAccessor for TailsFileReader {
     fn access_tail(
         &self,
         tail_id: u32,
@@ -44,8 +57,6 @@ impl RevocationTailsAccessor for TailsReader {
         trace!("access_tail >>> tail_id: {:?}", tail_id);
 
         let tail_bytes = self
-            .inner
-            .borrow_mut()
             .read(
                 TAIL_SIZE,
                 TAIL_SIZE * tail_id as usize + TAILS_BLOB_TAG_SZ as usize,
@@ -60,70 +71,6 @@ impl RevocationTailsAccessor for TailsReader {
 
         trace!("access_tail <<< res: ()");
         Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub struct TailsFileReader {
-    path: String,
-    file: Option<BufReader<File>>,
-    hash: Option<Vec<u8>>,
-}
-
-impl TailsFileReader {
-    pub fn new(path: &str) -> TailsReader {
-        TailsReader::new(Self {
-            path: path.to_owned(),
-            file: None,
-            hash: None,
-        })
-    }
-
-    pub fn open(&mut self) -> Result<&mut BufReader<File>, Error> {
-        if self.file.is_none() {
-            let file = File::open(self.path.clone())?;
-            self.file.replace(BufReader::new(file));
-        }
-        Ok(self.file.as_mut().unwrap())
-    }
-
-    pub fn close(&mut self) {
-        self.file.take();
-    }
-}
-
-impl TailsReaderImpl for TailsFileReader {
-    fn hash(&mut self) -> Result<Vec<u8>, Error> {
-        if let Some(hash) = self.hash.as_ref() {
-            return Ok(hash.clone());
-        }
-
-        let file = self.open()?;
-        file.seek(SeekFrom::Start(0))?;
-        let mut hasher = Sha256::default();
-
-        loop {
-            let buf = file.fill_buf()?;
-            let len = buf.len();
-            if len == 0 {
-                break;
-            }
-            hasher.update(&buf);
-            file.consume(len);
-        }
-        let hash = hasher.finalize().to_vec();
-        self.hash.replace(hash.clone());
-        Ok(hash)
-    }
-
-    fn read(&mut self, size: usize, offset: usize) -> Result<Vec<u8>, Error> {
-        let mut buf = vec![0u8; size];
-
-        let file = self.open()?;
-        file.seek(SeekFrom::Start(offset as u64))?;
-        file.read_exact(buf.as_mut_slice())?;
-
-        Ok(buf)
     }
 }
 
@@ -182,17 +129,17 @@ impl TailsWriter for TailsFileWriter {
         let mut buf = BufWriter::new(file);
         let mut hasher = Sha256::default();
         let version = &[0u8, 2u8];
-        buf.write(version)?;
+        buf.write_all(version)?;
         hasher.update(version);
         while let Some(tail) = generator.try_next()? {
             let tail_bytes = tail.to_bytes()?;
-            buf.write(&tail_bytes)?;
+            buf.write_all(&tail_bytes)?;
             hasher.update(&tail_bytes);
         }
         let mut file = buf
             .into_inner()
             .map_err(|e| err_msg!("Error flushing output file: {e}"))?;
-        let tails_size = file.seek(SeekFrom::Current(0))?;
+        let tails_size = file.stream_position()?;
         let hash = base58::encode(hasher.finalize());
         let target_path = self.root_path.join(&hash);
         drop(file);

@@ -115,11 +115,11 @@ fn anoncreds_demo_works_for_single_issuer_single_prover() {
 
     let mut schemas = HashMap::new();
     let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
-    schemas.insert(&gvt_schema_id, &gvt_schema);
+    schemas.insert(gvt_schema_id, gvt_schema.clone());
 
     let mut cred_defs = HashMap::new();
     let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
-    cred_defs.insert(&gvt_cred_def_id, &gvt_cred_def);
+    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
 
     let presentation = prover::create_presentation(
         &pres_request,
@@ -326,13 +326,13 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
 
     let mut schemas = HashMap::new();
     let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
-    schemas.insert(&gvt_schema_id, &gvt_schema);
+    schemas.insert(gvt_schema_id, gvt_schema.clone());
 
     let mut cred_defs = HashMap::new();
     let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
-    cred_defs.insert(&gvt_cred_def_id, &gvt_cred_def);
+    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
 
-    let mut rev_status_list = vec![&issued_rev_status_list];
+    let mut rev_status_list = vec![issued_rev_status_list.clone()];
 
     // Prover creates presentation
     let presentation = fixtures::create_presentation(
@@ -345,7 +345,7 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
     );
 
     // Verifier verifies presentation of not Revoked rev_state
-    let rev_reg_def_map = HashMap::from([(&gvt_rev_reg_def_id, &gvt_rev_reg_def)]);
+    let rev_reg_def_map = HashMap::from([(gvt_rev_reg_def_id, gvt_rev_reg_def.clone())]);
     let valid = verifier::verify_presentation(
         &presentation,
         &pres_request,
@@ -372,7 +372,7 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
     .unwrap();
 
     // update rev_status_lists
-    rev_status_list.push(&revoked_status_list);
+    rev_status_list.push(revoked_status_list.clone());
 
     let rev_state = prover::create_or_update_revocation_state(
         &tails_location,
@@ -543,14 +543,14 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
     let mut schemas = HashMap::new();
     let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
     let emp_schema_id = SchemaId::new_unchecked(emp_schema_id);
-    schemas.insert(&gvt_schema_id, &gvt_schema);
-    schemas.insert(&emp_schema_id, &emp_schema);
+    schemas.insert(gvt_schema_id, gvt_schema.clone());
+    schemas.insert(emp_schema_id, emp_schema.clone());
 
     let mut cred_defs = HashMap::new();
     let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
     let emp_cred_def_id = CredentialDefinitionId::new_unchecked(emp_cred_def_id);
-    cred_defs.insert(&gvt_cred_def_id, &gvt_cred_def);
-    cred_defs.insert(&emp_cred_def_id, &emp_cred_def);
+    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
+    cred_defs.insert(emp_cred_def_id, emp_cred_def.try_clone().unwrap());
 
     let mut present = PresentCredentials::default();
     let mut gvt_cred = present.add_credential(&prover_wallet.credentials[0], None, None);
@@ -684,11 +684,11 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
 
     let mut schemas = HashMap::new();
     let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
-    schemas.insert(&gvt_schema_id, &gvt_schema);
+    schemas.insert(gvt_schema_id, gvt_schema.clone());
 
     let mut cred_defs = HashMap::new();
     let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
-    cred_defs.insert(&gvt_cred_def_id, &gvt_cred_def);
+    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
 
     let presentation = prover::create_presentation(
         &pres_request,
@@ -813,11 +813,11 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case() {
 
     let mut schemas = HashMap::new();
     let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
-    schemas.insert(&gvt_schema_id, &gvt_schema);
+    schemas.insert(gvt_schema_id, gvt_schema.clone());
 
     let mut cred_defs = HashMap::new();
     let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
-    cred_defs.insert(&gvt_cred_def_id, &gvt_cred_def);
+    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
 
     let presentation = prover::create_presentation(
         &pres_request,
@@ -1026,14 +1026,14 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
     let mut schemas = HashMap::new();
     let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
     let emp_schema_id = SchemaId::new_unchecked(emp_schema_id);
-    schemas.insert(&gvt_schema_id, &gvt_schema);
-    schemas.insert(&emp_schema_id, &emp_schema);
+    schemas.insert(gvt_schema_id, gvt_schema.clone());
+    schemas.insert(emp_schema_id, emp_schema.clone());
 
     let mut cred_defs = HashMap::new();
     let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
     let emp_cred_def_id = CredentialDefinitionId::new_unchecked(emp_cred_def_id);
-    cred_defs.insert(&gvt_cred_def_id, &gvt_cred_def);
-    cred_defs.insert(&emp_cred_def_id, &emp_cred_def);
+    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
+    cred_defs.insert(emp_cred_def_id, emp_cred_def.try_clone().unwrap());
 
     let mut present = PresentCredentials::default();
     let mut gvt_cred = present.add_credential(&prover_wallet.credentials[0], None, None);

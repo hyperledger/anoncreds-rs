@@ -285,7 +285,7 @@ fn anoncreds_with_multiple_credentials_per_request() {
 
     // Create overrides for timestamps
     let id = RevocationRegistryDefinitionId::new_unchecked(REV_REG_ID_1);
-    let override_rev1 = HashMap::from([(&id, HashMap::from([(LOCAL_FROM, OVERRIDE_LOCAL_FROM)]))]);
+    let override_rev1 = HashMap::from([(id, HashMap::from([(LOCAL_FROM, OVERRIDE_LOCAL_FROM)]))]);
     let overrides = vec![
         None,
         Some(&override_rev1),

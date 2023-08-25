@@ -374,11 +374,11 @@ pub fn process_credential(
 ///
 /// let mut schemas = HashMap::new();
 /// let schema_id = SchemaId::new_unchecked("did:web:xyz/resource/schema");
-/// schemas.insert(&schema_id, &schema);
+/// schemas.insert(schema_id, schema);
 ///
 /// let mut cred_defs = HashMap::new();
 /// let cred_def_id = CredentialDefinitionId::new_unchecked("did:web:xyz/resource/cred-def");
-/// cred_defs.insert(&cred_def_id, &cred_def);
+/// cred_defs.insert(cred_def_id, cred_def);
 ///
 /// let mut present = PresentCredentials::default();
 /// let mut cred1 = present.add_credential(
@@ -403,8 +403,8 @@ pub fn create_presentation(
     credentials: PresentCredentials,
     self_attested: Option<HashMap<String, String>>,
     link_secret: &LinkSecret,
-    schemas: &HashMap<&SchemaId, &Schema>,
-    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
+    schemas: &HashMap<SchemaId, Schema>,
+    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
 ) -> Result<Presentation> {
     trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, link_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
             credentials, pres_req, credentials, &self_attested, secret!(&link_secret), schemas, cred_defs);
@@ -436,12 +436,12 @@ pub fn create_presentation(
         }
         let credential = present.cred;
 
-        let schema = *schemas
+        let schema = schemas
             .get(&credential.schema_id)
             .ok_or_else(|| err_msg!("Schema not provided for ID: {}", credential.schema_id))?;
 
         let cred_def_id = CredentialDefinitionId::new(credential.cred_def_id.clone())?;
-        let cred_def = *cred_defs.get(&cred_def_id).ok_or_else(|| {
+        let cred_def = cred_defs.get(&cred_def_id).ok_or_else(|| {
             err_msg!(
                 "Credential Definition not provided for ID: {}",
                 credential.cred_def_id
@@ -665,7 +665,7 @@ pub fn create_or_update_revocation_state(
 
     let mut issued = HashSet::<u32>::new();
     let mut revoked = HashSet::<u32>::new();
-    let tails_reader = TailsFileReader::new(tails_path);
+    let tails_reader = TailsFileReader::new(tails_path)?;
     let witness = if let (Some(source_rev_state), Some(source_rev_list)) =
         (rev_state, old_rev_status_list)
     {

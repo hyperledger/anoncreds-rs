@@ -40,7 +40,7 @@ pub type ProverValues<'a> = HashMap<&'a str, (Vec<&'a str>, Vec<&'a str>)>;
 
 // { rev_reg_def_id: {req_timestamp, override_timestamp} }
 #[allow(unused)]
-pub type Override<'a> = HashMap<&'a RevocationRegistryDefinitionId, HashMap<u64, u64>>;
+pub type Override<'a> = HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>;
 
 #[derive(Debug)]
 pub struct Mock<'a> {
@@ -85,16 +85,32 @@ impl<'a> Mock<'a> {
         overrides: &[Option<&Override>],
     ) -> Vec<Result<bool, TestError>> {
         let mut results = vec![];
-        let schemas: HashMap<&SchemaId, &Schema> = HashMap::from_iter(self.ledger.schemas.iter());
-        let cred_defs: HashMap<&CredentialDefinitionId, &CredentialDefinition> =
-            HashMap::from_iter(self.ledger.cred_defs.iter());
+        let schemas: HashMap<SchemaId, Schema> = HashMap::from_iter(
+            self.ledger
+                .schemas
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone())),
+        );
+        let cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition> = HashMap::from_iter(
+            self.ledger
+                .cred_defs
+                .iter()
+                .map(|(k, v)| v.try_clone().map(|v| (k.clone(), v)))
+                .collect::<Result<HashMap<_, _>, anoncreds::Error>>()
+                .unwrap(),
+        );
         let mut rev_status_lists = vec![];
 
-        self.ledger
-            .revcation_list
-            .iter()
-            .for_each(|(_, v)| v.iter().for_each(|(_, list)| rev_status_lists.push(list)));
-        let rev_reg_def_map = HashMap::from_iter(self.ledger.rev_reg_defs.iter());
+        self.ledger.revcation_list.iter().for_each(|(_, v)| {
+            v.iter()
+                .for_each(|(_, list)| rev_status_lists.push(list.clone()))
+        });
+        let rev_reg_def_map = HashMap::from_iter(
+            self.ledger
+                .rev_reg_defs
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone())),
+        );
 
         for (i, presentation) in presentations.iter().enumerate() {
             let valid = verifier::verify_presentation(
@@ -426,9 +442,21 @@ impl<'a> Mock<'a> {
         self_attested: HashMap<String, String>,
         req: &PresentationRequest,
     ) -> Presentation {
-        let schemas: HashMap<&SchemaId, &Schema> = HashMap::from_iter(self.ledger.schemas.iter());
-        let cred_defs: HashMap<&CredentialDefinitionId, &CredentialDefinition> =
-            HashMap::from_iter(self.ledger.cred_defs.iter());
+        let schemas: HashMap<SchemaId, Schema> = HashMap::from_iter(
+            self.ledger
+                .schemas
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone())),
+        );
+
+        let cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition> = HashMap::from_iter(
+            self.ledger
+                .cred_defs
+                .iter()
+                .map(|(k, v)| v.try_clone().map(|v| (k.clone(), v)))
+                .collect::<Result<HashMap<_, _>, anoncreds::Error>>()
+                .unwrap(),
+        );
 
         let mut present = PresentCredentials::default();
         for cred in self.prover_wallets[prover_id].credentials.iter() {

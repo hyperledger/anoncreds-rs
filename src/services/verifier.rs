@@ -46,12 +46,12 @@ static INTERNAL_TAG_MATCHER: Lazy<Regex> =
 pub fn verify_presentation(
     presentation: &Presentation,
     pres_req: &PresentationRequest,
-    schemas: &HashMap<&SchemaId, &Schema>,
-    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
-    rev_reg_defs: Option<&HashMap<&RevocationRegistryDefinitionId, &RevocationRegistryDefinition>>,
-    rev_status_lists: Option<Vec<&RevocationStatusList>>,
+    schemas: &HashMap<SchemaId, Schema>,
+    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
+    rev_reg_defs: Option<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
+    rev_status_lists: Option<Vec<RevocationStatusList>>,
     nonrevoke_interval_override: Option<
-        &HashMap<&RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+        &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
 ) -> Result<bool> {
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
@@ -109,7 +109,7 @@ pub fn verify_presentation(
             )
         })?;
 
-        let rev_reg_map = if let Some(ref lists) = rev_status_lists {
+        let rev_reg_map = if let Some(lists) = rev_status_lists.clone() {
             let mut map: HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>> =
                 HashMap::new();
 
@@ -122,7 +122,7 @@ pub fn verify_presentation(
                     .timestamp()
                     .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing timestamp"))?;
 
-                let rev_reg: Option<RevocationRegistry> = (*list).into();
+                let rev_reg: Option<RevocationRegistry> = (&list).into();
                 let rev_reg = rev_reg.ok_or_else(|| {
                     err_msg!(Unexpected, "Revocation status list missing accumulator")
                 })?;
@@ -217,7 +217,6 @@ pub fn verify_presentation(
 
             let rev_reg_def = Some(
                 rev_reg_defs
-                    .as_ref()
                     .ok_or_else(|| err_msg!("Could not load the Revocation Registry Definition"))?
                     .get(&rev_reg_def_id)
                     .ok_or_else(|| {
@@ -496,8 +495,8 @@ fn verify_revealed_attribute_value(
 #[allow(clippy::too_many_arguments)]
 fn verify_requested_restrictions(
     pres_req: &PresentationRequestPayload,
-    schemas: &HashMap<&SchemaId, &Schema>,
-    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
+    schemas: &HashMap<SchemaId, Schema>,
+    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
     requested_proof: &RequestedProof,
     received_revealed_attrs: &HashMap<String, Identifier>,
     received_unrevealed_attrs: &HashMap<String, Identifier>,
@@ -664,8 +663,8 @@ fn is_self_attested(
 fn gather_filter_info(
     referent: &str,
     identifiers: &HashMap<String, Identifier>,
-    schemas: &HashMap<&SchemaId, &Schema>,
-    cred_defs: &HashMap<&CredentialDefinitionId, &CredentialDefinition>,
+    schemas: &HashMap<SchemaId, Schema>,
+    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
 ) -> Result<Filter> {
     let identifier = identifiers.get(referent).ok_or_else(|| {
         err_msg!(
