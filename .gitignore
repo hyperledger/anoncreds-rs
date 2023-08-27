@@ -8,4 +8,4 @@ Cargo.lock
 uniffi/targets
 uniffi/wrappers
 libanoncreds.xcframework.zip
-uniffi/output-frameworks/anoncreds-swift/AnoncredsSwift/Sources/Swift/*.swift
+.swiftpm
