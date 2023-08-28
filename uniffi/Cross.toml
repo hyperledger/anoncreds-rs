@@ -1,0 +1,17 @@
+[target.aarch64-unknown-linux-gnu]
+image = "ghcr.io/rust-cross/manylinux2014-cross:aarch64"
+
+[target.x86_64-unknown-linux-gnu]
+image = "ghcr.io/rust-cross/manylinux2014-cross:x86_64"
+
+[target.x86_64-linux-android]
+image = "ghcr.io/hyperledger/aries-builder-images/cross/x86_64-linux-android:main"
+
+[target.i686-linux-android]
+image = "ghcr.io/hyperledger/aries-builder-images/cross/i686-linux-android:main"
+
+[target.aarch64-linux-android]
+image = "ghcr.io/hyperledger/aries-builder-images/cross/aarch64-linux-android:main"
+
+[target.armv7-linux-androideabi]
+image = "ghcr.io/hyperledger/aries-builder-images/cross/armv7-linux-androideabi:main"
