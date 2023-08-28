@@ -1,14 +1,10 @@
 name: 'Anoncreds'
 
 env:
-  RUST_VERSION: '1.64.0'
+  RUST_VERSION: '1.65.0'
   CROSS_VERSION: '0.2.4'
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   release:
     types: [created]
   workflow_dispatch:
@@ -18,68 +14,8 @@ on:
         required: true
         default: false
         type: boolean
-      publish-wrappers:
-        description: 'Publish Wrappers to Registries'
-        required: true
-        default: false
-        type: boolean
 
 jobs:
-  lint:
-    name: Lint
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-          components: clippy, rustfmt
-
-      - name: Cache cargo resources
-        uses: Swatinem/rust-cache@v2
-
-      - name: Cargo check
-        run: cargo check
-
-      - name: Cargo fmt
-        run: cargo fmt --all -- --check
-
-  test:
-    name: Test
-
-    strategy:
-      matrix:
-        os: [anoncreds-windows-latest, anoncreds-ubuntu-latest]
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-
-      - name: Cache cargo resources
-        uses: Swatinem/rust-cache@v2
-
-      - name: Test Linux and macOS
-        if: "runner.os != 'Windows'"
-        run: cargo test --package anoncreds --features vendored
-
-      - name: Test Windows
-        if: "runner.os == 'Windows'"
-        env:
-          OPENSSL_STATIC: 1
-        run: cargo test --package anoncreds --features vendored
-
   build-release:
     name: Build Library
 
@@ -87,32 +23,23 @@ jobs:
       matrix:
         include:
           - architecture: linux-aarch64
-            os: anoncreds-ubuntu-latest
+            os: ubuntu-20.04
             target: aarch64-unknown-linux-gnu
-            lib: libanoncreds.so
+            lib: libanoncreds_uniffi.so
             use_cross: true
           - architecture: linux-x86_64
-            os: anoncreds-ubuntu-latest
+            os: ubuntu-20.04
             target: x86_64-unknown-linux-gnu
-            lib: libanoncreds.so
+            lib: libanoncreds_uniffi.so
             use_cross: true
           - architecture: darwin-x86_64
             os: macos-latest
             target: x86_64-apple-darwin
-            lib: libanoncreds.dylib
+            lib: libanoncreds_uniffi.dylib
           - architecture: darwin-aarch64
             os: macos-latest
             target: aarch64-apple-darwin
-            lib: libanoncreds.dylib
-          - architecture: darwin-universal
-            os: macos-latest
-            target: darwin-universal
-            lib: libanoncreds.dylib
-          - architecture: windows-x86_64
-            os: anoncreds-windows-latest
-            arch: windows-x86_64
-            target: x86_64-pc-windows-msvc
-            lib: anoncreds.dll
+            lib: libanoncreds_uniffi.dylib
 
     runs-on: ${{ matrix.os }}
 
@@ -133,36 +60,32 @@ jobs:
           shared-key: deps
           save-if: false
 
-      - name: Build library for Windows
-        if: "runner.os == 'Windows'"
-        env:
-          OPENSSL_STATIC: 1
-        run: cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
-
       - name: Build library for Linux
         if: "runner.os == 'Linux'"
         run: |
+          cd uniffi
           if [ -n "${{ matrix.use_cross }}" ]; then
             cargo install --git https://github.com/cross-rs/cross --tag v${{ env.CROSS_VERSION }} cross
-            cross build --release --package anoncreds --target ${{matrix.target}} --features vendored
+            cross build --release --target ${{matrix.target}}
           else
-            cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
+            cargo build --release --target ${{matrix.target}}
           fi
 
       - name: Build library for macOS
         if: "runner.os == 'macOS'"
         run: |
+          cd uniffi
           if [ "${{ matrix.architecture }}" == "darwin-universal" ]; then
-            ./build-universal.sh
+            ./build-release-apple-universal.sh
           else 
-            cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
+            cargo build --release --target ${{matrix.target}}
           fi
 
       - name: Upload library artifacts
         uses: actions/upload-artifact@v3
         with:
           name: library-${{ matrix.architecture }}
-          path: target/${{ matrix.target }}/release/${{ matrix.lib }}
+          path: uniffi/target/${{ matrix.target }}/release/${{ matrix.lib }}
 
       - name: Create library artifacts directory
         if: |
@@ -170,7 +93,7 @@ jobs:
           (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true')
         run: |
           mkdir release-artifacts
-          cp target/${{ matrix.target }}/release/${{ matrix.lib }} release-artifacts/
+          cp uniffi/target/${{ matrix.target }}/release/${{ matrix.lib }} release-artifacts/
 
       - name: Release artifacts
         uses: a7ul/tar-action@v1.1.2
@@ -191,304 +114,3 @@ jobs:
         with:
           file: library-${{ matrix.architecture }}.tar.gz
           asset_name: 'library-${{ matrix.architecture }}.tar.gz'
-
-  build-javascript:
-    name: Build and Test JavaScript wrapper
-    needs: [build-release]
-    runs-on: anoncreds-ubuntu-latest
-    defaults:
-      run:
-        working-directory: wrappers/javascript
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Set up Node.JS 16.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
-
-      - name: Fetch library artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: library-linux-x86_64
-
-      - name: Install dependencies
-        run: yarn install
-
-      - name: Build JavaScript Wrapper
-        run: yarn build
-
-      - name: Lint JavaScript Wrapper
-        run: yarn lint
-
-      - name: Format Check JavaScript Wrapper
-        run: yarn check-format
-
-      - name: Type Check JavaScript Wrapper
-        run: yarn check-types
-
-      - name: Test JavaScript Wrapper
-        env:
-          # binary is downloaded to root of repository
-          LIB_ANONCREDS_PATH: ../../
-        run: yarn test
-
-      - name: Set NPM config
-        if: |
-          github.event_name == 'release' ||
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-wrappers == 'true')
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> .npmrc
-          echo "registry=https://registry.npmjs.org/" >> .npmrc
-          echo "always-auth=true" >> .npmrc
-
-      - name: Publish JavaScript Wrapper
-        if: |
-          github.event_name == 'release' ||
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-wrappers == 'true')
-        run: npx lerna publish from-package --no-push --no-private --yes --no-git-tag-version
-
-  build-py:
-    name: Build Python
-    needs: [build-release]
-
-    env: 
-      PYTHON_VERSION: '3.8'
-
-    strategy:
-      matrix:
-        include:
-          - runner: anoncreds-ubuntu-latest
-            architecture: linux-aarch64
-            plat-name: manylinux2014_aarch64
-          - runner: anoncreds-ubuntu-latest
-            architecture: linux-x86_64
-            plat-name: manylinux2014_x86_64
-          - runner: macos-latest
-            architecture: darwin-universal
-            plat-name: macosx_10_9_universal2
-          - runner: anoncreds-windows-latest
-            architecture: windows-x86_64
-            plat-name: win_amd64
-
-    runs-on: ${{ matrix.runner }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install setuptools wheel twine auditwheel
-
-      - name: Fetch library artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: library-${{ matrix.architecture }}
-          path: wrappers/python/anoncreds/
-
-      - name: Build wheel package
-        run: |
-          python setup.py bdist_wheel --python-tag=py3 --plat-name=${{ matrix.plat-name }}
-        working-directory: wrappers/python
-
-      - if: "matrix.architecture != 'linux-aarch64'"
-        name: Test python package
-        shell: sh
-        run: |
-          cd wrappers/python
-          pip install --upgrade pip
-          pip install dist/*
-          python -m demo.test
-
-      - if: "runner.os == 'Linux'"
-        name: Auditwheel
-        run: auditwheel show wrappers/python/dist/*
-
-      - if: |
-          (github.event_name == 'release' ||
-            (github.event_name == 'workflow_dispatch' &&
-              github.event.inputs.publish == 'true'))
-        name: Publish python package
-        working-directory: wrappers/python
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_ANONCREDS }}
-        run: |
-          twine upload --repository pypi --skip-existing dist/*
-
-  build-android-libraries:
-    name: Build Android Libraries
-    runs-on: anoncreds-ubuntu-latest
-    strategy:
-      matrix:
-        target:
-          [
-            aarch64-linux-android,
-            armv7-linux-androideabi,
-            i686-linux-android,
-            x86_64-linux-android,
-          ]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-          targets: ${{ matrix.target }}
-
-      - name: Cache cargo resources
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build
-        run: |
-          cargo install --git https://github.com/cross-rs/cross --tag v${{ env.CROSS_VERSION }} cross
-          cross build --release --target ${{ matrix.target }} --features=vendored
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/libanoncreds.so
-
-  create-android-library:
-    name: Create android libraries
-    runs-on: anoncreds-ubuntu-latest
-    needs: build-android-libraries
-    if: |
-      (github.event_name == 'release' ||
-      (github.event_name == 'workflow_dispatch' &&
-       github.event.inputs.publish == 'true'))
-    steps:
-      - name: Fetch libraries
-        uses: actions/download-artifact@v3
-      - run: |
-          sudo mkdir ./libs
-          sudo mv aarch64-linux-android   ./libs/arm64-v8a
-          sudo mv armv7-linux-androideabi ./libs/armeabi-v7a
-          sudo mv i686-linux-android      ./libs/x86
-          sudo mv x86_64-linux-android    ./libs/x86_64
-      - name: Save Android library
-        uses: actions/upload-artifact@v3
-        with:
-          name: android-libraries
-          path: ./libs
-
-      - name: Delete artifacts
-        uses: geekyeggo/delete-artifact@v1
-        with:
-          name: |
-            aarch64-linux-android
-            armv7-linux-androideabi
-            i686-linux-android
-            x86_64-linux-android
-          failOnError: false
-
-  build-ios-libraries:
-    name: Build ios Libraries
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        architecture:
-          [aarch64-apple-ios, aarch64-apple-ios-sim, x86_64-apple-ios]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{matrix.architecture}}
-
-      - name: Build
-        run: cargo  build --release --target ${{matrix.architecture}} --features=vendored
-
-      - name: Save artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{matrix.architecture}}
-          path: target/${{matrix.architecture}}/release/libanoncreds.a
-
-  create-ios-xcframework:
-    name: Create ios xcframework
-    runs-on: macos-latest
-    needs: build-ios-libraries
-    if: |
-      (github.event_name == 'release' ||
-      (github.event_name == 'workflow_dispatch' &&
-       github.event.inputs.publish == 'true'))
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Fetch static libraries
-        uses: actions/download-artifact@v3
-      - run: >
-          ./build-xcframework.sh aarch64-apple-ios \
-                                 aarch64-apple-ios-sim \
-                                 x86_64-apple-ios \
-                                 include
-
-      - name: Save xcframework
-        uses: actions/upload-artifact@v3
-        with:
-          name: anoncreds.xcframework
-          path: out
-
-      - name: Delete artifacts
-        uses: geekyeggo/delete-artifact@v1
-        with:
-          name: |
-            aarch64-apple-ios
-            aarch64-apple-ios-sim
-            x86_64-apple-ios
-          failOnError: false
-
-  create-ios-android-release-asset:
-    name: Create iOS and Android Release Assets
-    runs-on: anoncreds-ubuntu-latest
-    needs:
-      - create-ios-xcframework
-      - create-android-library
-    if: |
-      (github.event_name == 'release' ||
-      (github.event_name == 'workflow_dispatch' &&
-       github.event.inputs.publish == 'true'))
-
-    steps:
-      - name: Fetch Android libraries
-        uses: actions/download-artifact@v3
-        with:
-          name: android-libraries
-          path: mobile/android/
-
-      - name: Fetch iOS Framework
-        uses: actions/download-artifact@v3
-        with:
-          name: anoncreds.xcframework
-          path: mobile/ios/
-
-      - name: Create archive
-        uses: a7ul/tar-action@v1.1.2
-        with:
-          command: c
-          files: ./mobile
-          outPath: 'library-ios-android.tar.gz'
-
-      - name: Add library artifacts to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          file: library-ios-android.tar.gz
-          asset_name: 'library-ios-android.tar.gz'
