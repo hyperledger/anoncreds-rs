@@ -32,12 +32,15 @@ import {
 } from './ffi'
 import { getNativeAnoncreds } from './library'
 
-function handleReturnPointer<Return>(returnValue: Buffer): Return {
+function handleReturnPointer<Return>(returnValue: Buffer, cleanupCallback?: (buffer: Buffer) => void): Return {
   if (returnValue.address() === 0) {
     throw AnoncredsError.customError({ message: 'Unexpected null pointer' })
   }
 
-  return returnValue.deref() as Return
+  const ret = returnValue.deref() as Return
+  if (cleanupCallback) cleanupCallback(returnValue)
+
+  return ret
 }
 
 export class NodeJSAnoncreds implements Anoncreds {
@@ -60,7 +63,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     this.nativeAnoncreds.anoncreds_generate_nonce(ret)
     this.handleError()
 
-    return handleReturnPointer<string>(ret)
+    return handleReturnPointer<string>(ret, this.nativeAnoncreds.anoncreds_string_free)
   }
 
   public createSchema(options: {
@@ -86,7 +89,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     this.nativeAnoncreds.anoncreds_revocation_registry_definition_get_attribute(objectHandle, name, ret)
     this.handleError()
 
-    return handleReturnPointer<string>(ret)
+    return handleReturnPointer<string>(ret, this.nativeAnoncreds.anoncreds_string_free)
   }
 
   public credentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }) {
@@ -96,7 +99,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     this.nativeAnoncreds.anoncreds_credential_get_attribute(objectHandle, name, ret)
     this.handleError()
 
-    return handleReturnPointer<string>(ret)
+    return handleReturnPointer<string>(ret, this.nativeAnoncreds.anoncreds_string_free)
   }
 
   public createCredentialDefinition(options: {
@@ -215,7 +218,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     this.nativeAnoncreds.anoncreds_encode_credential_attributes(attributeRawValues, ret)
     this.handleError()
 
-    const result = handleReturnPointer<string>(ret)
+    const result = handleReturnPointer<string>(ret, this.nativeAnoncreds.anoncreds_string_free)
 
     return result.split(',')
   }
@@ -296,7 +299,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     this.nativeAnoncreds.anoncreds_create_link_secret(ret)
     this.handleError()
 
-    return handleReturnPointer<string>(ret)
+    return handleReturnPointer<string>(ret, this.nativeAnoncreds.anoncreds_string_free)
   }
 
   public createPresentation(options: {
@@ -639,7 +642,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     this.nativeAnoncreds.anoncreds_get_current_error(ret)
     this.handleError()
 
-    return handleReturnPointer<string>(ret)
+    return handleReturnPointer<string>(ret, this.nativeAnoncreds.anoncreds_string_free)
   }
 
   private objectFromJson(method: (byteBuffer: Buffer, ret: Buffer) => unknown, options: { json: string }) {
@@ -723,6 +726,8 @@ export class NodeJSAnoncreds implements Anoncreds {
     const returnValue = handleReturnPointer<{ data: Buffer; len: number }>(ret)
     const output = new Uint8Array(byteBufferToBuffer(returnValue))
 
+    this.nativeAnoncreds.anoncreds_buffer_free(returnValue.data)
+
     return new TextDecoder().decode(output)
   }
 
@@ -734,7 +739,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     this.nativeAnoncreds.anoncreds_object_get_type_name(objectHandle, ret)
     this.handleError()
 
-    return handleReturnPointer<string>(ret)
+    return handleReturnPointer<string>(ret, this.nativeAnoncreds.anoncreds_string_free)
   }
 
   public objectFree(options: { objectHandle: ObjectHandle }) {

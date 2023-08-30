@@ -49,6 +49,8 @@ jsi::Value createReturnValue(jsi::Runtime &rt, ErrorCode code,
                                    ? jsi::Value::null()
                                    : jsi::String::createFromAscii(rt, *value);
     object.setProperty(rt, "value", valueWithoutNullptr);
+
+    if (!isNullptr) anoncreds_string_free((char *)*value);
   }
 
   object.setProperty(rt, "errorCode", int(code));
