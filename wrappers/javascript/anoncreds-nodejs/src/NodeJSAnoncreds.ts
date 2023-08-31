@@ -724,11 +724,13 @@ export class NodeJSAnoncreds implements Anoncreds {
     this.handleError()
 
     const returnValue = handleReturnPointer<{ data: Buffer; len: number }>(ret)
-    const output = new Uint8Array(byteBufferToBuffer(returnValue))
+    const jsonAsArray = new Uint8Array(byteBufferToBuffer(returnValue))
+
+    const output = new TextDecoder().decode(jsonAsArray)
 
     this.nativeAnoncreds.anoncreds_buffer_free(returnValue.data)
 
-    return new TextDecoder().decode(output)
+    return output
   }
 
   public getTypeName(options: { objectHandle: ObjectHandle }) {
