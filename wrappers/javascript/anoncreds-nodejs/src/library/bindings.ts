@@ -120,6 +120,7 @@ export const nativeBindings = {
   anoncreds_generate_nonce: [FFI_ERRORCODE, [FFI_STRING_PTR]],
   anoncreds_get_current_error: [FFI_ERRORCODE, [FFI_STRING_PTR]],
   anoncreds_object_free: [FFI_VOID, [FFI_OBJECT_HANDLE]],
+  anoncreds_string_free: [FFI_VOID, [FFI_STRING_PTR]],
   anoncreds_object_get_json: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, ByteBufferStructPtr]],
   anoncreds_object_get_type_name: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING_PTR]],
   anoncreds_presentation_request_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
