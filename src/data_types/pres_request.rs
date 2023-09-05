@@ -118,9 +118,6 @@ impl Serialize for PresentationRequest {
     }
 }
 
-#[allow(unused)]
-pub type PresentationRequestExtraQuery = HashMap<String, Query>;
-
 #[derive(Clone, Default, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct NonRevokedInterval {
     pub from: Option<u64>,

@@ -1,5 +1,4 @@
 use anoncreds::data_types::cred_def::CredentialDefinitionId;
-use anoncreds::data_types::rev_reg::RevocationRegistryId;
 use anoncreds::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use anoncreds::data_types::schema::SchemaId;
 use anoncreds::issuer;
@@ -52,8 +51,6 @@ fn anoncreds_demo_works_for_single_issuer_single_prover() {
         &cred_offer,
         &cred_request,
         cred_values.into(),
-        None,
-        None,
         None,
     )
     .expect("Error creating credential");
@@ -206,7 +203,7 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
     let ((gvt_rev_reg_def, gvt_rev_reg_def_priv), gvt_rev_reg_def_id) =
         fixtures::create_rev_reg_def(&gvt_cred_def, &mut tf);
 
-    // Issuer creates reovcation status list - to be put on the ledger
+    // Issuer creates revocation status list - to be put on the ledger
     let time_create_rev_status_list = 12;
     let gvt_revocation_status_list = fixtures::create_revocation_status_list(
         &gvt_cred_def,
@@ -239,7 +236,6 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
     let cred_values = fixtures::credential_values("GVT");
 
     let gvt_rev_reg_def_id = RevocationRegistryDefinitionId::new_unchecked(gvt_rev_reg_def_id);
-    let gvt_rev_reg_id = RevocationRegistryId::new_unchecked(gvt_rev_reg_def_id.clone());
 
     // Get the location of the tails_file so it can be read
     let tails_location = gvt_rev_reg_def.value.tails_location.clone();
@@ -250,12 +246,11 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
         &cred_offer,
         &cred_request,
         cred_values.into(),
-        Some(gvt_rev_reg_id),
-        Some(&gvt_revocation_status_list),
         Some(CredentialRevocationConfig {
             reg_def: &gvt_rev_reg_def,
             reg_def_private: &gvt_rev_reg_def_priv,
             registry_idx: fixtures::GVT_REV_IDX,
+            status_list: &gvt_revocation_status_list,
         }),
     )
     .expect("Error creating credential");
@@ -452,8 +447,6 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
         &gvt_cred_request,
         gvt_cred_values.into(),
         None,
-        None,
-        None,
     )
     .expect("Error creating credential");
 
@@ -493,8 +486,6 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
         &emp_cred_offer,
         &emp_cred_request,
         emp_cred_values.into(),
-        None,
-        None,
         None,
     )
     .expect("Error creating credential");
@@ -624,8 +615,6 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
         &cred_request,
         cred_values.into(),
         None,
-        None,
-        None,
     )
     .expect("Error creating credential");
 
@@ -752,8 +741,6 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case() {
         &cred_offer,
         &cred_request,
         cred_values.into(),
-        None,
-        None,
         None,
     )
     .expect("Error creating credential");
@@ -931,8 +918,6 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
         &gvt_cred_request,
         gvt_cred_values.into(),
         None,
-        None,
-        None,
     )
     .expect("Error creating credential");
 
@@ -972,8 +957,6 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
         &emp_cred_offer,
         &emp_cred_request,
         emp_cred_values.into(),
-        None,
-        None,
         None,
     )
     .expect("Error creating credential");

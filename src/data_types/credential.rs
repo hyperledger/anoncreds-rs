@@ -5,13 +5,14 @@ use crate::cl::{CredentialSignature, RevocationRegistry, SignatureCorrectnessPro
 use crate::error::{ConversionError, ValidationError};
 use crate::utils::validation::Validatable;
 
-use super::{cred_def::CredentialDefinitionId, rev_reg::RevocationRegistryId, schema::SchemaId};
+use super::rev_reg_def::RevocationRegistryDefinitionId;
+use super::{cred_def::CredentialDefinitionId, schema::SchemaId};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Credential {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
-    pub rev_reg_id: Option<RevocationRegistryId>,
+    pub rev_reg_id: Option<RevocationRegistryDefinitionId>,
     pub values: CredentialValues,
     pub signature: CredentialSignature,
     pub signature_correctness_proof: SignatureCorrectnessProof,
@@ -73,7 +74,7 @@ pub struct CredentialInfo {
     pub attrs: ShortCredentialValues,
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
-    pub rev_reg_id: Option<RevocationRegistryId>,
+    pub rev_reg_id: Option<RevocationRegistryDefinitionId>,
     pub cred_rev_id: Option<String>,
 }
 

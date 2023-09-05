@@ -10,7 +10,6 @@ use anoncreds::{
         cred_offer::CredentialOffer,
         credential::Credential,
         presentation::Presentation,
-        rev_reg::RevocationRegistryId,
         rev_reg_def::RevocationRegistryDefinitionId,
         schema::{Schema, SchemaId},
     },
@@ -23,23 +22,14 @@ use anoncreds::{
     verifier,
 };
 
-#[allow(unused)]
+#[derive(Debug)]
 pub struct TestError(String);
 
-// {cred_def_id: {
-//       schema_id, credential_values, support_revocation, rev_reg_id, rev_idx
-// }}
-#[allow(unused)]
 pub type IssuerValues<'a> =
     HashMap<&'a str, (&'a str, HashMap<&'a str, &'a str>, bool, &'a str, u32)>;
 
-// {cred_def_id: {
-//       attribute_per_credential, predicate_for_credential }}
-#[allow(unused)]
 pub type ProverValues<'a> = HashMap<&'a str, (Vec<&'a str>, Vec<&'a str>)>;
 
-// { rev_reg_def_id: {req_timestamp, override_timestamp} }
-#[allow(unused)]
 pub type Override<'a> = HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>;
 
 #[derive(Debug)]
@@ -52,7 +42,6 @@ pub struct Mock<'a> {
 }
 
 impl<'a> Mock<'a> {
-    #[allow(unused)]
     pub fn new(
         issuer_ids: &[&'a str],
         prover_ids: &[&'a str],
@@ -77,7 +66,6 @@ impl<'a> Mock<'a> {
         }
     }
 
-    #[allow(unused)]
     pub fn verifer_verifies_presentations_for_requests(
         &self,
         presentations: &[Presentation],
@@ -101,7 +89,7 @@ impl<'a> Mock<'a> {
         );
         let mut rev_status_lists = vec![];
 
-        self.ledger.revcation_list.iter().for_each(|(_, v)| {
+        self.ledger.revocation_list.iter().for_each(|(_, v)| {
             v.iter()
                 .for_each(|(_, list)| rev_status_lists.push(list.clone()))
         });
@@ -132,7 +120,6 @@ impl<'a> Mock<'a> {
     // issuer wallet holds all data relating to cred def and rev def
     // prover wallet contains the cred offers from the credentials
     // ledger holds the rev reg def / rev reg info
-    #[allow(unused)]
     pub fn issuer_setup(
         &mut self,
         issuer_id: &'static str,
@@ -202,7 +189,7 @@ impl<'a> Mock<'a> {
                 )
                 .unwrap();
 
-                self.ledger.revcation_list.insert(
+                self.ledger.revocation_list.insert(
                     rev_reg_id,
                     HashMap::from([(time_now, revocation_status_list)]),
                 );
@@ -246,7 +233,6 @@ impl<'a> Mock<'a> {
         }
     }
 
-    #[allow(unused)]
     fn issuer_create_credential(
         &self,
         issuer_wallet: &IssuerWallet,
@@ -262,7 +248,7 @@ impl<'a> Mock<'a> {
         let schema = self.ledger.schemas.get(&offer.schema_id).unwrap();
         let revocation_list = self
             .ledger
-            .revcation_list
+            .revocation_list
             .get(rev_reg_id)
             .and_then(|h| h.get(&prev_rev_reg_time));
         let mut cred_values = MakeCredentialValues::default();
@@ -280,17 +266,20 @@ impl<'a> Mock<'a> {
             }
         }
 
-        let (rev_config, rev_id) = match issuer_wallet.rev_defs.get(rev_reg_id) {
-            Some(stored_rev_def) => (
-                Some(CredentialRevocationConfig {
+        let rev_config = issuer_wallet
+            .rev_defs
+            .get(rev_reg_id)
+            .map(|stored_rev_def| {
+                Result::<_, TestError>::Ok(CredentialRevocationConfig {
                     reg_def: &stored_rev_def.public,
                     reg_def_private: &stored_rev_def.private,
                     registry_idx: rev_idx,
-                }),
-                Some(RevocationRegistryId::new_unchecked(rev_reg_id)),
-            ),
-            None => (None, None),
-        };
+                    status_list: revocation_list
+                        .ok_or_else(|| TestError("Missing status list".to_string()))?,
+                })
+            })
+            .transpose()
+            .expect("Error creating revocation config");
 
         let issue_cred = issuer::create_credential(
             ledger
@@ -301,8 +290,6 @@ impl<'a> Mock<'a> {
             offer,
             cred_request,
             cred_values.into(),
-            rev_id,
-            revocation_list,
             rev_config,
         )
         .expect("Error creating credential");
@@ -312,7 +299,6 @@ impl<'a> Mock<'a> {
 
     // prover requests and gets credential stored in their wallets
     // This updates ledger on revocation reg also
-    #[allow(unused)]
     pub fn issuer_create_credential_and_store_in_prover_wallet(
         &mut self,
         issuer_id: &'static str,
@@ -380,7 +366,7 @@ impl<'a> Mock<'a> {
             if let Some(rev_def) = rev_def {
                 let list = self
                     .ledger
-                    .revcation_list
+                    .revocation_list
                     .get(*rev_reg_id)
                     .unwrap()
                     .get(&time_prev_rev_reg)
@@ -397,13 +383,12 @@ impl<'a> Mock<'a> {
                 )
                 .unwrap();
 
-                let map = self.ledger.revcation_list.get_mut(rev_reg_id).unwrap();
+                let map = self.ledger.revocation_list.get_mut(rev_reg_id).unwrap();
                 map.insert(time_new_rev_reg, updated_list);
             }
         }
     }
 
-    #[allow(unused)]
     pub fn prover_creates_revocation_states(
         &mut self,
         prover_id: &'static str,
@@ -414,7 +399,7 @@ impl<'a> Mock<'a> {
             if let Some(id) = &cred.rev_reg_id {
                 let rev_status_list = self
                     .ledger
-                    .revcation_list
+                    .revocation_list
                     .get(id.to_string().as_str())
                     .unwrap()
                     .get(&time_to_update_to)
@@ -434,7 +419,6 @@ impl<'a> Mock<'a> {
         self.prover_wallets.get_mut(prover_id).unwrap().rev_states = rev_states;
     }
 
-    #[allow(unused)]
     pub fn prover_creates_presentation(
         &self,
         prover_id: &'static str,

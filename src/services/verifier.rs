@@ -863,7 +863,6 @@ fn is_attr_operator(key: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data_types::rev_reg::RevocationRegistryId;
 
     pub const SCHEMA_ID: &str = "123";
     pub const SCHEMA_NAME: &str = "Schema Name";
@@ -1180,7 +1179,7 @@ mod tests {
                 timestamp: Some(1234),
                 schema_id: SchemaId::default(),
                 cred_def_id: CredentialDefinitionId::default(),
-                rev_reg_id: Some(RevocationRegistryId::default()),
+                rev_reg_id: Some(RevocationRegistryDefinitionId::default()),
             },
         );
         res.insert(
@@ -1189,7 +1188,7 @@ mod tests {
                 timestamp: None,
                 schema_id: SchemaId::default(),
                 cred_def_id: CredentialDefinitionId::default(),
-                rev_reg_id: Some(RevocationRegistryId::default()),
+                rev_reg_id: Some(RevocationRegistryDefinitionId::default()),
             },
         );
         res

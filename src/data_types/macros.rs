@@ -44,8 +44,7 @@ macro_rules! impl_anoncreds_object_identifier {
                     "IssuerId" => &LEGACY_DID_IDENTIFIER,
                     "CredentialDefinitionId" => &LEGACY_CRED_DEF_IDENTIFIER,
                     "SchemaId" => &LEGACY_SCHEMA_IDENTIFIER,
-                    // TODO: we do not have correct validation for a revocation registry and definition id
-                    "RevocationRegistryId" => &LEGACY_DID_IDENTIFIER,
+                    // TODO: we do not have correct validation for a revocation registry definition id
                     "RevocationRegistryDefinitionId" => &LEGACY_DID_IDENTIFIER,
                     invalid_name => {
                         return Err($crate::invalid!(

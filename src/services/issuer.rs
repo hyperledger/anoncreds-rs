@@ -1,7 +1,6 @@
 use crate::cl::{Issuer, RevocationRegistry as CryptoRevocationRegistry};
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
-use crate::data_types::rev_reg::RevocationRegistryId;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
 use crate::data_types::{
@@ -708,8 +707,6 @@ pub fn create_credential(
     cred_offer: &CredentialOffer,
     cred_request: &CredentialRequest,
     cred_values: CredentialValues,
-    rev_reg_id: Option<RevocationRegistryId>,
-    rev_status_list: Option<&RevocationStatusList>,
     revocation_config: Option<CredentialRevocationConfig>,
 ) -> Result<Credential> {
     trace!("create_credential >>> cred_def: {:?}, cred_def_private: {:?}, cred_offer.nonce: {:?}, cred_request: {:?},\
@@ -724,12 +721,10 @@ pub fn create_credential(
         ))?;
     let credential_values = build_credential_values(&cred_values.0, None)?;
 
-    let (credential_signature, signature_correctness_proof, rev_reg, witness) =
-        if let (Some(revocation_config), Some(rev_status_list)) =
-            (revocation_config, rev_status_list)
-        {
-            let rev_reg_def = &revocation_config.reg_def.value;
-            let rev_reg: Option<CryptoRevocationRegistry> = rev_status_list.into();
+    let (credential_signature, signature_correctness_proof, rev_reg_id, rev_reg, witness) =
+        if let Some(rev_config) = revocation_config {
+            let rev_reg_def: &RevocationRegistryDefinitionValue = &rev_config.reg_def.value;
+            let rev_reg: Option<CryptoRevocationRegistry> = rev_config.status_list.into();
             let mut rev_reg = rev_reg.ok_or_else(|| {
                 err_msg!(
                     Unexpected,
@@ -737,12 +732,13 @@ pub fn create_credential(
                 )
             })?;
 
-            let status = rev_status_list
-                .get(revocation_config.registry_idx as usize)
+            let status = rev_config
+                .status_list
+                .get(rev_config.registry_idx as usize)
                 .ok_or_else(|| {
                     err_msg!(
                         "Revocation status list does not have the index {}",
-                        revocation_config.registry_idx
+                        rev_config.registry_idx
                     )
                 })?;
 
@@ -770,15 +766,16 @@ pub fn create_credential(
                     &credential_values,
                     &cred_public_key,
                     &cred_def_private.value,
-                    revocation_config.registry_idx,
+                    rev_config.registry_idx,
                     rev_reg_def.max_cred_num,
                     issuance_by_default,
                     &mut rev_reg,
-                    &revocation_config.reg_def_private.value,
+                    &rev_config.reg_def_private.value,
                 )?;
             (
                 credential_signature,
                 signature_correctness_proof,
+                rev_config.status_list.id(),
                 Some(rev_reg),
                 Some(witness),
             )
@@ -793,7 +790,7 @@ pub fn create_credential(
                 &cred_public_key,
                 &cred_def_private.value,
             )?;
-            (signature, correctness_proof, None, None)
+            (signature, correctness_proof, None, None, None)
         };
 
     let credential = Credential {
