@@ -695,8 +695,6 @@ pub fn create_credential_offer(
 ///                               &credential_offer,
 ///                               &credential_request,
 ///                               credential_values.into(),
-///                               None,
-///                               None,
 ///                               None
 ///                               ).expect("Unable to create credential");
 /// ```
