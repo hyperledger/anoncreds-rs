@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+
+#[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
 use crate::cl::{CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, Witness};
@@ -82,6 +84,7 @@ pub type ShortCredentialValues = HashMap<String, String>;
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct CredentialValues(pub HashMap<String, AttributeValues>);
 
+#[cfg(feature = "zeroize")]
 impl Drop for CredentialValues {
     fn drop(&mut self) {
         self.zeroize();
@@ -98,6 +101,7 @@ impl Validatable for CredentialValues {
     }
 }
 
+#[cfg(feature = "zeroize")]
 impl Zeroize for CredentialValues {
     fn zeroize(&mut self) {
         for attr in self.0.values_mut() {
@@ -106,7 +110,8 @@ impl Zeroize for CredentialValues {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Zeroize, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize))]
 pub struct AttributeValues {
     pub raw: String,
     pub encoded: String,
