@@ -465,10 +465,6 @@ jsi::Value createCredential(jsi::Runtime &rt, jsi::Object options) {
       jsiToValue<FfiStrList>(rt, options, "attributeRawValues");
   auto attributeEncodedValues =
       jsiToValue<FfiStrList>(rt, options, "attributeEncodedValues", true);
-  auto revocationRegistryId =
-      jsiToValue<std::string>(rt, options, "revocationRegistryId", true);
-  auto revocationStatusList =
-      jsiToValue<ObjectHandle>(rt, options, "revocationStatusList", true);
   auto revocation =
       jsiToValue<FfiCredRevInfo>(rt, options, "revocationConfiguration", true);
 
@@ -477,10 +473,7 @@ jsi::Value createCredential(jsi::Runtime &rt, jsi::Object options) {
   ErrorCode code = anoncreds_create_credential(
       credentialDefinition, credentialDefinitionPrivate, credentialOffer,
       credentialRequest, attributeNames, attributeRawValues,
-      attributeEncodedValues,
-      revocationRegistryId.length() > 0 ? revocationRegistryId.c_str()
-                                        : nullptr,
-      revocationStatusList, revocation.reg_def ? &revocation : 0, &out);
+      attributeEncodedValues, revocation.reg_def ? &revocation : 0, &out);
 
   return createReturnValue(rt, code, &out);
 };

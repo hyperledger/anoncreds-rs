@@ -108,11 +108,10 @@ describe('API', () => {
       credentialOffer,
       credentialRequest,
       attributeRawValues: { name: 'Alex', height: '175', age: '28', sex: 'male' },
-      revocationRegistryId: 'mock:uri',
-      revocationStatusList,
       revocationConfiguration: new CredentialRevocationConfig({
         registryDefinition: revocationRegistryDefinition,
         registryDefinitionPrivate: revocationRegistryDefinitionPrivate,
+        statusList: revocationStatusList,
         registryIndex: 9,
       }),
     })
@@ -431,11 +430,10 @@ test('create and verify presentation passing only JSON objects as parameters', (
     credentialOffer: credentialOffer.toJson(),
     credentialRequest: credentialRequest.toJson(),
     attributeRawValues: { name: 'Alex', height: '175', age: '28', sex: 'male' },
-    revocationRegistryId: 'mock:uri',
-    revocationStatusList: revocationStatusList.toJson(),
     revocationConfiguration: new CredentialRevocationConfig({
       registryDefinition: revocationRegistryDefinition,
       registryDefinitionPrivate: revocationRegistryDefinitionPrivate,
+      statusList: revocationStatusList,
       registryIndex: 9,
     }),
   })

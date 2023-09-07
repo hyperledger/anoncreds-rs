@@ -120,8 +120,6 @@ export class ReactNativeAnoncreds implements Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     attributeEncodedValues?: Record<string, string>
-    revocationRegistryId?: string
-    revocationStatusList?: ObjectHandle
     revocationConfiguration?: NativeCredentialRevocationConfig
   }): ObjectHandle {
     const attributeNames = Object.keys(options.attributeRawValues)
@@ -142,6 +140,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
               revocationRegistryDefinition: options.revocationConfiguration.revocationRegistryDefinition.handle,
               revocationRegistryDefinitionPrivate:
                 options.revocationConfiguration.revocationRegistryDefinitionPrivate.handle,
+              revocationStatusList: options.revocationConfiguration.revocationStatusList.handle,
             }
           : undefined,
       })

@@ -31,6 +31,7 @@ export type NativeRevocationEntry = {
 export type NativeCredentialRevocationConfig = {
   revocationRegistryDefinition: ObjectHandle
   revocationRegistryDefinitionPrivate: ObjectHandle
+  revocationStatusList: ObjectHandle
   registryIndex: number
 }
 
@@ -64,8 +65,6 @@ export interface Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     attributeEncodedValues?: Record<string, string>
-    revocationRegistryId?: string
-    revocationStatusList?: ObjectHandle
     revocationConfiguration?: NativeCredentialRevocationConfig
   }): ObjectHandle
 
