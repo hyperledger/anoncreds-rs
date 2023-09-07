@@ -28,18 +28,15 @@
   "dependencies": {
     "@hyperledger/anoncreds-shared": "0.1.0",
     "@mapbox/node-pre-gyp": "^1.0.10",
-    "@2060.io/ffi-napi": "4.0.5",
-    "@2060.io/ref-napi": "3.0.4",
+    "@2060.io/ffi-napi": "4.0.8",
+    "@2060.io/ref-napi": "3.0.6",
     "node-cache": "5.1.2",
     "ref-array-di": "1.2.2",
     "ref-struct-di": "1.1.1"
   },
   "devDependencies": {
-    "@types/2060.io__ffi-napi": "npm:@types/ffi-napi",
-    "@types/2060.io__ref-napi": "npm:@types/ref-napi",
     "@types/node": "17.0.31",
     "@types/ref-array-di": "1.2.3",
-    "@types/ref-napi": "3.0.7",
     "@types/ref-struct-di": "1.1.6",
     "typescript": "4.5.5"
   },
