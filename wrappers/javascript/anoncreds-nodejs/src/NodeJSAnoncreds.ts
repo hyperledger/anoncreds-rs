@@ -147,17 +147,10 @@ export class NodeJSAnoncreds implements Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     attributeEncodedValues?: Record<string, string>
-    revocationRegistryId?: string
-    revocationStatusList?: ObjectHandle
     revocationConfiguration?: NativeCredentialRevocationConfig
   }): ObjectHandle {
-    const {
-      credentialDefinition,
-      credentialDefinitionPrivate,
-      credentialOffer,
-      credentialRequest,
-      revocationRegistryId,
-    } = serializeArguments(options)
+    const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest } =
+      serializeArguments(options)
 
     const attributeNames = StringListStruct({
       count: Object.keys(options.attributeRawValues).length,
@@ -178,15 +171,13 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     let revocationConfiguration
     if (options.revocationConfiguration) {
-      const {
-        revocationRegistryDefinition: registryDefinition,
-        revocationRegistryDefinitionPrivate: registryDefinitionPrivate,
-        registryIndex,
-      } = serializeArguments(options.revocationConfiguration)
+      const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate, revocationStatusList, registryIndex } =
+        serializeArguments(options.revocationConfiguration)
 
       revocationConfiguration = CredRevInfoStruct({
-        reg_def: registryDefinition,
-        reg_def_private: registryDefinitionPrivate,
+        reg_def: revocationRegistryDefinition,
+        reg_def_private: revocationRegistryDefinitionPrivate,
+        status_list: revocationStatusList,
         reg_idx: registryIndex,
       })
     }
@@ -200,8 +191,6 @@ export class NodeJSAnoncreds implements Anoncreds {
       attributeNames as unknown as Buffer,
       attributeRawValues as unknown as Buffer,
       attributeEncodedValues as unknown as Buffer,
-      revocationRegistryId,
-      options.revocationStatusList?.handle ?? 0,
       revocationConfiguration?.ref().address() ?? 0,
       credentialPtr
     )
