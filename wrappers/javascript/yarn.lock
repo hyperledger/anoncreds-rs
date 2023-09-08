@@ -2,22 +2,22 @@
 # yarn lockfile v1
 
 
-"@2060.io/ffi-napi@4.0.5":
-  version "4.0.5"
-  resolved "https://registry.yarnpkg.com/@2060.io/ffi-napi/-/ffi-napi-4.0.5.tgz#52fd369f25cba85319eb5625e2d598925a1713ce"
-  integrity sha512-CdV4y/gXYI7yzSiSHWvY/JdW06Li57Gdc3ZKzNesXrCQg4IoHL0S+zIxEr6Mbr0fCNVvj1GNSh8Uz9vSQkCXYA==
+"@2060.io/ffi-napi@4.0.8":
+  version "4.0.8"
+  resolved "https://registry.yarnpkg.com/@2060.io/ffi-napi/-/ffi-napi-4.0.8.tgz#ec3424d9ec979491b41b8d82514ae82a647da8b0"
+  integrity sha512-sONRKLtxFKN5PXuZaa41b/kTN+R5qAh6PAL15/fnafnvAKQ5WBoxRIy8xRh8jo9mydywtt4IrWtatB93w0+3cA==
   dependencies:
-    "@2060.io/ref-napi" "3.0.4"
+    "@2060.io/ref-napi" "^3.0.6"
     debug "^4.1.1"
     get-uv-event-loop-napi-h "^1.0.5"
     node-addon-api "^3.0.0"
     node-gyp-build "^4.2.1"
     ref-struct-di "^1.1.0"
 
-"@2060.io/ref-napi@3.0.4":
-  version "3.0.4"
-  resolved "https://registry.yarnpkg.com/@2060.io/ref-napi/-/ref-napi-3.0.4.tgz#6a78093b36e8f4ffeb750f706433869382e73eb1"
-  integrity sha512-Aqf699E+DKs2xANx8bSkuzXyG9gcZ2iFkAk1kUTA8KbV5BSPQtIcBJexzohSRi9QWDhP4X54NLm7xwGA0UNCdQ==
+"@2060.io/ref-napi@3.0.6", "@2060.io/ref-napi@^3.0.6":
+  version "3.0.6"
+  resolved "https://registry.yarnpkg.com/@2060.io/ref-napi/-/ref-napi-3.0.6.tgz#32b1a257cada096f95345fd7abae746385ecc5dd"
+  integrity sha512-8VAIXLdKL85E85jRYpPcZqATBL6fGnC/XjBGNeSgRSMJtrAMSmfRksqIq5AmuZkA2eeJXMWCiN6UQOUdozcymg==
   dependencies:
     debug "^4.1.1"
     get-symbol-from-current-process-h "^1.0.2"
@@ -2469,23 +2469,6 @@
   resolved "https://registry.yarnpkg.com/@tsconfig/node16/-/node16-1.0.4.tgz#0b92dcc0cc1c81f6f306a381f28e31b1a56536e9"
   integrity sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==
 
-"@types/2060.io__ffi-napi@npm:@types/ffi-napi":
-  version "4.0.5"
-  resolved "https://registry.yarnpkg.com/@types/ffi-napi/-/ffi-napi-4.0.5.tgz#0b2dc2d549361947a117d55156ff34fd9632c3df"
-  integrity sha512-WDPpCcHaPhHmP1FIw3ds/+OLt8bYQ/h3SO7o+8kH771PL21kHVzTwii7+WyMBXMQrBsR6xVU2y7w+h+9ggpaQw==
-  dependencies:
-    "@types/node" "*"
-    "@types/ref-napi" "*"
-    "@types/ref-struct-di" "*"
-
-"@types/2060.io__ref-napi@npm:@types/ref-napi":
-  name "@types/2060.io__ref-napi"
-  version "3.0.7"
-  resolved "https://registry.yarnpkg.com/@types/ref-napi/-/ref-napi-3.0.7.tgz#20adc93a7a2f9f992dfb17409fd748e6f4bf403d"
-  integrity sha512-CzPwr36VkezSpaJGdQX/UrczMSDsDgsWQQFEfQkS799Ft7n/s183a53lsql7RwVq+Ik4yLEgI84pRnLC0XXRlA==
-  dependencies:
-    "@types/node" "*"
-
 "@types/babel__core@^7.1.14":
   version "7.20.1"
   resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.20.1.tgz#916ecea274b0c776fec721e333e55762d3a9614b"
@@ -2647,20 +2630,12 @@
   dependencies:
     "@types/ref-napi" "*"
 
-"@types/ref-napi@*", "@types/ref-napi@3.0.7":
-  name "@types/ref-napi"
+"@types/ref-napi@*":
   version "3.0.7"
   resolved "https://registry.yarnpkg.com/@types/ref-napi/-/ref-napi-3.0.7.tgz#20adc93a7a2f9f992dfb17409fd748e6f4bf403d"
   integrity sha512-CzPwr36VkezSpaJGdQX/UrczMSDsDgsWQQFEfQkS799Ft7n/s183a53lsql7RwVq+Ik4yLEgI84pRnLC0XXRlA==
   dependencies:
     "@types/node" "*"
-
-"@types/ref-struct-di@*":
-  version "1.1.9"
-  resolved "https://registry.yarnpkg.com/@types/ref-struct-di/-/ref-struct-di-1.1.9.tgz#cdca2cefbb8a907ac9eb9d6a7f19cfae00bfa092"
-  integrity sha512-B1FsB1BhG1VLx0+IqBaAPXEPH0wCOb+Glaaw/i+nRUwDKFtSqWOziGnTRw05RyrBbrDsMiM0tVWmaujrs016Sw==
-  dependencies:
-    "@types/ref-napi" "*"
 
 "@types/ref-struct-di@1.1.6":
   version "1.1.6"
