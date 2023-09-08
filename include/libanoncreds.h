@@ -176,6 +176,7 @@ typedef struct FfiList_FfiStr FfiStrList;
 typedef struct FfiCredRevInfo {
   ObjectHandle reg_def;
   ObjectHandle reg_def_private;
+  ObjectHandle status_list;
   int64_t reg_idx;
 } FfiCredRevInfo;
 
@@ -263,8 +264,6 @@ ErrorCode anoncreds_create_credential(ObjectHandle cred_def,
                                       FfiStrList attr_names,
                                       FfiStrList attr_raw_values,
                                       FfiStrList attr_enc_values,
-                                      FfiStr rev_reg_id,
-                                      ObjectHandle rev_status_list,
                                       const struct FfiCredRevInfo *revocation,
                                       ObjectHandle *cred_p);
 

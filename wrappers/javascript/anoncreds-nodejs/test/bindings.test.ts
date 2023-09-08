@@ -292,11 +292,10 @@ describe('bindings', () => {
       credentialOffer,
       credentialRequest,
       attributeRawValues: { 'attr-1': 'test' },
-      revocationRegistryId: 'mock:uri',
-      revocationStatusList,
       revocationConfiguration: {
         revocationRegistryDefinition,
         revocationRegistryDefinitionPrivate,
+        revocationStatusList,
         registryIndex: 9,
       },
     })
@@ -428,11 +427,10 @@ describe('bindings', () => {
       credentialOffer,
       credentialRequest,
       attributeRawValues: { name: 'Alex', height: '175', age: '28', sex: 'male' },
-      revocationRegistryId: 'mock:uri',
-      revocationStatusList,
       revocationConfiguration: {
         revocationRegistryDefinition,
         revocationRegistryDefinitionPrivate,
+        revocationStatusList,
         registryIndex: 9,
       },
     })

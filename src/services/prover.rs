@@ -228,8 +228,6 @@ pub fn create_credential_request(
 ///                               &credential_offer,
 ///                               &credential_request,
 ///                               credential_values.into(),
-///                               None,
-///                               None,
 ///                               None
 ///                               ).expect("Unable to create credential");
 ///
@@ -340,8 +338,6 @@ pub fn process_credential(
 ///                               &credential_offer,
 ///                               &credential_request,
 ///                               credential_values.into(),
-///                               None,
-///                               None,
 ///                               None
 ///                               ).expect("Unable to create credential");
 ///

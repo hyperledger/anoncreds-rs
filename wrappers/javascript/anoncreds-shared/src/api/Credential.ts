@@ -1,6 +1,7 @@
 import type { ObjectHandle } from '../ObjectHandle'
 import type { JsonObject } from '../types'
 import type { CredentialRevocationConfig } from './CredentialRevocationConfig'
+import type { RevocationStatusList } from './RevocationStatusList'
 
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
@@ -11,7 +12,6 @@ import { CredentialOffer } from './CredentialOffer'
 import { CredentialRequest } from './CredentialRequest'
 import { CredentialRequestMetadata } from './CredentialRequestMetadata'
 import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
-import { RevocationStatusList } from './RevocationStatusList'
 import { pushToArray } from './utils'
 
 export type CreateCredentialOptions = {
@@ -59,13 +59,6 @@ export class Credential extends AnoncredsObject {
           ? options.credentialRequest.handle
           : pushToArray(CredentialRequest.fromJson(options.credentialRequest).handle, objectHandles)
 
-      const revocationStatusList =
-        options.revocationStatusList instanceof RevocationStatusList
-          ? options.revocationStatusList.handle
-          : options.revocationStatusList !== undefined
-          ? pushToArray(RevocationStatusList.fromJson(options.revocationStatusList).handle, objectHandles)
-          : undefined
-
       credential = anoncreds.createCredential({
         credentialDefinition,
         credentialDefinitionPrivate,
@@ -73,9 +66,7 @@ export class Credential extends AnoncredsObject {
         credentialRequest,
         attributeRawValues: options.attributeRawValues,
         attributeEncodedValues: options.attributeEncodedValues,
-        revocationRegistryId: options.revocationRegistryId,
         revocationConfiguration: options.revocationConfiguration?.native,
-        revocationStatusList,
       })
     } finally {
       objectHandles.forEach((handle) => handle.clear())

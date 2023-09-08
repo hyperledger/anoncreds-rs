@@ -7,7 +7,6 @@ use super::error::{catch_error, ErrorCode};
 use super::object::{AnoncredsObject, ObjectHandle};
 use super::util::FfiStrList;
 use crate::data_types::link_secret::LinkSecret;
-use crate::data_types::rev_reg::RevocationRegistryId;
 use crate::error::Result;
 use crate::services::{
     issuer::create_credential,
@@ -15,27 +14,49 @@ use crate::services::{
     types::{Credential, CredentialRevocationConfig, MakeCredentialValues},
     utils::encode_credential_attribute,
 };
+use crate::Error;
 
 #[derive(Debug)]
 #[repr(C)]
 pub struct FfiCredRevInfo {
     reg_def: ObjectHandle,
     reg_def_private: ObjectHandle,
+    status_list: ObjectHandle,
     reg_idx: i64,
 }
 
 struct RevocationConfig {
     reg_def: AnoncredsObject,
     reg_def_private: AnoncredsObject,
+    status_list: AnoncredsObject,
     reg_idx: u32,
 }
 
-impl RevocationConfig {
-    pub fn as_ref_config(&self) -> Result<CredentialRevocationConfig> {
+impl TryFrom<&FfiCredRevInfo> for RevocationConfig {
+    type Error = Error;
+
+    fn try_from(value: &FfiCredRevInfo) -> Result<Self> {
+        Ok(Self {
+            reg_def: value.reg_def.load()?,
+            reg_def_private: value.reg_def_private.load()?,
+            reg_idx: value
+                .reg_idx
+                .try_into()
+                .map_err(|_| err_msg!("Invalid revocation index"))?,
+            status_list: value.status_list.load()?,
+        })
+    }
+}
+
+impl<'a> TryFrom<&'a RevocationConfig> for CredentialRevocationConfig<'a> {
+    type Error = Error;
+
+    fn try_from(value: &'a RevocationConfig) -> Result<Self> {
         Ok(CredentialRevocationConfig {
-            reg_def: self.reg_def.cast_ref()?,
-            reg_def_private: self.reg_def_private.cast_ref()?,
-            registry_idx: self.reg_idx,
+            reg_def: value.reg_def.cast_ref()?,
+            reg_def_private: value.reg_def_private.cast_ref()?,
+            registry_idx: value.reg_idx,
+            status_list: value.status_list.cast_ref()?,
         })
     }
 }
@@ -49,8 +70,6 @@ pub extern "C" fn anoncreds_create_credential(
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
     attr_enc_values: FfiStrList,
-    rev_reg_id: FfiStr,
-    rev_status_list: ObjectHandle,
     revocation: *const FfiCredRevInfo,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {
@@ -64,10 +83,6 @@ pub extern "C" fn anoncreds_create_credential(
                 "Mismatch between length of attribute names and raw values"
             ));
         }
-        let rev_reg_id = rev_reg_id
-            .as_opt_str()
-            .map(RevocationRegistryId::new)
-            .transpose()?;
         let enc_values = attr_enc_values.as_slice();
         let mut cred_values = MakeCredentialValues::default();
         for (attr_idx, (name, raw)) in attr_names
@@ -99,14 +114,7 @@ pub extern "C" fn anoncreds_create_credential(
             None
         } else {
             let revocation = unsafe { &*revocation };
-            Some(RevocationConfig {
-                reg_def: revocation.reg_def.load()?,
-                reg_def_private: revocation.reg_def_private.load()?,
-                reg_idx: revocation
-                    .reg_idx
-                    .try_into()
-                    .map_err(|_| err_msg!("Invalid revocation index"))?,
-            })
+            Some(RevocationConfig::try_from(revocation)?)
         };
 
         let cred = create_credential(
@@ -115,15 +123,9 @@ pub extern "C" fn anoncreds_create_credential(
             cred_offer.load()?.cast_ref()?,
             cred_request.load()?.cast_ref()?,
             cred_values.into(),
-            rev_reg_id,
-            rev_status_list
-                .opt_load()?
-                .as_ref()
-                .map(AnoncredsObject::cast_ref)
-                .transpose()?,
             revocation_config
                 .as_ref()
-                .map(RevocationConfig::as_ref_config)
+                .map(TryInto::try_into)
                 .transpose()?,
         )?;
         let cred = ObjectHandle::create(cred)?;

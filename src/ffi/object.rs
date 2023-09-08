@@ -202,7 +202,6 @@ impl AnoncredsObjectList {
         Ok(Self(loaded))
     }
 
-    #[allow(unused)]
     pub fn refs<T>(&self) -> Result<Vec<&T>>
     where
         T: AnyAnoncredsObject + 'static,

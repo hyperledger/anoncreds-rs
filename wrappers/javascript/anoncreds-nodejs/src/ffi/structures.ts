@@ -50,6 +50,7 @@ export const I32ListStruct = CStruct({
 export const CredRevInfoStruct = CStruct({
   reg_def: FFI_OBJECT_HANDLE,
   reg_def_private: FFI_OBJECT_HANDLE,
+  status_list: FFI_OBJECT_HANDLE,
   reg_idx: FFI_INT64,
 })
 

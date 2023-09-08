@@ -397,6 +397,7 @@ class RevocationConfig(Structure):
     _fields_ = [
         ("rev_reg_def", ObjectHandle),
         ("rev_reg_def_private", ObjectHandle),
+        ("rev_status_list", ObjectHandle),
         ("rev_reg_index", c_int64),
     ]
 
@@ -405,14 +406,16 @@ class RevocationConfig(Structure):
         cls,
         rev_reg_def: AnoncredsObject,
         rev_reg_def_private: AnoncredsObject,
+        rev_status_list: AnoncredsObject,
         rev_reg_index: int,
     ) -> "RevocationConfig":
         config = RevocationConfig(
             rev_reg_def=rev_reg_def.handle,
             rev_reg_def_private=rev_reg_def_private.handle,
+            rev_status_list=rev_status_list.handle,
             rev_reg_index=rev_reg_index,
         )
-        keepalive(config, rev_reg_def, rev_reg_def_private)
+        keepalive(config, rev_reg_def, rev_reg_def_private, rev_status_list)
         return config
 
 
@@ -632,8 +635,6 @@ def create_credential(
     cred_request: ObjectHandle,
     attr_raw_values: Mapping[str, str],
     attr_enc_values: Optional[Mapping[str, str]],
-    rev_reg_id: Optional[str],
-    rev_status_list: Optional[ObjectHandle],
     revocation_config: Optional[RevocationConfig],
 ) -> ObjectHandle:
     cred = ObjectHandle()
@@ -656,9 +657,9 @@ def create_credential(
         names_list,
         raw_values_list,
         enc_values_list,
-        encode_str(rev_reg_id),
-        rev_status_list if rev_status_list else ObjectHandle(),
-        pointer(revocation_config) if revocation_config else POINTER(RevocationConfig)(),
+        pointer(revocation_config)
+        if revocation_config
+        else POINTER(RevocationConfig)(),
         byref(cred),
     )
     return cred
@@ -786,14 +787,16 @@ def verify_presentation(
     rev_reg_def_ids: Optional[Sequence[str]],
     rev_reg_defs: Optional[Sequence[ObjectHandle]],
     rev_status_lists: Optional[Sequence[ObjectHandle]],
-    nonrevoked_interval_overrides: Optional[Sequence[NonrevokedIntervalOverride]]
+    nonrevoked_interval_overrides: Optional[Sequence[NonrevokedIntervalOverride]],
 ) -> bool:
     verify = c_int8()
 
     nonrevoked_interval_overrides_list = NonrevokedIntervalOverrideList()
     if nonrevoked_interval_overrides:
         nonrevoked_interval_overrides_list.count = len(nonrevoked_interval_overrides)
-        nonrevoked_interval_overrides_list.data = (NonrevokedIntervalOverride * nonrevoked_interval_overrides.count)(*nonrevoked_interval_overrides)
+        nonrevoked_interval_overrides_list.data = (
+            NonrevokedIntervalOverride * nonrevoked_interval_overrides.count
+        )(*nonrevoked_interval_overrides)
 
     do_call(
         "anoncreds_verify_presentation",
@@ -899,7 +902,7 @@ def update_revocation_status_list_timestamp_only(
         "anoncreds_update_revocation_status_list_timestamp_only",
         c_int64(timestamp),
         rev_current_list.handle,
-        byref(new_revocation_status_list)
+        byref(new_revocation_status_list),
     )
 
     return new_revocation_status_list

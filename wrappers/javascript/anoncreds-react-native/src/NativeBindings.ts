@@ -59,12 +59,11 @@ export interface NativeBindings {
     attributeNames: string[]
     attributeRawValues: string[]
     attributeEncodedValues?: string[]
-    revocationRegistryId?: string
-    revocationStatusList?: number
     revocationConfiguration?: {
       registryIndex: number
       revocationRegistryDefinition: number
       revocationRegistryDefinitionPrivate: number
+      revocationStatusList?: number
     }
   }): ReturnObject<Handle>
   encodeCredentialAttributes(options: { attributeRawValues: Array<string> }): ReturnObject<string>
