@@ -9,7 +9,7 @@
 | Name             | Github           | LFID             |
 | ---------------- | ---------------- | ---------------- |
 | Andrew Whitehead | andrewwhitehead  | cywolf           |
-| Berend Sliedrecht| blu3beri         | beri14           |
+| Berend Sliedrecht| berendsliedrecht | beri14           |
 | Darko Kulic      | dkulic           | dkulic           |
 | Stephen Curran   | swcurran         | swcurran         |
 | Timo Glastra     | TimoGlastra      | TimoGlastra      |
