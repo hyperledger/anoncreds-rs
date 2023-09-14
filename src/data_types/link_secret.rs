@@ -84,6 +84,18 @@ mod link_secret_tests {
     use super::*;
 
     #[test]
+    fn should_serialize_and_deserialize_into_the_same_value() {
+        let link_secret = LinkSecret::new().expect("Error creating link secret");
+        let link_secret_srt: String = link_secret.try_into().expect("Error creating link secret");
+        println!("{}", link_secret_srt);
+        let link_secret2 =
+            LinkSecret::try_from(link_secret_srt.as_str()).expect("Error creating link secret");
+        let link_secret_srt2: String = link_secret2.try_into().expect("Error creating link secret");
+        // println!("{}", link_secret_srt2);
+        assert_eq!(link_secret_srt, link_secret_srt2);
+    }
+
+    #[test]
     fn should_create_new_link_secret() {
         let link_secret = LinkSecret::new();
         assert!(link_secret.is_ok());
