@@ -36,11 +36,11 @@ enum RegistryType {
 
 interface LinkSecret {
     constructor();
-    [Throws=AnoncredsError, Name=new_from_json]
-    constructor(string json_string);
+    [Throws=AnoncredsError, Name=new_from_value]
+    constructor(string value_string);
     string get_big_number();
     [Throws=AnoncredsError]
-    string get_json();
+    string get_value();
 };
 
 interface Nonce {
