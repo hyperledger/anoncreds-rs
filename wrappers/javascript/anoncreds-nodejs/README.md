@@ -4,8 +4,7 @@ Wrapper for Nodejs around anoncreds-rs
 
 ## Requirements
 
-This has been tested extensively with Nodejs version `16.11.0` and `16.15.0`.
-Older and newer versions might also work, but they have not been tested.
+This library requires (and has been tested extensively with) Node.js version 18.x. Newer versions might also work, but they have not been tested.
 
 ## Installation
 
