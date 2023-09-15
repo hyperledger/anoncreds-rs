@@ -20,8 +20,9 @@ crate-type = ["staticlib", "rlib", "cdylib"]
 
 [features]
 default = ["ffi", "logger", "zeroize"]
-ffi = ["ffi-support"]
-logger = ["env_logger"]
+ffi = ["dep:ffi-support"]
+zeroize = ["dep:zeroize"]
+logger = ["dep:env_logger"]
 vendored = ["anoncreds-clsignatures/openssl_vendored"]
 
 [dependencies]

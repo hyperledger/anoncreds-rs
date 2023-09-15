@@ -9,10 +9,10 @@ use super::util::FfiStrList;
 use crate::data_types::link_secret::LinkSecret;
 use crate::error::Result;
 use crate::services::{
+    helpers::encode_credential_attribute,
     issuer::create_credential,
     prover::process_credential,
     types::{Credential, CredentialRevocationConfig, MakeCredentialValues},
-    utils::encode_credential_attribute,
 };
 use crate::Error;
 

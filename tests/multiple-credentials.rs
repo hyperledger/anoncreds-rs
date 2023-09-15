@@ -191,7 +191,9 @@ fn test_requests_generate<'a>() -> Vec<ReqInput<'a>> {
 
 #[test]
 fn anoncreds_with_multiple_credentials_per_request() {
+    #[cfg(feature = "logger")]
     env_logger::init();
+
     let mut mock = utils::Mock::new(&[ISSUER_ID], &[PROVER_ID], TF_PATH, MAX_CRED_NUM);
 
     let issuer1_creds = create_issuer_data();
