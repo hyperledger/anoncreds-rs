@@ -1,8 +1,8 @@
-name: 'Anoncreds'
+name: "Anoncreds"
 
 env:
-  RUST_VERSION: '1.65.0'
-  CROSS_VERSION: '0.2.4'
+  RUST_VERSION: "1.65.0"
+  CROSS_VERSION: "0.2.4"
 
 on:
   release:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       publish-binaries:
-        description: 'Publish Binaries to Release (will create a release if no release exits for branch or tag)'
+        description: "Publish Binaries to Release (will create a release if no release exits for branch or tag)"
         required: true
         default: false
         type: boolean
@@ -104,7 +104,7 @@ jobs:
           command: c
           cwd: release-artifacts
           files: .
-          outPath: 'library-${{ matrix.architecture }}.tar.gz'
+          outPath: "library-${{ matrix.architecture }}.tar.gz"
 
       - name: Add library artifacts to release
         if: |
@@ -113,4 +113,4 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           file: library-${{ matrix.architecture }}.tar.gz
-          asset_name: 'library-${{ matrix.architecture }}.tar.gz'
+          asset_name: "library-${{ matrix.architecture }}-${{ github.sha }}.tar.gz"
