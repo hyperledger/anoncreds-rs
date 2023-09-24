@@ -1,0 +1,58 @@
+{
+  "name": "@hyperledger/anoncreds-react-native",
+  "version": "0.2.0-dev.1",
+  "license": "Apache-2.0",
+  "description": "React Native wrapper for Anoncreds",
+  "main": "build/index",
+  "source": "src/index",
+  "homepage": "https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/javascript/anoncreds-react-native",
+  "author": "Hyperledger (https://github.com/hyperledger)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hyperledger/anoncreds-rs",
+    "directory": "wrappers/javascript/anoncreds-react-native"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "build",
+    "android/src",
+    "android/build.gradle",
+    "android/CMakeLists.txt",
+    "android/cpp-adapter.cpp",
+    "ios/**/*.h",
+    "ios/**/*.mm",
+    "ios/Anoncreds.xcodeproj/project.pbxproj",
+    "cpp/**/*.cpp",
+    "cpp/**/*.h",
+    "anoncreds.podspec"
+  ],
+  "scripts": {
+    "check-types": "pnpm compile --noEmit",
+    "build": "pnpm clean && pnpm compile",
+    "clean": "rimraf -rf ./build",
+    "compile": "tsc",
+    "install": "node-pre-gyp install"
+  },
+  "dependencies": {
+    "@hyperledger/anoncreds-shared": "workspace:*",
+    "@mapbox/node-pre-gyp": "^1.0.10"
+  },
+  "devDependencies": {
+    "react": "18.2.0",
+    "react-native": "0.72.4",
+    "typescript": "~5.2.2"
+  },
+  "peerDependencies": {
+    "react": ">= 16",
+    "react-native": ">= 0.66.0"
+  },
+  "binary": {
+    "module_name": "anoncreds",
+    "module_path": "native",
+    "remote_path": "v0.2.0-dev.1",
+    "host": "https://github.com/hyperledger/anoncreds-rs/releases/download/",
+    "package_name": "library-ios-android.tar.gz"
+  }
+}

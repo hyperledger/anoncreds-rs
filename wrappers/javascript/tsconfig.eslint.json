@@ -1,14 +1,12 @@
 {
-  "extends": "./tsconfig.build.json",
+  "extends": "./tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "noEmit": true,
     "paths": {
-      "@hyperledger/anoncreds-shared": ["anoncreds-shared/src"],
-      "@hyperledger/anoncreds-react-native": ["anoncreds-react-native/src"],
-      "@hyperledger/anoncreds-nodejs": ["anoncreds-nodejs/src"]
-    },
-    "types": ["node"]
+      "@hyperledger/*": ["packages/*/src"]
+    }
   },
-  "include": [".eslintrc.js", "jest.config.ts", "jest.config.base.ts"],
-  "exclude": ["node_modules", "**/build/**", "build"]
+  "include": [".eslintrc.js", "packages", "jest.config.ts"],
+  "exclude": ["node_modules", "build"]
 }

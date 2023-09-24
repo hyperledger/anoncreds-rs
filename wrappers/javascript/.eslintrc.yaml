@@ -1,0 +1,71 @@
+root: true
+
+parser: '@typescript-eslint/parser'
+
+plugins:
+  - '@typescript-eslint'
+  - prettier
+  - import
+
+parserOptions:
+  tsconfigRootDir: .
+  project:
+    - './tsconfig.eslint.json'
+    - './packages/**/tsconfig.json'
+
+extends:
+  - eslint:recommended
+  - plugin:@typescript-eslint/strict
+  - plugin:@typescript-eslint/stylistic
+  - plugin:prettier/recommended
+
+ignorePatterns:
+  - '**/build/**'
+  - '**/node_modules/**'
+
+rules:
+  '@typescript-eslint/consistent-type-definitions': off
+  '@typescript-eslint/no-extraneous-class': off
+  '@typescript-eslint/no-use-before-define':
+    - error
+    - functions: false
+      classes: false
+      variables: true
+  '@typescript-eslint/explicit-member-accessibility': error
+  no-console: error
+  '@typescript-eslint/consistent-type-imports': error
+  import/newline-after-import:
+    - error
+    - count: 1
+  import/order:
+    - error
+    - groups:
+        - type
+        - - builtin
+          - external
+        - parent
+        - sibling
+        - index
+      alphabetize:
+        order: asc
+      newlines-between: always
+  '@typescript-eslint/no-non-null-assertion': error
+  import/no-extraneous-dependencies:
+    - error
+    - devDependencies: false
+
+overrides:
+  - files: '**/tests/**'
+    env:
+      jest: true
+      node: true
+
+  - files:
+      - '**/scripts/**'
+      - '**/*.config.js'
+    env:
+      node: true
+    rules:
+      no-undef: off
+      no-console: off
+      '@typescript-eslint/no-var-requires': off

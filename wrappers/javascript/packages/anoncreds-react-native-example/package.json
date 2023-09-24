@@ -1,0 +1,25 @@
+{
+  "name": "anoncreds-react-native-example",
+  "version": "1.0.0",
+  "main": "./src/index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "prebuild": "expo prebuild"
+  },
+  "dependencies": {
+    "@hyperledger/anoncreds-react-native": "workspace:*",
+    "expo": "~49.0.10",
+    "expo-status-bar": "~1.6.0",
+    "react": "18.2.0",
+    "react-native": "0.72.4",
+    "expo-splash-screen": "~0.20.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@babel/runtime": "^7.22.15",
+    "@types/react": "~18.2.14"
+  },
+  "private": true
+}

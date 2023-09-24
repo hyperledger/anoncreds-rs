@@ -1,11 +1,20 @@
-import type { Config } from '@jest/types'
+import type { JestConfigWithTsJest } from 'ts-jest'
 
-import base from './jest.config.base'
-
-const config: Config.InitialOptions = {
-  ...base,
-  roots: ['<rootDir>'],
-  projects: ['<rootDir>/anoncreds-nodejs', '<rootDir>/anoncreds-shared', '<rootDir>/anoncreds-react-native'],
+const config: JestConfigWithTsJest = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  transform: {
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        tsconfig: 'tsconfig.test.json',
+        isolatedModules: true
+      }
+    ]
+  },
+  moduleNameMapper: {
+    '@hyperledger/anoncreds-shared': '<rootDir>/packages/anoncreds-shared/src'
+  }
 }
 
-export default config
+module.exports = config
