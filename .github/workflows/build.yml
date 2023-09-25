@@ -209,31 +209,35 @@ jobs:
         with:
           node-version: 18.x
 
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
       - name: Fetch library artifacts
         uses: actions/download-artifact@v3
         with:
           name: library-linux-x86_64
 
       - name: Install dependencies
-        run: yarn install
+        run: pnpm install
 
       - name: Build JavaScript Wrapper
-        run: yarn build
+        run: pnpm build
 
       - name: Lint JavaScript Wrapper
-        run: yarn lint
+        run: pnpm lint
 
       - name: Format Check JavaScript Wrapper
-        run: yarn check-format
+        run: pnpm check-format
 
       - name: Type Check JavaScript Wrapper
-        run: yarn check-types
+        run: pnpm check-types
 
       - name: Test JavaScript Wrapper
         env:
           # binary is downloaded to root of repository
           LIB_ANONCREDS_PATH: ../../
-        run: yarn test
+        run: pnpm test
 
       - name: Set NPM config
         if: |
