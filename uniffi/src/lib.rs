@@ -31,4 +31,4 @@ pub use issuer::*;
 
 // fn x() -> AttributeValues
 
-uniffi_macros::include_scaffolding!("anoncreds");
+uniffi::include_scaffolding!("anoncreds");
