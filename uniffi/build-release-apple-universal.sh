@@ -62,13 +62,13 @@ dir="./target/universal/libanoncreds.xcframework"
 
 # Compress and copy XCFramework
 target_dir_name="libanoncreds.xcframework"
-source_dir="./target/universal/"
+source_dir="./target/universal"
 dest_dir="./output-frameworks/anoncreds-swift"
 zip_name="libanoncreds.xcframework.zip"
 
 echo "Zip xcframework"
 rm -f "$dest_dir/$zip_name" || true
-zip -r "$dest_dir/$zip_name" "$source_dir/$target_dir_name"
+(cd $source_dir && zip -r "../../$dest_dir/$zip_name" $target_dir_name)
 
 echo "Copy .swift binders"
 rm -f "./output-frameworks/anoncreds-swift/AnoncredsSwift/Sources/Swift/anoncreds.swift" || true
