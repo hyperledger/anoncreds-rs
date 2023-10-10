@@ -26,20 +26,29 @@ jobs:
             os: ubuntu-20.04
             target: aarch64-unknown-linux-gnu
             lib: libanoncreds_uniffi.so
+            libPath: uniffi/target/aarch64-unknown-linux-gnu/release/libanoncreds_uniffi.so
             use_cross: true
           - architecture: linux-x86_64
             os: ubuntu-20.04
             target: x86_64-unknown-linux-gnu
             lib: libanoncreds_uniffi.so
+            libPath: uniffi/target/x86_64-unknown-linux-gnu/release/libanoncreds_uniffi.so
             use_cross: true
           - architecture: darwin-x86_64
             os: macos-latest
             target: x86_64-apple-darwin
             lib: libanoncreds_uniffi.dylib
+            libPath: uniffi/target/x86_64-apple-darwin/release/libanoncreds_uniffi.dylib
           - architecture: darwin-aarch64
             os: macos-latest
             target: aarch64-apple-darwin
             lib: libanoncreds_uniffi.dylib
+            libPath: uniffi/target/aarch64-apple-darwin/release/libanoncreds_uniffi.dylib
+          - architecture: swift-package-universal
+            os: macos-latest
+            target: swift-package-universal
+            lib: libanoncreds.xcframework.zip
+            libPath: uniffi/output-frameworks/anoncreds-swift/libanoncreds.xcframework.zip
 
     runs-on: ${{ matrix.os }}
 
@@ -48,7 +57,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install Rust toolchain
-        if: "matrix.target != 'darwin-universal'"
+        if: "matrix.target != 'swift-package-universal'"
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
@@ -75,7 +84,7 @@ jobs:
         if: "runner.os == 'macOS'"
         run: |
           cd uniffi
-          if [ "${{ matrix.architecture }}" == "darwin-universal" ]; then
+          if [ "${{ matrix.architecture }}" == "swift-package-universal" ]; then
             ./build-release-apple-universal.sh
           else 
             cargo build --release --target ${{matrix.target}}
@@ -84,8 +93,8 @@ jobs:
       - name: Upload library artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: library-${{ matrix.architecture }}
-          path: uniffi/target/${{ matrix.target }}/release/${{ matrix.lib }}
+          name: ${{ matrix.lib }}
+          path: ${{ matrix.libPath }}
 
       - name: Create library artifacts directory
         if: |
@@ -93,13 +102,14 @@ jobs:
           (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true')
         run: |
           mkdir release-artifacts
-          cp uniffi/target/${{ matrix.target }}/release/${{ matrix.lib }} release-artifacts/
+          cp ${{ matrix.libPath }} release-artifacts/
 
       - name: Release artifacts
         uses: a7ul/tar-action@v1.1.2
         if: |
+          (${{ matrix.architecture }} != 'swift-package-universal' &&
           github.event_name == 'release' ||
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true')
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true'))
         with:
           command: c
           cwd: release-artifacts
@@ -108,9 +118,20 @@ jobs:
 
       - name: Add library artifacts to release
         if: |
+          (${{ matrix.architecture }} != 'swift-package-universal' &&
           github.event_name == 'release' ||
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true')
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true'))
         uses: svenstaro/upload-release-action@v2
         with:
           file: library-${{ matrix.architecture }}.tar.gz
           asset_name: "library-${{ matrix.architecture }}-${{ github.sha }}.tar.gz"
+          
+      - name: Add swift package artifacts to release
+        if: |
+          (${{ matrix.architecture }} == 'swift-package-universal' &&
+          github.event_name == 'release' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true'))
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: ${{ matrix.lib }}
+          asset_name: "${{ matrix.lib }}"
