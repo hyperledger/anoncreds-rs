@@ -25,7 +25,7 @@ mkdir -p ./target/universal-darwin/release || true
 
 # Generate Uniffi bindings
 echo "Creating uniffi bindings"
-uniffi-bindgen generate src/anoncreds.udl --language swift -o ./wrappers/swift/anoncreds
+cargo run --bin uniffi-bindgen generate src/anoncreds.udl --language swift -o ./wrappers/swift/anoncreds
 
 # Build targets
 echo "Build all targets"

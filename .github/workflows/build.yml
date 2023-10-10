@@ -1,7 +1,7 @@
 name: "Anoncreds"
 
 env:
-  RUST_VERSION: "1.65.0"
+  RUST_VERSION: "1.73.0"
   CROSS_VERSION: "0.2.4"
 
 on:
@@ -107,8 +107,8 @@ jobs:
       - name: Release artifacts
         uses: a7ul/tar-action@v1.1.2
         if: |
-          (${{ matrix.architecture }} != 'swift-package-universal' &&
-          github.event_name == 'release' ||
+          matrix.architecture != 'swift-package-universal' &&
+          (github.event_name == 'release' ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true'))
         with:
           command: c
@@ -118,8 +118,8 @@ jobs:
 
       - name: Add library artifacts to release
         if: |
-          (${{ matrix.architecture }} != 'swift-package-universal' &&
-          github.event_name == 'release' ||
+          matrix.architecture != 'swift-package-universal' &&
+          (github.event_name == 'release' ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true'))
         uses: svenstaro/upload-release-action@v2
         with:
@@ -128,10 +128,10 @@ jobs:
           
       - name: Add swift package artifacts to release
         if: |
-          (${{ matrix.architecture }} == 'swift-package-universal' &&
-          github.event_name == 'release' ||
+          matrix.architecture == 'swift-package-universal' &&
+          (github.event_name == 'release' ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-binaries == 'true'))
         uses: svenstaro/upload-release-action@v2
         with:
-          file: ${{ matrix.lib }}
+          file: ${{ matrix.libPath }}
           asset_name: "${{ matrix.lib }}"
