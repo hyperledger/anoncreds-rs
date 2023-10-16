@@ -10,9 +10,6 @@ use anoncreds_core::data_types::cred_def::{
 };
 use std::convert::TryFrom;
 use std::convert::TryInto;
-use serde::{Deserialize, Serialize};
-use serde_json::Result as SerdeResult;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct CredentialDefinitionData {

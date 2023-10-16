@@ -24,6 +24,8 @@ enum AnoncredsError {
   "CreateCredentialOffer",
   "CreateCredential",
   "ProcessCredential",
+  "CreatePresentationError",
+  "ProcessCredentialError",
 };
 
 enum SignatureType {
@@ -296,15 +298,65 @@ interface Prover {
   );
 
   [Throws=AnoncredsError]
-   void process_credential(
-        Credential credential,
-        CredentialRequestMetadata cred_request_metadata,
-        LinkSecret link_secret,
-        CredentialDefinition cred_def,
-        RevocationRegistryDefinition? rev_reg_def
-   );
+  void process_credential(
+    Credential credential,
+    CredentialRequestMetadata cred_request_metadata,
+    LinkSecret link_secret,
+    CredentialDefinition cred_def,
+    RevocationRegistryDefinition? rev_reg_def
+  );
+
+  [Throws=AnoncredsError]
+  Presentation create_presentation(
+    PresentationRequest presentation_request,
+    sequence<CredentialRequests> credentials,
+    record<string, string>? self_attested,
+    LinkSecret link_secret,
+    record<SchemaId, Schema> schemas,
+    record<CredentialDefinitionId, CredentialDefinition> credential_definitions
+  );
 
   LinkSecret create_link_secret();
+};
+
+dictionary RequestedAttribute {
+    string referent;
+    boolean revealed;
+};
+dictionary RequestedPredicate {
+    string referent;
+};
+dictionary CredentialRequests {
+    Credential credential;
+    sequence<RequestedAttribute> requested_attribute;
+    sequence<RequestedPredicate> requested_predicate;
+};
+
+interface Presentation {
+  [Throws=AnoncredsError]
+  constructor(string json_string);
+  [Throws=AnoncredsError]
+  string get_json();
+};
+
+interface PresentationRequest {
+  [Throws=AnoncredsError]
+  constructor(string json_string);
+  [Throws=AnoncredsError]
+  string get_json();
+};
+
+interface Verifier {
+  constructor();
+
+  [Throws=AnoncredsError]
+  boolean verify_presentation(
+    Presentation presentation,
+    PresentationRequest presentation_request,
+    record<SchemaId, Schema> schemas,
+    record<CredentialDefinitionId, CredentialDefinition> credential_definitions
+  );
+
 };
 
 namespace anoncreds {};

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub enum AnoncredsError {
     #[error("Conversion Error")]
     ConversionError,
-    #[error("Something went wrong")] 
+    #[error("Something went wrong")]
     SomethingWentWrong,
     #[error("Create Credential Error: {0}")]
     CreateCrentialRequestError(String),
@@ -24,4 +24,9 @@ pub enum AnoncredsError {
     CreateCredential(String),
     #[error("Process Credential: {0}")]
     ProcessCredential(String),
+
+    #[error("Create Presentation: {0}")]
+    CreatePresentationError(String),
+    #[error("Verify Presentation: {0}")]
+    ProcessCredentialError(String),
 }

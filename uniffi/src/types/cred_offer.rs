@@ -1,15 +1,9 @@
 use crate::types::error::AnoncredsError;
 use crate::types::nonce::Nonce;
 use anoncreds_core::data_types::schema::SchemaId;
-use anoncreds_core::data_types::cred_def::{
-    CredentialDefinitionId,
-    SignatureType
-};
-use anoncreds_core::data_types::cred_offer::{CredentialOffer as AnoncredsCredentialOffer};
+use anoncreds_core::data_types::cred_def::CredentialDefinitionId;
+use anoncreds_core::data_types::cred_offer::CredentialOffer as AnoncredsCredentialOffer;
 use std::convert::TryFrom;
-use std::convert::TryInto;
-use serde::{Deserialize, Serialize};
-use serde_json::Result as SerdeResult;
 use std::sync::Arc;
 
 pub struct CredentialOffer {
@@ -17,8 +11,8 @@ pub struct CredentialOffer {
 }
 
 impl CredentialOffer {
-    pub fn new(jsonString: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsCredentialOffer = serde_json::from_str(&jsonString).map_err(|_| AnoncredsError::ConversionError)?;
+    pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
+        let core_def: AnoncredsCredentialOffer = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
         return Ok(CredentialOffer { core: core_def })
     }
 

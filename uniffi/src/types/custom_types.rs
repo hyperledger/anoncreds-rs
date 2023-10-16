@@ -1,4 +1,3 @@
-use crate::types::error::AnoncredsError;
 use anoncreds_core::data_types::schema::SchemaId;
 use anoncreds_core::data_types::issuer_id::IssuerId;
 use anoncreds_core::data_types::rev_reg::RevocationRegistryId;
@@ -10,11 +9,7 @@ use anoncreds_core::types::{
 };
 use anoncreds_core::data_types::credential::CredentialValues as AnoncredsCredentialValues;
 use crate::UniffiCustomTypeConverter;
-use std::convert::TryFrom;
-use std::convert::TryInto;
 use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use serde_json::Result as SerdeResult;
 
 /// Make sure [AttributeNames] implements [UniffiCustomTypeConverter] so that UniFFI can use it as
 /// it is a Tuple Struct in Rust

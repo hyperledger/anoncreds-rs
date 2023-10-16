@@ -1,7 +1,7 @@
 use crate::types::error::AnoncredsError;
 use crate::types::cred_def::{CredentialDefinition, CredentialDefinitionPrivate, CredentialKeyCorrectnessProof};
-use crate::types::cred_offer::{CredentialOffer};
-use crate::types::credential::{Credential};
+use crate::types::cred_offer::CredentialOffer;
+use crate::types::credential::Credential;
 use crate::CredentialRequest;
 use crate::types::rev_status_list::RevocationStatusList;
 use crate::types::rev_reg_def::{RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate};
