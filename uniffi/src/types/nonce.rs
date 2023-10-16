@@ -1,8 +1,6 @@
 use crate::types::error::AnoncredsError;
 use anoncreds_core::data_types::nonce::Nonce as AnoncredsNonce;
 use std::convert::TryFrom;
-use std::convert::TryInto;
-use std::sync::Arc;
 
 pub struct Nonce {
     pub anoncreds_nonce: AnoncredsNonce,

@@ -8,3 +8,4 @@ pub mod cred_req;
 pub mod rev_reg_def;
 pub mod credential;
 pub mod rev_status_list;
+pub mod presentation;

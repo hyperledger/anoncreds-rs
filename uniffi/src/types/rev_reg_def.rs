@@ -1,5 +1,4 @@
 use crate::types::error::AnoncredsError;
-use anoncreds_core::data_types::schema::SchemaId;
 use anoncreds_core::data_types::issuer_id::IssuerId;
 use anoncreds_core::data_types::cred_def::CredentialDefinitionId;
 use anoncreds_core::data_types::rev_reg_def::{
@@ -10,9 +9,6 @@ use anoncreds_core::data_types::rev_reg_def::{
     RegistryType
 };
 use std::convert::TryFrom;
-use std::convert::TryInto;
-use serde::{Deserialize, Serialize};
-use serde_json::Result as SerdeResult;
 use std::sync::Arc;
 
 /// Wrapper for [RevocationRegistryDefinition]
@@ -21,8 +17,8 @@ pub struct RevocationRegistryDefinition {
 }
 
 impl RevocationRegistryDefinition {
-    pub fn new(jsonString: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsRevocationRegistryDefinition = serde_json::from_str(&jsonString).map_err(|_| AnoncredsError::ConversionError)?;
+    pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
+        let core_def: AnoncredsRevocationRegistryDefinition = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
         return Ok(RevocationRegistryDefinition { core: core_def })
     }
 
@@ -71,8 +67,8 @@ pub struct RevocationRegistryDefinitionPrivate {
 }
 
 impl RevocationRegistryDefinitionPrivate {
-    pub fn new(jsonString: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsRevocationRegistryDefinitionPrivate = serde_json::from_str(&jsonString).map_err(|_| AnoncredsError::ConversionError)?;
+    pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
+        let core_def: AnoncredsRevocationRegistryDefinitionPrivate = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
         return Ok(RevocationRegistryDefinitionPrivate { core: core_def })
     }
     
@@ -101,8 +97,8 @@ pub struct RevocationRegistryDefinitionValue {
 }
 
 impl RevocationRegistryDefinitionValue {
-    pub fn new(jsonString: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsRevocationRegistryDefinitionValue = serde_json::from_str(&jsonString).map_err(|_| AnoncredsError::ConversionError)?;
+    pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
+        let core_def: AnoncredsRevocationRegistryDefinitionValue = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
         return Ok(RevocationRegistryDefinitionValue { core: core_def })
     }
 
@@ -143,8 +139,8 @@ pub struct RevocationRegistryDefinitionValuePublicKeys {
 }
 
 impl RevocationRegistryDefinitionValuePublicKeys {
-    pub fn new(jsonString: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsRevocationRegistryDefinitionValuePublicKeys = serde_json::from_str(&jsonString).map_err(|_| AnoncredsError::ConversionError)?;
+    pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
+        let core_def: AnoncredsRevocationRegistryDefinitionValuePublicKeys = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
         return Ok(RevocationRegistryDefinitionValuePublicKeys { core: core_def })
     }
 

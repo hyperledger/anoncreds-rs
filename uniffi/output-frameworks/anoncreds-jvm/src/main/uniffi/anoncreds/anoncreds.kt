@@ -18,12 +18,15 @@ package uniffi.anoncreds;
 // helpers directly inline like we're doing here.
 
 import com.sun.jna.Library
+import com.sun.jna.IntegerType
 import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.Structure
-import com.sun.jna.ptr.ByReference
+import com.sun.jna.Callback
+import com.sun.jna.ptr.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
@@ -37,12 +40,12 @@ open class RustBuffer : Structure() {
     @JvmField var len: Int = 0
     @JvmField var data: Pointer? = null
 
-    class ByValue : RustBuffer(), Structure.ByValue
-    class ByReference : RustBuffer(), Structure.ByReference
+    class ByValue: RustBuffer(), Structure.ByValue
+    class ByReference: RustBuffer(), Structure.ByReference
 
     companion object {
         internal fun alloc(size: Int = 0) = rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_rustbuffer_alloc(size, status).also {
+            _UniFFILib.INSTANCE.ffi_anoncreds_rustbuffer_alloc(size, status).also {
                 if(it.data == null) {
                    throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")
                }
@@ -50,7 +53,7 @@ open class RustBuffer : Structure() {
         }
 
         internal fun free(buf: RustBuffer.ByValue) = rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_rustbuffer_free(buf, status)
+            _UniFFILib.INSTANCE.ffi_anoncreds_rustbuffer_free(buf, status)
         }
     }
 
@@ -77,6 +80,19 @@ class RustBufferByReference : ByReference(16) {
         pointer.setInt(0, value.capacity)
         pointer.setInt(4, value.len)
         pointer.setPointer(8, value.data)
+    }
+
+    /**
+     * Get a `RustBuffer.ByValue` from this reference.
+     */
+    fun getValue(): RustBuffer.ByValue {
+        val pointer = getPointer()
+        val value = RustBuffer.ByValue()
+        value.writeField("capacity", pointer.getInt(0))
+        value.writeField("len", pointer.getInt(4))
+        value.writeField("data", pointer.getPointer(8))
+
+        return value
     }
 }
 
@@ -169,19 +185,21 @@ public interface FfiConverterRustBuffer<KotlinType>: FfiConverter<KotlinType, Ru
 // Error runtime.
 @Structure.FieldOrder("code", "error_buf")
 internal open class RustCallStatus : Structure() {
-    @JvmField var code: Int = 0
+    @JvmField var code: Byte = 0
     @JvmField var error_buf: RustBuffer.ByValue = RustBuffer.ByValue()
 
+    class ByValue: RustCallStatus(), Structure.ByValue
+
     fun isSuccess(): Boolean {
-        return code == 0
+        return code == 0.toByte()
     }
 
     fun isError(): Boolean {
-        return code == 1
+        return code == 1.toByte()
     }
 
     fun isPanic(): Boolean {
-        return code == 2
+        return code == 2.toByte()
     }
 }
 
@@ -200,8 +218,14 @@ interface CallStatusErrorHandler<E> {
 private inline fun <U, E: Exception> rustCallWithError(errorHandler: CallStatusErrorHandler<E>, callback: (RustCallStatus) -> U): U {
     var status = RustCallStatus();
     val return_value = callback(status)
+    checkCallStatus(errorHandler, status)
+    return return_value
+}
+
+// Check RustCallStatus and throw an error if the call wasn't successful
+private fun<E: Exception> checkCallStatus(errorHandler: CallStatusErrorHandler<E>, status: RustCallStatus) {
     if (status.isSuccess()) {
-        return return_value
+        return
     } else if (status.isError()) {
         throw errorHandler.lift(status.error_buf)
     } else if (status.isPanic()) {
@@ -231,6 +255,86 @@ private inline fun <U> rustCall(callback: (RustCallStatus) -> U): U {
     return rustCallWithError(NullCallStatusErrorHandler, callback);
 }
 
+// IntegerType that matches Rust's `usize` / C's `size_t`
+public class USize(value: Long = 0) : IntegerType(Native.SIZE_T_SIZE, value, true) {
+    // This is needed to fill in the gaps of IntegerType's implementation of Number for Kotlin.
+    override fun toByte() = toInt().toByte()
+    override fun toChar() = toInt().toChar()
+    override fun toShort() = toInt().toShort()
+
+    fun writeToBuffer(buf: ByteBuffer) {
+        // Make sure we always write usize integers using native byte-order, since they may be
+        // casted to pointer values
+        buf.order(ByteOrder.nativeOrder())
+        try {
+            when (Native.SIZE_T_SIZE) {
+                4 -> buf.putInt(toInt())
+                8 -> buf.putLong(toLong())
+                else -> throw RuntimeException("Invalid SIZE_T_SIZE: ${Native.SIZE_T_SIZE}")
+            }
+        } finally {
+            buf.order(ByteOrder.BIG_ENDIAN)
+        }
+    }
+
+    companion object {
+        val size: Int
+            get() = Native.SIZE_T_SIZE
+
+        fun readFromBuffer(buf: ByteBuffer) : USize {
+            // Make sure we always read usize integers using native byte-order, since they may be
+            // casted from pointer values
+            buf.order(ByteOrder.nativeOrder())
+            try {
+                return when (Native.SIZE_T_SIZE) {
+                    4 -> USize(buf.getInt().toLong())
+                    8 -> USize(buf.getLong())
+                    else -> throw RuntimeException("Invalid SIZE_T_SIZE: ${Native.SIZE_T_SIZE}")
+                }
+            } finally {
+                buf.order(ByteOrder.BIG_ENDIAN)
+            }
+        }
+    }
+}
+
+
+// Map handles to objects
+//
+// This is used when the Rust code expects an opaque pointer to represent some foreign object.
+// Normally we would pass a pointer to the object, but JNA doesn't support getting a pointer from an
+// object reference , nor does it support leaking a reference to Rust.
+//
+// Instead, this class maps USize values to objects so that we can pass a pointer-sized type to
+// Rust when it needs an opaque pointer.
+//
+// TODO: refactor callbacks to use this class
+internal class UniFfiHandleMap<T: Any> {
+    private val map = ConcurrentHashMap<USize, T>()
+    // Use AtomicInteger for our counter, since we may be on a 32-bit system.  4 billion possible
+    // values seems like enough. If somehow we generate 4 billion handles, then this will wrap
+    // around back to zero and we can assume the first handle generated will have been dropped by
+    // then.
+    private val counter = java.util.concurrent.atomic.AtomicInteger(0)
+
+    val size: Int
+        get() = map.size
+
+    fun insert(obj: T): USize {
+        val handle = USize(counter.getAndAdd(1).toLong())
+        map.put(handle, obj)
+        return handle
+    }
+
+    fun get(handle: USize): T? {
+        return map.get(handle)
+    }
+
+    fun remove(handle: USize) {
+        map.remove(handle)
+    }
+}
+
 // Contains loading, initialization code,
 // and the FFI Function declarations in a com.sun.jna.Library.
 @Synchronized
@@ -255,363 +359,606 @@ internal interface _UniFFILib : Library {
     companion object {
         internal val INSTANCE: _UniFFILib by lazy {
             loadIndirect<_UniFFILib>(componentName = "anoncreds")
-            
+            .also { lib: _UniFFILib ->
+                uniffiCheckContractApiVersion(lib)
+                uniffiCheckApiChecksums(lib)
+                }
         }
     }
 
-    fun ffi_anoncreds_d8c0_LinkSecret_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_linksecret(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_LinkSecret_new(
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_linksecret_new(_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_LinkSecret_new_from_json(`jsonString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_linksecret_new_from_value(`valueString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_LinkSecret_get_big_number(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_linksecret_get_big_number(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_LinkSecret_get_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_linksecret_get_value(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_Nonce_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_nonce(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_Nonce_new(
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_nonce_new(_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_Nonce_new_from_value(`valueString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_nonce_new_from_value(`valueString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_Nonce_get_value(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_nonce_get_value(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_CredentialDefinition_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_credentialdefinition(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_CredentialDefinition_new(`jsonString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_credentialdefinition_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_CredentialDefinition_get_schema_id(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialdefinition_get_schema_id(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_CredentialDefinition_get_signature_type(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialdefinition_get_signature_type(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_CredentialDefinition_get_tag(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialdefinition_get_tag(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_CredentialDefinition_get_issuer_id(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialdefinition_get_issuer_id(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_CredentialDefinition_get_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialdefinition_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_CredentialOffer_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_credentialoffer(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_CredentialOffer_new(`jsonString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_credentialoffer_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_CredentialOffer_get_schema_id(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialoffer_get_schema_id(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_CredentialOffer_get_cred_def_id(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialoffer_get_cred_def_id(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_CredentialOffer_get_key_correctness_proof(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialoffer_get_key_correctness_proof(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_CredentialOffer_get_nonce(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialoffer_get_nonce(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_CredentialOffer_get_method_name(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialoffer_get_method_name(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_CredentialOffer_get_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialoffer_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_CredentialRequest_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_credentialrequest(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_CredentialRequest_new(`jsonString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_credentialrequest_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_CredentialRequest_get_blinded_credential_secrets_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialrequest_get_blinded_credential_secrets_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_CredentialRequest_get_blinded_credential_secrets_correctness_proof_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialrequest_get_blinded_credential_secrets_correctness_proof_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_CredentialRequest_get_nonce(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialrequest_get_nonce(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_CredentialRequest_get_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialrequest_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_CredentialKeyCorrectnessProof_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_credentialkeycorrectnessproof(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_CredentialKeyCorrectnessProof_new(`jsonString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_credentialkeycorrectnessproof_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_CredentialKeyCorrectnessProof_get_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialkeycorrectnessproof_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_RevocationRegistryDefinition_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_revocationregistrydefinition(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_RevocationRegistryDefinition_new(`jsonString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_revocationregistrydefinition_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_RevocationRegistryDefinition_get_issuer_id(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_revocationregistrydefinition_get_issuer_id(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_RevocationRegistryDefinition_get_tag(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_revocationregistrydefinition_get_tag(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_RevocationRegistryDefinition_get_cred_def_id(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_revocationregistrydefinition_get_cred_def_id(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_RevocationRegistryDefinition_get_value(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_revocationregistrydefinition_get_value(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_RevocationRegistryDefinition_get_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_revocationregistrydefinition_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_RevocationRegistryDefinitionPrivate_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_revocationregistrydefinitionprivate(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_RevocationRegistryDefinitionPrivate_new(`jsonString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_revocationregistrydefinitionprivate_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_RevocationRegistryDefinitionPrivate_get_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_revocationregistrydefinitionprivate_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_Credential_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_credential(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_Credential_new(`jsonString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_credential_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_Credential_get_schema_id(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credential_get_schema_id(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_Credential_get_cred_def_id(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credential_get_cred_def_id(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_Credential_get_rev_reg_id(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credential_get_rev_reg_id(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_Credential_get_values(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credential_get_values(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_Credential_get_signature_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credential_get_signature_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_Credential_get_signature_correctness_proof_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credential_get_signature_correctness_proof_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_Credential_get_rev_reg_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credential_get_rev_reg_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_Credential_get_witness_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credential_get_witness_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_Credential_get_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credential_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_RevocationStatusList_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_revocationstatuslist(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_RevocationStatusList_new(`jsonString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_revocationstatuslist_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_RevocationStatusList_get_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_revocationstatuslist_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_RevocationRegistryDefinitionValue_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_revocationregistrydefinitionvalue(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_RevocationRegistryDefinitionValue_new(`jsonString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_revocationregistrydefinitionvalue_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_RevocationRegistryDefinitionValue_get_max_cred_num(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_revocationregistrydefinitionvalue_get_max_cred_num(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Int
-
-    fun anoncreds_d8c0_RevocationRegistryDefinitionValue_get_tails_hash(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_revocationregistrydefinitionvalue_get_tails_hash(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_RevocationRegistryDefinitionValue_get_tails_location(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_revocationregistrydefinitionvalue_get_tails_location(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_RevocationRegistryDefinitionValue_get_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_revocationregistrydefinitionvalue_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_RevocationRegistryDefinitionValuePublicKeys_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_revocationregistrydefinitionvaluepublickeys(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_RevocationRegistryDefinitionValuePublicKeys_new(`jsonString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_revocationregistrydefinitionvaluepublickeys_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_RevocationRegistryDefinitionValuePublicKeys_get_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_revocationregistrydefinitionvaluepublickeys_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_CredentialDefinitionPrivate_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_credentialdefinitionprivate(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_CredentialDefinitionPrivate_new(`jsonString`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_credentialdefinitionprivate_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_CredentialDefinitionPrivate_get_json(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_credentialdefinitionprivate_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_Issuer_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_issuer(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_Issuer_new(
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_issuer_new(_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_Issuer_create_schema(`ptr`: Pointer,`schemaName`: RustBuffer.ByValue,`schemaVersion`: RustBuffer.ByValue,`issuerId`: RustBuffer.ByValue,`attrNames`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_issuer_create_schema(`ptr`: Pointer,`schemaName`: RustBuffer.ByValue,`schemaVersion`: RustBuffer.ByValue,`issuerId`: RustBuffer.ByValue,`attrNames`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_Issuer_create_credential_definition(`ptr`: Pointer,`schemaId`: RustBuffer.ByValue,`schema`: RustBuffer.ByValue,`issuerId`: RustBuffer.ByValue,`tag`: RustBuffer.ByValue,`signatureType`: RustBuffer.ByValue,`config`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_issuer_create_credential_definition(`ptr`: Pointer,`schemaId`: RustBuffer.ByValue,`schema`: RustBuffer.ByValue,`issuerId`: RustBuffer.ByValue,`tag`: RustBuffer.ByValue,`signatureType`: RustBuffer.ByValue,`config`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_Issuer_create_revocation_registry_def(`ptr`: Pointer,`credDef`: Pointer,`credDefId`: RustBuffer.ByValue,`issuerId`: RustBuffer.ByValue,`tag`: RustBuffer.ByValue,`revRegType`: RustBuffer.ByValue,`maxCredNum`: Int,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_issuer_create_revocation_registry_def(`ptr`: Pointer,`credDef`: Pointer,`credDefId`: RustBuffer.ByValue,`issuerId`: RustBuffer.ByValue,`tag`: RustBuffer.ByValue,`revRegType`: RustBuffer.ByValue,`maxCredNum`: Int,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_Issuer_create_revocation_status_list(`ptr`: Pointer,`revRegDefId`: RustBuffer.ByValue,`revRegDef`: Pointer,`issuerId`: RustBuffer.ByValue,`timestamp`: RustBuffer.ByValue,`issuanceByDefault`: Byte,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_issuer_create_revocation_status_list(`ptr`: Pointer,`revRegDefId`: RustBuffer.ByValue,`revRegDef`: Pointer,`issuerId`: RustBuffer.ByValue,`timestamp`: RustBuffer.ByValue,`issuanceByDefault`: Byte,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_Issuer_update_revocation_status_list_timestamp_only(`ptr`: Pointer,`timestamp`: Long,`currentList`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_issuer_update_revocation_status_list_timestamp_only(`ptr`: Pointer,`timestamp`: Long,`currentList`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_Issuer_update_revocation_status_list(`ptr`: Pointer,`timestamp`: RustBuffer.ByValue,`issued`: RustBuffer.ByValue,`revoked`: RustBuffer.ByValue,`revRegDef`: Pointer,`currentList`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_issuer_update_revocation_status_list(`ptr`: Pointer,`timestamp`: RustBuffer.ByValue,`issued`: RustBuffer.ByValue,`revoked`: RustBuffer.ByValue,`revRegDef`: Pointer,`currentList`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_Issuer_create_credential_offer(`ptr`: Pointer,`schemaId`: RustBuffer.ByValue,`credDefId`: RustBuffer.ByValue,`correctnessProof`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_issuer_create_credential_offer(`ptr`: Pointer,`schemaId`: RustBuffer.ByValue,`credDefId`: RustBuffer.ByValue,`correctnessProof`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_Issuer_create_credential(`ptr`: Pointer,`credDef`: Pointer,`credDefPrivate`: Pointer,`credOffer`: Pointer,`credRequest`: Pointer,`credValues`: RustBuffer.ByValue,`revRegId`: RustBuffer.ByValue,`revStatusList`: RustBuffer.ByValue,`revocationConfig`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_issuer_create_credential(`ptr`: Pointer,`credDef`: Pointer,`credDefPrivate`: Pointer,`credOffer`: Pointer,`credRequest`: Pointer,`credValues`: RustBuffer.ByValue,`revRegId`: RustBuffer.ByValue,`revStatusList`: RustBuffer.ByValue,`revocationConfig`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun ffi_anoncreds_d8c0_Prover_object_free(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_free_prover(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_Prover_new(
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_prover_new(_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun anoncreds_d8c0_Prover_create_credential_request(`ptr`: Pointer,`entropy`: RustBuffer.ByValue,`proverDid`: RustBuffer.ByValue,`credDef`: Pointer,`linkSecret`: Pointer,`linkSecretId`: RustBuffer.ByValue,`credentialOffer`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_prover_create_credential_request(`ptr`: Pointer,`entropy`: RustBuffer.ByValue,`proverDid`: RustBuffer.ByValue,`credDef`: Pointer,`linkSecret`: Pointer,`linkSecretId`: RustBuffer.ByValue,`credentialOffer`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
-    fun anoncreds_d8c0_Prover_process_credential(`ptr`: Pointer,`credential`: Pointer,`credRequestMetadata`: RustBuffer.ByValue,`linkSecret`: Pointer,`credDef`: Pointer,`revRegDef`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_prover_process_credential(`ptr`: Pointer,`credential`: Pointer,`credRequestMetadata`: RustBuffer.ByValue,`linkSecret`: Pointer,`credDef`: Pointer,`revRegDef`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun anoncreds_d8c0_Prover_create_link_secret(`ptr`: Pointer,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_prover_create_presentation(`ptr`: Pointer,`presentationRequest`: Pointer,`credentials`: RustBuffer.ByValue,`selfAttested`: RustBuffer.ByValue,`linkSecret`: Pointer,`schemas`: RustBuffer.ByValue,`credentialDefinitions`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-
-    fun ffi_anoncreds_d8c0_rustbuffer_alloc(`size`: Int,
-    _uniffi_out_err: RustCallStatus
-    ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,
-    _uniffi_out_err: RustCallStatus
-    ): RustBuffer.ByValue
-
-    fun ffi_anoncreds_d8c0_rustbuffer_free(`buf`: RustBuffer.ByValue,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_method_prover_create_link_secret(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
+    ): Pointer
+    fun uniffi_anoncreds_fn_free_presentation(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-    fun ffi_anoncreds_d8c0_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Int,
-    _uniffi_out_err: RustCallStatus
+    fun uniffi_anoncreds_fn_constructor_presentation_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): Pointer
+    fun uniffi_anoncreds_fn_method_presentation_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-
+    fun uniffi_anoncreds_fn_free_presentationrequest(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
+    ): Unit
+    fun uniffi_anoncreds_fn_constructor_presentationrequest_new(`jsonString`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): Pointer
+    fun uniffi_anoncreds_fn_method_presentationrequest_get_json(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_anoncreds_fn_free_verifier(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
+    ): Unit
+    fun uniffi_anoncreds_fn_constructor_verifier_new(_uniffi_out_err: RustCallStatus, 
+    ): Pointer
+    fun uniffi_anoncreds_fn_method_verifier_verify_presentation(`ptr`: Pointer,`presentation`: Pointer,`presentationRequest`: Pointer,`schemas`: RustBuffer.ByValue,`credentialDefinitions`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): Byte
+    fun ffi_anoncreds_rustbuffer_alloc(`size`: Int,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun ffi_anoncreds_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun ffi_anoncreds_rustbuffer_free(`buf`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): Unit
+    fun ffi_anoncreds_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Int,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi__checksum_method_linksecret_get_big_number(
+    ): Short
+    fun uniffi__checksum_method_linksecret_get_value(
+    ): Short
+    fun uniffi__checksum_method_nonce_get_value(
+    ): Short
+    fun uniffi__checksum_method_credentialdefinition_get_schema_id(
+    ): Short
+    fun uniffi__checksum_method_credentialdefinition_get_signature_type(
+    ): Short
+    fun uniffi__checksum_method_credentialdefinition_get_tag(
+    ): Short
+    fun uniffi__checksum_method_credentialdefinition_get_issuer_id(
+    ): Short
+    fun uniffi__checksum_method_credentialdefinition_get_json(
+    ): Short
+    fun uniffi__checksum_method_credentialoffer_get_schema_id(
+    ): Short
+    fun uniffi__checksum_method_credentialoffer_get_cred_def_id(
+    ): Short
+    fun uniffi__checksum_method_credentialoffer_get_key_correctness_proof(
+    ): Short
+    fun uniffi__checksum_method_credentialoffer_get_nonce(
+    ): Short
+    fun uniffi__checksum_method_credentialoffer_get_method_name(
+    ): Short
+    fun uniffi__checksum_method_credentialoffer_get_json(
+    ): Short
+    fun uniffi__checksum_method_credentialrequest_get_blinded_credential_secrets_json(
+    ): Short
+    fun uniffi__checksum_method_credentialrequest_get_blinded_credential_secrets_correctness_proof_json(
+    ): Short
+    fun uniffi__checksum_method_credentialrequest_get_nonce(
+    ): Short
+    fun uniffi__checksum_method_credentialrequest_get_json(
+    ): Short
+    fun uniffi__checksum_method_credentialkeycorrectnessproof_get_json(
+    ): Short
+    fun uniffi__checksum_method_revocationregistrydefinition_get_issuer_id(
+    ): Short
+    fun uniffi__checksum_method_revocationregistrydefinition_get_tag(
+    ): Short
+    fun uniffi__checksum_method_revocationregistrydefinition_get_cred_def_id(
+    ): Short
+    fun uniffi__checksum_method_revocationregistrydefinition_get_value(
+    ): Short
+    fun uniffi__checksum_method_revocationregistrydefinition_get_json(
+    ): Short
+    fun uniffi__checksum_method_revocationregistrydefinitionprivate_get_json(
+    ): Short
+    fun uniffi__checksum_method_credential_get_schema_id(
+    ): Short
+    fun uniffi__checksum_method_credential_get_cred_def_id(
+    ): Short
+    fun uniffi__checksum_method_credential_get_rev_reg_id(
+    ): Short
+    fun uniffi__checksum_method_credential_get_values(
+    ): Short
+    fun uniffi__checksum_method_credential_get_signature_json(
+    ): Short
+    fun uniffi__checksum_method_credential_get_signature_correctness_proof_json(
+    ): Short
+    fun uniffi__checksum_method_credential_get_rev_reg_json(
+    ): Short
+    fun uniffi__checksum_method_credential_get_witness_json(
+    ): Short
+    fun uniffi__checksum_method_credential_get_json(
+    ): Short
+    fun uniffi__checksum_method_revocationstatuslist_get_json(
+    ): Short
+    fun uniffi__checksum_method_revocationregistrydefinitionvalue_get_max_cred_num(
+    ): Short
+    fun uniffi__checksum_method_revocationregistrydefinitionvalue_get_tails_hash(
+    ): Short
+    fun uniffi__checksum_method_revocationregistrydefinitionvalue_get_tails_location(
+    ): Short
+    fun uniffi__checksum_method_revocationregistrydefinitionvalue_get_json(
+    ): Short
+    fun uniffi__checksum_method_revocationregistrydefinitionvaluepublickeys_get_json(
+    ): Short
+    fun uniffi__checksum_method_credentialdefinitionprivate_get_json(
+    ): Short
+    fun uniffi__checksum_method_issuer_create_schema(
+    ): Short
+    fun uniffi__checksum_method_issuer_create_credential_definition(
+    ): Short
+    fun uniffi__checksum_method_issuer_create_revocation_registry_def(
+    ): Short
+    fun uniffi__checksum_method_issuer_create_revocation_status_list(
+    ): Short
+    fun uniffi__checksum_method_issuer_update_revocation_status_list_timestamp_only(
+    ): Short
+    fun uniffi__checksum_method_issuer_update_revocation_status_list(
+    ): Short
+    fun uniffi__checksum_method_issuer_create_credential_offer(
+    ): Short
+    fun uniffi__checksum_method_issuer_create_credential(
+    ): Short
+    fun uniffi__checksum_method_prover_create_credential_request(
+    ): Short
+    fun uniffi__checksum_method_prover_process_credential(
+    ): Short
+    fun uniffi__checksum_method_prover_create_presentation(
+    ): Short
+    fun uniffi__checksum_method_prover_create_link_secret(
+    ): Short
+    fun uniffi__checksum_method_presentation_get_json(
+    ): Short
+    fun uniffi__checksum_method_presentationrequest_get_json(
+    ): Short
+    fun uniffi__checksum_method_verifier_verify_presentation(
+    ): Short
+    fun uniffi__checksum_constructor_linksecret_new(
+    ): Short
+    fun uniffi__checksum_constructor_linksecret_new_from_value(
+    ): Short
+    fun uniffi__checksum_constructor_nonce_new(
+    ): Short
+    fun uniffi__checksum_constructor_nonce_new_from_value(
+    ): Short
+    fun uniffi__checksum_constructor_credentialdefinition_new(
+    ): Short
+    fun uniffi__checksum_constructor_credentialoffer_new(
+    ): Short
+    fun uniffi__checksum_constructor_credentialrequest_new(
+    ): Short
+    fun uniffi__checksum_constructor_credentialkeycorrectnessproof_new(
+    ): Short
+    fun uniffi__checksum_constructor_revocationregistrydefinition_new(
+    ): Short
+    fun uniffi__checksum_constructor_revocationregistrydefinitionprivate_new(
+    ): Short
+    fun uniffi__checksum_constructor_credential_new(
+    ): Short
+    fun uniffi__checksum_constructor_revocationstatuslist_new(
+    ): Short
+    fun uniffi__checksum_constructor_revocationregistrydefinitionvalue_new(
+    ): Short
+    fun uniffi__checksum_constructor_revocationregistrydefinitionvaluepublickeys_new(
+    ): Short
+    fun uniffi__checksum_constructor_credentialdefinitionprivate_new(
+    ): Short
+    fun uniffi__checksum_constructor_issuer_new(
+    ): Short
+    fun uniffi__checksum_constructor_prover_new(
+    ): Short
+    fun uniffi__checksum_constructor_presentation_new(
+    ): Short
+    fun uniffi__checksum_constructor_presentationrequest_new(
+    ): Short
+    fun uniffi__checksum_constructor_verifier_new(
+    ): Short
+    fun ffi_anoncreds_uniffi_contract_version(
+    ): Int
     
+}
+
+private fun uniffiCheckContractApiVersion(lib: _UniFFILib) {
+    // Get the bindings contract version from our ComponentInterface
+    val bindings_contract_version = 22
+    // Get the scaffolding contract version by calling the into the dylib
+    val scaffolding_contract_version = lib.ffi_anoncreds_uniffi_contract_version()
+    if (bindings_contract_version != scaffolding_contract_version) {
+        throw RuntimeException("UniFFI contract version mismatch: try cleaning and rebuilding your project")
+    }
+}
+
+@Suppress("UNUSED_PARAMETER")
+private fun uniffiCheckApiChecksums(lib: _UniFFILib) {
+    if (lib.uniffi__checksum_method_linksecret_get_big_number() != 17566.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_linksecret_get_value() != 31184.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_nonce_get_value() != 55559.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialdefinition_get_schema_id() != 2873.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialdefinition_get_signature_type() != 33283.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialdefinition_get_tag() != 64489.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialdefinition_get_issuer_id() != 19453.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialdefinition_get_json() != 13633.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialoffer_get_schema_id() != 9785.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialoffer_get_cred_def_id() != 54789.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialoffer_get_key_correctness_proof() != 4524.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialoffer_get_nonce() != 8992.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialoffer_get_method_name() != 10089.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialoffer_get_json() != 21450.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialrequest_get_blinded_credential_secrets_json() != 28369.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialrequest_get_blinded_credential_secrets_correctness_proof_json() != 6360.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialrequest_get_nonce() != 29424.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialrequest_get_json() != 26067.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialkeycorrectnessproof_get_json() != 28526.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_revocationregistrydefinition_get_issuer_id() != 55636.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_revocationregistrydefinition_get_tag() != 9407.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_revocationregistrydefinition_get_cred_def_id() != 18370.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_revocationregistrydefinition_get_value() != 54233.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_revocationregistrydefinition_get_json() != 30273.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_revocationregistrydefinitionprivate_get_json() != 49890.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credential_get_schema_id() != 5900.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credential_get_cred_def_id() != 17534.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credential_get_rev_reg_id() != 62977.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credential_get_values() != 54784.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credential_get_signature_json() != 23915.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credential_get_signature_correctness_proof_json() != 52780.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credential_get_rev_reg_json() != 55518.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credential_get_witness_json() != 40173.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credential_get_json() != 19925.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_revocationstatuslist_get_json() != 26059.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_revocationregistrydefinitionvalue_get_max_cred_num() != 22553.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_revocationregistrydefinitionvalue_get_tails_hash() != 52751.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_revocationregistrydefinitionvalue_get_tails_location() != 10552.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_revocationregistrydefinitionvalue_get_json() != 27094.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_revocationregistrydefinitionvaluepublickeys_get_json() != 2321.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_credentialdefinitionprivate_get_json() != 8321.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_issuer_create_schema() != 16570.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_issuer_create_credential_definition() != 13296.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_issuer_create_revocation_registry_def() != 29924.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_issuer_create_revocation_status_list() != 18299.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_issuer_update_revocation_status_list_timestamp_only() != 37725.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_issuer_update_revocation_status_list() != 64292.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_issuer_create_credential_offer() != 26660.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_issuer_create_credential() != 5649.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_prover_create_credential_request() != 26116.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_prover_process_credential() != 64866.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_prover_create_presentation() != 47751.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_prover_create_link_secret() != 11469.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_presentation_get_json() != 57516.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_presentationrequest_get_json() != 64699.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_method_verifier_verify_presentation() != 42012.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_linksecret_new() != 27344.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_linksecret_new_from_value() != 34527.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_nonce_new() != 62144.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_nonce_new_from_value() != 17009.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_credentialdefinition_new() != 21273.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_credentialoffer_new() != 61941.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_credentialrequest_new() != 16217.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_credentialkeycorrectnessproof_new() != 30790.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_revocationregistrydefinition_new() != 35203.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_revocationregistrydefinitionprivate_new() != 17035.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_credential_new() != 21829.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_revocationstatuslist_new() != 41592.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_revocationregistrydefinitionvalue_new() != 15419.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_revocationregistrydefinitionvaluepublickeys_new() != 46152.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_credentialdefinitionprivate_new() != 27360.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_issuer_new() != 52382.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_prover_new() != 45439.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_presentation_new() != 56164.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_presentationrequest_new() != 11986.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi__checksum_constructor_verifier_new() != 16505.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
 }
 
 // Public interface members begin here.
@@ -878,7 +1225,7 @@ abstract class FFIObject(
         try {
             return block(this.pointer)
         } finally {
-            // This decrement aways matches the increment we performed above.
+            // This decrement always matches the increment we performed above.
             if (this.callCounter.decrementAndGet() == 0L) {
                 this.freeRustArcPtr()
             }
@@ -889,24 +1236,14 @@ abstract class FFIObject(
 public interface CredentialInterface {
     
     fun `getSchemaId`(): SchemaId
-    
     fun `getCredDefId`(): CredentialDefinitionId
-    
     fun `getRevRegId`(): RevocationRegistryId?
-    
     fun `getValues`(): CredentialValues
-    
     fun `getSignatureJson`(): String
-    
     fun `getSignatureCorrectnessProofJson`(): String
-    
     fun `getRevRegJson`(): String?
-    
-    fun `getWitnessJson`(): String?
-    
-    @Throws(AnoncredsException::class)
+    fun `getWitnessJson`(): String?@Throws(AnoncredsException::class)
     fun `getJson`(): String
-    
 }
 
 class Credential(
@@ -915,7 +1252,7 @@ class Credential(
     constructor(`jsonString`: String) :
         this(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Credential_new(FfiConverterString.lower(`jsonString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_credential_new(FfiConverterString.lower(`jsonString`),_status)
 })
 
     /**
@@ -928,83 +1265,110 @@ class Credential(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_Credential_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_credential(this.pointer, status)
         }
     }
 
     override fun `getSchemaId`(): SchemaId =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Credential_get_schema_id(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credential_get_schema_id(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeSchemaId.lift(it)
         }
+    
     override fun `getCredDefId`(): CredentialDefinitionId =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Credential_get_cred_def_id(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credential_get_cred_def_id(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeCredentialDefinitionId.lift(it)
         }
+    
     override fun `getRevRegId`(): RevocationRegistryId? =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Credential_get_rev_reg_id(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credential_get_rev_reg_id(it,
+        
+        _status)
 }
         }.let {
             FfiConverterOptionalTypeRevocationRegistryId.lift(it)
         }
+    
     override fun `getValues`(): CredentialValues =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Credential_get_values(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credential_get_values(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeCredentialValues.lift(it)
         }
+    
     override fun `getSignatureJson`(): String =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Credential_get_signature_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credential_get_signature_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     override fun `getSignatureCorrectnessProofJson`(): String =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Credential_get_signature_correctness_proof_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credential_get_signature_correctness_proof_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     override fun `getRevRegJson`(): String? =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Credential_get_rev_reg_json(it,  _status)
-}
-        }.let {
-            FfiConverterOptionalString.lift(it)
-        }
-    override fun `getWitnessJson`(): String? =
-        callWithPointer {
-    rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Credential_get_witness_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credential_get_rev_reg_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterOptionalString.lift(it)
         }
     
+    override fun `getWitnessJson`(): String? =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credential_get_witness_json(it,
+        
+        _status)
+}
+        }.let {
+            FfiConverterOptionalString.lift(it)
+        }
+    
+    
     @Throws(AnoncredsException::class)override fun `getJson`(): String =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Credential_get_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credential_get_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     
 
     
@@ -1038,16 +1402,10 @@ public object FfiConverterTypeCredential: FfiConverter<Credential, Pointer> {
 public interface CredentialDefinitionInterface {
     
     fun `getSchemaId`(): SchemaId
-    
     fun `getSignatureType`(): SignatureType
-    
     fun `getTag`(): String
-    
-    fun `getIssuerId`(): IssuerId
-    
-    @Throws(AnoncredsException::class)
+    fun `getIssuerId`(): IssuerId@Throws(AnoncredsException::class)
     fun `getJson`(): String
-    
 }
 
 class CredentialDefinition(
@@ -1056,7 +1414,7 @@ class CredentialDefinition(
     constructor(`jsonString`: String) :
         this(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialDefinition_new(FfiConverterString.lower(`jsonString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_credentialdefinition_new(FfiConverterString.lower(`jsonString`),_status)
 })
 
     /**
@@ -1069,51 +1427,66 @@ class CredentialDefinition(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_CredentialDefinition_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_credentialdefinition(this.pointer, status)
         }
     }
 
     override fun `getSchemaId`(): SchemaId =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialDefinition_get_schema_id(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialdefinition_get_schema_id(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeSchemaId.lift(it)
         }
+    
     override fun `getSignatureType`(): SignatureType =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialDefinition_get_signature_type(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialdefinition_get_signature_type(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeSignatureType.lift(it)
         }
+    
     override fun `getTag`(): String =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialDefinition_get_tag(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialdefinition_get_tag(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     override fun `getIssuerId`(): IssuerId =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialDefinition_get_issuer_id(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialdefinition_get_issuer_id(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeIssuerId.lift(it)
         }
     
+    
     @Throws(AnoncredsException::class)override fun `getJson`(): String =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialDefinition_get_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialdefinition_get_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     
 
     
@@ -1145,10 +1518,8 @@ public object FfiConverterTypeCredentialDefinition: FfiConverter<CredentialDefin
 
 
 public interface CredentialDefinitionPrivateInterface {
-    
     @Throws(AnoncredsException::class)
     fun `getJson`(): String
-    
 }
 
 class CredentialDefinitionPrivate(
@@ -1157,7 +1528,7 @@ class CredentialDefinitionPrivate(
     constructor(`jsonString`: String) :
         this(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialDefinitionPrivate_new(FfiConverterString.lower(`jsonString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_credentialdefinitionprivate_new(FfiConverterString.lower(`jsonString`),_status)
 })
 
     /**
@@ -1170,7 +1541,7 @@ class CredentialDefinitionPrivate(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_CredentialDefinitionPrivate_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_credentialdefinitionprivate(this.pointer, status)
         }
     }
 
@@ -1178,11 +1549,14 @@ class CredentialDefinitionPrivate(
     @Throws(AnoncredsException::class)override fun `getJson`(): String =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialDefinitionPrivate_get_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialdefinitionprivate_get_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     
 
     
@@ -1214,10 +1588,8 @@ public object FfiConverterTypeCredentialDefinitionPrivate: FfiConverter<Credenti
 
 
 public interface CredentialKeyCorrectnessProofInterface {
-    
     @Throws(AnoncredsException::class)
     fun `getJson`(): String
-    
 }
 
 class CredentialKeyCorrectnessProof(
@@ -1226,7 +1598,7 @@ class CredentialKeyCorrectnessProof(
     constructor(`jsonString`: String) :
         this(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialKeyCorrectnessProof_new(FfiConverterString.lower(`jsonString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_credentialkeycorrectnessproof_new(FfiConverterString.lower(`jsonString`),_status)
 })
 
     /**
@@ -1239,7 +1611,7 @@ class CredentialKeyCorrectnessProof(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_CredentialKeyCorrectnessProof_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_credentialkeycorrectnessproof(this.pointer, status)
         }
     }
 
@@ -1247,11 +1619,14 @@ class CredentialKeyCorrectnessProof(
     @Throws(AnoncredsException::class)override fun `getJson`(): String =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialKeyCorrectnessProof_get_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialkeycorrectnessproof_get_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     
 
     
@@ -1285,18 +1660,11 @@ public object FfiConverterTypeCredentialKeyCorrectnessProof: FfiConverter<Creden
 public interface CredentialOfferInterface {
     
     fun `getSchemaId`(): SchemaId
-    
     fun `getCredDefId`(): CredentialDefinitionId
-    
     fun `getKeyCorrectnessProof`(): String
-    
     fun `getNonce`(): Nonce
-    
-    fun `getMethodName`(): String?
-    
-    @Throws(AnoncredsException::class)
+    fun `getMethodName`(): String?@Throws(AnoncredsException::class)
     fun `getJson`(): String
-    
 }
 
 class CredentialOffer(
@@ -1305,7 +1673,7 @@ class CredentialOffer(
     constructor(`jsonString`: String) :
         this(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialOffer_new(FfiConverterString.lower(`jsonString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_credentialoffer_new(FfiConverterString.lower(`jsonString`),_status)
 })
 
     /**
@@ -1318,59 +1686,77 @@ class CredentialOffer(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_CredentialOffer_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_credentialoffer(this.pointer, status)
         }
     }
 
     override fun `getSchemaId`(): SchemaId =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialOffer_get_schema_id(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialoffer_get_schema_id(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeSchemaId.lift(it)
         }
+    
     override fun `getCredDefId`(): CredentialDefinitionId =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialOffer_get_cred_def_id(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialoffer_get_cred_def_id(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeCredentialDefinitionId.lift(it)
         }
+    
     override fun `getKeyCorrectnessProof`(): String =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialOffer_get_key_correctness_proof(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialoffer_get_key_correctness_proof(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     override fun `getNonce`(): Nonce =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialOffer_get_nonce(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialoffer_get_nonce(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeNonce.lift(it)
         }
+    
     override fun `getMethodName`(): String? =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialOffer_get_method_name(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialoffer_get_method_name(it,
+        
+        _status)
 }
         }.let {
             FfiConverterOptionalString.lift(it)
         }
     
+    
     @Throws(AnoncredsException::class)override fun `getJson`(): String =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialOffer_get_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialoffer_get_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     
 
     
@@ -1404,14 +1790,9 @@ public object FfiConverterTypeCredentialOffer: FfiConverter<CredentialOffer, Poi
 public interface CredentialRequestInterface {
     
     fun `getBlindedCredentialSecretsJson`(): String
-    
     fun `getBlindedCredentialSecretsCorrectnessProofJson`(): String
-    
-    fun `getNonce`(): Nonce
-    
-    @Throws(AnoncredsException::class)
+    fun `getNonce`(): Nonce@Throws(AnoncredsException::class)
     fun `getJson`(): String
-    
 }
 
 class CredentialRequest(
@@ -1420,7 +1801,7 @@ class CredentialRequest(
     constructor(`jsonString`: String) :
         this(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialRequest_new(FfiConverterString.lower(`jsonString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_credentialrequest_new(FfiConverterString.lower(`jsonString`),_status)
 })
 
     /**
@@ -1433,43 +1814,55 @@ class CredentialRequest(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_CredentialRequest_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_credentialrequest(this.pointer, status)
         }
     }
 
     override fun `getBlindedCredentialSecretsJson`(): String =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialRequest_get_blinded_credential_secrets_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialrequest_get_blinded_credential_secrets_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     override fun `getBlindedCredentialSecretsCorrectnessProofJson`(): String =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialRequest_get_blinded_credential_secrets_correctness_proof_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialrequest_get_blinded_credential_secrets_correctness_proof_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     override fun `getNonce`(): Nonce =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialRequest_get_nonce(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialrequest_get_nonce(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeNonce.lift(it)
         }
     
+    
     @Throws(AnoncredsException::class)override fun `getJson`(): String =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_CredentialRequest_get_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_credentialrequest_get_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     
 
     
@@ -1501,30 +1894,15 @@ public object FfiConverterTypeCredentialRequest: FfiConverter<CredentialRequest,
 
 
 public interface IssuerInterface {
-    
     @Throws(AnoncredsException::class)
-    fun `createSchema`(`schemaName`: String, `schemaVersion`: String, `issuerId`: String, `attrNames`: List<String>): Schema
-    
-    @Throws(AnoncredsException::class)
-    fun `createCredentialDefinition`(`schemaId`: String, `schema`: Schema, `issuerId`: String, `tag`: String, `signatureType`: SignatureType, `config`: CredentialDefinitionConfig): IssuerCreateCredentialDefinitionReturn
-    
-    @Throws(AnoncredsException::class)
-    fun `createRevocationRegistryDef`(`credDef`: CredentialDefinition, `credDefId`: String, `issuerId`: String, `tag`: String, `revRegType`: RegistryType, `maxCredNum`: UInt): IssuerCreateRevocationRegistryDefReturn
-    
-    @Throws(AnoncredsException::class)
+    fun `createSchema`(`schemaName`: String, `schemaVersion`: String, `issuerId`: String, `attrNames`: List<String>): Schema@Throws(AnoncredsException::class)
+    fun `createCredentialDefinition`(`schemaId`: String, `schema`: Schema, `issuerId`: String, `tag`: String, `signatureType`: SignatureType, `config`: CredentialDefinitionConfig): IssuerCreateCredentialDefinitionReturn@Throws(AnoncredsException::class)
+    fun `createRevocationRegistryDef`(`credDef`: CredentialDefinition, `credDefId`: String, `issuerId`: String, `tag`: String, `revRegType`: RegistryType, `maxCredNum`: UInt): IssuerCreateRevocationRegistryDefReturn@Throws(AnoncredsException::class)
     fun `createRevocationStatusList`(`revRegDefId`: String, `revRegDef`: RevocationRegistryDefinition, `issuerId`: String, `timestamp`: ULong?, `issuanceByDefault`: Boolean): RevocationStatusList
-    
-    fun `updateRevocationStatusListTimestampOnly`(`timestamp`: ULong, `currentList`: RevocationStatusList): RevocationStatusList
-    
-    @Throws(AnoncredsException::class)
-    fun `updateRevocationStatusList`(`timestamp`: ULong?, `issued`: List<UInt>?, `revoked`: List<UInt>?, `revRegDef`: RevocationRegistryDefinition, `currentList`: RevocationStatusList): RevocationStatusList
-    
-    @Throws(AnoncredsException::class)
-    fun `createCredentialOffer`(`schemaId`: String, `credDefId`: String, `correctnessProof`: CredentialKeyCorrectnessProof): CredentialOffer
-    
-    @Throws(AnoncredsException::class)
+    fun `updateRevocationStatusListTimestampOnly`(`timestamp`: ULong, `currentList`: RevocationStatusList): RevocationStatusList@Throws(AnoncredsException::class)
+    fun `updateRevocationStatusList`(`timestamp`: ULong?, `issued`: List<UInt>?, `revoked`: List<UInt>?, `revRegDef`: RevocationRegistryDefinition, `currentList`: RevocationStatusList): RevocationStatusList@Throws(AnoncredsException::class)
+    fun `createCredentialOffer`(`schemaId`: String, `credDefId`: String, `correctnessProof`: CredentialKeyCorrectnessProof): CredentialOffer@Throws(AnoncredsException::class)
     fun `createCredential`(`credDef`: CredentialDefinition, `credDefPrivate`: CredentialDefinitionPrivate, `credOffer`: CredentialOffer, `credRequest`: CredentialRequest, `credValues`: List<AttributeValues>, `revRegId`: RevocationRegistryId?, `revStatusList`: RevocationStatusList?, `revocationConfig`: CredentialRevocationConfig?): Credential
-    
 }
 
 class Issuer(
@@ -1533,7 +1911,7 @@ class Issuer(
     constructor() :
         this(
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Issuer_new( _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_issuer_new(_status)
 })
 
     /**
@@ -1546,7 +1924,7 @@ class Issuer(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_Issuer_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_issuer(this.pointer, status)
         }
     }
 
@@ -1554,73 +1932,97 @@ class Issuer(
     @Throws(AnoncredsException::class)override fun `createSchema`(`schemaName`: String, `schemaVersion`: String, `issuerId`: String, `attrNames`: List<String>): Schema =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Issuer_create_schema(it, FfiConverterString.lower(`schemaName`), FfiConverterString.lower(`schemaVersion`), FfiConverterString.lower(`issuerId`), FfiConverterSequenceString.lower(`attrNames`),  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_issuer_create_schema(it,
+        FfiConverterString.lower(`schemaName`),FfiConverterString.lower(`schemaVersion`),FfiConverterString.lower(`issuerId`),FfiConverterSequenceString.lower(`attrNames`),
+        _status)
 }
         }.let {
             FfiConverterTypeSchema.lift(it)
         }
     
+    
     @Throws(AnoncredsException::class)override fun `createCredentialDefinition`(`schemaId`: String, `schema`: Schema, `issuerId`: String, `tag`: String, `signatureType`: SignatureType, `config`: CredentialDefinitionConfig): IssuerCreateCredentialDefinitionReturn =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Issuer_create_credential_definition(it, FfiConverterString.lower(`schemaId`), FfiConverterTypeSchema.lower(`schema`), FfiConverterString.lower(`issuerId`), FfiConverterString.lower(`tag`), FfiConverterTypeSignatureType.lower(`signatureType`), FfiConverterTypeCredentialDefinitionConfig.lower(`config`),  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_issuer_create_credential_definition(it,
+        FfiConverterString.lower(`schemaId`),FfiConverterTypeSchema.lower(`schema`),FfiConverterString.lower(`issuerId`),FfiConverterString.lower(`tag`),FfiConverterTypeSignatureType.lower(`signatureType`),FfiConverterTypeCredentialDefinitionConfig.lower(`config`),
+        _status)
 }
         }.let {
             FfiConverterTypeIssuerCreateCredentialDefinitionReturn.lift(it)
         }
     
+    
     @Throws(AnoncredsException::class)override fun `createRevocationRegistryDef`(`credDef`: CredentialDefinition, `credDefId`: String, `issuerId`: String, `tag`: String, `revRegType`: RegistryType, `maxCredNum`: UInt): IssuerCreateRevocationRegistryDefReturn =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Issuer_create_revocation_registry_def(it, FfiConverterTypeCredentialDefinition.lower(`credDef`), FfiConverterString.lower(`credDefId`), FfiConverterString.lower(`issuerId`), FfiConverterString.lower(`tag`), FfiConverterTypeRegistryType.lower(`revRegType`), FfiConverterUInt.lower(`maxCredNum`),  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_issuer_create_revocation_registry_def(it,
+        FfiConverterTypeCredentialDefinition.lower(`credDef`),FfiConverterString.lower(`credDefId`),FfiConverterString.lower(`issuerId`),FfiConverterString.lower(`tag`),FfiConverterTypeRegistryType.lower(`revRegType`),FfiConverterUInt.lower(`maxCredNum`),
+        _status)
 }
         }.let {
             FfiConverterTypeIssuerCreateRevocationRegistryDefReturn.lift(it)
         }
     
+    
     @Throws(AnoncredsException::class)override fun `createRevocationStatusList`(`revRegDefId`: String, `revRegDef`: RevocationRegistryDefinition, `issuerId`: String, `timestamp`: ULong?, `issuanceByDefault`: Boolean): RevocationStatusList =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Issuer_create_revocation_status_list(it, FfiConverterString.lower(`revRegDefId`), FfiConverterTypeRevocationRegistryDefinition.lower(`revRegDef`), FfiConverterString.lower(`issuerId`), FfiConverterOptionalULong.lower(`timestamp`), FfiConverterBoolean.lower(`issuanceByDefault`),  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_issuer_create_revocation_status_list(it,
+        FfiConverterString.lower(`revRegDefId`),FfiConverterTypeRevocationRegistryDefinition.lower(`revRegDef`),FfiConverterString.lower(`issuerId`),FfiConverterOptionalULong.lower(`timestamp`),FfiConverterBoolean.lower(`issuanceByDefault`),
+        _status)
 }
         }.let {
             FfiConverterTypeRevocationStatusList.lift(it)
         }
+    
     override fun `updateRevocationStatusListTimestampOnly`(`timestamp`: ULong, `currentList`: RevocationStatusList): RevocationStatusList =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Issuer_update_revocation_status_list_timestamp_only(it, FfiConverterULong.lower(`timestamp`), FfiConverterTypeRevocationStatusList.lower(`currentList`),  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_issuer_update_revocation_status_list_timestamp_only(it,
+        FfiConverterULong.lower(`timestamp`),FfiConverterTypeRevocationStatusList.lower(`currentList`),
+        _status)
 }
         }.let {
             FfiConverterTypeRevocationStatusList.lift(it)
         }
+    
     
     @Throws(AnoncredsException::class)override fun `updateRevocationStatusList`(`timestamp`: ULong?, `issued`: List<UInt>?, `revoked`: List<UInt>?, `revRegDef`: RevocationRegistryDefinition, `currentList`: RevocationStatusList): RevocationStatusList =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Issuer_update_revocation_status_list(it, FfiConverterOptionalULong.lower(`timestamp`), FfiConverterOptionalSequenceUInt.lower(`issued`), FfiConverterOptionalSequenceUInt.lower(`revoked`), FfiConverterTypeRevocationRegistryDefinition.lower(`revRegDef`), FfiConverterTypeRevocationStatusList.lower(`currentList`),  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_issuer_update_revocation_status_list(it,
+        FfiConverterOptionalULong.lower(`timestamp`),FfiConverterOptionalSequenceUInt.lower(`issued`),FfiConverterOptionalSequenceUInt.lower(`revoked`),FfiConverterTypeRevocationRegistryDefinition.lower(`revRegDef`),FfiConverterTypeRevocationStatusList.lower(`currentList`),
+        _status)
 }
         }.let {
             FfiConverterTypeRevocationStatusList.lift(it)
         }
     
+    
     @Throws(AnoncredsException::class)override fun `createCredentialOffer`(`schemaId`: String, `credDefId`: String, `correctnessProof`: CredentialKeyCorrectnessProof): CredentialOffer =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Issuer_create_credential_offer(it, FfiConverterString.lower(`schemaId`), FfiConverterString.lower(`credDefId`), FfiConverterTypeCredentialKeyCorrectnessProof.lower(`correctnessProof`),  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_issuer_create_credential_offer(it,
+        FfiConverterString.lower(`schemaId`),FfiConverterString.lower(`credDefId`),FfiConverterTypeCredentialKeyCorrectnessProof.lower(`correctnessProof`),
+        _status)
 }
         }.let {
             FfiConverterTypeCredentialOffer.lift(it)
         }
     
+    
     @Throws(AnoncredsException::class)override fun `createCredential`(`credDef`: CredentialDefinition, `credDefPrivate`: CredentialDefinitionPrivate, `credOffer`: CredentialOffer, `credRequest`: CredentialRequest, `credValues`: List<AttributeValues>, `revRegId`: RevocationRegistryId?, `revStatusList`: RevocationStatusList?, `revocationConfig`: CredentialRevocationConfig?): Credential =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Issuer_create_credential(it, FfiConverterTypeCredentialDefinition.lower(`credDef`), FfiConverterTypeCredentialDefinitionPrivate.lower(`credDefPrivate`), FfiConverterTypeCredentialOffer.lower(`credOffer`), FfiConverterTypeCredentialRequest.lower(`credRequest`), FfiConverterSequenceTypeAttributeValues.lower(`credValues`), FfiConverterOptionalTypeRevocationRegistryId.lower(`revRegId`), FfiConverterOptionalTypeRevocationStatusList.lower(`revStatusList`), FfiConverterOptionalTypeCredentialRevocationConfig.lower(`revocationConfig`),  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_issuer_create_credential(it,
+        FfiConverterTypeCredentialDefinition.lower(`credDef`),FfiConverterTypeCredentialDefinitionPrivate.lower(`credDefPrivate`),FfiConverterTypeCredentialOffer.lower(`credOffer`),FfiConverterTypeCredentialRequest.lower(`credRequest`),FfiConverterSequenceTypeAttributeValues.lower(`credValues`),FfiConverterOptionalTypeRevocationRegistryId.lower(`revRegId`),FfiConverterOptionalTypeRevocationStatusList.lower(`revStatusList`),FfiConverterOptionalTypeCredentialRevocationConfig.lower(`revocationConfig`),
+        _status)
 }
         }.let {
             FfiConverterTypeCredential.lift(it)
         }
+    
     
 
     
@@ -1653,11 +2055,8 @@ public object FfiConverterTypeIssuer: FfiConverter<Issuer, Pointer> {
 
 public interface LinkSecretInterface {
     
-    fun `getBigNumber`(): String
-    
-    @Throws(AnoncredsException::class)
-    fun `getJson`(): String
-    
+    fun `getBigNumber`(): String@Throws(AnoncredsException::class)
+    fun `getValue`(): String
 }
 
 class LinkSecret(
@@ -1666,7 +2065,7 @@ class LinkSecret(
     constructor() :
         this(
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_LinkSecret_new( _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_linksecret_new(_status)
 })
 
     /**
@@ -1679,34 +2078,40 @@ class LinkSecret(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_LinkSecret_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_linksecret(this.pointer, status)
         }
     }
 
     override fun `getBigNumber`(): String =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_LinkSecret_get_big_number(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_linksecret_get_big_number(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
     
-    @Throws(AnoncredsException::class)override fun `getJson`(): String =
+    
+    @Throws(AnoncredsException::class)override fun `getValue`(): String =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_LinkSecret_get_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_linksecret_get_value(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     
 
     companion object {
-        fun `newFromJson`(`jsonString`: String): LinkSecret =
+        fun `newFromValue`(`valueString`: String): LinkSecret =
             LinkSecret(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_LinkSecret_new_from_json(FfiConverterString.lower(`jsonString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_linksecret_new_from_value(FfiConverterString.lower(`valueString`),_status)
 })
         
     }
@@ -1739,10 +2144,8 @@ public object FfiConverterTypeLinkSecret: FfiConverter<LinkSecret, Pointer> {
 
 
 public interface NonceInterface {
-    
     @Throws(AnoncredsException::class)
     fun `getValue`(): String
-    
 }
 
 class Nonce(
@@ -1751,7 +2154,7 @@ class Nonce(
     constructor() :
         this(
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Nonce_new( _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_nonce_new(_status)
 })
 
     /**
@@ -1764,7 +2167,7 @@ class Nonce(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_Nonce_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_nonce(this.pointer, status)
         }
     }
 
@@ -1772,18 +2175,21 @@ class Nonce(
     @Throws(AnoncredsException::class)override fun `getValue`(): String =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Nonce_get_value(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_nonce_get_value(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     
 
     companion object {
         fun `newFromValue`(`valueString`: String): Nonce =
             Nonce(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Nonce_new_from_value(FfiConverterString.lower(`valueString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_nonce_new_from_value(FfiConverterString.lower(`valueString`),_status)
 })
         
     }
@@ -1815,25 +2221,18 @@ public object FfiConverterTypeNonce: FfiConverter<Nonce, Pointer> {
 
 
 
-public interface ProverInterface {
-    
+public interface PresentationInterface {
     @Throws(AnoncredsException::class)
-    fun `createCredentialRequest`(`entropy`: String?, `proverDid`: String?, `credDef`: CredentialDefinition, `linkSecret`: LinkSecret, `linkSecretId`: String, `credentialOffer`: CredentialOffer): CreateCrendentialRequestResponse
-    
-    @Throws(AnoncredsException::class)
-    fun `processCredential`(`credential`: Credential, `credRequestMetadata`: CredentialRequestMetadata, `linkSecret`: LinkSecret, `credDef`: CredentialDefinition, `revRegDef`: RevocationRegistryDefinition?)
-    
-    fun `createLinkSecret`(): LinkSecret
-    
+    fun `getJson`(): String
 }
 
-class Prover(
+class Presentation(
     pointer: Pointer
-) : FFIObject(pointer), ProverInterface {
-    constructor() :
+) : FFIObject(pointer), PresentationInterface {
+    constructor(`jsonString`: String) :
         this(
-    rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Prover_new( _status)
+    rustCallWithError(AnoncredsException) { _status ->
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_presentation_new(FfiConverterString.lower(`jsonString`),_status)
 })
 
     /**
@@ -1846,7 +2245,150 @@ class Prover(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_Prover_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_presentation(this.pointer, status)
+        }
+    }
+
+    
+    @Throws(AnoncredsException::class)override fun `getJson`(): String =
+        callWithPointer {
+    rustCallWithError(AnoncredsException) { _status ->
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_presentation_get_json(it,
+        
+        _status)
+}
+        }.let {
+            FfiConverterString.lift(it)
+        }
+    
+    
+
+    
+}
+
+public object FfiConverterTypePresentation: FfiConverter<Presentation, Pointer> {
+    override fun lower(value: Presentation): Pointer = value.callWithPointer { it }
+
+    override fun lift(value: Pointer): Presentation {
+        return Presentation(value)
+    }
+
+    override fun read(buf: ByteBuffer): Presentation {
+        // The Rust code always writes pointers as 8 bytes, and will
+        // fail to compile if they don't fit.
+        return lift(Pointer(buf.getLong()))
+    }
+
+    override fun allocationSize(value: Presentation) = 8
+
+    override fun write(value: Presentation, buf: ByteBuffer) {
+        // The Rust code always expects pointers written as 8 bytes,
+        // and will fail to compile if they don't fit.
+        buf.putLong(Pointer.nativeValue(lower(value)))
+    }
+}
+
+
+
+
+public interface PresentationRequestInterface {
+    @Throws(AnoncredsException::class)
+    fun `getJson`(): String
+}
+
+class PresentationRequest(
+    pointer: Pointer
+) : FFIObject(pointer), PresentationRequestInterface {
+    constructor(`jsonString`: String) :
+        this(
+    rustCallWithError(AnoncredsException) { _status ->
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_presentationrequest_new(FfiConverterString.lower(`jsonString`),_status)
+})
+
+    /**
+     * Disconnect the object from the underlying Rust object.
+     *
+     * It can be called more than once, but once called, interacting with the object
+     * causes an `IllegalStateException`.
+     *
+     * Clients **must** call this method once done with the object, or cause a memory leak.
+     */
+    override protected fun freeRustArcPtr() {
+        rustCall() { status ->
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_presentationrequest(this.pointer, status)
+        }
+    }
+
+    
+    @Throws(AnoncredsException::class)override fun `getJson`(): String =
+        callWithPointer {
+    rustCallWithError(AnoncredsException) { _status ->
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_presentationrequest_get_json(it,
+        
+        _status)
+}
+        }.let {
+            FfiConverterString.lift(it)
+        }
+    
+    
+
+    
+}
+
+public object FfiConverterTypePresentationRequest: FfiConverter<PresentationRequest, Pointer> {
+    override fun lower(value: PresentationRequest): Pointer = value.callWithPointer { it }
+
+    override fun lift(value: Pointer): PresentationRequest {
+        return PresentationRequest(value)
+    }
+
+    override fun read(buf: ByteBuffer): PresentationRequest {
+        // The Rust code always writes pointers as 8 bytes, and will
+        // fail to compile if they don't fit.
+        return lift(Pointer(buf.getLong()))
+    }
+
+    override fun allocationSize(value: PresentationRequest) = 8
+
+    override fun write(value: PresentationRequest, buf: ByteBuffer) {
+        // The Rust code always expects pointers written as 8 bytes,
+        // and will fail to compile if they don't fit.
+        buf.putLong(Pointer.nativeValue(lower(value)))
+    }
+}
+
+
+
+
+public interface ProverInterface {
+    @Throws(AnoncredsException::class)
+    fun `createCredentialRequest`(`entropy`: String?, `proverDid`: String?, `credDef`: CredentialDefinition, `linkSecret`: LinkSecret, `linkSecretId`: String, `credentialOffer`: CredentialOffer): CreateCrendentialRequestResponse@Throws(AnoncredsException::class)
+    fun `processCredential`(`credential`: Credential, `credRequestMetadata`: CredentialRequestMetadata, `linkSecret`: LinkSecret, `credDef`: CredentialDefinition, `revRegDef`: RevocationRegistryDefinition?)@Throws(AnoncredsException::class)
+    fun `createPresentation`(`presentationRequest`: PresentationRequest, `credentials`: List<CredentialRequests>, `selfAttested`: Map<String, String>?, `linkSecret`: LinkSecret, `schemas`: Map<SchemaId, Schema>, `credentialDefinitions`: Map<CredentialDefinitionId, CredentialDefinition>): Presentation
+    fun `createLinkSecret`(): LinkSecret
+}
+
+class Prover(
+    pointer: Pointer
+) : FFIObject(pointer), ProverInterface {
+    constructor() :
+        this(
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_prover_new(_status)
+})
+
+    /**
+     * Disconnect the object from the underlying Rust object.
+     *
+     * It can be called more than once, but once called, interacting with the object
+     * causes an `IllegalStateException`.
+     *
+     * Clients **must** call this method once done with the object, or cause a memory leak.
+     */
+    override protected fun freeRustArcPtr() {
+        rustCall() { status ->
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_prover(this.pointer, status)
         }
     }
 
@@ -1854,27 +2396,48 @@ class Prover(
     @Throws(AnoncredsException::class)override fun `createCredentialRequest`(`entropy`: String?, `proverDid`: String?, `credDef`: CredentialDefinition, `linkSecret`: LinkSecret, `linkSecretId`: String, `credentialOffer`: CredentialOffer): CreateCrendentialRequestResponse =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Prover_create_credential_request(it, FfiConverterOptionalString.lower(`entropy`), FfiConverterOptionalString.lower(`proverDid`), FfiConverterTypeCredentialDefinition.lower(`credDef`), FfiConverterTypeLinkSecret.lower(`linkSecret`), FfiConverterString.lower(`linkSecretId`), FfiConverterTypeCredentialOffer.lower(`credentialOffer`),  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_prover_create_credential_request(it,
+        FfiConverterOptionalString.lower(`entropy`),FfiConverterOptionalString.lower(`proverDid`),FfiConverterTypeCredentialDefinition.lower(`credDef`),FfiConverterTypeLinkSecret.lower(`linkSecret`),FfiConverterString.lower(`linkSecretId`),FfiConverterTypeCredentialOffer.lower(`credentialOffer`),
+        _status)
 }
         }.let {
             FfiConverterTypeCreateCrendentialRequestResponse.lift(it)
         }
     
+    
     @Throws(AnoncredsException::class)override fun `processCredential`(`credential`: Credential, `credRequestMetadata`: CredentialRequestMetadata, `linkSecret`: LinkSecret, `credDef`: CredentialDefinition, `revRegDef`: RevocationRegistryDefinition?) =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Prover_process_credential(it, FfiConverterTypeCredential.lower(`credential`), FfiConverterTypeCredentialRequestMetadata.lower(`credRequestMetadata`), FfiConverterTypeLinkSecret.lower(`linkSecret`), FfiConverterTypeCredentialDefinition.lower(`credDef`), FfiConverterOptionalTypeRevocationRegistryDefinition.lower(`revRegDef`),  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_prover_process_credential(it,
+        FfiConverterTypeCredential.lower(`credential`),FfiConverterTypeCredentialRequestMetadata.lower(`credRequestMetadata`),FfiConverterTypeLinkSecret.lower(`linkSecret`),FfiConverterTypeCredentialDefinition.lower(`credDef`),FfiConverterOptionalTypeRevocationRegistryDefinition.lower(`revRegDef`),
+        _status)
 }
+        }
+    
+    
+    
+    @Throws(AnoncredsException::class)override fun `createPresentation`(`presentationRequest`: PresentationRequest, `credentials`: List<CredentialRequests>, `selfAttested`: Map<String, String>?, `linkSecret`: LinkSecret, `schemas`: Map<SchemaId, Schema>, `credentialDefinitions`: Map<CredentialDefinitionId, CredentialDefinition>): Presentation =
+        callWithPointer {
+    rustCallWithError(AnoncredsException) { _status ->
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_prover_create_presentation(it,
+        FfiConverterTypePresentationRequest.lower(`presentationRequest`),FfiConverterSequenceTypeCredentialRequests.lower(`credentials`),FfiConverterOptionalMapStringString.lower(`selfAttested`),FfiConverterTypeLinkSecret.lower(`linkSecret`),FfiConverterMapTypeSchemaIdTypeSchema.lower(`schemas`),FfiConverterMapTypeCredentialDefinitionIdTypeCredentialDefinition.lower(`credentialDefinitions`),
+        _status)
+}
+        }.let {
+            FfiConverterTypePresentation.lift(it)
         }
     
     override fun `createLinkSecret`(): LinkSecret =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_Prover_create_link_secret(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_prover_create_link_secret(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeLinkSecret.lift(it)
         }
+    
     
 
     
@@ -1908,16 +2471,10 @@ public object FfiConverterTypeProver: FfiConverter<Prover, Pointer> {
 public interface RevocationRegistryDefinitionInterface {
     
     fun `getIssuerId`(): IssuerId
-    
     fun `getTag`(): String
-    
     fun `getCredDefId`(): CredentialDefinitionId
-    
-    fun `getValue`(): RevocationRegistryDefinitionValue
-    
-    @Throws(AnoncredsException::class)
+    fun `getValue`(): RevocationRegistryDefinitionValue@Throws(AnoncredsException::class)
     fun `getJson`(): String
-    
 }
 
 class RevocationRegistryDefinition(
@@ -1926,7 +2483,7 @@ class RevocationRegistryDefinition(
     constructor(`jsonString`: String) :
         this(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinition_new(FfiConverterString.lower(`jsonString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_revocationregistrydefinition_new(FfiConverterString.lower(`jsonString`),_status)
 })
 
     /**
@@ -1939,51 +2496,66 @@ class RevocationRegistryDefinition(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_RevocationRegistryDefinition_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_revocationregistrydefinition(this.pointer, status)
         }
     }
 
     override fun `getIssuerId`(): IssuerId =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinition_get_issuer_id(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_revocationregistrydefinition_get_issuer_id(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeIssuerId.lift(it)
         }
+    
     override fun `getTag`(): String =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinition_get_tag(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_revocationregistrydefinition_get_tag(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     override fun `getCredDefId`(): CredentialDefinitionId =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinition_get_cred_def_id(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_revocationregistrydefinition_get_cred_def_id(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeCredentialDefinitionId.lift(it)
         }
+    
     override fun `getValue`(): RevocationRegistryDefinitionValue =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinition_get_value(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_revocationregistrydefinition_get_value(it,
+        
+        _status)
 }
         }.let {
             FfiConverterTypeRevocationRegistryDefinitionValue.lift(it)
         }
     
+    
     @Throws(AnoncredsException::class)override fun `getJson`(): String =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinition_get_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_revocationregistrydefinition_get_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     
 
     
@@ -2015,10 +2587,8 @@ public object FfiConverterTypeRevocationRegistryDefinition: FfiConverter<Revocat
 
 
 public interface RevocationRegistryDefinitionPrivateInterface {
-    
     @Throws(AnoncredsException::class)
     fun `getJson`(): String
-    
 }
 
 class RevocationRegistryDefinitionPrivate(
@@ -2027,7 +2597,7 @@ class RevocationRegistryDefinitionPrivate(
     constructor(`jsonString`: String) :
         this(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinitionPrivate_new(FfiConverterString.lower(`jsonString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_revocationregistrydefinitionprivate_new(FfiConverterString.lower(`jsonString`),_status)
 })
 
     /**
@@ -2040,7 +2610,7 @@ class RevocationRegistryDefinitionPrivate(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_RevocationRegistryDefinitionPrivate_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_revocationregistrydefinitionprivate(this.pointer, status)
         }
     }
 
@@ -2048,11 +2618,14 @@ class RevocationRegistryDefinitionPrivate(
     @Throws(AnoncredsException::class)override fun `getJson`(): String =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinitionPrivate_get_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_revocationregistrydefinitionprivate_get_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     
 
     
@@ -2086,14 +2659,9 @@ public object FfiConverterTypeRevocationRegistryDefinitionPrivate: FfiConverter<
 public interface RevocationRegistryDefinitionValueInterface {
     
     fun `getMaxCredNum`(): UInt
-    
     fun `getTailsHash`(): String
-    
-    fun `getTailsLocation`(): String
-    
-    @Throws(AnoncredsException::class)
+    fun `getTailsLocation`(): String@Throws(AnoncredsException::class)
     fun `getJson`(): String
-    
 }
 
 class RevocationRegistryDefinitionValue(
@@ -2102,7 +2670,7 @@ class RevocationRegistryDefinitionValue(
     constructor(`jsonString`: String) :
         this(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinitionValue_new(FfiConverterString.lower(`jsonString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_revocationregistrydefinitionvalue_new(FfiConverterString.lower(`jsonString`),_status)
 })
 
     /**
@@ -2115,43 +2683,55 @@ class RevocationRegistryDefinitionValue(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_RevocationRegistryDefinitionValue_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_revocationregistrydefinitionvalue(this.pointer, status)
         }
     }
 
     override fun `getMaxCredNum`(): UInt =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinitionValue_get_max_cred_num(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_revocationregistrydefinitionvalue_get_max_cred_num(it,
+        
+        _status)
 }
         }.let {
             FfiConverterUInt.lift(it)
         }
+    
     override fun `getTailsHash`(): String =
         callWithPointer {
     rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinitionValue_get_tails_hash(it,  _status)
-}
-        }.let {
-            FfiConverterString.lift(it)
-        }
-    override fun `getTailsLocation`(): String =
-        callWithPointer {
-    rustCall() { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinitionValue_get_tails_location(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_revocationregistrydefinitionvalue_get_tails_hash(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
     
-    @Throws(AnoncredsException::class)override fun `getJson`(): String =
+    override fun `getTailsLocation`(): String =
         callWithPointer {
-    rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinitionValue_get_json(it,  _status)
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_revocationregistrydefinitionvalue_get_tails_location(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
+    
+    @Throws(AnoncredsException::class)override fun `getJson`(): String =
+        callWithPointer {
+    rustCallWithError(AnoncredsException) { _status ->
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_revocationregistrydefinitionvalue_get_json(it,
+        
+        _status)
+}
+        }.let {
+            FfiConverterString.lift(it)
+        }
+    
     
 
     
@@ -2183,10 +2763,8 @@ public object FfiConverterTypeRevocationRegistryDefinitionValue: FfiConverter<Re
 
 
 public interface RevocationRegistryDefinitionValuePublicKeysInterface {
-    
     @Throws(AnoncredsException::class)
     fun `getJson`(): String
-    
 }
 
 class RevocationRegistryDefinitionValuePublicKeys(
@@ -2195,7 +2773,7 @@ class RevocationRegistryDefinitionValuePublicKeys(
     constructor(`jsonString`: String) :
         this(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinitionValuePublicKeys_new(FfiConverterString.lower(`jsonString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_revocationregistrydefinitionvaluepublickeys_new(FfiConverterString.lower(`jsonString`),_status)
 })
 
     /**
@@ -2208,7 +2786,7 @@ class RevocationRegistryDefinitionValuePublicKeys(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_RevocationRegistryDefinitionValuePublicKeys_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_revocationregistrydefinitionvaluepublickeys(this.pointer, status)
         }
     }
 
@@ -2216,11 +2794,14 @@ class RevocationRegistryDefinitionValuePublicKeys(
     @Throws(AnoncredsException::class)override fun `getJson`(): String =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationRegistryDefinitionValuePublicKeys_get_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_revocationregistrydefinitionvaluepublickeys_get_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     
 
     
@@ -2252,10 +2833,8 @@ public object FfiConverterTypeRevocationRegistryDefinitionValuePublicKeys: FfiCo
 
 
 public interface RevocationStatusListInterface {
-    
     @Throws(AnoncredsException::class)
     fun `getJson`(): String
-    
 }
 
 class RevocationStatusList(
@@ -2264,7 +2843,7 @@ class RevocationStatusList(
     constructor(`jsonString`: String) :
         this(
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationStatusList_new(FfiConverterString.lower(`jsonString`), _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_revocationstatuslist_new(FfiConverterString.lower(`jsonString`),_status)
 })
 
     /**
@@ -2277,7 +2856,7 @@ class RevocationStatusList(
      */
     override protected fun freeRustArcPtr() {
         rustCall() { status ->
-            _UniFFILib.INSTANCE.ffi_anoncreds_d8c0_RevocationStatusList_object_free(this.pointer, status)
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_revocationstatuslist(this.pointer, status)
         }
     }
 
@@ -2285,11 +2864,14 @@ class RevocationStatusList(
     @Throws(AnoncredsException::class)override fun `getJson`(): String =
         callWithPointer {
     rustCallWithError(AnoncredsException) { _status ->
-    _UniFFILib.INSTANCE.anoncreds_d8c0_RevocationStatusList_get_json(it,  _status)
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_revocationstatuslist_get_json(it,
+        
+        _status)
 }
         }.let {
             FfiConverterString.lift(it)
         }
+    
     
 
     
@@ -2311,6 +2893,76 @@ public object FfiConverterTypeRevocationStatusList: FfiConverter<RevocationStatu
     override fun allocationSize(value: RevocationStatusList) = 8
 
     override fun write(value: RevocationStatusList, buf: ByteBuffer) {
+        // The Rust code always expects pointers written as 8 bytes,
+        // and will fail to compile if they don't fit.
+        buf.putLong(Pointer.nativeValue(lower(value)))
+    }
+}
+
+
+
+
+public interface VerifierInterface {
+    @Throws(AnoncredsException::class)
+    fun `verifyPresentation`(`presentation`: Presentation, `presentationRequest`: PresentationRequest, `schemas`: Map<SchemaId, Schema>, `credentialDefinitions`: Map<CredentialDefinitionId, CredentialDefinition>): Boolean
+}
+
+class Verifier(
+    pointer: Pointer
+) : FFIObject(pointer), VerifierInterface {
+    constructor() :
+        this(
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_constructor_verifier_new(_status)
+})
+
+    /**
+     * Disconnect the object from the underlying Rust object.
+     *
+     * It can be called more than once, but once called, interacting with the object
+     * causes an `IllegalStateException`.
+     *
+     * Clients **must** call this method once done with the object, or cause a memory leak.
+     */
+    override protected fun freeRustArcPtr() {
+        rustCall() { status ->
+            _UniFFILib.INSTANCE.uniffi_anoncreds_fn_free_verifier(this.pointer, status)
+        }
+    }
+
+    
+    @Throws(AnoncredsException::class)override fun `verifyPresentation`(`presentation`: Presentation, `presentationRequest`: PresentationRequest, `schemas`: Map<SchemaId, Schema>, `credentialDefinitions`: Map<CredentialDefinitionId, CredentialDefinition>): Boolean =
+        callWithPointer {
+    rustCallWithError(AnoncredsException) { _status ->
+    _UniFFILib.INSTANCE.uniffi_anoncreds_fn_method_verifier_verify_presentation(it,
+        FfiConverterTypePresentation.lower(`presentation`),FfiConverterTypePresentationRequest.lower(`presentationRequest`),FfiConverterMapTypeSchemaIdTypeSchema.lower(`schemas`),FfiConverterMapTypeCredentialDefinitionIdTypeCredentialDefinition.lower(`credentialDefinitions`),
+        _status)
+}
+        }.let {
+            FfiConverterBoolean.lift(it)
+        }
+    
+    
+
+    
+}
+
+public object FfiConverterTypeVerifier: FfiConverter<Verifier, Pointer> {
+    override fun lower(value: Verifier): Pointer = value.callWithPointer { it }
+
+    override fun lift(value: Pointer): Verifier {
+        return Verifier(value)
+    }
+
+    override fun read(buf: ByteBuffer): Verifier {
+        // The Rust code always writes pointers as 8 bytes, and will
+        // fail to compile if they don't fit.
+        return lift(Pointer(buf.getLong()))
+    }
+
+    override fun allocationSize(value: Verifier) = 8
+
+    override fun write(value: Verifier, buf: ByteBuffer) {
         // The Rust code always expects pointers written as 8 bytes,
         // and will fail to compile if they don't fit.
         buf.putLong(Pointer.nativeValue(lower(value)))
@@ -2482,6 +3134,48 @@ public object FfiConverterTypeCredentialRequestMetadata: FfiConverterRustBuffer<
 
 
 
+data class CredentialRequests (
+    var `credential`: Credential, 
+    var `requestedAttribute`: List<RequestedAttribute>, 
+    var `requestedPredicate`: List<RequestedPredicate>
+) : Disposable {
+    
+    @Suppress("UNNECESSARY_SAFE_CALL") // codegen is much simpler if we unconditionally emit safe calls here
+    override fun destroy() {
+        
+    Disposable.destroy(
+        this.`credential`, 
+        this.`requestedAttribute`, 
+        this.`requestedPredicate`)
+    }
+    
+}
+
+public object FfiConverterTypeCredentialRequests: FfiConverterRustBuffer<CredentialRequests> {
+    override fun read(buf: ByteBuffer): CredentialRequests {
+        return CredentialRequests(
+            FfiConverterTypeCredential.read(buf),
+            FfiConverterSequenceTypeRequestedAttribute.read(buf),
+            FfiConverterSequenceTypeRequestedPredicate.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: CredentialRequests) = (
+            FfiConverterTypeCredential.allocationSize(value.`credential`) +
+            FfiConverterSequenceTypeRequestedAttribute.allocationSize(value.`requestedAttribute`) +
+            FfiConverterSequenceTypeRequestedPredicate.allocationSize(value.`requestedPredicate`)
+    )
+
+    override fun write(value: CredentialRequests, buf: ByteBuffer) {
+            FfiConverterTypeCredential.write(value.`credential`, buf)
+            FfiConverterSequenceTypeRequestedAttribute.write(value.`requestedAttribute`, buf)
+            FfiConverterSequenceTypeRequestedPredicate.write(value.`requestedPredicate`, buf)
+    }
+}
+
+
+
+
 data class CredentialRevocationConfig (
     var `regDef`: RevocationRegistryDefinition, 
     var `regDefPrivate`: RevocationRegistryDefinitionPrivate, 
@@ -2533,16 +3227,16 @@ data class CredentialValues (
 public object FfiConverterTypeCredentialValues: FfiConverterRustBuffer<CredentialValues> {
     override fun read(buf: ByteBuffer): CredentialValues {
         return CredentialValues(
-            FfiConverterMapStringAttributeValues.read(buf),
+            FfiConverterMapStringTypeAttributeValues.read(buf),
         )
     }
 
     override fun allocationSize(value: CredentialValues) = (
-            FfiConverterMapStringAttributeValues.allocationSize(value.`values`)
+            FfiConverterMapStringTypeAttributeValues.allocationSize(value.`values`)
     )
 
     override fun write(value: CredentialValues, buf: ByteBuffer) {
-            FfiConverterMapStringAttributeValues.write(value.`values`, buf)
+            FfiConverterMapStringTypeAttributeValues.write(value.`values`, buf)
     }
 }
 
@@ -2628,6 +3322,60 @@ public object FfiConverterTypeIssuerCreateRevocationRegistryDefReturn: FfiConver
 
 
 
+data class RequestedAttribute (
+    var `referent`: String, 
+    var `revealed`: Boolean
+) {
+    
+}
+
+public object FfiConverterTypeRequestedAttribute: FfiConverterRustBuffer<RequestedAttribute> {
+    override fun read(buf: ByteBuffer): RequestedAttribute {
+        return RequestedAttribute(
+            FfiConverterString.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RequestedAttribute) = (
+            FfiConverterString.allocationSize(value.`referent`) +
+            FfiConverterBoolean.allocationSize(value.`revealed`)
+    )
+
+    override fun write(value: RequestedAttribute, buf: ByteBuffer) {
+            FfiConverterString.write(value.`referent`, buf)
+            FfiConverterBoolean.write(value.`revealed`, buf)
+    }
+}
+
+
+
+
+data class RequestedPredicate (
+    var `referent`: String
+) {
+    
+}
+
+public object FfiConverterTypeRequestedPredicate: FfiConverterRustBuffer<RequestedPredicate> {
+    override fun read(buf: ByteBuffer): RequestedPredicate {
+        return RequestedPredicate(
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RequestedPredicate) = (
+            FfiConverterString.allocationSize(value.`referent`)
+    )
+
+    override fun write(value: RequestedPredicate, buf: ByteBuffer) {
+            FfiConverterString.write(value.`referent`, buf)
+    }
+}
+
+
+
+
 data class Schema (
     var `name`: String, 
     var `version`: String, 
@@ -2660,6 +3408,118 @@ public object FfiConverterTypeSchema: FfiConverterRustBuffer<Schema> {
             FfiConverterTypeAttributeNames.write(value.`attrNames`, buf)
             FfiConverterTypeIssuerId.write(value.`issuerId`, buf)
     }
+}
+
+
+
+
+
+sealed class AnoncredsException(message: String): Exception(message) {
+        // Each variant is a nested class
+        // Flat enums carries a string error message, so no special implementation is necessary.
+        class ConversionException(message: String) : AnoncredsException(message)
+        class SomethingWentWrong(message: String) : AnoncredsException(message)
+        class CreateCrentialRequestException(message: String) : AnoncredsException(message)
+        class CreateSchemaException(message: String) : AnoncredsException(message)
+        class CreateCredentialDefinition(message: String) : AnoncredsException(message)
+        class CreateRevocationRegistryDef(message: String) : AnoncredsException(message)
+        class CreateRevocationStatusList(message: String) : AnoncredsException(message)
+        class UpdateRevocationStatusList(message: String) : AnoncredsException(message)
+        class CreateCredentialOffer(message: String) : AnoncredsException(message)
+        class CreateCredential(message: String) : AnoncredsException(message)
+        class ProcessCredential(message: String) : AnoncredsException(message)
+        class CreatePresentationException(message: String) : AnoncredsException(message)
+        class ProcessCredentialException(message: String) : AnoncredsException(message)
+        
+
+    companion object ErrorHandler : CallStatusErrorHandler<AnoncredsException> {
+        override fun lift(error_buf: RustBuffer.ByValue): AnoncredsException = FfiConverterTypeAnoncredsError.lift(error_buf)
+    }
+}
+
+public object FfiConverterTypeAnoncredsError : FfiConverterRustBuffer<AnoncredsException> {
+    override fun read(buf: ByteBuffer): AnoncredsException {
+        
+            return when(buf.getInt()) {
+            1 -> AnoncredsException.ConversionException(FfiConverterString.read(buf))
+            2 -> AnoncredsException.SomethingWentWrong(FfiConverterString.read(buf))
+            3 -> AnoncredsException.CreateCrentialRequestException(FfiConverterString.read(buf))
+            4 -> AnoncredsException.CreateSchemaException(FfiConverterString.read(buf))
+            5 -> AnoncredsException.CreateCredentialDefinition(FfiConverterString.read(buf))
+            6 -> AnoncredsException.CreateRevocationRegistryDef(FfiConverterString.read(buf))
+            7 -> AnoncredsException.CreateRevocationStatusList(FfiConverterString.read(buf))
+            8 -> AnoncredsException.UpdateRevocationStatusList(FfiConverterString.read(buf))
+            9 -> AnoncredsException.CreateCredentialOffer(FfiConverterString.read(buf))
+            10 -> AnoncredsException.CreateCredential(FfiConverterString.read(buf))
+            11 -> AnoncredsException.ProcessCredential(FfiConverterString.read(buf))
+            12 -> AnoncredsException.CreatePresentationException(FfiConverterString.read(buf))
+            13 -> AnoncredsException.ProcessCredentialException(FfiConverterString.read(buf))
+            else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
+        }
+        
+    }
+
+    override fun allocationSize(value: AnoncredsException): Int {
+        return 4
+    }
+
+    override fun write(value: AnoncredsException, buf: ByteBuffer) {
+        when(value) {
+            is AnoncredsException.ConversionException -> {
+                buf.putInt(1)
+                Unit
+            }
+            is AnoncredsException.SomethingWentWrong -> {
+                buf.putInt(2)
+                Unit
+            }
+            is AnoncredsException.CreateCrentialRequestException -> {
+                buf.putInt(3)
+                Unit
+            }
+            is AnoncredsException.CreateSchemaException -> {
+                buf.putInt(4)
+                Unit
+            }
+            is AnoncredsException.CreateCredentialDefinition -> {
+                buf.putInt(5)
+                Unit
+            }
+            is AnoncredsException.CreateRevocationRegistryDef -> {
+                buf.putInt(6)
+                Unit
+            }
+            is AnoncredsException.CreateRevocationStatusList -> {
+                buf.putInt(7)
+                Unit
+            }
+            is AnoncredsException.UpdateRevocationStatusList -> {
+                buf.putInt(8)
+                Unit
+            }
+            is AnoncredsException.CreateCredentialOffer -> {
+                buf.putInt(9)
+                Unit
+            }
+            is AnoncredsException.CreateCredential -> {
+                buf.putInt(10)
+                Unit
+            }
+            is AnoncredsException.ProcessCredential -> {
+                buf.putInt(11)
+                Unit
+            }
+            is AnoncredsException.CreatePresentationException -> {
+                buf.putInt(12)
+                Unit
+            }
+            is AnoncredsException.ProcessCredentialException -> {
+                buf.putInt(13)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+
 }
 
 
@@ -2707,63 +3567,6 @@ public object FfiConverterTypeSignatureType: FfiConverterRustBuffer<SignatureTyp
 }
 
 
-
-
-
-
-
-sealed class AnoncredsException(message: String): Exception(message) {
-        // Each variant is a nested class
-        // Flat enums carries a string error message, so no special implementation is necessary.
-        class ConversionException(message: String) : AnoncredsException(message)
-        class SomethingWentWrong(message: String) : AnoncredsException(message)
-        class CreateCrentialRequestException(message: String) : AnoncredsException(message)
-        class CreateSchemaException(message: String) : AnoncredsException(message)
-        class CreateCredentialDefinition(message: String) : AnoncredsException(message)
-        class CreateRevocationRegistryDef(message: String) : AnoncredsException(message)
-        class CreateRevocationStatusList(message: String) : AnoncredsException(message)
-        class UpdateRevocationStatusList(message: String) : AnoncredsException(message)
-        class CreateCredentialOffer(message: String) : AnoncredsException(message)
-        class CreateCredential(message: String) : AnoncredsException(message)
-        class ProcessCredential(message: String) : AnoncredsException(message)
-        
-
-    companion object ErrorHandler : CallStatusErrorHandler<AnoncredsException> {
-        override fun lift(error_buf: RustBuffer.ByValue): AnoncredsException = FfiConverterTypeAnoncredsError.lift(error_buf)
-    }
-}
-
-public object FfiConverterTypeAnoncredsError : FfiConverterRustBuffer<AnoncredsException> {
-    override fun read(buf: ByteBuffer): AnoncredsException {
-        
-            return when(buf.getInt()) {
-            1 -> AnoncredsException.ConversionException(FfiConverterString.read(buf))
-            2 -> AnoncredsException.SomethingWentWrong(FfiConverterString.read(buf))
-            3 -> AnoncredsException.CreateCrentialRequestException(FfiConverterString.read(buf))
-            4 -> AnoncredsException.CreateSchemaException(FfiConverterString.read(buf))
-            5 -> AnoncredsException.CreateCredentialDefinition(FfiConverterString.read(buf))
-            6 -> AnoncredsException.CreateRevocationRegistryDef(FfiConverterString.read(buf))
-            7 -> AnoncredsException.CreateRevocationStatusList(FfiConverterString.read(buf))
-            8 -> AnoncredsException.UpdateRevocationStatusList(FfiConverterString.read(buf))
-            9 -> AnoncredsException.CreateCredentialOffer(FfiConverterString.read(buf))
-            10 -> AnoncredsException.CreateCredential(FfiConverterString.read(buf))
-            11 -> AnoncredsException.ProcessCredential(FfiConverterString.read(buf))
-            else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
-        }
-        
-    }
-
-    @Suppress("UNUSED_PARAMETER")
-    override fun allocationSize(value: AnoncredsException): Int {
-        throw RuntimeException("Writing Errors is not supported")
-    }
-
-    @Suppress("UNUSED_PARAMETER")
-    override fun write(value: AnoncredsException, buf: ByteBuffer) {
-        throw RuntimeException("Writing Errors is not supported")
-    }
-
-}
 
 
 
@@ -2942,6 +3745,35 @@ public object FfiConverterOptionalSequenceUInt: FfiConverterRustBuffer<List<UInt
 
 
 
+public object FfiConverterOptionalMapStringString: FfiConverterRustBuffer<Map<String, String>?> {
+    override fun read(buf: ByteBuffer): Map<String, String>? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterMapStringString.read(buf)
+    }
+
+    override fun allocationSize(value: Map<String, String>?): Int {
+        if (value == null) {
+            return 1
+        } else {
+            return 1 + FfiConverterMapStringString.allocationSize(value)
+        }
+    }
+
+    override fun write(value: Map<String, String>?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterMapStringString.write(value, buf)
+        }
+    }
+}
+
+
+
+
 public object FfiConverterOptionalTypeRevocationRegistryId: FfiConverterRustBuffer<RevocationRegistryId?> {
     override fun read(buf: ByteBuffer): RevocationRegistryId? {
         if (buf.get().toInt() == 0) {
@@ -3045,7 +3877,118 @@ public object FfiConverterSequenceTypeAttributeValues: FfiConverterRustBuffer<Li
 
 
 
-public object FfiConverterMapStringAttributeValues: FfiConverterRustBuffer<Map<String, AttributeValues>> {
+
+public object FfiConverterSequenceTypeCredentialRequests: FfiConverterRustBuffer<List<CredentialRequests>> {
+    override fun read(buf: ByteBuffer): List<CredentialRequests> {
+        val len = buf.getInt()
+        return List<CredentialRequests>(len) {
+            FfiConverterTypeCredentialRequests.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<CredentialRequests>): Int {
+        val sizeForLength = 4
+        val sizeForItems = value.map { FfiConverterTypeCredentialRequests.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<CredentialRequests>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.forEach {
+            FfiConverterTypeCredentialRequests.write(it, buf)
+        }
+    }
+}
+
+
+
+
+public object FfiConverterSequenceTypeRequestedAttribute: FfiConverterRustBuffer<List<RequestedAttribute>> {
+    override fun read(buf: ByteBuffer): List<RequestedAttribute> {
+        val len = buf.getInt()
+        return List<RequestedAttribute>(len) {
+            FfiConverterTypeRequestedAttribute.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<RequestedAttribute>): Int {
+        val sizeForLength = 4
+        val sizeForItems = value.map { FfiConverterTypeRequestedAttribute.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<RequestedAttribute>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.forEach {
+            FfiConverterTypeRequestedAttribute.write(it, buf)
+        }
+    }
+}
+
+
+
+
+public object FfiConverterSequenceTypeRequestedPredicate: FfiConverterRustBuffer<List<RequestedPredicate>> {
+    override fun read(buf: ByteBuffer): List<RequestedPredicate> {
+        val len = buf.getInt()
+        return List<RequestedPredicate>(len) {
+            FfiConverterTypeRequestedPredicate.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<RequestedPredicate>): Int {
+        val sizeForLength = 4
+        val sizeForItems = value.map { FfiConverterTypeRequestedPredicate.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<RequestedPredicate>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.forEach {
+            FfiConverterTypeRequestedPredicate.write(it, buf)
+        }
+    }
+}
+
+
+
+public object FfiConverterMapStringString: FfiConverterRustBuffer<Map<String, String>> {
+    override fun read(buf: ByteBuffer): Map<String, String> {
+        // TODO: Once Kotlin's `buildMap` API is stabilized we should use it here.
+        val items : MutableMap<String, String> = mutableMapOf()
+        val len = buf.getInt()
+        repeat(len) {
+            val k = FfiConverterString.read(buf)
+            val v = FfiConverterString.read(buf)
+            items[k] = v
+        }
+        return items
+    }
+
+    override fun allocationSize(value: Map<String, String>): Int {
+        val spaceForMapSize = 4
+        val spaceForChildren = value.map { (k, v) ->
+            FfiConverterString.allocationSize(k) +
+            FfiConverterString.allocationSize(v)
+        }.sum()
+        return spaceForMapSize + spaceForChildren
+    }
+
+    override fun write(value: Map<String, String>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        // The parens on `(k, v)` here ensure we're calling the right method,
+        // which is important for compatibility with older android devices.
+        // Ref https://blog.danlew.net/2017/03/16/kotlin-puzzler-whose-line-is-it-anyways/
+        value.forEach { (k, v) ->
+            FfiConverterString.write(k, buf)
+            FfiConverterString.write(v, buf)
+        }
+    }
+}
+
+
+
+public object FfiConverterMapStringTypeAttributeValues: FfiConverterRustBuffer<Map<String, AttributeValues>> {
     override fun read(buf: ByteBuffer): Map<String, AttributeValues> {
         // TODO: Once Kotlin's `buildMap` API is stabilized we should use it here.
         val items : MutableMap<String, AttributeValues> = mutableMapOf()
@@ -3075,6 +4018,78 @@ public object FfiConverterMapStringAttributeValues: FfiConverterRustBuffer<Map<S
         value.forEach { (k, v) ->
             FfiConverterString.write(k, buf)
             FfiConverterTypeAttributeValues.write(v, buf)
+        }
+    }
+}
+
+
+
+public object FfiConverterMapTypeCredentialDefinitionIdTypeCredentialDefinition: FfiConverterRustBuffer<Map<CredentialDefinitionId, CredentialDefinition>> {
+    override fun read(buf: ByteBuffer): Map<CredentialDefinitionId, CredentialDefinition> {
+        // TODO: Once Kotlin's `buildMap` API is stabilized we should use it here.
+        val items : MutableMap<CredentialDefinitionId, CredentialDefinition> = mutableMapOf()
+        val len = buf.getInt()
+        repeat(len) {
+            val k = FfiConverterTypeCredentialDefinitionId.read(buf)
+            val v = FfiConverterTypeCredentialDefinition.read(buf)
+            items[k] = v
+        }
+        return items
+    }
+
+    override fun allocationSize(value: Map<CredentialDefinitionId, CredentialDefinition>): Int {
+        val spaceForMapSize = 4
+        val spaceForChildren = value.map { (k, v) ->
+            FfiConverterTypeCredentialDefinitionId.allocationSize(k) +
+            FfiConverterTypeCredentialDefinition.allocationSize(v)
+        }.sum()
+        return spaceForMapSize + spaceForChildren
+    }
+
+    override fun write(value: Map<CredentialDefinitionId, CredentialDefinition>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        // The parens on `(k, v)` here ensure we're calling the right method,
+        // which is important for compatibility with older android devices.
+        // Ref https://blog.danlew.net/2017/03/16/kotlin-puzzler-whose-line-is-it-anyways/
+        value.forEach { (k, v) ->
+            FfiConverterTypeCredentialDefinitionId.write(k, buf)
+            FfiConverterTypeCredentialDefinition.write(v, buf)
+        }
+    }
+}
+
+
+
+public object FfiConverterMapTypeSchemaIdTypeSchema: FfiConverterRustBuffer<Map<SchemaId, Schema>> {
+    override fun read(buf: ByteBuffer): Map<SchemaId, Schema> {
+        // TODO: Once Kotlin's `buildMap` API is stabilized we should use it here.
+        val items : MutableMap<SchemaId, Schema> = mutableMapOf()
+        val len = buf.getInt()
+        repeat(len) {
+            val k = FfiConverterTypeSchemaId.read(buf)
+            val v = FfiConverterTypeSchema.read(buf)
+            items[k] = v
+        }
+        return items
+    }
+
+    override fun allocationSize(value: Map<SchemaId, Schema>): Int {
+        val spaceForMapSize = 4
+        val spaceForChildren = value.map { (k, v) ->
+            FfiConverterTypeSchemaId.allocationSize(k) +
+            FfiConverterTypeSchema.allocationSize(v)
+        }.sum()
+        return spaceForMapSize + spaceForChildren
+    }
+
+    override fun write(value: Map<SchemaId, Schema>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        // The parens on `(k, v)` here ensure we're calling the right method,
+        // which is important for compatibility with older android devices.
+        // Ref https://blog.danlew.net/2017/03/16/kotlin-puzzler-whose-line-is-it-anyways/
+        value.forEach { (k, v) ->
+            FfiConverterTypeSchemaId.write(k, buf)
+            FfiConverterTypeSchema.write(v, buf)
         }
     }
 }
@@ -3138,5 +4153,4 @@ public typealias FfiConverterTypeRevocationRegistryId = FfiConverterString
  */
 public typealias SchemaId = String
 public typealias FfiConverterTypeSchemaId = FfiConverterString
-
 
