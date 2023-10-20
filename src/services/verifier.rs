@@ -450,15 +450,19 @@ fn verify_revealed_attribute_values(
     Ok(())
 }
 
+fn normalize_encoded_attr(attr: &str) -> String {
+    attr.parse::<i32>()
+        .map(|a| a.to_string())
+        .unwrap_or(attr.to_owned())
+}
+
 fn verify_revealed_attribute_value(
     attr_name: &str,
     proof: &Presentation,
     attr_info: &RevealedAttributeInfo,
 ) -> Result<()> {
-    let reveal_attr_encoded = attr_info.encoded.to_string();
-    let reveal_attr_encoded = Regex::new("^0*")
-        .unwrap()
-        .replace_all(&reveal_attr_encoded, "");
+    let reveal_attr_encoded = normalize_encoded_attr(&attr_info.encoded);
+
     let sub_proof_index = attr_info.sub_proof_index as usize;
 
     let crypto_proof_encoded = proof
@@ -1192,5 +1196,17 @@ mod tests {
             },
         );
         res
+    }
+
+    #[test]
+    fn format_attribute() {
+        assert_eq!(normalize_encoded_attr(""), "");
+        assert_eq!(normalize_encoded_attr("abc"), "abc");
+        assert_eq!(normalize_encoded_attr("0"), "0");
+        assert_eq!(normalize_encoded_attr("01"), "1");
+        assert_eq!(normalize_encoded_attr("01.0"), "01.0");
+        assert_eq!(normalize_encoded_attr("0abc"), "0abc");
+        assert_eq!(normalize_encoded_attr("-100"), "-100");
+        assert_eq!(normalize_encoded_attr("-0100"), "-100");
     }
 }
