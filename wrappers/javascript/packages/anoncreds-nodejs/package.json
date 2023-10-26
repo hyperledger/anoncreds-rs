@@ -31,7 +31,6 @@
     "@2060.io/ref-napi": "3.0.6",
     "@hyperledger/anoncreds-shared": "workspace:*",
     "@mapbox/node-pre-gyp": "^1.0.11",
-    "node-cache": "5.1.2",
     "ref-array-di": "1.2.2",
     "ref-struct-di": "1.1.1"
   },
