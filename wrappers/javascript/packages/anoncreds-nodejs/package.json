@@ -1,6 +1,6 @@
 {
   "name": "@hyperledger/anoncreds-nodejs",
-  "version": "0.2.0-dev.2",
+  "version": "0.2.0-dev.3",
   "license": "Apache-2.0",
   "description": "Nodejs wrapper for Anoncreds",
   "main": "build/index",
@@ -23,8 +23,8 @@
     "check-types": "pnpm compile --noEmit",
     "build": "pnpm clean && pnpm compile",
     "clean": "rimraf -rf ./build",
-    "compile": "tsc",
-    "install": "node-pre-gyp install --target_arch=$(node scripts/arch.js) --target_platform=$(node scripts/platform.js)"
+    "compile": "tsc -p ./tsconfig.build.json",
+    "install": "node scripts/install.js"
   },
   "dependencies": {
     "@2060.io/ffi-napi": "4.0.8",

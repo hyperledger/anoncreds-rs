@@ -244,7 +244,12 @@ jobs:
         if: |
           github.event_name == 'release' ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-wrappers == 'true')
-        run: npx lerna publish from-package --no-push --no-private --yes --no-git-tag-version
+        run: |
+          if [[ $(cat lerna.json | grep version | head -1 | grep dev) ]]; then
+            npx lerna publish from-package --no-push --no-private --yes --no-git-tag-version --dist-tag=alpha
+          else
+            npx lerna publish from-package --no-push --no-private --yes --no-git-tag-version
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

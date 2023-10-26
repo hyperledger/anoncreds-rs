@@ -1,6 +1,6 @@
 {
   "name": "@hyperledger/anoncreds-react-native",
-  "version": "0.2.0-dev.2",
+  "version": "0.2.0-dev.3",
   "license": "Apache-2.0",
   "description": "React Native wrapper for Anoncreds",
   "main": "build/index",
@@ -32,7 +32,7 @@
     "check-types": "pnpm compile --noEmit",
     "build": "pnpm clean && pnpm compile",
     "clean": "rimraf -rf ./build",
-    "compile": "tsc",
+    "compile": "tsc -p ./tsconfig.build.json",
     "install": "node-pre-gyp install"
   },
   "dependencies": {
