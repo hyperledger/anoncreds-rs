@@ -208,6 +208,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18.x
+          registry-url: "https://registry.npmjs.org/"
 
       - uses: pnpm/action-setup@v2
         with:
@@ -239,20 +240,14 @@ jobs:
           LIB_ANONCREDS_PATH: ../../
         run: pnpm test
 
-      - name: Set NPM config
-        if: |
-          github.event_name == 'release' ||
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-wrappers == 'true')
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> .npmrc
-          echo "registry=https://registry.npmjs.org/" >> .npmrc
-          echo "always-auth=true" >> .npmrc
-
       - name: Publish JavaScript Wrapper
         if: |
           github.event_name == 'release' ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-wrappers == 'true')
         run: npx lerna publish from-package --no-push --no-private --yes --no-git-tag-version
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
 
   build-py:
     name: Build Python
