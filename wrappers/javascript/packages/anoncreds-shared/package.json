@@ -1,6 +1,6 @@
 {
   "name": "@hyperledger/anoncreds-shared",
-  "version": "0.2.0-dev.2",
+  "version": "0.2.0-dev.3",
   "license": "Apache-2.0",
   "description": "Anoncreds wrapper library with NodeJS and React Native",
   "main": "build/index",
@@ -21,7 +21,7 @@
     "check-types": "pnpm compile --noEmit",
     "build": "pnpm clean && pnpm compile",
     "clean": "rimraf -rf ./build",
-    "compile": "tsc"
+    "compile": "tsc -p ./tsconfig.build.json"
   },
   "devDependencies": {
     "rimraf": "3.0.2",

@@ -1,22 +1,10 @@
 {
+  "extends": "./tsconfig.build.json",
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "ES2017",
-    "declaration": true,
-    "sourceMap": true,
-    "strict": true,
-    "noEmitOnError": true,
-    "lib": ["ESNext"],
-    "types": [],
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
     "paths": {
       "@hyperledger/*": ["packages/*/src"]
     }
   },
-  "exclude": ["node_modules", "build", "**/build/**", "tests", "**/tests/**"],
   "ts-node": {
     "require": ["tsconfig-paths/register"],
     "files": true
