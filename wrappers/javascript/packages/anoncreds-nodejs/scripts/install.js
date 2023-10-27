@@ -6,7 +6,7 @@ const archTable = {
   arm64: 'aarch64'
 }
 
-const targetPlatform = platform === 'win32' ? 'windows' : platform
+const targetPlatform = platform() === 'win32' ? 'windows' : platform()
 const targetArchitecture = archTable[arch()]
 
 const command = `node-pre-gyp install --target_arch=${targetArchitecture} --target_platform=${targetPlatform}`
