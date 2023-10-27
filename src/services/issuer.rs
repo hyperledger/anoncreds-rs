@@ -245,7 +245,7 @@ where
     ))?;
 
     // NOTE: registry is created with issuance_by_default: false  and it is not used.
-    // The accum value in the registy is derived from issuance by default: false in `create_revocation_status_list`
+    // The accum value in the registry is derived from issuance by default: false in `create_revocation_status_list`
     let (revoc_key_pub, revoc_key_priv, _, mut rev_tails_generator) =
         Issuer::new_revocation_registry_def(&credential_pub_key, max_cred_num, false)?;
 

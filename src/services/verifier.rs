@@ -145,9 +145,9 @@ pub fn verify_presentation(
         let (predicates_for_credential, pred_nonrevoked_interval) =
             get_predicates_for_credential(sub_proof_index, &presentation.requested_proof, pres_req);
 
-        // Collaspe to the most stringent local interval for the attributes / predicates,
+        // Collapse to the most stringent local interval for the attributes / predicates,
         // we can do this because there is only 1 revocation status list for this credential
-        // if it satsifies the most stringent interval, it will satisfy all intervals
+        // if it satisfies the most stringent interval, it will satisfy all intervals
         let mut cred_nonrevoked_interval: Option<NonRevokedInterval> =
             match (attrs_nonrevoked_interval, pred_nonrevoked_interval) {
                 (Some(attr), None) => Some(attr),
