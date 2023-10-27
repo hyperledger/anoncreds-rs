@@ -16,7 +16,7 @@ use anoncreds::{
 
 use super::storage::ProverWallet;
 
-// Goverment credential related fixtures
+// Government credential related fixtures
 pub const GVT_SCHEMA_NAME: &str = "Government Schema";
 pub const GVT_SCHEMA_ID: &str = "schema:government";
 pub const GVT_SCHEMA_VERSION: &str = "1.0";
