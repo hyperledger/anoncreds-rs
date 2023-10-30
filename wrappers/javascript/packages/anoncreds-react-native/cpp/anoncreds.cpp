@@ -1,6 +1,5 @@
-#include <anoncreds.h>
-
-#include <include/libanoncreds.h>
+#include "anoncreds.h"
+#include "include/libanoncreds.h"
 
 using namespace anoncredsTurboModuleUtility;
 

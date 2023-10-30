@@ -1,6 +1,6 @@
 #include <vector>
 
-#include <turboModuleUtility.h>
+#include "turboModuleUtility.h"
 
 namespace anoncredsTurboModuleUtility {
 
