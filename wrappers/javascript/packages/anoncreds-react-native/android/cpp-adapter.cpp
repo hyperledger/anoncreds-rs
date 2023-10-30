@@ -3,7 +3,7 @@
 #include <fbjni/fbjni.h>
 #include <ReactCommon/CallInvokerHolder.h>
 
-#include <turboModuleUtility.h>
+#include "turboModuleUtility.h"
 
 using namespace facebook;
 

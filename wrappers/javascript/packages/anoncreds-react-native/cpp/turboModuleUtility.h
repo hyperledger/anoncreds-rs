@@ -3,8 +3,8 @@
 #include <ReactCommon/CallInvoker.h>
 #include <jsi/jsi.h>
 
-#include <HostObject.h>
-#include <include/libanoncreds.h>
+#include "HostObject.h"
+#include "include/libanoncreds.h"
 
 using namespace facebook;
 
