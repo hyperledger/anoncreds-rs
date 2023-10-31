@@ -1,3 +1,3 @@
 """anoncreds library wrapper version."""
 
-__version__ = "0.2.0-dev.4"
+__version__ = "0.2.0-dev.5"
