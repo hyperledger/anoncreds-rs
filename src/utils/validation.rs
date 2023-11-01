@@ -8,6 +8,9 @@ use regex::Regex;
 pub static URI_IDENTIFIER: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^[a-zA-Z0-9\+\-\.]+:.+$").unwrap());
 
+pub static DID_IDENTIFIER: Lazy<Regex> =
+    Lazy::new(|| Regex::new("^did:([a-z0-9]+):(.*)$").unwrap());
+
 /// base58 alpahet as defined in the [base58
 /// specification](https://datatracker.ietf.org/doc/html/draft-msporny-base58#section-2) This is
 /// used for legacy indy identifiers that we will keep supporting for backwards compatibility. This
@@ -19,8 +22,16 @@ pub static LEGACY_DID_IDENTIFIER: Lazy<Regex> =
 pub static LEGACY_SCHEMA_IDENTIFIER: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}:2:.+:[0-9.]+$").unwrap());
 
+pub static SCHEMA_IDENTIFIER: Lazy<Regex> = Lazy::new(|| {
+    Regex::new("^did:([a-z0-9]+):([1-9A-HJ-NP-Za-km-z]{21,22}):2:.+:[0-9.]+$").unwrap()
+});
+
 pub static LEGACY_CRED_DEF_IDENTIFIER: Lazy<Regex> = Lazy::new(|| {
     Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}:3:CL:(([1-9][0-9]*)|([a-zA-Z0-9]{21,22}:2:.+:[0-9.]+)):(.+)?$").unwrap()
+});
+
+pub static CRED_DEF_IDENTIFIER: Lazy<Regex> = Lazy::new(|| {
+    Regex::new("^did:([a-z0-9]+):([1-9A-HJ-NP-Za-km-z]{21,22}):3:CL:(([1-9][0-9]*)|([a-zA-Z0-9]{21,22}:2:.+:[0-9.]+)):(.+)?$").unwrap()
 });
 
 pub fn is_uri_identifier(id: &str) -> bool {

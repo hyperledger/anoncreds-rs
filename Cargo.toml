@@ -40,6 +40,8 @@ serde_json = { version = "1.0.94", features = ["raw_value"] }
 sha2 = "0.10.6"
 thiserror = "1.0.39"
 zeroize = { version = "1.5.7", optional = true, features = ["zeroize_derive"] }
+base64 = "0.21.5"
+chrono = { version = "0.4.31", features = ["serde"] }
 
 [profile.release]
 lto = true
