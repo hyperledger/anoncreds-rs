@@ -39,3 +39,9 @@ pub mod macros;
 
 /// Identifier wrapper for the issuer
 pub mod issuer_id;
+
+/// Credentials in W3C format
+pub mod credential_w3c;
+
+/// Presentations in W3C format
+pub mod presentation_w3c;
