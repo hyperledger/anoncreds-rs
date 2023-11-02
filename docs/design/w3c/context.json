@@ -1,0 +1,84 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "@protected": true,
+    "ac": "https://anoncreds.example/2022/ns#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+
+    "AnonCredsCredential": "ac:AnonCredsCredential",
+
+    "AnonCredsDefinition": {
+      "@id": "ac:AnonCredsDefinition",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+        "definition": {
+          "@id": "ac:definition",
+          "@type": "@id"
+        },
+        "schema": {
+          "@id": "ac:schema",
+          "@type": "@id"
+        },
+        "revocation": {
+          "@id": "ac:revocation",
+          "@type": "@id"
+        },
+        "encoding": {
+          "@id": "ac:attributeEncoding",
+          "@type": "@vocab",
+          "@context": {
+            "@version": 1.1,
+            "@protected": true,
+            "auto": "ac:autoEncoding"
+          }
+        }
+      }
+    },
+
+    "AnonCredsPresentation": "ac:AnonCredsPresentation",
+
+    "AnonCredsPresentationProof2022": {
+      "@id": "ac:AnonCredsPresentationProof2022",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+        "credential": {
+          "@id": "ac:credentialProof",
+          "@context": {
+            "@version": 1.1,
+            "@protected": true,
+            "mapping": {
+              "@id": "ac:attributeMapping",
+              "@type": "@json"
+            },
+            "proofValue": {
+              "@id": "ac:proofValue",
+              "@type": "xsd:string"
+            }
+          }
+        },
+        "proofValue": {
+          "@id": "ac:proofValue",
+          "@type": "xsd:string"
+        },
+        "challenge": {
+          "@id": "ac:challenge",
+          "@type": "xsd:string"
+        }
+      }
+    },
+
+    "CLSignature2023": {
+      "@id": "ac:CLSignature2023",
+      "@context": {
+        "@version": 1.1,
+        "@protected": true,
+        "signature": {
+          "@id": "ac:signature",
+          "@type": "xsd:string"
+        }
+      }
+    }
+  }
+}
