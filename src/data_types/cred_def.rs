@@ -5,13 +5,35 @@ use crate::cl::{
     CredentialPrimaryPublicKey, CredentialPrivateKey, CredentialPublicKey,
     CredentialRevocationPublicKey,
 };
-use crate::{error::ConversionError, impl_anoncreds_object_identifier};
+use crate::{error::ConversionError, impl_anoncreds_object_identifier, invalid};
 
 use super::{issuer_id::IssuerId, schema::SchemaId};
 
 pub const CL_SIGNATURE_TYPE: &str = "CL";
 
 impl_anoncreds_object_identifier!(CredentialDefinitionId);
+
+impl CredentialDefinitionId {
+    pub fn id(&self, method: Option<&str>) -> Result<CredentialDefinitionId, ValidationError> {
+        if self.is_cred_def_identifier() {
+            Ok(CredentialDefinitionId(self.0.clone()))
+        } else {
+            let method = method.ok_or(ValidationError::from_msg("method must be provided"))?;
+            Ok(CredentialDefinitionId(format!("did:${}:{}", method, self.0)))
+        }
+    }
+
+    pub fn issuer_did(&self, method: Option<&str>) -> Result<IssuerId, ValidationError> {
+        if let Some(caps) = CRED_DEF_IDENTIFIER.captures(&self.0) {
+            return Ok(IssuerId(format!("did:${}:{}", caps[0].to_string(), caps[1].to_string())));
+        }
+        if let Some(caps) = LEGACY_CRED_DEF_IDENTIFIER.captures(&self.0) {
+            let method = method.ok_or(ValidationError::from_msg("method must be provided"))?;
+            return Ok(IssuerId(format!("did:${}:{}", method, caps[1].to_string())));
+        }
+        Err(invalid!("Invalid credential definition id"))
+    }
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignatureType {
@@ -53,7 +75,7 @@ impl CredentialDefinition {
             &self.value.primary,
             self.value.revocation.as_ref(),
         )
-        .map_err(|e| e.to_string())?;
+            .map_err(|e| e.to_string())?;
         Ok(key)
     }
 
@@ -115,7 +137,7 @@ mod test_cred_def {
             "did:example".try_into().unwrap(),
             vec!["name".to_owned(), "age".to_owned()].into(),
         )
-        .expect("Unable to create Schema")
+            .expect("Unable to create Schema")
     }
 
     fn cred_def() -> (
@@ -132,7 +154,7 @@ mod test_cred_def {
             SignatureType::CL,
             CredentialDefinitionConfig::default(),
         )
-        .expect("Unable to create credential Definition")
+            .expect("Unable to create credential Definition")
     }
 
     #[test]

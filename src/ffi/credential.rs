@@ -6,7 +6,10 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnoncredsObject, ObjectHandle};
 use super::util::FfiStrList;
-use crate::data_types::link_secret::LinkSecret;
+use crate::data_types::{
+    link_secret::LinkSecret,
+    w3c::credential::W3CCredential as W3CCredential
+};
 use crate::error::Result;
 use crate::services::{
     helpers::encode_credential_attribute,
@@ -225,6 +228,37 @@ pub extern "C" fn anoncreds_credential_get_attribute(
             s => return Err(err_msg!("Unsupported attribute: {}", s)),
         };
         unsafe { *result_p = val };
+        Ok(())
+    })
+}
+
+impl_anoncreds_object!(W3CCredential, "Credential");
+impl_anoncreds_object_from_json!(W3CCredential, anoncreds_w3c_credential_from_json);
+
+/// Convert Indy styled AnonCreds credential into W3C AnonCreds credential form
+///     The conversion process described at the specification: ---
+///
+/// # Params
+/// cred -      object handle pointing to Indy styled credential to convert
+/// cred_p -    reference that will contain converted credential (in W3C form) instance pointer
+///
+/// # Returns
+/// Error code
+#[no_mangle]
+pub extern "C" fn anoncreds_credential_to_w3c(
+    cred: ObjectHandle,
+    cred_p: *mut ObjectHandle,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(cred_p);
+
+        let credential = cred.load()?;
+        let credential = credential.cast_ref::<Credential>()?;
+
+        let w3c_credential = credential.to_w3c(None)?;
+        let w3c_cred = ObjectHandle::create(w3c_credential)?;
+
+        unsafe { *cred_p = w3c_cred };
         Ok(())
     })
 }
