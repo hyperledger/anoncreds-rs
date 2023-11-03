@@ -174,7 +174,8 @@ schema in order to include the information about Indy related definitions to cre
 
 * `schema` - id of Indy Schema
 * `definition` - id of Indy Credential Definition
-* `revocation` - id of Indy Revocation Registry
+* `revocation` - Revocation Registry Accumulator value
+* `witness` - Witness value
 * `encoding` - attributes encoding algorithm
     * encoded credential attribute values (binary representation required for doing CL signatures) are not included
       neither to `credentialSubject` or `signature`
@@ -188,8 +189,7 @@ W3C [Issuer](https://www.w3.org/TR/vc-data-model/#issuer) section requires inclu
 issuer of a verifiable credential.
 
 In the case of W3C AnonCreds credentials, the `issuer` attribute should be represented as a
-resolvable [DID URL](https://w3c-ccg.github.io/did-resolution/) having either `indy` or `sov` DID method and looks the
-following:
+resolvable [DID URL](https://w3c-ccg.github.io/did-resolution/) and looks the following:
 
 ```
 {
@@ -252,7 +252,9 @@ entry:
       ```
       {
         "signature": {..}, 
-        "signature_correctness_proof": {..}
+        "signature_correctness_proof": {..},
+        "rev_reg": Option<{..}>,
+        "witness": Option<{..}>,
       }
       ```
     * encoded
@@ -482,12 +484,25 @@ type pointing to the difference in a presentation structure and looks the follow
       type)
 
 
-* **TO DISCUSS**: Should we derive an attribute from a predicate and put them into credentialSubject like it demonstrated
-  in the [specification](https://www.w3.org/TR/vc-data-model/#presentations-using-derived-credentials)
-    * Example:
-        * For Predicate: `{"name": "birthdate", "p_type": "<", "value":"20041012"}`
-        * Derived attribute: `{"birthdate": "birthdate less 20041012"}`
-    * During the `proofValue` crypto verification we can parse the phrase and restore predicate attributes
+* **TO DISCUSS**: Predicates representation in credential subject
+  * Derive an attribute and put it into `credentialSubject` like it demonstrated
+    in the [specification](https://www.w3.org/TR/vc-data-model/#presentations-using-derived-credentials)
+      * Example:
+          * For Predicate: `{"name": "birthdate", "p_type": "<", "value":"20041012"}`
+          * Derived attribute: `{"birthdate": "birthdate less 20041012"}`
+      * During the `proofValue` crypto verification we can parse the phrase and restore predicate attributes
+  * Put predicate as object into `credentialSubject`
+      ```
+        "credentialSubject": {
+          ...
+          "birthdate": {
+            "type": "Predicate",
+            "p_type": "<", 
+            "value": "20041012"
+          }
+          ...
+        }
+      ```
 
 #### Proof
 
