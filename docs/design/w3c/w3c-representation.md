@@ -1,6 +1,6 @@
 ## Design for W3C representation of AnonCreds credentials and presentation
 
-Currently `anoncreds-rs` library only provides support for Indy styled AnonCreds credentials matching to
+Currently `anoncreds-rs` library only provides support for legacy Indy styled AnonCreds credentials matching to
 the [specification](https://hyperledger.github.io/anoncreds-spec/).
 
 This design document proposes extending of `anoncreds-rs` library to add support for AnonCreds W3C representation of
@@ -8,13 +8,13 @@ verifiable credential and presentation described in the [document]().
 
 ### Goals and ideas
 
-* Use Indy styled credentials to generate W3C AnonCreds credentials and presentations
+* Use legacy styled credentials to generate W3C AnonCreds credentials and presentations
     * Credentials conversion:
-        * Convert Indy styled AnonCreds credentials into W3C form
-        * Convert W3C styled AnonCreds credentials into Indy form
+        * Convert legacy styled AnonCreds credentials into W3C form
+        * Convert W3C styled AnonCreds credentials into legacy form
     * Presentation conversion (Optional):
-        * Convert Indy styled AnonCreds presentation into W3C form
-        * Convert W3C styled AnonCreds presentation into Indy form
+        * Convert legacy styled AnonCreds presentation into W3C form
+        * Convert W3C styled AnonCreds presentation into legacy form
 * Extend W3C credentials:
     * Ability to set Data Integrity proof signatures for generated W3C credential objects:
         * W3C credentials may contain multiple signatures
@@ -38,7 +38,7 @@ verifiable credential and presentation described in the [document]().
     * There are 6 methods in total. 4 of them we have to duplicate any way. Whether we want to
       duplicate `create_offer`, `create_request` methods if we do not change their format.
     * Proposed answer: yes - duplicate all methods
-* Q3: Are we still tied to Indy styled presentation request?
+* Q3: Are we still tied to legacy styled presentation request?
     * Can we make interface completely independent of Presentation Request? So any form can be handled on top level and
       specific data passed to AnonCreds-rs.
     * Proposed answer: Make AnonCreds-rs methods presentation agnostic.
@@ -70,7 +70,7 @@ verifiable credential and presentation described in the [document]().
               }
             ```
 * Q7: Should we care about back way conversion of credential issued in W3C form?
-    * Assume that we issued W3C which cannot convert back into Indy form
+    * Assume that we issued W3C which cannot convert back into legacy form
     * For example supporting different attributes types can be used in credentialSubject (support nested objects, array,
       other features)
         * Need to decide on object encoding algorithm
@@ -97,8 +97,8 @@ verifiable credential and presentation described in the [document]().
           }
         ```
 * Q10: Should we remove `mapping` completely or move under encoded `proofValue`?
-  * Why `mapping` is bad: we make presentation tied to Indy styled Presentation Request
-  * Mapping is something old indy-fashioned required for doing validation (not signature verification) that proof matches to
+  * Why `mapping` is bad: we make presentation tied to legacy styled Presentation Request
+  * Mapping is something old-fashioned synthetic required for doing validation (not signature verification) that proof matches to
     the request itself on the verifier side
   * For doing crypto `proofValue` verification we only need the names of revealed attributes and predicated (with
     type)
@@ -129,16 +129,16 @@ is require application uses conversion methods to get required format.
 
 These methods allow to solve both cases:
 
-Methods purpose - have to forms of credentials (probably even duplicate in wallet) to cover both cases: Indy and W3C
-* `anoncreds_credential_to_w3c` - create W3C Presentation using a credential previously issued in Indy form
-* `anoncreds_credential_from_w3c` - create an Indy-styled presentation (for legacy Verifier) using a credential issued in W3C form
+Methods purpose - have to forms of credentials (probably even duplicate in wallet) to cover both cases: legacy and W3C
+* `anoncreds_credential_to_w3c` - create W3C Presentation using a credential previously issued in legacy form
+* `anoncreds_credential_from_w3c` - create a legacy styled presentation (for legacy Verifier) using a credential issued in W3C form
 
 ```rust
-/// Convert Indy styled AnonCreds credential into W3C AnonCreds credential form
+/// Convert legacy styled AnonCreds credential into W3C AnonCreds credential form
 ///     The conversion process described at the specification: ---
 ///
 /// # Params
-/// cred -      object handle pointing to Indy styled credential to convert
+/// cred -      object handle pointing to legacy styled credential to convert
 /// cred_p -    reference that will contain converted credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -149,12 +149,12 @@ pub extern "C" fn anoncreds_credential_to_w3c(
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
-/// Convert W3C styled AnonCreds credential into Indy styled credential
+/// Convert W3C styled AnonCreds credential into legacy styled credential
 ///     The conversion process described at the specification: ---
 ///
 /// # Params
 /// cred -      object handle pointing to W3C styled AnonCreds credential to convert
-/// cred_p -    reference that will contain converted credential (in Indy form) instance pointer
+/// cred_p -    reference that will contain converted credential (in legacy form) instance pointer
 ///
 /// # Returns
 /// Error code
@@ -201,15 +201,15 @@ pub extern "C" fn anoncreds_w3c_credential_set_integrity_proof(
 
 Presentation conversion methods are only required if we decide not to implement duplication flow methods even for
 presentation exchange.   
-In this case, library will provide APIs to create/verify Indy formatted presentation and APIs to convert it into/from
+In this case, library will provide APIs to create/verify legacy formatted presentation and APIs to convert it into/from
 W3C form to support different Verifiers.
 
 ```rust
-/// Convert Indy styled AnonCreds presentation into W3C AnonCreds presentation form
+/// Convert legacy styled AnonCreds presentation into W3C AnonCreds presentation form
 ///     The conversion process described at the specification: ---
 ///
 /// # Params
-/// cred -      object handle pointing to Indy styled AnonCreds presentation to convert
+/// cred -      object handle pointing to legacy styled AnonCreds presentation to convert
 /// cred_p -    reference that will contain converted presentation (in W3C form) instance pointer
 ///
 /// # Returns
@@ -220,12 +220,12 @@ pub extern "C" fn anoncreds_presentation_to_w3c(
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
-/// Convert W3C styled AnonCreds presentation into Indy styled AnonCreds credential
+/// Convert W3C styled AnonCreds presentation into legacy styled AnonCreds presentation
 ///     The conversion process described at the specification: ---
 ///
 /// # Params
 /// cred -      object handle pointing to W3C styled AnonCreds presentation to convert
-/// cred_p -    reference that will contain converted presentation (in Indy form) instance pointer
+/// cred_p -    reference that will contain converted presentation (in legacy form) instance pointer
 ///
 /// # Returns
 /// Error code
@@ -259,11 +259,11 @@ The reasons for adding duplication methods:
     - if a flow targeting issuing of W3C Credential the specific set of function to be used
 - avoid the situation when function result value may be in different forms
     - example:
-        - issuer creates offer in Indy form but with indy or w3c indication
-        - as the flow execution result, create credential function returns credential either in w3c or indy form
+        - issuer creates offer in legacy form but with resulting credential format indication (legacy or w3c )
+        - as the flow execution result, create credential function returns credential either in w3c or legacy form
           depending on offer
         - if application analyze credential somehow it cause difficulties
-- easier deprecation of indy styled credentials and APIs
+- easier deprecation of legacy styled credentials and APIs
 - presentation conversion methods are not needed anymore in this case
     - only credential conversion method to do migration for previously issued credentials
 
@@ -271,10 +271,8 @@ The reasons for adding duplication methods:
 
 ```rust
 /// Create Credential Offer according to the AnonCreds specification
-/// It can be either Indy styled or W3C adopted depending on the answer for Q1 
-/// If Indy styled credential to be used, it should indicate that credential in W3C AnonCreds form will be issued as the result.
-///
-/// TO DISCUSS: Should we convert/adopt Credential Offer for W3C form?
+/// It can be either legacy styled or W3C adopted depending on the answer for Q1 
+/// If legacy styled credential to be used, it should indicate that credential in W3C AnonCreds form will be issued as the result.
 ///
 /// Even if we do not change Credential Offer message itself we start from using a separate set of API functions
 ///
@@ -282,7 +280,7 @@ The reasons for adding duplication methods:
 /// schema_id:              id of schema future credential refers to
 /// cred_def_id:            id of credential definition future credential refers to
 /// key_proof:              object handle pointing to credential definition key correctness proof
-/// cred_offer_p - Reference that will contain created credential offer (in Indy form) instance pointer.
+/// cred_offer_p - Reference that will contain created credential offer (in legacy form) instance pointer.
 ///
 /// # Returns
 /// Error code
@@ -295,10 +293,8 @@ pub extern "C" fn anoncreds_w3c_create_credential_offer(
 ) -> ErrorCode {}
 
 /// Create Credential Request according to the AnonCreds specification
-/// It can be either Indy styled or W3C adopted depending on the answer for Q1 
-/// If Indy styled credential to be used, it should indicate that credential in W3C AnonCreds form will be issued as the result.
-///
-/// TO DISCUSS: Should we convert/adopt Credential Request for W3C form?
+/// It can be either legacy styled or W3C adopted depending on the answer for Q1 
+/// If legacy styled credential to be used, it should indicate that credential in W3C AnonCreds form will be issued as the result.
 ///
 /// Even if we do not change Credential Request message itself we start from using a separate set of API functions
 ///
@@ -309,8 +305,8 @@ pub extern "C" fn anoncreds_w3c_create_credential_offer(
 /// link_secret:            holder link secret
 /// link_secret_id:         id of holder's link secret
 /// credential_offer:       object handle pointing to credential offer
-/// cred_req_p:             Reference that will contain created credential request (in Indy form) instance pointer.
-/// cred_req_meta_p:        Reference that will contain created credential request metadata (in Indy form) instance pointer.
+/// cred_req_p:             Reference that will contain created credential request (in legacy form) instance pointer.
+/// cred_req_meta_p:        Reference that will contain created credential request metadata (in legacy form) instance pointer.
 ///
 /// # Returns
 /// Error code
@@ -463,19 +459,19 @@ Methods similar to Credential / Presentation conversion into W3C format.
 
 > IN PROGRESS
 
-#### Issue Indy Credential and present W3C Presentation
+#### Issue legacy Credential and present W3C Presentation
 
 ```
-/// Issue Indy-styled credential using existing methods
-indy_credential_offer = Issuer.anoncreds_create_credential_offer(...)
-indy_credential_request = Holder.anoncreds_create_credential_request(indy_credential_offer,...)
-indy_credential = Issuer.anoncreds_create_credential(indy_credential_request,...)
-indy_credential = Holder.anoncreds_process_credential(indy_credential,...)
+/// Issue legacy styled credential using existing methods
+legacy_credential_offer = Issuer.anoncreds_create_credential_offer(...)
+legacy_credential_request = Holder.anoncreds_create_credential_request(legacy_credential_offer,...)
+legacy_credential = Issuer.anoncreds_create_credential(legacy_credential_request,...)
+legacy_credential = Holder.anoncreds_process_credential(legacy_credential,...)
 
-/// Convert Indy-styled credential to W3C credential form
-w3c_credential = Holder.anoncreds_credential_to_w3c(indy_credential)
+/// Convert legacy styled credential to W3C credential form
+w3c_credential = Holder.anoncreds_credential_to_w3c(legacy_credential)
 
-/// Do wallets need to store both credential forms to handle Indy and DIF presentations requests?  
+/// Do wallets need to store both credential forms to handle legacy and DIF presentations requests?  
 
 /// Verifiy W3C preentation using converted W3C crdential form
 w3c_presentation_request = Verifier.w3c_create_presentation_request()
@@ -483,7 +479,7 @@ w3c_presentation = Holder.anoncreds_w3c_create_presentation(w3c_presentation_req
 Verifier.anoncreds_w3c_verify_presentation(w3c_presentation)
 ```
 
-#### Issue W3C Credential and present Indy Presentation
+#### Issue W3C Credential and present legacy Presentation
 
 ```
 /// Issue W3C credential using new flow methods
@@ -492,15 +488,15 @@ w3c_credential_request = Holder.anoncreds_w3c_create_credential_request(w3c_cred
 w3c_credential = Issuer.anoncreds_w3c_create_credential(w3c_credential_request,...)
 w3c_credential = Holder.anoncreds_w3c_process_credential(w3c_credential,...)
 
-/// Convert W3C credential to Indy form
-indy_credential = Holder.anoncreds_credential_from_w3c(w3c_credential)
+/// Convert W3C credential to legacy form
+legacy_credential = Holder.anoncreds_credential_from_w3c(w3c_credential)
 
-/// Do wallets need to store both credential forms to handle Indy and DIF presentations requests?  
+/// Do wallets need to store both credential forms to handle legacy and DIF presentations requests?  
 
-/// Verifiy Indy presentation using converted Iny crdential form
-indy_presentation_request = Verifier.create_presentation_request()
-indy_presentation = Holder.create_presentation(indy_presentation_request, indy_credential)
-Verifier.anoncreds_verify_presentation(indy_presentation)
+/// Verifiy legacy presentation using converted Iny crdential form
+legacy_presentation_request = Verifier.create_presentation_request()
+legacy_presentation = Holder.create_presentation(legacy_presentation_request, legacy_credential)
+Verifier.anoncreds_verify_presentation(legacy_presentation)
 ```
 
 #### Issue W3C Credential and present W3C Presentation

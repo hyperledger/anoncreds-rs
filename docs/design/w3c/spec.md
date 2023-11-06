@@ -1,6 +1,6 @@
 ## W3C Verifiable Credentials Representation
 
-This section describes how Indy-styled AnonCreds credentials can be represented in the form of W3C Verifiable
+This section describes how legacy AnonCreds credentials can be represented in the form of W3C Verifiable
 Credentials standard.
 
 ### Credential
@@ -141,7 +141,7 @@ In the context of W3C AnonCreds credentials defined a custom `AnonCredsDefinitio
 following information to credential:
 
 In the case of W3C AnonCreds credentials, the `credentialSchema` attribute defines a custom `AnonCredsDefinition`
-schema in order to include the information about Indy related definitions to credential and looks the following:
+schema in order to include the information about AnonCreds related definitions to credential and looks the following:
 
 ```
 {
@@ -156,8 +156,8 @@ schema in order to include the information about Indy related definitions to cre
 }
 ```
 
-* `schema` - id of Indy Schema
-* `definition` - id of Indy Credential Definition
+* `schema` - id of AnonCreds Schema
+* `definition` - id of AnonCreds Credential Definition
 * `revocation` - Revocation Registry Accumulator value
 * `witness` - Witness value
 * `encoding` - attributes encoding algorithm
@@ -232,7 +232,7 @@ entry:
 
 * `type` - `CLSignature2022`
 * `signature` - credential signature
-    * signature received by building the following object from indy styled credential:
+    * signature received by building the following object:
       ```
       {
         "signature": {..}, 
@@ -257,7 +257,7 @@ Including Data Integrity proof allows to use verifiable credential without acces
 W3C [Expiration](https://www.w3.org/TR/vc-data-model/#expiration) section defines an optional capability to include
 credential expiration information.
 
-Instead of including `expirationDate` property we recommend using a standard indy credentials revocation approach and
+Instead of including `expirationDate` property we recommend using a standard AnonCreds credentials revocation approach and
 include a revocation registry id into the credential schema.
 
 #### Status
@@ -265,7 +265,7 @@ include a revocation registry id into the credential schema.
 W3C [Status](https://www.w3.org/TR/vc-data-model/#status) section defines an optional capability to include credential
 status information.
 
-Instead of including `credentialStatus` property we recommend using a standard indy credentials revocation approach and
+Instead of including `credentialStatus` property we recommend using a standard AnonCreds credentials revocation approach and
 include a revocation registry id into the credential schema.
 
 ### Presentation
@@ -439,7 +439,7 @@ type pointing to the difference in a presentation structure and looks the follow
 **Verifiable Credential Proof structure**
 
 * `proofValue` - encoded proof generated for each specific credential
-    * object created from Indy styled credential sub proof
+    * proof value received by building the following object:
     ```
         {
             primaryProof: {..},
@@ -485,7 +485,7 @@ presentation:
 
 * `challenge` - nonce taken from the presentation request
 * `aggregated` - encoded aggregated proof value
-    * object created from Indy proof data
+    * proof value received by building the following object:
     ```
         {
             aggregated: {..},
