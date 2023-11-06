@@ -49,15 +49,61 @@ verifiable credential and presentation described in the [document]().
     * Provide methods to put ready data into a credential
     * Proposed answer: delegate to third party libraries using `anoncreds-rs`
 * Q5: Signature/Proof encoding: Which approach to use for encoding?
-    * Basic approach used in Aries attachments - Base 64 encoding of serialized
-      object (`base64(json(signature).as_bytes())`) ?
-    * Compact encoding implementing in Python PoC?
+    * Basic approach used in Aries attachments: [BaseURL safe 64 encoding of object serialized as JSON string](https://github.com/hyperledger/aries-rfcs/tree/main/concepts/0017-attachments#base64url)?
+    * Compact encoding implemented in Python PoC: Using the fact that most fields of credential signature and proof are big numbers rather that strings.
+      * For example: the length of encoded credential signature string is about 2.5 times less than in the basic approach
+      * Find an [example data](./encoding.md#example) to see the difference
     * Proposed answer: Start from basic approach?
-* Q6: Should we care about back way conversion of credential issued in W3C form?
+* Q6: W3C data model allows attributes to be represented not only as key/value string pairs but also as
+  objects and arrays.
+    * If we want to support more complex representations for the W3C AnonCreds credential attributes and their
+      presentations, we need to design following things:
+        * how encoding will work for such attributes
+        * how selective disclosure will work on top level attribute itself
+            ```
+              "credentialSubject": {
+                "address": {
+                    "type": "Address",
+                    "city": "Foo",
+                    "street": "Main str."
+                }
+              }
+            ```
+* Q7: Should we care about back way conversion of credential issued in W3C form?
     * Assume that we issued W3C which cannot convert back into Indy form
     * For example supporting different attributes types can be used in credentialSubject (support nested objects, array,
       other features)
         * Need to decide on object encoding algorithm
+* Q8: Should we include Holder DID into credential subject as [`id` attribute](https://www.w3.org/TR/vc-data-model/#identifiers)?
+  * This enables credential subject [validation](https://www.w3.org/TR/vc-data-model/#credential-subject-0) 
+  * We can add if for newly issued credentials but cannot set during the conversion of previously issued credentials.
+* Q9: Predicates representation in credential subject
+    * Derive an attribute and put it into `credentialSubject` like it demonstrated
+      in the [specification](https://www.w3.org/TR/vc-data-model/#presentations-using-derived-credentials)
+        * Example:
+            * For Predicate: `{"name": "birthdate", "p_type": "<", "value":"20041012"}`
+            * Derived attribute: `{"birthdate": "birthdate less 20041012"}`
+        * During the `proofValue` crypto verification we can parse the phrase and restore predicate attributes
+    * Put predicate as object into `credentialSubject`
+        ```
+          "credentialSubject": {
+            ...
+            "birthdate": {
+              "type": "Predicate",
+              "p_type": "<", 
+              "value": "20041012"
+            }
+            ...
+          }
+        ```
+* Q10: Should we remove `mapping` completely or move under encoded `proofValue`?
+  * Why `mapping` is bad: we make presentation tied to Indy styled Presentation Request
+  * Mapping is something old indy-fashioned required for doing validation (not signature verification) that proof matches to
+    the request itself on the verifier side
+  * For doing crypto `proofValue` verification we only need the names of revealed attributes and predicated (with
+    type)
+  * `revealed attributes` and `predicates` can be validated as we include them into `credentialSubject` but `unrevealed` attributes cannot.
+
 
 ### Proposed implementation path for first iteration
 
@@ -347,6 +393,8 @@ pub extern "C" fn anoncreds_w3c_credential_get_attribute(
 ) -> ErrorCode {}
 
 /// Create W3C styled Presentation according to the specification.
+/// 
+/// TODO: Function parameters need to be reworked if we decide to make it Presentation Request format agnostic
 ///
 /// # Params
 /// credentials:            credentials (in W3C form) to use for presentation preparation
@@ -373,6 +421,8 @@ pub extern "C" fn anoncreds_w3c_create_presentation(
 ) -> ErrorCode {}
 
 /// Create W3C styled Presentation according to the specification.
+///
+/// TODO: Function parameters need to be reworked if we decide to make it Presentation Request format agnostic
 ///
 /// # Params
 /// presentation:                   object handle pointing to presentation
@@ -416,28 +466,38 @@ Methods similar to Credential / Presentation conversion into W3C format.
 #### Issue Indy Credential and present W3C Presentation
 
 ```
+/// Issue Indy-styled credential using existing methods
 indy_credential_offer = Issuer.anoncreds_create_credential_offer(...)
 indy_credential_request = Holder.anoncreds_create_credential_request(indy_credential_offer,...)
 indy_credential = Issuer.anoncreds_create_credential(indy_credential_request,...)
 indy_credential = Holder.anoncreds_process_credential(indy_credential,...)
 
+/// Convert Indy-styled credential to W3C credential form
 w3c_credential = Holder.anoncreds_credential_to_w3c(indy_credential)
 
-w3c_presentation_request = Verifier.anoncreds_w3c_create_presentation_request()
-w3c_presentation = Holder.anoncreds_w3c_create_presentation(w3c_presentation_request, w3c_credential)
+/// Do wallets need to store both credential forms to handle Indy and DIF presentations requests?  
+
+/// Verifiy W3C preentation using converted W3C crdential form
+w3c_presentation_request = Verifier.w3c_create_presentation_request()
+w3c_presentation = Holder.anoncreds_w3c_create_presentation(w3c_presentation_request, w3c_credentials)
 Verifier.anoncreds_w3c_verify_presentation(w3c_presentation)
 ```
 
 #### Issue W3C Credential and present Indy Presentation
 
 ```
+/// Issue W3C credential using new flow methods
 w3c_credential_offer = Issuer.anoncreds_w3c_create_credential_offer(...)
 w3c_credential_request = Holder.anoncreds_w3c_create_credential_request(w3c_credential_offer,...)
 w3c_credential = Issuer.anoncreds_w3c_create_credential(w3c_credential_request,...)
 w3c_credential = Holder.anoncreds_w3c_process_credential(w3c_credential,...)
 
+/// Convert W3C credential to Indy form
 indy_credential = Holder.anoncreds_credential_from_w3c(w3c_credential)
 
+/// Do wallets need to store both credential forms to handle Indy and DIF presentations requests?  
+
+/// Verifiy Indy presentation using converted Iny crdential form
 indy_presentation_request = Verifier.create_presentation_request()
 indy_presentation = Holder.create_presentation(indy_presentation_request, indy_credential)
 Verifier.anoncreds_verify_presentation(indy_presentation)
@@ -446,12 +506,14 @@ Verifier.anoncreds_verify_presentation(indy_presentation)
 #### Issue W3C Credential and present W3C Presentation
 
 ```
+/// Issue W3C credential using new flow methods
 w3c_credential_offer = Issuer.anoncreds_w3c_create_credential_offer(...)
 w3c_credential_request = Holder.anoncreds_w3c_create_credential_request(w3c_credential_offer,...)
 w3c_credential = Issuer.anoncreds_w3c_create_credential(w3c_credential_request,...)
 w3c_credential = Holder.anoncreds_w3c_process_credential(w3c_credential,...)
 
-w3c_presentation_request = Verifier.anoncreds_w3c_create_presentation_request()
+/// Verifiy W3C presenttion using W3C crdential form
+w3c_presentation_request = Verifier.w3c_create_presentation_request()
 w3c_presentation = Holder.anoncreds_w3c_create_presentation(w3c_presentation_request, w3c_credential)
 Verifier.anoncreds_w3c_verify_presentation(w3c_presentation)
 ```

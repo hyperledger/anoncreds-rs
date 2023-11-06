@@ -131,22 +131,6 @@ In the case of W3C AnonCreds credentials, the `credentialSubject` attribute look
 }
 ```
 
-* **TO DISCUSS**: W3C data model allows attributes to be represented not only as key/value string pairs but also as
-  objects and arrays.
-    * If we want to support more complex representations for the W3C AnonCreds credential attributes and their
-      presentations, we need to design following things:
-        * how encoding will work for such attributes
-        * how selective disclosure will work on top level attribute itself
-            ```
-              "credentialSubject": {
-                "address": {
-                    "type": "Address",
-                    "city": "Foo",
-                    "street": "Main str."
-                }
-              }
-            ```
-
 #### Data Schemas
 
 W3C [Credential Subject](https://www.w3.org/TR/vc-data-model/#data-schemas) section defines an optional capability to
@@ -259,11 +243,6 @@ entry:
       ```
     * encoded
       as [base64 attachment](https://github.com/hyperledger/aries-rfcs/tree/main/concepts/0017-attachments#base64url)
-
-
-* **TO DISCUSS**: Signature/Proof encoding: Which approach to use for encoding?
-    * Basic approach used in Aries attachments: Base 64 encoding of object serialized as JSON string
-    * Compact encoding implementing in Python PoC: Using the fact that most fields of credential signature and proof are big numbers
 
 ##### Data Integrity proof
 
@@ -474,35 +453,6 @@ type pointing to the difference in a presentation structure and looks the follow
         * `revealedAttributes` - list of requested attributes revealed using the credential
         * `unrevealedAttributes` - list of requested attributes presented in the credential but left unrevealed
         * `requestedPredicates` - list of predicates resolved using the credential
-
-
-* **TO DISCUSS**: Should we remove `mapping` completely or move under encoded `proofValue`?
-    * Why `mapping` is bad: we make presentation tied to Indy styled Presentation Request
-    * Mapping is something old indy-fashioned required for validation (not signature verification) that proof matches to
-      the request itself on the verifier side
-    * For doing crypto `proofValue` verification we only need the names of revealed attributes and predicated (with
-      type)
-
-
-* **TO DISCUSS**: Predicates representation in credential subject
-  * Derive an attribute and put it into `credentialSubject` like it demonstrated
-    in the [specification](https://www.w3.org/TR/vc-data-model/#presentations-using-derived-credentials)
-      * Example:
-          * For Predicate: `{"name": "birthdate", "p_type": "<", "value":"20041012"}`
-          * Derived attribute: `{"birthdate": "birthdate less 20041012"}`
-      * During the `proofValue` crypto verification we can parse the phrase and restore predicate attributes
-  * Put predicate as object into `credentialSubject`
-      ```
-        "credentialSubject": {
-          ...
-          "birthdate": {
-            "type": "Predicate",
-            "p_type": "<", 
-            "value": "20041012"
-          }
-          ...
-        }
-      ```
 
 #### Proof
 
