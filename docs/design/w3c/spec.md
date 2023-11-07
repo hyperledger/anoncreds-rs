@@ -244,13 +244,11 @@ entry:
     * encoded
       as [base64 attachment](https://github.com/hyperledger/aries-rfcs/tree/main/concepts/0017-attachments#base64url)
 
-##### Data Integrity proof
+##### non-AnonCreds Integrity proof
 
-In order to better conform to the W3C specification AnonCreds based credential also requires including
-of [Data Integrity Proof](https://www.w3.org/TR/vc-data-model/#data-integrity-proofs) which must be generated using one
+In order to better conform to the W3C specification AnonCreds based credential also allow including
+of non-AnonCreds [Data Integrity Proof](https://www.w3.org/TR/vc-data-model/#data-integrity-proofs) which must be generated using one
 of NIST-approved algorithms (RSA, ECDSA, EdDSA).
-
-Including Data Integrity proof allows to use verifiable credential without access to a Ledger.
 
 #### Expiration
 
@@ -467,7 +465,7 @@ It is verifier and holder responsibility to negotiate which proof must be used (
 presentation:
 
 * Generate an W3C AnonCreds presentation, with all it’s privacy-preserving power and predicates
-* Present the VC using one of Integrity Proof Signatures
+* Present the VC using one of non-AnonCreds Integrity Proof Signatures
 
 ```
 {
