@@ -20,8 +20,8 @@
           "@id": "ac:schema",
           "@type": "@id"
         },
-        "revocation": {
-          "@id": "ac:revocation",
+        "revocation_registry": {
+          "@id": "ac:revocation_registry",
           "@type": "@id"
         },
         "encoding": {
@@ -43,20 +43,13 @@
       "@context": {
         "@version": 1.1,
         "@protected": true,
-        "credential": {
-          "@id": "ac:credentialProof",
-          "@context": {
-            "@version": 1.1,
-            "@protected": true,
-            "mapping": {
-              "@id": "ac:attributeMapping",
-              "@type": "@json"
-            },
-            "proofValue": {
-              "@id": "ac:proofValue",
-              "@type": "xsd:string"
-            }
-          }
+        "mapping": {
+          "@id": "ac:attributeMapping",
+          "@type": "@json"
+        },
+        "timestamp": {
+          "@id": "ac:timestamp",
+          "@type": "xsd:decimal"
         },
         "proofValue": {
           "@id": "ac:proofValue",
