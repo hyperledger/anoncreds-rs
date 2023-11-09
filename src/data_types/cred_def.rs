@@ -5,7 +5,7 @@ use crate::cl::{
     CredentialPrimaryPublicKey, CredentialPrivateKey, CredentialPublicKey,
     CredentialRevocationPublicKey,
 };
-use crate::{error::ConversionError, impl_anoncreds_object_identifier, invalid};
+use crate::{error::ConversionError, impl_anoncreds_object_identifier};
 
 use super::{issuer_id::IssuerId, schema::SchemaId};
 
@@ -14,24 +14,12 @@ pub const CL_SIGNATURE_TYPE: &str = "CL";
 impl_anoncreds_object_identifier!(CredentialDefinitionId);
 
 impl CredentialDefinitionId {
-    pub fn id(&self, method: Option<&str>) -> Result<CredentialDefinitionId, ValidationError> {
-        if self.is_cred_def_identifier() {
-            Ok(CredentialDefinitionId(self.0.clone()))
-        } else {
-            let method = method.ok_or(ValidationError::from_msg("method must be provided"))?;
-            Ok(CredentialDefinitionId(format!("did:${}:{}", method, self.0)))
-        }
-    }
-
-    pub fn issuer_did(&self, method: Option<&str>) -> Result<IssuerId, ValidationError> {
-        if let Some(caps) = CRED_DEF_IDENTIFIER.captures(&self.0) {
-            return Ok(IssuerId(format!("did:${}:{}", caps[0].to_string(), caps[1].to_string())));
-        }
+    pub fn issuer_did(&self) -> IssuerId {
         if let Some(caps) = LEGACY_CRED_DEF_IDENTIFIER.captures(&self.0) {
-            let method = method.ok_or(ValidationError::from_msg("method must be provided"))?;
-            return Ok(IssuerId(format!("did:${}:{}", method, caps[1].to_string())));
+            IssuerId(caps[0].to_string())
+        } else {
+            IssuerId(self.0.to_owned())
         }
-        Err(invalid!("Invalid credential definition id"))
     }
 }
 

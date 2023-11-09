@@ -9,5 +9,7 @@ pub mod hash;
 
 pub mod query;
 
+pub mod datetime;
+
 #[macro_use]
 pub mod macros;

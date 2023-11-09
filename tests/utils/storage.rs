@@ -11,6 +11,7 @@ use anoncreds::types::{
     CredentialRequestMetadata, CredentialRevocationState, RevocationStatusList,
 };
 use std::collections::HashMap;
+use anoncreds::data_types::w3c::credential::W3CCredential;
 
 #[derive(Debug)]
 pub struct StoredCredDef {
@@ -46,6 +47,7 @@ pub struct IssuerWallet<'a> {
 #[derive(Debug)]
 pub struct ProverWallet<'a> {
     pub credentials: Vec<Credential>,
+    pub w3c_credentials: Vec<W3CCredential>,
     pub rev_states:
         HashMap<RevocationRegistryDefinitionId, (Option<CredentialRevocationState>, Option<u64>)>,
     pub link_secret: LinkSecret,
@@ -62,6 +64,7 @@ impl<'a> Default for ProverWallet<'a> {
             link_secret,
             cred_offers: HashMap::new(),
             cred_reqs: vec![],
+            w3c_credentials: vec![],
         }
     }
 }

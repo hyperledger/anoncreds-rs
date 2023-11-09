@@ -1,16 +1,15 @@
-use std::collections::HashMap;
-
 use crate::cl::{
-    bn::BigNumber, CredentialSchema, CredentialValues, Issuer, NonCredentialSchema,
+    bn::BigNumber, CredentialSchema, CredentialValues as CLCredentialValues, Issuer, NonCredentialSchema,
     SubProofRequest, Verifier,
 };
 use crate::data_types::{
-    credential::AttributeValues,
+    credential::CredentialValues,
     link_secret::LinkSecret,
     nonce::Nonce,
     pres_request::{AttributeInfo, NonRevokedInterval, PredicateInfo, PresentationRequestPayload},
     presentation::RequestedProof,
 };
+use crate::data_types::w3c::presentation_proof::CredentialAttributesMapping;
 use crate::error::Result;
 use crate::utils::hash::SHA256;
 
@@ -46,17 +45,17 @@ pub fn build_non_credential_schema() -> Result<NonCredentialSchema> {
 }
 
 pub fn build_credential_values(
-    credential_values: &HashMap<String, AttributeValues>,
+    credential_values: &CredentialValues,
     link_secret: Option<&LinkSecret>,
-) -> Result<CredentialValues> {
+) -> Result<CLCredentialValues> {
     trace!(
         "build_credential_values >>> credential_values: {:?}",
         credential_values
     );
 
     let mut credential_values_builder = Issuer::new_credential_values_builder()?;
-    for (attr, values) in credential_values {
-        credential_values_builder.add_dec_known(&attr_common_view(attr), &values.encoded)?;
+    for (attr, values) in credential_values.0.iter() {
+        credential_values_builder.add_dec_known(&attr_common_view(&attr), &values.encoded)?;
     }
     if let Some(ls) = link_secret {
         // value is master_secret as that's what's historically been used in published credential definitions
@@ -238,4 +237,57 @@ pub fn get_predicates_for_credential(
     );
 
     (predicates_for_credential, non_revoked_interval)
+}
+
+pub fn get_revealed_attributes_for_credential_mapping(
+    mapping: &CredentialAttributesMapping,
+) -> (Vec<AttributeInfo>, Option<NonRevokedInterval>) {
+    let mut revealed_attrs_for_credential: Vec<AttributeInfo> =
+        mapping
+            .revealed_attributes
+            .iter()
+            .map(|attribute| {
+                AttributeInfo {
+                    name: Some(attribute.name.clone()),
+                    names: None,
+                    restrictions: None,
+                    non_revoked: None,
+                }
+            })
+            .collect();
+    revealed_attrs_for_credential.append(
+        &mut mapping
+            .revealed_attribute_groups
+            .iter()
+            .map(|attribute| {
+                AttributeInfo {
+                    names: Some(attribute.names.clone()),
+                    name: None,
+                    restrictions: None,
+                    non_revoked: None,
+                }
+            })
+            .collect()
+    );
+    (revealed_attrs_for_credential, None)
+}
+
+pub fn get_predicates_for_credential_mapping(
+    mapping: &CredentialAttributesMapping,
+) -> (Vec<PredicateInfo>, Option<NonRevokedInterval>) {
+    let revealed_predicates_for_credential =
+        mapping
+            .requested_predicates
+            .iter()
+            .map(|predicate| {
+                PredicateInfo {
+                    name: predicate.name.clone(),
+                    p_type: predicate.p_type.clone(),
+                    p_value: predicate.p_value.clone(),
+                    restrictions: None,
+                    non_revoked: None,
+                }
+            })
+            .collect();
+    (revealed_predicates_for_credential, None)
 }

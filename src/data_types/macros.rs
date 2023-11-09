@@ -4,9 +4,9 @@ macro_rules! impl_anoncreds_object_identifier {
         use $crate::error::ValidationError;
         use $crate::utils::validation::{
             Validatable,
-            CRED_DEF_IDENTIFIER, LEGACY_CRED_DEF_IDENTIFIER,
-            DID_IDENTIFIER, LEGACY_DID_IDENTIFIER,
-            SCHEMA_IDENTIFIER, LEGACY_SCHEMA_IDENTIFIER,
+            LEGACY_CRED_DEF_IDENTIFIER,
+            LEGACY_DID_IDENTIFIER,
+            LEGACY_SCHEMA_IDENTIFIER,
             URI_IDENTIFIER,
         };
 
@@ -24,32 +24,16 @@ macro_rules! impl_anoncreds_object_identifier {
                 Ok(s)
             }
 
-            pub fn method(&self) -> Option<String> {
-                DID_IDENTIFIER.captures(&self.0).map(|caps| caps[0].to_string())
-            }
-
             pub fn is_legacy_did_identifier(&self) -> bool {
                 LEGACY_DID_IDENTIFIER.captures(&self.0).is_some()
-            }
-
-            pub fn is_did_identifier(&self) -> bool {
-                DID_IDENTIFIER.captures(&self.0).is_some()
             }
 
             pub fn is_legacy_cred_def_identifier(&self) -> bool {
                 LEGACY_CRED_DEF_IDENTIFIER.captures(&self.0).is_some()
             }
 
-            pub fn is_cred_def_identifier(&self) -> bool {
-                CRED_DEF_IDENTIFIER.captures(&self.0).is_some()
-            }
-
             pub fn is_legacy_schema_identifier(&self) -> bool {
                 LEGACY_SCHEMA_IDENTIFIER.captures(&self.0).is_some()
-            }
-
-            pub fn is_schema_identifier(&self) -> bool {
-                SCHEMA_IDENTIFIER.captures(&self.0).is_some()
             }
 
             pub fn is_uri(&self) -> bool {
@@ -73,20 +57,6 @@ macro_rules! impl_anoncreds_object_identifier {
                     }
                 };
 
-                let qualified_regex = match stringify!($i) {
-                    "IssuerId" => &DID_IDENTIFIER,
-                    "CredentialDefinitionId" => &CRED_DEF_IDENTIFIER,
-                    "SchemaId" => &SCHEMA_IDENTIFIER,
-                    // TODO: we do not have correct validation for a revocation registry definition id
-                    "RevocationRegistryDefinitionId" => &DID_IDENTIFIER,
-                    invalid_name => {
-                        return Err($crate::invalid!(
-                            "type: {} does not have a validation regex",
-                            invalid_name,
-                        ))
-                    }
-                };
-
                 if $crate::utils::validation::URI_IDENTIFIER
                     .captures(&self.0)
                     .is_some()
@@ -95,10 +65,6 @@ macro_rules! impl_anoncreds_object_identifier {
                 }
 
                 if legacy_regex.captures(&self.0).is_some() {
-                    return Ok(());
-                }
-
-                if qualified_regex.captures(&self.0).is_some() {
                     return Ok(());
                 }
 

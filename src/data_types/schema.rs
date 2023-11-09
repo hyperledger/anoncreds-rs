@@ -8,17 +8,6 @@ pub const MAX_ATTRIBUTES_COUNT: usize = 125;
 
 impl_anoncreds_object_identifier!(SchemaId);
 
-impl SchemaId {
-    pub fn id(&self, method: Option<&str>) -> Result<SchemaId, ValidationError> {
-        if self.is_schema_identifier() {
-            Ok(SchemaId(self.0.clone()))
-        } else {
-            let method = method.ok_or(ValidationError::from_msg("method must be provided"))?;
-            Ok(SchemaId(format!("did:${}:{}", method, self.0)))
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Schema {

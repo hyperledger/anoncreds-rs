@@ -136,12 +136,11 @@ Methods purpose - have to forms of credentials (probably even duplicate in walle
 * `anoncreds_credential_from_w3c` - create a legacy styled presentation (for legacy Verifier) using a credential issued in W3C form
 
 ```rust
-/// Convert legacy styled AnonCreds credential into W3C AnonCreds credential form
-///     The conversion process described at the specification: ---
+/// Convert credential in legacy form into W3C AnonCreds credential form
 ///
 /// # Params
-/// cred -      object handle pointing to legacy styled credential to convert
-/// cred_p -    reference that will contain converted credential (in W3C form) instance pointer
+/// cred:       object handle pointing to credential in legacy form to convert
+/// cred_p:     reference that will contain converted credential (in W3C form) instance pointer
 ///
 /// # Returns
 /// Error code
@@ -151,12 +150,11 @@ pub extern "C" fn anoncreds_credential_to_w3c(
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
-/// Convert W3C styled AnonCreds credential into legacy styled credential
-///     The conversion process described at the specification: ---
+/// Convert credential in W3C form into legacy credential form
 ///
 /// # Params
-/// cred -      object handle pointing to W3C styled AnonCreds credential to convert
-/// cred_p -    reference that will contain converted credential (in legacy form) instance pointer
+/// cred:       object handle pointing to credential in W3C form to convert
+/// cred_p:     reference that will contain converted credential (in legacy form) instance pointer
 ///
 /// # Returns
 /// Error code
@@ -170,18 +168,68 @@ pub extern "C" fn anoncreds_credential_from_w3c(
 #### Credential object helper methods
 
 ```rust
-/// Set Data Integrity proof signature for W3C AnonCreds credential
+/// Add Non-Anoncreds Data Integrity proof signature to W3C AnonCreds credential
 ///
 /// # Params
 /// cred -      object handle pointing to W3C AnonCreds credential
-/// proof -     data integrity proof signature as JSON string
+/// proof -     data integrity proof as JSON string
+/// cred_p:     reference that will contain update credential
 ///
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_set_integrity_proof(
+pub extern "C" fn anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(
     cred: ObjectHandle,
     proof: FfiStr,
+    cred_p: *mut ObjectHandle,
+) -> ErrorCode {}
+
+/// Add context to W3C AnonCreds credential
+///
+/// # Params
+/// cred -      object handle pointing to W3C AnonCreds credential
+/// context -   context to add into credential
+/// cred_p:     reference that will contain update credential
+///
+/// # Returns
+/// Error code
+#[no_mangle]
+pub extern "C" fn anoncreds_w3c_credential_add_context(
+    cred: ObjectHandle,
+    context: FfiStr,
+    cred_p: *mut ObjectHandle,
+) -> ErrorCode {}
+
+/// Add type to W3C AnonCreds credential
+///
+/// # Params
+/// cred -      object handle pointing to W3C AnonCreds credential
+/// type -      type to add into credential
+/// cred_p:     reference that will contain update credential
+///
+/// # Returns
+/// Error code
+#[no_mangle]
+pub extern "C" fn anoncreds_w3c_credential_add_type(
+    cred: ObjectHandle,
+    type_: FfiStr,
+    cred_p: *mut ObjectHandle,
+) -> ErrorCode {}
+
+/// Set subject id to W3C AnonCreds credential
+///
+/// # Params
+/// cred -      object handle pointing to W3C AnonCreds credential
+/// id -        subject id to add into credential
+/// cred_p:     reference that will contain update credential
+///
+/// # Returns
+/// Error code
+#[no_mangle]
+pub extern "C" fn anoncreds_w3c_credential_subject_id(
+    cred: ObjectHandle,
+    id: FfiStr,
+    cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 ```
 
@@ -259,16 +307,13 @@ The reasons for adding duplication methods:
 
 ```rust
 /// Create Credential Offer according to the AnonCreds specification
-/// It can be either legacy styled or W3C adopted depending on the answer for Q1 
-/// If legacy styled credential to be used, it should indicate that credential in W3C AnonCreds form will be issued as the result.
-///
-/// Even if we do not change Credential Offer message itself we start from using a separate set of API functions
+/// Note that Credential Offer still will be legacy styled (the same as result of anoncreds_create_credential_offer)
 ///
 /// # Params
 /// schema_id:              id of schema future credential refers to
 /// cred_def_id:            id of credential definition future credential refers to
 /// key_proof:              object handle pointing to credential definition key correctness proof
-/// cred_offer_p - Reference that will contain created credential offer (in legacy form) instance pointer.
+/// cred_offer_p:           reference that will contain created credential offer (in legacy form) instance pointer
 ///
 /// # Returns
 /// Error code
@@ -281,10 +326,7 @@ pub extern "C" fn anoncreds_w3c_create_credential_offer(
 ) -> ErrorCode {}
 
 /// Create Credential Request according to the AnonCreds specification
-/// It can be either legacy styled or W3C adopted depending on the answer for Q1 
-/// If legacy styled credential to be used, it should indicate that credential in W3C AnonCreds form will be issued as the result.
-///
-/// Even if we do not change Credential Request message itself we start from using a separate set of API functions
+/// Note that Credential Request still will be legacy styled (the same as result of anoncreds_create_credential_request)
 ///
 /// # Params
 /// entropy:                entropy string to use for request creation
@@ -310,16 +352,17 @@ pub extern "C" fn anoncreds_w3c_create_credential_request(
     cred_req_meta_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
-/// Create W3C styled Credential according to the specification.
+/// Create Credential in W3C form according to the specification.
 ///
 /// # Params
-/// cred_def:              object handle pointing to the credential definition 
-/// cred_def_private:      object handle pointing to the private part of credential definition 
+/// cred_def:              object handle pointing to the credential definition
+/// cred_def_private:      object handle pointing to the private part of credential definition
 /// cred_offer:            object handle pointing to the credential offer
 /// cred_request:          object handle pointing to the credential request
 /// attr_names:            list of attribute names
-/// attr_raw_values:       list of attribute values
-/// revocation:            object handle pointing to the credential revocation data
+/// attr_raw_values:       list of attribute raw values
+/// encoding:              encoding algorithm to apply for attribute values
+/// revocation:            object handle pointing to the credential revocation info
 /// cred_p:                reference that will contain credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -332,6 +375,7 @@ pub extern "C" fn anoncreds_w3c_create_credential(
     cred_request: ObjectHandle,
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
+    encoding: FfiStr,
     revocation: *const FfiCredRevInfo,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
@@ -339,13 +383,11 @@ pub extern "C" fn anoncreds_w3c_create_credential(
 /// Process an incoming W3C credential received from the issuer.
 ///
 /// # Params
-/// cred_def:              object handle pointing to the credential definition 
-/// cred_def_private:      object handle pointing to the private part of credential definition 
-/// cred_offer:            object handle pointing to the credential offer
-/// cred_request:          object handle pointing to the credential request
-/// attr_names:            list of attribute names
-/// attr_raw_values:       list of attribute values
-/// revocation:            object handle pointing to the credential revocation data
+/// cred:                  object handle pointing to the credential in W3C form
+/// cred_req_metadata:     object handle pointing to the credential request metadata
+/// link_secret:           holder link secret
+/// cred_def:              object handle pointing to the credential definition
+/// rev_reg_def:           object handle pointing to the revocation registry definition
 /// cred_p:                reference that will contain credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -360,7 +402,7 @@ pub extern "C" fn anoncreds_w3c_process_credential(
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
-/// Get value of request credential attribute as string
+/// Get value of requested credential attribute as string
 ///
 /// # Params
 /// cred_def:              object handle pointing to the credential (in W3 form)  
@@ -376,11 +418,10 @@ pub extern "C" fn anoncreds_w3c_credential_get_attribute(
     result_p: *mut *const c_char,
 ) -> ErrorCode {}
 
-/// Create W3C styled Presentation according to the specification.
+/// Create W3C Presentation according to the specification.
 /// 
-/// TODO: Function parameters need to be reworked if we decide to make it Presentation Request format agnostic
-///
 /// # Params
+/// pres_req:               object handle pointing to presentation request
 /// credentials:            credentials (in W3C form) to use for presentation preparation
 /// credentials_prove:      attributes and predicates to prove per credential
 /// link_secret:            holder link secret
@@ -394,6 +435,7 @@ pub extern "C" fn anoncreds_w3c_credential_get_attribute(
 /// Error code
 #[no_mangle]
 pub extern "C" fn anoncreds_w3c_create_presentation(
+    pres_req: ObjectHandle,
     credentials: FfiList<FfiCredentialEntry>,
     credentials_prove: FfiList<FfiCredentialProve>,
     link_secret: FfiStr,
@@ -404,12 +446,11 @@ pub extern "C" fn anoncreds_w3c_create_presentation(
     presentation_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
-/// Create W3C styled Presentation according to the specification.
-///
-/// TODO: Function parameters need to be reworked if we decide to make it Presentation Request format agnostic
+/// Verity W3C styled Presentation
 ///
 /// # Params
 /// presentation:                   object handle pointing to presentation
+/// pres_req:                       object handle pointing to presentation request
 /// schemas:                        list of credential schemas
 /// schema_ids:                     list of schemas ids
 /// cred_defs:                      list of credential definitions
@@ -425,6 +466,7 @@ pub extern "C" fn anoncreds_w3c_create_presentation(
 #[no_mangle]
 pub extern "C" fn anoncreds_w3c_verify_presentation(
     presentation: ObjectHandle,
+    pres_req: ObjectHandle,
     schemas: FfiList<ObjectHandle>,
     schema_ids: FfiStrList,
     cred_defs: FfiList<ObjectHandle>,
@@ -438,8 +480,6 @@ pub extern "C" fn anoncreds_w3c_verify_presentation(
 ```
 
 ### Demo scripts
-
-> IN PROGRESS
 
 #### Issue legacy Credential and present W3C Presentation
 
@@ -514,7 +554,10 @@ w3c_credential = Holder.anoncreds_w3c_process_credential(w3c_credential,...)
 
 /// Add RSA Identity Proof signature to credential
 integrity_proof = extartnal_library.create_rsa_integrity_proof(w3c_credential)
-w3c_credential.set_integrity_proof(integrity_proof)
+w3c_credential.anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(integrity_proof)
+w3c_credential.anoncreds_w3c_credential_add_context(context)
+w3c_credential.anoncreds_w3c_credential_add_type(type)
+w3c_credential.anoncreds_w3c_credential_subject_id(subject_id)
 
 /// Do wallets need to store both credential forms to handle legacy and DIF presentations requests?  
 Wallet.store_w3c_credential(w3c_credential)

@@ -1,66 +1,74 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::string::ToString;
-use crate::cl::{
-    CredentialSignature as CLCredentialSignature,
-    SignatureCorrectnessProof,
-};
 
+use crate::Result;
 use crate::data_types::{
     cred_def::CredentialDefinitionId,
+    credential::{CredentialValuesEncoding, RawCredentialValues},
     issuer_id::IssuerId,
     rev_reg_def::RevocationRegistryDefinitionId,
     schema::SchemaId,
-    w3c::uri::URI,
+    w3c::{
+        constants::{W3C_ANONCREDS_CONTEXT, W3C_ANONCREDS_CREDENTIAL_TYPE, W3C_CONTEXT, W3C_CREDENTIAL_TYPE},
+        one_or_many::OneOrMany,
+        uri::URI,
+    },
 };
-use crate::data_types::w3c::OneOrMany;
-use crate::data_types::w3c::presentation::CredentialProof;
-use crate::Error;
-use crate::types::Credential;
-use crate::utils::base64;
+use crate::data_types::presentation::Identifier;
+use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignatureProof, NonAnonCredsDataIntegrityProof};
+use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
 
 /// AnonCreds W3C Credential definition
 /// Note, that this definition is tied to AnonCreds W3C form
 /// Some fields are defined as required despite to general W3C specification
 /// For example `credential_schema` is required for AnonCreds W3C Credentials and has custom format
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct W3CCredential {
     #[serde(rename = "@context")]
-    pub context: HashSet<URI>,
+    pub context: Contexts,
     #[serde(rename = "type")]
-    pub type_: HashSet<String>,
+    pub type_: Types,
     pub issuer: IssuerId,
-    pub issuance_date: DateTime<Utc>,
+    pub issuance_date: Date,
     pub credential_schema: CredentialSchema,
     pub credential_subject: CredentialSubject,
-    pub proof: OneOrMany<Proofs>,
-    /// fields which are not recommended to set but their are defined in the specification
+    pub proof: OneOrMany<CredentialProof>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<URI>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub credential_status: Option<CredentialStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub expiration_date: Option<DateTime<Utc>>,
+    pub expiration_date: Option<Date>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
+pub struct Contexts(pub HashSet<URI>);
+
+#[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
+pub struct Types(pub HashSet<String>);
+
+pub type Date = DateTime<Utc>;
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CredentialSubject {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<URI>,
     #[serde(flatten)]
-    pub property_set: HashMap<String, Value>,
+    pub attributes: RawCredentialValues,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct CredentialStatus {
     pub id: URI,
     #[serde(rename = "type")]
     pub type_: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct CredentialSchema {
     #[serde(rename = "type")]
     pub type_: CredentialSchemaType,
@@ -68,185 +76,135 @@ pub struct CredentialSchema {
     pub schema: SchemaId,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub revocation: Option<RevocationRegistryDefinitionId>,
-    pub encoding: AttributeEncoding,
+    #[serde(default)]
+    pub encoding: CredentialValuesEncoding,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CredentialSchemaType {
     #[serde(rename = "AnonCredsDefinition")]
     AnonCredsDefinition,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub enum AttributeEncoding {
-    #[serde(rename = "auto")]
-    Auto,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub enum Proofs {
-    CLSignature2023(CredentialSignature),
-    AnonCredsPresentationProof2022(CredentialProof),
-    DataIntegrityProof(DataIntegrityProof),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CredentialSignature {
-    #[serde(rename = "type")]
-    pub type_: CredentialSignatureType,
-    pub signature: String,
-}
-
-impl From<&Credential> for CredentialSignature {
-    fn from(credential: &Credential) -> Self {
-        let signature_data = json!({
-            "signature": credential.signature,
-            "signature_correctness_proof": credential.signature_correctness_proof,
-        }).to_string();
-        let signature = base64::encode(signature_data.as_bytes());
-        CredentialSignature {
-            type_: CredentialSignatureType::CLSignature2023,
-            signature,
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub enum CredentialSignatureType {
-    #[serde(rename = "CLSignature2023")]
-    CLSignature2023,
-}
-
-pub type DataIntegrityProof = Value;
-
-pub const W3C_CONTEXT: &'static str = "https://www.w3.org/2018/credentials/v1";
-pub const W3C_ANONCREDS_CREDENTIAL_CONTEXT: &'static str = "https://github.io/anoncreds-w3c/context.json";
-pub const W3C_CREDENTIAL_TYPE: &'static str = "VerifiableCredential";
-pub const W3C_ANONCREDS_CREDENTIAL_TYPE: &'static str = "AnonCredsCredential";
-
-impl Default for W3CCredential {
+impl Default for CredentialSchemaType {
     fn default() -> Self {
-        W3CCredential {
-            context: HashSet::from([
-                URI(W3C_CONTEXT.to_string()),
-                URI(W3C_ANONCREDS_CREDENTIAL_CONTEXT.to_string())
-            ]),
-            type_: HashSet::from([
-                W3C_CREDENTIAL_TYPE.to_string(),
-                W3C_ANONCREDS_CREDENTIAL_TYPE.to_string()
-            ]),
-            issuer: Default::default(),
-            issuance_date: Utc::now(), // FIXME: use random time of the day
-            credential_schema: CredentialSchema {
-                type_: CredentialSchemaType::AnonCredsDefinition,
-                encoding: AttributeEncoding::Auto,
-                definition: CredentialDefinitionId::default(),
-                schema: SchemaId::default(),
-                revocation: None,
-            },
-            credential_subject: Default::default(),
-            proof: Default::default(),
-            id: None,
-            credential_status: None,
-            expiration_date: None,
-        }
-    }
-}
-
-impl Proofs {
-    pub fn credential_signature(&self) -> Option<&CredentialSignature> {
-        match self {
-            Proofs::CLSignature2023(ref signature) => Some(signature),
-            _ => None
-        }
+        CredentialSchemaType::AnonCredsDefinition
     }
 }
 
 impl W3CCredential {
-    pub fn anoncreds_credential_signature_proof(&self) -> Option<&CredentialSignature> {
+    pub fn add_non_anoncreds_identity_proof(&mut self, proof: NonAnonCredsDataIntegrityProof) {
+        match self.proof {
+            OneOrMany::One(ref existing_proof) => {
+                self.proof = OneOrMany::Many(
+                    vec![
+                        existing_proof.clone(),
+                        CredentialProof::NonAnonCredsDataIntegrityProof(proof),
+                    ]
+                )
+            }
+            OneOrMany::Many(ref mut proofs) => {
+                proofs.push(CredentialProof::NonAnonCredsDataIntegrityProof(proof))
+            }
+        }
+    }
+
+    pub fn set_id(&mut self, id: URI) {
+        self.id = Some(id)
+    }
+
+    pub fn set_subject_id(&mut self, id: URI) {
+        self.credential_subject.id = Some(id)
+    }
+
+    pub fn add_context(&mut self, context: URI) {
+        self.context.0.insert(context);
+    }
+
+    pub fn add_type(&mut self, types: String) {
+        self.type_.0.insert(types);
+    }
+
+    pub fn get_credential_signature_proof(&self) -> Result<&CredentialSignatureProof> {
         match &self.proof {
             OneOrMany::One(ref proof) => {
-                proof.credential_signature()
+                proof.get_credential_signature_proof()
             }
-            OneOrMany::Many(proofs) => {
+            OneOrMany::Many(ref proofs) => {
                 proofs
                     .iter()
-                    .find_map(|proof| proof.credential_signature())
+                    .find_map(|proof| proof.get_credential_signature_proof().ok())
+                    .ok_or(err_msg!("credential does not contain AnonCredsSignatureProof"))
             }
         }
     }
-}
 
-#[derive(Serialize, Deserialize)]
-pub struct CredentialSignatureHelper {
-    pub signature: CLCredentialSignature,
-    pub signature_correctness_proof: SignatureCorrectnessProof,
-}
-
-impl TryFrom<&CredentialSignature> for CredentialSignatureHelper {
-    type Error = Error;
-
-    fn try_from(value: &CredentialSignature) -> Result<Self, Self::Error> {
-        match value.type_ {
-            CredentialSignatureType::CLSignature2023 => {
-                serde_json::from_str(&value.signature)
-                    .map_err(err_map!("unable to parse credential cl signature"))
+    pub fn get_mut_credential_signature_proof(&mut self) -> Result<&mut CredentialSignatureProof> {
+        match self.proof {
+            OneOrMany::One(ref mut proof) => {
+                proof.get_mut_credential_signature_proof()
+            }
+            OneOrMany::Many(ref mut proofs) => {
+                proofs
+                    .iter_mut()
+                    .find_map(|proof| proof.get_mut_credential_signature_proof().ok())
+                    .ok_or(err_msg!("credential does not contain AnonCredsSignatureProof"))
             }
         }
     }
+
+    pub fn get_presentation_proof(&self) -> Result<&CredentialPresentationProof> {
+        match &self.proof {
+            OneOrMany::One(ref proof) => {
+                proof.get_presentation_proof()
+            }
+            OneOrMany::Many(ref proofs) => {
+                proofs
+                    .iter()
+                    .find_map(|proof| proof.get_presentation_proof().ok())
+                    .ok_or(err_msg!("credential does not contain PresentationProof"))
+            }
+        }
+    }
+
+    pub fn get_mut_presentation_proof(&mut self) -> Result<&mut CredentialPresentationProof> {
+        match self.proof {
+            OneOrMany::One(ref mut proof) => {
+                proof.get_mut_presentation_proof()
+            }
+            OneOrMany::Many(ref mut proofs) => {
+                proofs
+                    .iter_mut()
+                    .find_map(|proof| proof.get_mut_presentation_proof().ok())
+                    .ok_or(err_msg!("credential does not contain PresentationProof"))
+            }
+        }
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        if !self.context.0.contains(&URI(W3C_CONTEXT.to_string())) {
+            return Err(err_msg!("Credential does not contain w3c context"));
+        }
+        if !self.context.0.contains(&URI(W3C_ANONCREDS_CONTEXT.to_string())) {
+            return Err(err_msg!("Credential does not contain w3c anoncreds context"));
+        }
+        if !self.type_.0.contains(W3C_CREDENTIAL_TYPE) {
+            return Err(err_msg!("Credential does not contain w3c credential type"));
+        }
+        if !self.type_.0.contains(W3C_ANONCREDS_CREDENTIAL_TYPE) {
+            return Err(err_msg!("Credential does not contain w3c anoncreds credential type"));
+        }
+        Ok(())
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Test credential taken from the AnonCreds specification
-    const CREDENTIAL_JSON: &str = r#"{
-      "@context": [
-        "https://www.w3.org/2018/credentials/v1",
-        "https://github.io/anoncreds-w3c/context.json"
-      ],
-      "type": [
-        "VerifiableCredential",
-        "AnonCredsCredential"
-      ],
-      "issuer": "did:sov:3avoBCqDMFHFaKUHug9s8W",
-      "issuanceDate": "2023-10-26T01:17:32Z",
-      "credentialSchema": {
-        "type": "AnonCredsDefinition",
-        "definition": "did:sov:3avoBCqDMFHFaKUHug9s8W:3:CL:13:default",
-        "schema": "did:sov:3avoBCqDMFHFaKUHug9s8W:2:basic_person:0.1.0",
-        "encoding": "auto"
-      },
-      "credentialSubject": {
-        "firstName": "Alice",
-        "lastName": "Jones",
-        "age": "18"
-      },
-      "proof": [
-        {
-          "type": "CLSignature2023",
-          "signature": "AAAgf9w5.....8Z_x3FqdwRHoWruiF0FlM"
-        },
-        {
-          "type": "Ed25519Signature2020",
-          "created": "2021-11-13T18:19:39Z",
-          "verificationMethod": "did:sov:3avoBCqDMFHFaKUHug9s8W#key-1",
-          "proofPurpose": "assertionMethod",
-          "proofValue": "z58DAdFfa9SkqZMVPxAQpic7ndSayn1PzZs6ZjWp1CktyGesjuTSwRdoWhAfGFCF5bppETSTojQCrfFPP2oumHKtz"
+impl Into<Identifier> for CredentialSchema {
+    fn into(self) -> Identifier {
+        Identifier {
+            schema_id: self.schema.clone(),
+            cred_def_id: self.definition.clone(),
+            rev_reg_id: self.revocation.clone(),
+            timestamp: None,
         }
-      ]
-    }"#;
-
-    #[test]
-    fn test_parse_credential() {
-        let cred: W3CCredential = serde_json::from_str(CREDENTIAL_JSON).unwrap();
-        let expected = HashSet::from([
-            URI("https://www.w3.org/2018/credentials/v1".to_string()),
-            URI("https://github.io/anoncreds-w3c/context.json".to_string()),
-        ]);
-
-        assert_eq!(cred.context, expected)
     }
 }

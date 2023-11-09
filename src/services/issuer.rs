@@ -17,6 +17,20 @@ use crate::types::{CredentialDefinitionConfig, CredentialRevocationConfig};
 use crate::utils::validation::Validatable;
 use bitvec::bitvec;
 use std::collections::BTreeSet;
+use anoncreds_clsignatures::{
+    CredentialPrivateKey,
+    CredentialPublicKey,
+    CredentialSignature as CLCredentialSignature,
+    CredentialValues as CLCredentialValues,
+    SignatureCorrectnessProof,
+    Witness,
+};
+use crate::data_types::credential::{CredentialValuesEncoding, RawCredentialValues};
+use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
+use crate::data_types::w3c::credential::{CredentialSchema, CredentialSchemaType, CredentialSubject, W3CCredential};
+use crate::data_types::w3c::one_or_many::OneOrMany;
+use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignature, CredentialSignatureProof};
+use crate::utils::datetime;
 
 use super::tails::TailsWriter;
 use super::types::{
@@ -233,8 +247,8 @@ pub fn create_revocation_registry_def<TW>(
     RevocationRegistryDefinition,
     RevocationRegistryDefinitionPrivate,
 )>
-where
-    TW: TailsWriter,
+    where
+        TW: TailsWriter,
 {
     trace!("create_revocation_registry >>> cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}",
              cred_def, tag, max_cred_num, rev_reg_type);
@@ -712,15 +726,222 @@ pub fn create_credential(
             cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&cred_values), revocation_config,
             );
 
-    let cred_public_key: anoncreds_clsignatures::CredentialPublicKey =
-        cred_def.get_public_key().map_err(err_map!(
-            Unexpected,
-            "Error fetching public key from credential definition"
-        ))?;
-    let credential_values = build_credential_values(&cred_values.0, None)?;
+    let (
+        credential_signature,
+        signature_correctness_proof,
+        rev_reg_id,
+        rev_reg,
+        witness
+    ) = CLCredentialSigner::new(cred_def, cred_def_private)?
+        .with_values(&cred_values)?
+        .with_revocation_config(revocation_config.as_ref())?
+        .sign(cred_offer, cred_request)?;
 
-    let (credential_signature, signature_correctness_proof, rev_reg_id, rev_reg, witness) =
-        if let Some(rev_config) = revocation_config {
+    let credential = Credential {
+        schema_id: cred_offer.schema_id.clone(),
+        cred_def_id: cred_offer.cred_def_id.clone(),
+        rev_reg_id,
+        values: cred_values,
+        signature: credential_signature,
+        signature_correctness_proof,
+        rev_reg,
+        witness,
+    };
+
+    trace!(
+        "create_credential <<< credential {:?}",
+        secret!(&credential),
+    );
+
+    Ok(credential)
+}
+
+/// Create an AnonCreds Credential in W3C form according to the [Anoncreds v1.0 specification -
+/// Credential](https://hyperledger.github.io/anoncreds-spec/#issue-credential)
+///
+/// This object can be send to a holder which means that the credential is issued to that entity.
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::issuer;
+/// use anoncreds::prover;
+/// use anoncreds::types::MakeRawCredentialValues;
+///
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+/// use anoncreds::data_types::issuer_id::IssuerId;
+/// use anoncreds::data_types::schema::SchemaId;
+/// use anoncreds::data_types::cred_def::CredentialDefinitionId;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let issuer_id = IssuerId::new("did:web:xyz").expect("Invalid issuer ID");
+/// let schema_id = SchemaId::new("did:web:xyz/resource/schema").expect("Invalid schema ID");
+/// let cred_def_id = CredentialDefinitionId::new("did:web:xyz/resource/cred-def",).expect("Invalid credential definition ID");
+///
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    issuer_id.clone(),
+///                                    attribute_names.into()
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition(schema_id.clone(),
+///                                          &schema,
+///                                          issuer_id,
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig::default()
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let credential_offer =
+///     issuer::create_credential_offer(schema_id,
+///                                     cred_def_id,
+///                                     &key_correctness_proof,
+///                                     ).expect("Unable to create Credential Offer");
+///
+/// let link_secret =
+///     prover::create_link_secret().expect("Unable to create link secret");
+///
+/// let (credential_request, credential_request_metadata) =
+///     prover::create_credential_request(Some("entropy"),
+///                                       None,
+///                                       &cred_def,
+///                                       &link_secret,
+///                                       "my-secret-id",
+///                                       &credential_offer,
+///                                       ).expect("Unable to create credential request");
+///
+/// let mut credential_values = MakeRawCredentialValues::default();
+/// credential_values.add("name", "john").expect("Unable to add credential value");
+/// credential_values.add("age", "28").expect("Unable to add credential value");
+///
+/// let credential =
+///     issuer::create_w3c_credential(&cred_def,
+///                               &cred_def_priv,
+///                               &credential_offer,
+///                               &credential_request,
+///                               credential_values.into(),
+///                               None,
+///                               None,
+///                               ).expect("Unable to create credential");
+/// ```
+#[allow(clippy::too_many_arguments)]
+pub fn create_w3c_credential(
+    cred_def: &CredentialDefinition,
+    cred_def_private: &CredentialDefinitionPrivate,
+    cred_offer: &CredentialOffer,
+    cred_request: &CredentialRequest,
+    raw_credential_values: RawCredentialValues,
+    revocation_config: Option<CredentialRevocationConfig>,
+    encoding: Option<CredentialValuesEncoding>,
+) -> Result<W3CCredential> {
+    trace!("w3c_create_credential >>> cred_def: {:?}, cred_def_private: {:?}, cred_offer.nonce: {:?}, cred_request: {:?},\
+            cred_values: {:?}, revocation_config: {:?}",
+            cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&raw_credential_values), revocation_config,
+            );
+
+    let encoding = encoding.unwrap_or_default();
+    let credential_values = raw_credential_values.encode(&encoding)?;
+
+    let (
+        credential_signature,
+        signature_correctness_proof,
+        rev_reg_id,
+        rev_reg,
+        witness
+    ) = CLCredentialSigner::new(cred_def, cred_def_private)?
+        .with_values(&credential_values)?
+        .with_revocation_config(revocation_config.as_ref())?
+        .sign(cred_offer, cred_request)?;
+
+
+    let signature = CredentialSignature::new(credential_signature, signature_correctness_proof, rev_reg, witness);
+    let proof = CredentialSignatureProof::new(signature);
+
+    let credential = W3CCredential {
+        context: ANONCREDS_CONTEXTS.clone(),
+        type_: ANONCREDS_TYPES.clone(),
+        issuer: cred_def.issuer_id.clone(),
+        issuance_date: datetime::today(),
+        credential_schema: CredentialSchema {
+            type_: CredentialSchemaType::AnonCredsDefinition,
+            definition: cred_offer.cred_def_id.clone(),
+            schema: cred_offer.schema_id.clone(),
+            revocation: rev_reg_id,
+            encoding,
+        },
+        credential_subject: CredentialSubject {
+            id: None,
+            attributes: raw_credential_values.clone()
+        },
+        proof: OneOrMany::Many(
+            vec![
+                CredentialProof::AnonCredsSignatureProof(proof)
+            ]
+        ),
+        ..Default::default()
+    };
+
+    trace!(
+        "w3c_create_credential <<< credential {:?}",
+        secret!(&credential),
+    );
+
+    Ok(credential)
+}
+
+struct CLCredentialSigner<'a> {
+    public_key: CredentialPublicKey,
+    private_key: &'a CredentialPrivateKey,
+    credential_values: Option<CLCredentialValues>,
+    revocation_config: Option<&'a CredentialRevocationConfig<'a>>,
+}
+
+impl<'a> CLCredentialSigner<'a> {
+    fn new(
+        cred_def: &CredentialDefinition,
+        cred_def_private: &'a CredentialDefinitionPrivate,
+    ) -> Result<Self> {
+        let cred_public_key = cred_def.get_public_key()
+            .map_err(err_map!(
+                Unexpected,
+                "Error fetching public key from credential definition"
+            ))?;
+        Ok(
+            CLCredentialSigner {
+                public_key: cred_public_key,
+                private_key: &cred_def_private.value,
+                credential_values: None,
+                revocation_config: None,
+            }
+        )
+    }
+
+    fn with_values(mut self, cred_values: &CredentialValues) -> Result<Self> {
+        let credential_values = build_credential_values(&cred_values, None)?;
+        self.credential_values = Some(credential_values);
+        Ok(self)
+    }
+
+    fn with_revocation_config(mut self, revocation_config: Option<&'a CredentialRevocationConfig>) -> Result<Self> {
+        self.revocation_config = revocation_config;
+        Ok(self)
+    }
+
+    fn sign(self,
+            cred_offer: &CredentialOffer,
+            cred_request: &CredentialRequest) -> Result<(
+        CLCredentialSignature,
+        SignatureCorrectnessProof,
+        Option<RevocationRegistryDefinitionId>,
+        Option<CryptoRevocationRegistry>,
+        Option<Witness>
+    )> {
+        let credential_values = self.credential_values
+            .ok_or(err_msg!("credential_values is not ser"))?;
+
+        if let Some(rev_config) = self.revocation_config {
             let rev_reg_def: &RevocationRegistryDefinitionValue = &rev_config.reg_def.value;
             let rev_reg: Option<CryptoRevocationRegistry> = rev_config.status_list.into();
             let mut rev_reg = rev_reg.ok_or_else(|| {
@@ -762,20 +983,22 @@ pub fn create_credential(
                     cred_offer.nonce.as_native(),
                     cred_request.nonce.as_native(),
                     &credential_values,
-                    &cred_public_key,
-                    &cred_def_private.value,
+                    &self.public_key,
+                    &self.private_key,
                     rev_config.registry_idx,
                     rev_reg_def.max_cred_num,
                     issuance_by_default,
                     &mut rev_reg,
                     &rev_config.reg_def_private.value,
                 )?;
-            (
-                credential_signature,
-                signature_correctness_proof,
-                rev_config.status_list.id(),
-                Some(rev_reg),
-                Some(witness),
+            Ok(
+                (
+                    credential_signature,
+                    signature_correctness_proof,
+                    rev_config.status_list.id(),
+                    Some(rev_reg),
+                    Some(witness),
+                )
             )
         } else {
             let (signature, correctness_proof) = Issuer::sign_credential(
@@ -785,29 +1008,20 @@ pub fn create_credential(
                 cred_offer.nonce.as_native(),
                 cred_request.nonce.as_native(),
                 &credential_values,
-                &cred_public_key,
-                &cred_def_private.value,
+                &self.public_key,
+                &self.private_key,
             )?;
-            (signature, correctness_proof, None, None, None)
-        };
-
-    let credential = Credential {
-        schema_id: cred_offer.schema_id.clone(),
-        cred_def_id: cred_offer.cred_def_id.clone(),
-        rev_reg_id,
-        values: cred_values,
-        signature: credential_signature,
-        signature_correctness_proof,
-        rev_reg,
-        witness,
-    };
-
-    trace!(
-        "create_credential <<< credential {:?}",
-        secret!(&credential),
-    );
-
-    Ok(credential)
+            Ok(
+                (
+                    signature,
+                    correctness_proof,
+                    None,
+                    None,
+                    None
+                )
+            )
+        }
+    }
 }
 
 #[cfg(test)]
@@ -817,8 +1031,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_issuer_id_equal_in_revocation_registry_definiton_and_credential_definition(
-    ) -> Result<()> {
+    fn test_issuer_id_equal_in_revocation_registry_definiton_and_credential_definition() -> Result<()> {
         let issuer_id = "sample:uri".try_into()?;
         let schema_id = "schema:id".try_into()?;
         let cred_def_id = "sample:uri".try_into()?;

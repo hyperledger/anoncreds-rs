@@ -206,6 +206,12 @@ pub enum PredicateTypes {
     LT,
 }
 
+impl Default for PredicateTypes {
+    fn default() -> Self {
+        PredicateTypes::GE
+    }
+}
+
 impl fmt::Display for PredicateTypes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {

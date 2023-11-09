@@ -1,12 +1,9 @@
 use std::collections::HashMap;
-use serde_json::Value;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
 use crate::cl::{CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, Witness};
-use crate::data_types::w3c::credential::{AttributeEncoding, CredentialSchema, CredentialSchemaType, CredentialSignatureHelper, CredentialSubject, Proofs};
-use crate::data_types::w3c::OneOrMany;
 use crate::Error;
 use crate::error::{ConversionError, ValidationError};
 use crate::types::MakeCredentialValues;
@@ -14,10 +11,6 @@ use crate::utils::validation::Validatable;
 
 use super::rev_reg_def::RevocationRegistryDefinitionId;
 use super::{cred_def::CredentialDefinitionId, schema::SchemaId};
-use super::w3c::credential::{
-    W3CCredential,
-    CredentialSignature as W3CCredentialSignature,
-};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Credential {
@@ -55,69 +48,6 @@ impl Credential {
             witness: self.witness.clone(),
         })
     }
-
-    // FIXME: Do we expect credentials with fully-qualified ids???
-    // FIXME: ConversionError or new kind???
-    pub fn to_w3c(&self, method: Option<&str>) -> Result<W3CCredential, ConversionError> {
-        let issuer = self.cred_def_id.issuer_did(method)?;
-        let cred_def_id = self.cred_def_id.id(method)?;
-        let schema_id = self.schema_id.id(method)?;
-        let signature = W3CCredentialSignature::from(self);
-        let attributes = self.values.0
-            .iter()
-            .map(|(attribute, values)| (attribute.to_string(), Value::String(values.raw.to_string())))
-            .collect();
-        let credential_subject = CredentialSubject { property_set: attributes };
-
-        Ok(
-            W3CCredential {
-                issuer,
-                issuance_date: chrono::offset::Utc::now(), // FIXME: use random time of the day
-                credential_schema: CredentialSchema {
-                    type_: CredentialSchemaType::AnonCredsDefinition,
-                    definition: cred_def_id,
-                    schema: schema_id,
-                    revocation: None,
-                    encoding: AttributeEncoding::Auto,
-                },
-                credential_subject,
-                proof: OneOrMany::Many(
-                    vec![
-                        Proofs::CLSignature2023(signature)
-                    ]
-                ),
-                ..W3CCredential::default()
-            }
-        )
-    }
-
-    pub fn from_w3c(w3c_credential: &W3CCredential) -> Result<Credential, Error> {
-        let schema_id = w3c_credential.credential_schema.schema.clone();
-        let cred_def_id = w3c_credential.credential_schema.definition.clone();
-        let rev_reg_id = w3c_credential.credential_schema.revocation.clone();
-        let signature = w3c_credential.anoncreds_credential_signature_proof()
-            .ok_or(ValidationError::from_msg("anoncreds credential proof no set"))?;
-
-        let signature = CredentialSignatureHelper::try_from(signature)?;
-
-        let mut cred_values = MakeCredentialValues::default();
-        for (attribute, value) in w3c_credential.credential_subject.property_set.iter() {
-            cred_values.add_raw(attribute, &value.to_string())?;
-        }
-
-        Ok(
-            Credential {
-                schema_id,
-                cred_def_id,
-                rev_reg_id,
-                values: cred_values.into(),
-                signature: signature.signature,
-                signature_correctness_proof: signature.signature_correctness_proof,
-                rev_reg: None,
-                witness: None,
-            }
-        )
-    }
 }
 
 impl Validatable for Credential {
@@ -145,14 +75,93 @@ impl Validatable for Credential {
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct CredentialInfo {
     pub referent: String,
-    pub attrs: ShortCredentialValues,
+    pub attrs: RawCredentialValues,
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
     pub rev_reg_id: Option<RevocationRegistryDefinitionId>,
     pub cred_rev_id: Option<String>,
 }
 
-pub type ShortCredentialValues = HashMap<String, String>;
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum CredentialValuesEncoding {
+    #[serde(rename = "auto")]
+    Auto,
+    Other(String),
+}
+
+impl From<&str> for CredentialValuesEncoding {
+    fn from(value: &str) -> Self {
+        match value {
+            "auto" => CredentialValuesEncoding::Auto,
+            other => CredentialValuesEncoding::Other(other.to_string())
+        }
+    }
+}
+
+impl Default for CredentialValuesEncoding {
+    fn default() -> Self {
+        CredentialValuesEncoding::Auto
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+pub struct RawCredentialValues(pub HashMap<String, String>);
+
+#[cfg(feature = "zeroize")]
+impl Drop for RawCredentialValues {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+#[cfg(feature = "zeroize")]
+impl Zeroize for RawCredentialValues {
+    fn zeroize(&mut self) {
+        for attr in self.0.values_mut() {
+            attr.zeroize();
+        }
+    }
+}
+
+impl Validatable for RawCredentialValues {
+    fn validate(&self) -> Result<(), ValidationError> {
+        if self.0.is_empty() {
+            return Err("RawCredentialValues validation failed: empty list has been passed".into());
+        }
+
+        Ok(())
+    }
+}
+
+impl From<&CredentialValues> for RawCredentialValues {
+    fn from(values: &CredentialValues) -> Self {
+        RawCredentialValues(
+            values.0
+                .iter()
+                .map(|(attribute, values)|
+                    (
+                        attribute.to_owned(),
+                        values.raw.to_owned()
+                    )
+                )
+                .collect()
+        )
+    }
+}
+
+impl RawCredentialValues {
+    pub fn encode(&self, encoding: &CredentialValuesEncoding) -> Result<CredentialValues, Error> {
+        if encoding != &CredentialValuesEncoding::Auto {
+            return Err(err_msg!("Credential values encoding {:?} is not supported", encoding));
+        }
+
+        let mut cred_values = MakeCredentialValues::default();
+        for (attribute, raw_value) in self.0.iter() {
+            cred_values.add_raw(attribute, &raw_value.to_string())?;
+        }
+        Ok(cred_values.into())
+    }
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct CredentialValues(pub HashMap<String, AttributeValues>);
