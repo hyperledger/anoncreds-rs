@@ -868,7 +868,7 @@ pub fn create_w3c_credential(
             type_: CredentialSchemaType::AnonCredsDefinition,
             definition: cred_offer.cred_def_id.clone(),
             schema: cred_offer.schema_id.clone(),
-            revocation: rev_reg_id,
+            revocation_registry: rev_reg_id,
             encoding,
         },
         credential_subject: CredentialSubject {

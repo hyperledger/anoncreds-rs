@@ -69,13 +69,14 @@ pub struct CredentialStatus {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CredentialSchema {
     #[serde(rename = "type")]
     pub type_: CredentialSchemaType,
     pub definition: CredentialDefinitionId,
     pub schema: SchemaId,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub revocation: Option<RevocationRegistryDefinitionId>,
+    pub revocation_registry: Option<RevocationRegistryDefinitionId>,
     #[serde(default)]
     pub encoding: CredentialValuesEncoding,
 }
@@ -203,7 +204,7 @@ impl Into<Identifier> for CredentialSchema {
         Identifier {
             schema_id: self.schema.clone(),
             cred_def_id: self.definition.clone(),
-            rev_reg_id: self.revocation.clone(),
+            rev_reg_id: self.revocation_registry.clone(),
             timestamp: None,
         }
     }

@@ -13,9 +13,9 @@ pub fn credential_to_w3c(credential: &Credential) -> Result<W3CCredential, Error
 
     let credential = credential.try_clone()?;
 
-    // FIXME: As AnonCreds-rs is DID method agnostic it does not analyze/handle the values of id fields.
-    //  For W3C Credentials we need to set issuer_id attribute but legacy credentials do not contain it explicitly.
-    //  We only can parse issuer from the legacy form? and what about DID method?
+    // FIXME: As AnonCreds-rs is DID method agnostic, so it does not analyze/handle the values of id fields.
+    //  For conversion into W3C Credentials form we need to set issuer_id attribute but legacy credentials do not contain it explicitly.
+    //  We only can parse issuer from the legacy form?
     let issuer = credential.cred_def_id.issuer_did();
     let cred_def_id = credential.cred_def_id;
     let schema_id = credential.schema_id;
@@ -36,7 +36,7 @@ pub fn credential_to_w3c(credential: &Credential) -> Result<W3CCredential, Error
             type_: CredentialSchemaType::AnonCredsDefinition,
             definition: cred_def_id,
             schema: schema_id,
-            revocation: None,
+            revocation_registry: None,
             encoding: CredentialValuesEncoding::Auto,
         },
         credential_subject: CredentialSubject {
@@ -59,7 +59,7 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
 
     let schema_id = w3c_credential.credential_schema.schema.clone();
     let cred_def_id = w3c_credential.credential_schema.definition.clone();
-    let rev_reg_id = w3c_credential.credential_schema.revocation.clone();
+    let rev_reg_id = w3c_credential.credential_schema.revocation_registry.clone();
     let proof = w3c_credential.get_credential_signature_proof()?;
     let credential_signature = proof.get_credential_signature()?;
     let values = w3c_credential.credential_subject.attributes.encode(&w3c_credential.credential_schema.encoding)?;
@@ -166,7 +166,7 @@ mod tests {
                 type_: CredentialSchemaType::AnonCredsDefinition,
                 definition: _cred_def_id(),
                 schema: _schema_id(),
-                revocation: None,
+                revocation_registry: None,
                 encoding: CredentialValuesEncoding::Auto,
             },
             credential_subject: CredentialSubject {
@@ -212,7 +212,7 @@ mod tests {
         assert_eq!(w3c_credential.type_, ANONCREDS_TYPES.clone());
         assert_eq!(w3c_credential.credential_schema.schema, legacy_credential.schema_id);
         assert_eq!(w3c_credential.credential_schema.definition, legacy_credential.cred_def_id);
-        assert_eq!(w3c_credential.credential_schema.revocation, legacy_credential.rev_reg_id);
+        assert_eq!(w3c_credential.credential_schema.revocation_registry, legacy_credential.rev_reg_id);
         assert_eq!(w3c_credential.credential_schema.encoding, CredentialValuesEncoding::Auto);
         assert_eq!(w3c_credential.credential_subject.attributes, RawCredentialValues::from(&legacy_credential.values));
         let proof =
@@ -230,7 +230,7 @@ mod tests {
                 .expect("unable to convert credential from w3c form");
         assert_eq!(legacy_credential.schema_id, w3c_credential.credential_schema.schema);
         assert_eq!(legacy_credential.cred_def_id, w3c_credential.credential_schema.definition);
-        assert_eq!(legacy_credential.rev_reg_id, w3c_credential.credential_schema.revocation);
+        assert_eq!(legacy_credential.rev_reg_id, w3c_credential.credential_schema.revocation_registry);
         assert_eq!(legacy_credential.values, _cred_values());
         assert_eq!(legacy_credential.signature, _signature_data().signature);
         assert_eq!(legacy_credential.signature_correctness_proof, _signature_data().signature_correctness_proof);

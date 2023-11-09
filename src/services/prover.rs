@@ -257,6 +257,9 @@ pub fn process_credential(
                          credential.witness.as_ref())?
         .process(&mut credential.signature, &credential.signature_correctness_proof, cred_request_metadata)?;
 
+    credential.rev_reg = None;
+    credential.witness = None;
+
     trace!("process_credential <<< ");
 
     Ok(())
@@ -360,8 +363,8 @@ pub fn process_w3c_credential(
 
     proof.signature = CredentialSignature::new(signature.signature,
                                                signature.signature_correctness_proof,
-                                               signature.rev_reg,
-                                               signature.witness).encode();
+                                               None,
+                                               None).encode();
 
     trace!("w3c_process_credential <<< ");
 
@@ -711,8 +714,8 @@ pub fn create_w3c_presentation(
     for (present, sub_proof) in credentials.0.iter().zip(cl_proof.proofs) {
         let mapping = build_mapping(&pres_req_val, &present);
         let credential_subject = build_credential_subject(&pres_req_val, &present)?;
-        let proof_value = CredentialPresentationProofValue::new(sub_proof, present.timestamp);
-        let proof = CredentialPresentationProof::new(proof_value, mapping);
+        let proof_value = CredentialPresentationProofValue::new(sub_proof);
+        let proof = CredentialPresentationProof::new(proof_value, mapping, present.timestamp);
         let verifiable_credential = W3CCredential {
             credential_subject,
             proof: OneOrMany::One(

@@ -187,18 +187,18 @@ pub fn verify_w3c_presentation(
     let proof_data = presentation.proof.get_proof_value()?;
     let mut proof = Proof {
         proofs: Vec::new(),
-        aggregated_proof: proof_data.aggregated_proof,
+        aggregated_proof: proof_data.aggregated,
     };
     let mut verifier = CLProofVerifier::init()?;
 
     for verifiable_credential in presentation.verifiable_credential.iter() {
-        let presentation_proof = verifiable_credential.get_presentation_proof()?;
-        let proof_data = presentation_proof.get_proof_value()?;
+        let credential_proof = verifiable_credential.get_presentation_proof()?;
+        let proof_data = credential_proof.get_proof_value()?;
 
         let (attrs_for_credential, attrs_nonrevoked_interval) =
-            get_revealed_attributes_for_credential_mapping(&presentation_proof.mapping);
+            get_revealed_attributes_for_credential_mapping(&credential_proof.mapping);
         let (predicates_for_credential, pred_nonrevoked_interval) =
-            get_predicates_for_credential_mapping(&presentation_proof.mapping);
+            get_predicates_for_credential_mapping(&credential_proof.mapping);
 
         let sub_proof_verifier =
             CLSubProofVerifier::new()
@@ -211,8 +211,8 @@ pub fn verify_w3c_presentation(
                 .with_non_revok_interval(pres_req.non_revoked.clone(),
                                          attrs_nonrevoked_interval,
                                          pred_nonrevoked_interval)?
-                .with_revocation(proof_data.timestamp.clone(),
-                                 verifiable_credential.credential_schema.revocation.as_ref(),
+                .with_revocation(credential_proof.timestamp.clone(),
+                                 verifiable_credential.credential_schema.revocation_registry.as_ref(),
                                  rev_reg_defs,
                                  rev_status_lists.as_ref(),
                                  nonrevoke_interval_override)?;

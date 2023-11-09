@@ -21,7 +21,7 @@ pub fn decode<T: AsRef<[u8]>>(val: T) -> Result<Vec<u8>, Error> {
 
 pub fn decode_json<T: AsRef<[u8]>, V: DeserializeOwned>(val: T) -> Result<V, Error> {
     let bytes = decode(val)?;
-    serde_json::from_slice(&bytes)
-        .map_err(err_map!("unable to parse json object from byes"))
+    let json = serde_json::from_slice(&bytes)?;
+    Ok(json)
 }
 

@@ -87,7 +87,6 @@ impl CredentialProof {
 pub struct CredentialSignature {
     pub signature: CLCredentialSignature,
     pub signature_correctness_proof: SignatureCorrectnessProof,
-    // FIXME: Probably revocation related data should be moved out of credential into separate proof?
     pub rev_reg: Option<RevocationRegistry>,
     pub witness: Option<Witness>,
 }

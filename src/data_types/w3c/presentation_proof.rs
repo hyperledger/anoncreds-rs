@@ -9,21 +9,18 @@ pub struct CredentialPresentationProof {
     pub type_: PresentationProofType,
     pub mapping: CredentialAttributesMapping,
     pub proof_value: String,
+    pub timestamp: Option<u64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CredentialPresentationProofValue {
     pub sub_proof: SubProof,
-    // FIXME: design revocation: where we should put timestamp?
-    pub timestamp: Option<u64>,
 }
 
 impl CredentialPresentationProofValue {
-    pub fn new(sub_proof: SubProof,
-               timestamp: Option<u64>) -> CredentialPresentationProofValue {
+    pub fn new(sub_proof: SubProof) -> CredentialPresentationProofValue {
         CredentialPresentationProofValue {
             sub_proof,
-            timestamp,
         }
     }
 
@@ -38,17 +35,19 @@ impl CredentialPresentationProofValue {
 
 impl CredentialPresentationProof {
     pub fn new(proof_value: CredentialPresentationProofValue,
-               mapping: CredentialAttributesMapping) -> CredentialPresentationProof {
+               mapping: CredentialAttributesMapping,
+               timestamp: Option<u64>) -> CredentialPresentationProof {
         CredentialPresentationProof {
-            type_: PresentationProofType::AnonCredsPresentationProof2022,
+            type_: PresentationProofType::AnonCredsPresentationProof2023,
             mapping,
+            timestamp,
             proof_value: proof_value.encode(),
         }
     }
 
     pub fn get_proof_value(&self) -> crate::Result<CredentialPresentationProofValue> {
         match self.type_ {
-            PresentationProofType::AnonCredsPresentationProof2022 => {
+            PresentationProofType::AnonCredsPresentationProof2023 => {
                 CredentialPresentationProofValue::decode(&self.proof_value)
             }
         }
@@ -66,13 +65,13 @@ pub struct PresentationProof {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PresentationProofValue {
-    pub aggregated_proof: AggregatedProof,
+    pub aggregated: AggregatedProof,
 }
 
 impl PresentationProof {
     pub fn new(proof_value: PresentationProofValue, nonce: Nonce) -> PresentationProof {
         PresentationProof {
-            type_: PresentationProofType::AnonCredsPresentationProof2022,
+            type_: PresentationProofType::AnonCredsPresentationProof2023,
             challenge: nonce.to_string(),
             proof_value: proof_value.encode(),
         }
@@ -80,7 +79,7 @@ impl PresentationProof {
 
     pub fn get_proof_value(&self) -> crate::Result<PresentationProofValue> {
         match self.type_ {
-            PresentationProofType::AnonCredsPresentationProof2022 => {
+            PresentationProofType::AnonCredsPresentationProof2023 => {
                 PresentationProofValue::decode(&self.proof_value)
             }
         }
@@ -90,7 +89,7 @@ impl PresentationProof {
 impl PresentationProofValue {
     pub fn new(aggregated_proof: AggregatedProof) -> PresentationProofValue {
         PresentationProofValue {
-            aggregated_proof,
+            aggregated: aggregated_proof,
         }
     }
 
@@ -106,12 +105,12 @@ impl PresentationProofValue {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum PresentationProofType {
     #[serde(rename = "AnonCredsPresentationProof2023")]
-    AnonCredsPresentationProof2022,
+    AnonCredsPresentationProof2023,
 }
 
 impl Default for PresentationProofType {
     fn default() -> Self {
-        PresentationProofType::AnonCredsPresentationProof2022
+        PresentationProofType::AnonCredsPresentationProof2023
     }
 }
 

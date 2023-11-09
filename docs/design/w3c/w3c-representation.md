@@ -12,18 +12,22 @@ verifiable credential and presentation described in the [document]().
     * Credentials conversion:
         * Convert legacy styled AnonCreds credentials into W3C form
         * Convert W3C styled AnonCreds credentials into legacy form
-    * Presentation conversion (Optional): 
+    * Presentation conversion (Optional):
         * Convert legacy styled AnonCreds presentation into W3C form
         * Convert W3C styled AnonCreds presentation into legacy form
+* Issue AnonCreds credentials in W3C form
+* Create W3C presentations using W3C AnonCreds credentials
+* Verify W3C presentations containing AnonCreds proof
 * Extend W3C credentials:
     * Ability to set Data Integrity proof signatures for generated W3C credential objects:
         * W3C credentials may contain multiple signatures
         * AnonCreds-Rs only generates/handle AnonCreds signatures
+    * Ability to add additional credential metadata
 
 #### Out of scope
 
 * Credentials: Verify validity of non-AnonCreds Data Integrity proof signatures
-* Presentations: Create presentation using non-AnonCreds Data Integrity proof signature
+* Presentations: Create presentations using non-AnonCreds Data Integrity proof signature
 * Presentations: Verify validity of presentations including non-AnonCreds Data Integrity proof signatures
 * Presentations: Support different formats (for example DIF) of Presentation Request
 
@@ -32,28 +36,34 @@ verifiable credential and presentation described in the [document]().
 * Q1: Do we need conversion for intermediate messages to make them W3C compliant: Credential Offer, Credential Request?
     * Q1.1: (Depends on answer for Q1) If no conversion: Do we want Credential Offer indicates what form of credential
       will be issued as the process execution result?
-    * Answer: No conversion for Credential Offer, Credential Request objects
+    * **Answer**: No conversion for Credential Offer, Credential Request objects. Existing types will be used.
 * Q2: Do we want duplicate methods (like `sign` and `sign_w3c`) or only use single conversion method (
   like `credential.to_w3c`) doing extra step?
     * There are 6 methods in total. 4 of them we have to duplicate any way. Whether we want to
       duplicate `create_offer`, `create_request` methods if we do not change their format.
-    * Answer: All methods will be duplicated
+    * **Answer:**
+        * All methods will be duplicated
+        * According to the Q1 answer `w3c_create_offer`, `w3c_create_request` methods will be returning the same object as original methods
 * Q3: Are we still tied to legacy styled presentation request?
     * Can we make interface completely independent of Presentation Request? So any form can be handled on top level and
       specific data passed to AnonCreds-rs.
-    * Answer: Keep API tied to existing AnonCreds Presentation Request format
+    * **Answer**: API methods will keep using an existing AnonCreds Presentation Request format
 * Q4: Do we want to provide general interfaces doing signing and verification of Non-AnonCreds Data Integrity proof signature?
     * Accept sign/verify callbacks into convert/create functions:
         * Issue with setting multiple signatures
         * Much easier just to expose methods to add signature proof itself
     * Provide methods to put ready data into a credential
-    * Answer: No. Third party libraries must be used for doing signing and verification of Non-AnonCreds Data Integrity proof signature
+    * **Answer:** No.
+        * Third party libraries must be used for doing signing and verification of Non-AnonCreds Data Integrity proof signature
+        * AnonCreds-rs only will only provide helper methods for setting attributes which can be needed for different Non-AnonCreds Data Integrity proof
 * Q5: Signature/Proof encoding: Which approach to use for encoding?
     * Basic approach used in Aries attachments: [BaseURL safe 64 encoding of object serialized as JSON string](https://github.com/hyperledger/aries-rfcs/tree/main/concepts/0017-attachments#base64url)?
     * Compact encoding implemented in Python PoC: Using the fact that most fields of credential signature and proof are big numbers rather that strings.
-      * For example: the length of encoded credential signature string is about 2.5 times less than in the basic approach
-      * Find an [example data](./encoding.md#example) to see the difference
-    * Answer: Start from basic Aries encoding. Experiment with other algorithms as a next step. 
+        * For example: the length of encoded credential signature string is about 2.5 times less than in the basic approach
+        * Find an [example data](./encoding.md#example) to see the difference
+    * **Answer**:
+        * Start from basic Aries encoding.
+        * Experiment with other algorithms (CBOR, Message Pack, Protobuf, Custom) as a next step.
 * Q6: W3C data model allows attributes to be represented not only as key/value string pairs but also as
   objects and arrays.
     * If we want to support more complex representations for the W3C AnonCreds credential attributes and their
@@ -69,17 +79,20 @@ verifiable credential and presentation described in the [document]().
                 }
               }
             ```
-    * Answer: For current implementation we only support key/value string pairs 
+    * **Answer**:
+        * Only key/value string pairs will be supported for the current phase
 * Q7: Should we care about back way conversion of credential issued in W3C form?
     * Assume that we issued W3C which cannot convert back into legacy form
     * For example supporting different attributes types can be used in credentialSubject (support nested objects, array,
       other features)
         * Need to decide on object encoding algorithm
-    * Answer: Yes. Within the current design/effort credentials must be convertible back and forth 
+    * **Answer**: Yes. Within the current design/effort credentials must be convertible back and forth
 * Q8: Should we include Holder DID into credential subject as [`id` attribute](https://www.w3.org/TR/vc-data-model/#identifiers)?
-  * This enables credential subject [validation](https://www.w3.org/TR/vc-data-model/#credential-subject-0) 
-  * We can add if for newly issued credentials but cannot set during the conversion of previously issued credentials.
-  * Answer: Up to Issuer, Optionally Issuer may include DID into credential subject
+    * This enables credential subject [validation](https://www.w3.org/TR/vc-data-model/#credential-subject-0)
+    * We can add if for newly issued credentials but cannot set during the conversion of previously issued credentials.
+    * **Answer**:
+        * Up to Issuer, Optionally Issuer may include DID into credential subject
+        * anoncreds-rs will provide a helper function to set `id`
 * Q9: Predicates representation in credential subject
     * Derive an attribute and put it into `credentialSubject` like it demonstrated
       in the [specification](https://www.w3.org/TR/vc-data-model/#presentations-using-derived-credentials)
@@ -99,22 +112,29 @@ verifiable credential and presentation described in the [document]().
             ...
           }
         ```
-    * Answer: Need more discussion  
+    * **Answer**: Need more discussion
 * Q10: Should we remove `mapping` completely or move under encoded `proofValue`?
-  * Why `mapping` is bad: we make presentation tied to legacy styled Presentation Request
-  * Mapping is something old-fashioned synthetic required for doing validation (not signature verification) that proof matches to
-    the request itself on the verifier side
-  * For doing crypto `proofValue` verification we only need the names of revealed attributes and predicated (with
-    type)
-  * `revealed attributes` and `predicates` can be validated as we include them into `credentialSubject` but `unrevealed` attributes cannot.
-
+    * Why `mapping` is bad: we make presentation tied to legacy styled Presentation Request
+    * Mapping is something old-fashioned synthetic required for doing validation (not signature verification) that proof matches to
+      the request itself on the verifier side
+    * For doing crypto `proofValue` verification we only need the names of revealed attributes and predicated (with
+      type)
+    * `revealed attributes` and `predicates` can be validated as we include them into `credentialSubject` but `unrevealed` attributes cannot.
+    * **Answer**: Need more discussion
+* Q11: Revocation signature/proof: Should it be put into the same value of two independent signatures/proofs must be put into credential/presentation?
+* Q12: For conversion of legacy credentials into W3C Credentials form we need to set `issuer_id` attribute. But legacy
+  credentials do not contain this field explicitly. `AnonCreds-rs` is designed to be ledger/DID method agnostic, so it
+  does not analyze/handle the values of id fields.
+    * How should we get issuer DID for putting into credential?
+        * Require `CredentialDefinition` to be passed as parameter
+        * Parse if `legacy` cred def id form is used
 
 ### Proposed implementation path for first iteration
 
 1. Credential conversion APIs
-2. Credential helper methods for non-AnonCreds integrity proof handling (set_integrity_proof, etc?)  
-   * Generation and verification of non-AnonCreds Data Integrity proof signature are done by third party libraries using `anoncreds-rs`
-   * `anoncreds-rs` only provides methods to put ready data into a credential
+2. Credential helper methods for non-AnonCreds integrity proof handling (set_integrity_proof, etc?)
+    * Generation and verification of non-AnonCreds Data Integrity proof signature are done by third party libraries using `anoncreds-rs`
+    * `anoncreds-rs` only provides methods to put ready data into a credential
 3. Flow duplication APIs: All methods
 4. No adoption of Credential Offer and Credential Request objects for W3C standard
 5. Keep API stick to existing Presentation Request format
@@ -215,22 +235,6 @@ pub extern "C" fn anoncreds_w3c_credential_add_type(
     type_: FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
-
-/// Set subject id to W3C AnonCreds credential
-///
-/// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// id -        subject id to add into credential
-/// cred_p:     reference that will contain update credential
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_subject_id(
-    cred: ObjectHandle,
-    id: FfiStr,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
 ```
 
 #### Optional: Presentation Conversion methods
@@ -283,8 +287,8 @@ So the credentials and presentations themselves are generated using new flow met
 > Firstly, old credentials should be converted into a W3C form, and the next new presentation creation method can be
 > used.
 
-In fact, there are 6 main flow methods in total. 
-4 of them we have to duplicate: `create_credential`, `process_credential`, `create_presentation`, `verify_presentation`. 
+In fact, there are 6 main flow methods in total.
+4 of them we have to duplicate: `create_credential`, `process_credential`, `create_presentation`, `verify_presentation`.
 Whether we want to duplicate `create_offer`, `create_request` methods if we do not change their format?
 
 The reasons for adding duplication methods:
@@ -554,10 +558,7 @@ w3c_credential = Holder.anoncreds_w3c_process_credential(w3c_credential,...)
 
 /// Add RSA Identity Proof signature to credential
 integrity_proof = extartnal_library.create_rsa_integrity_proof(w3c_credential)
-w3c_credential.anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(integrity_proof)
-w3c_credential.anoncreds_w3c_credential_add_context(context)
-w3c_credential.anoncreds_w3c_credential_add_type(type)
-w3c_credential.anoncreds_w3c_credential_subject_id(subject_id)
+w3c_credential = anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(w3c_credential, integrity_proof)
 
 /// Do wallets need to store both credential forms to handle legacy and DIF presentations requests?  
 Wallet.store_w3c_credential(w3c_credential)

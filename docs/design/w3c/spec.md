@@ -158,8 +158,7 @@ schema in order to include the information about AnonCreds related definitions t
 
 * `schema` - id of AnonCreds Schema
 * `definition` - id of AnonCreds Credential Definition
-* `revocation` - Revocation Registry Accumulator value
-* `witness` - Witness value
+* `revocation_registry` - (Optional) id of AnonCreds Revocation Registry
 * `encoding` - attributes encoding algorithm
     * encoded credential attribute values (binary representation required for doing CL signatures) are not included
       neither to `credentialSubject` or `signature`
@@ -244,10 +243,14 @@ entry:
     * encoded
       as [base64 attachment](https://github.com/hyperledger/aries-rfcs/tree/main/concepts/0017-attachments#base64url)
 
+> Note that `rev_reg` and `witness` are only should be set in Issuer's signature.
+> After processing the credential signature on the Holder's side these data can be cleaned to reduce the credential size
+
 ##### non-AnonCreds Integrity proof
 
 In order to better conform to the W3C specification AnonCreds based credential also allow including
-of non-AnonCreds [Data Integrity Proof](https://www.w3.org/TR/vc-data-model/#data-integrity-proofs) which must be generated using one
+of non-AnonCreds [Data Integrity Proof](https://www.w3.org/TR/vc-data-model/#data-integrity-proofs) which must be
+generated using one
 of NIST-approved algorithms (RSA, ECDSA, EdDSA).
 
 #### Expiration
@@ -255,7 +258,8 @@ of NIST-approved algorithms (RSA, ECDSA, EdDSA).
 W3C [Expiration](https://www.w3.org/TR/vc-data-model/#expiration) section defines an optional capability to include
 credential expiration information.
 
-Instead of including `expirationDate` property we recommend using a standard AnonCreds credentials revocation approach and
+Instead of including `expirationDate` property we recommend using a standard AnonCreds credentials revocation approach
+and
 include a revocation registry id into the credential schema.
 
 #### Status
@@ -263,7 +267,8 @@ include a revocation registry id into the credential schema.
 W3C [Status](https://www.w3.org/TR/vc-data-model/#status) section defines an optional capability to include credential
 status information.
 
-Instead of including `credentialStatus` property we recommend using a standard AnonCreds credentials revocation approach and
+Instead of including `credentialStatus` property we recommend using a standard AnonCreds credentials revocation approach
+and
 include a revocation registry id into the credential schema.
 
 ### Presentation
@@ -306,37 +311,35 @@ Example of an AnonCreds W3C presentation which will be explained in details:
         "firstName": "Alice"
       },
       "proof": {
-        "type": "AnonCredsPresentationProof2022",
-        "credential": {
-          "mapping": {
-            "revealedAttributes": [
-              {
-                "name": "firstName",
-                "referent": "attribute_0"
-              }
-            ],
-            "unrevealedAttributes": [
-              {
-                "name": "lastName",
-                "referent": "attribute_1"
-              }
-            ],
-            "requestedPredicates": [
-              {
-                "name": "age",
-                "p_type": "<",
-                "value": 18,
-                "referent": "predicate_1"
-              }
-            ]
-          },
-          "proofValue": "AAEBAnr2Ql...0UhJ-bIIdWFKVWxjU3ePxv_7HoY5pUw"
-        }
+        "type": "AnonCredsPresentationProof2023",
+        "mapping": {
+          "revealedAttributes": [
+            {
+              "name": "firstName",
+              "referent": "attribute_0"
+            }
+          ],
+          "unrevealedAttributes": [
+            {
+              "name": "lastName",
+              "referent": "attribute_1"
+            }
+          ],
+          "requestedPredicates": [
+            {
+              "name": "age",
+              "p_type": "<",
+              "value": 18,
+              "referent": "predicate_1"
+            }
+          ]
+        },
+        "proofValue": "AAEBAnr2Ql...0UhJ-bIIdWFKVWxjU3ePxv_7HoY5pUw"
       }
     }
   ],
   "proof": {
-    "type": "AnonCredsPresentationProof2022",
+    "type": "AnonCredsPresentationProof2023",
     "challenge": "182453895158932070575246",
     "proofValue": "AAAgtMR4....J19l-agSA"
   }
@@ -400,37 +403,36 @@ The values of verifiable credentials are mostly constructed the same as describe
 the [Credential Structure](#credential) section.
 The only difference is the value of the `proof` property.
 
-In the case of W3C AnonCreds presentations, the `proof` attribute uses defined `AnonCredsPresentationProof2022`
+In the case of W3C AnonCreds presentations, the `proof` attribute uses defined `AnonCredsPresentationProof2023`
 type pointing to the difference in a presentation structure and looks the following:
 
 ```
   "proof": {
-    "type": "AnonCredsPresentationProof2022",
-    "credential": {
-      "mapping": {
-        "revealedAttributes": [
-          {
-            "name": "firstName",
-            "referent": "attribute_0"
-          }
-        ],
-        "unrevealedAttributes": [
-          {
-            "name": "lastName",
-            "referent": "attribute_1"
-          }
-        ],
-        "requestedPredicates": [
-          {
-            "name": "age",
-            "p_type": "<",
-            "value": 18,
-            "referent": "predicate_1"
-          }
-        ]
+    "type": "AnonCredsPresentationProof2023",
+    "mapping": {
+      "revealedAttributes": [
+        {
+          "name": "firstName",
+          "referent": "attribute_0"
+        }
+      ],
+      "unrevealedAttributes": [
+        {
+          "name": "lastName",
+          "referent": "attribute_1"
+        }
+      ],
+      "requestedPredicates": [
+        {
+          "name": "age",
+          "p_type": "<",
+          "value": 18,
+          "referent": "predicate_1"
+        }
+      ]
       },
-      "proofValue": "AAEBAnr2Ql...0UhJ-bIIdWFKVWxjU3ePxv_7HoY5pUw"
-    }
+      "timestamp": Option<1234567>,
+      "proofValue": "AAEBAnr2Ql...0UhJ-bIIdWFKVWxjU3ePxv_7HoY5pUw"****
   }
 ```
 
@@ -440,8 +442,7 @@ type pointing to the difference in a presentation structure and looks the follow
     * proof value received by building the following object:
     ```
         {
-            primaryProof: {..},
-            nonRevocProof: {..}
+            sub_proof: {..}
         }
     ```
     * encoded
@@ -451,6 +452,8 @@ type pointing to the difference in a presentation structure and looks the follow
         * `revealedAttributes` - list of requested attributes revealed using the credential
         * `unrevealedAttributes` - list of requested attributes presented in the credential but left unrevealed
         * `requestedPredicates` - list of predicates resolved using the credential
+* `timestamp` - (Optional) if revocation supported and requested, time as a total number of seconds from Unix Epoch
+  representing pointing to the specif moment of revocation registry
 
 #### Proof
 
@@ -471,7 +474,7 @@ presentation:
 {
   ... 
   "proof": {
-    "type": "AnonCredsPresentationProof2022",
+    "type": "AnonCredsPresentationProof2023",
     "challenge": "182453895158932070575246",
     "proofValue": "AAAgtMR4DrkY--ZVgKHmUANE04ET7TzUxZ0vZmVcNt4nCkwBABUACQJ69kJVIxHVAQAIAaJ19l-agSA"
   }
