@@ -75,7 +75,7 @@ pub fn encode_credential_attribute(raw_value: &str) -> Result<String> {
     } else {
         let digest = SHA256::digest(raw_value.as_bytes());
         #[cfg(target_endian = "big")]
-        let digest = {
+            let digest = {
             let mut d = digest;
             d.reverse();
             d
@@ -213,8 +213,8 @@ pub fn get_predicates_for_credential(
         .filter(|&(predicate_referent, requested_referent)| {
             sub_proof_index == requested_referent.sub_proof_index as usize
                 && pres_req
-                    .requested_predicates
-                    .contains_key(predicate_referent)
+                .requested_predicates
+                .contains_key(predicate_referent)
         })
         .map(|(predicate_referent, _)| {
             let info = pres_req.requested_predicates[predicate_referent].clone();
@@ -240,46 +240,69 @@ pub fn get_predicates_for_credential(
 }
 
 pub fn get_revealed_attributes_for_credential_mapping(
+    pres_req: &PresentationRequestPayload,
     mapping: &CredentialAttributesMapping,
-) -> (Vec<AttributeInfo>, Option<NonRevokedInterval>) {
-    let mut revealed_attrs_for_credential: Vec<AttributeInfo> = mapping
-        .revealed_attributes
-        .iter()
-        .map(|attribute| AttributeInfo {
-            name: Some(attribute.name.clone()),
-            names: None,
-            restrictions: None,
-            non_revoked: None,
-        })
-        .collect();
-    revealed_attrs_for_credential.append(
-        &mut mapping
-            .revealed_attribute_groups
-            .iter()
-            .map(|attribute| AttributeInfo {
-                names: Some(attribute.names.clone()),
-                name: None,
-                restrictions: None,
-                non_revoked: None,
-            })
-            .collect(),
+) -> Result<(Vec<AttributeInfo>, Option<NonRevokedInterval>)> {
+    trace!("get_revealed_attributes_for_credential_mapping >>> mapping: {:?}",mapping);
+    let mut non_revoked_interval: Option<NonRevokedInterval> = None;
+    let mut revealed_attrs_for_credential: Vec<AttributeInfo> = Vec::new();
+
+    for attribute in mapping.revealed_attributes.iter()  {
+        let info = pres_req.requested_attributes.get(&attribute.referent)
+            .cloned()
+            .ok_or(err_msg!("Requested Attribute {} not found in request", attribute.referent))?;
+        if let Some(int) = &info.non_revoked {
+            match non_revoked_interval.as_mut() {
+                Some(ni) => {
+                    ni.compare_and_set(int);
+                }
+                None => non_revoked_interval = Some(int.clone()),
+            }
+        };
+        revealed_attrs_for_credential.push(info);
+    }
+    for attribute_group in mapping.revealed_attribute_groups.iter()  {
+        let info = pres_req.requested_attributes.get(&attribute_group.referent)
+            .cloned()
+            .ok_or(err_msg!("Requested Attribute {} not found in request", attribute_group.referent))?;
+        if let Some(int) = &info.non_revoked {
+            match non_revoked_interval.as_mut() {
+                Some(ni) => {
+                    ni.compare_and_set(int);
+                }
+                None => non_revoked_interval = Some(int.clone()),
+            }
+        };
+        revealed_attrs_for_credential.push(info);
+    }
+
+    trace!(
+        "get_revealed_attributes_for_credential_mapping <<< revealed_attrs_for_credential: {:?}",
+        revealed_attrs_for_credential
     );
-    (revealed_attrs_for_credential, None)
+    Ok((revealed_attrs_for_credential, non_revoked_interval))
 }
 
 pub fn get_predicates_for_credential_mapping(
+    pres_req: &PresentationRequestPayload,
     mapping: &CredentialAttributesMapping,
-) -> (Vec<PredicateInfo>, Option<NonRevokedInterval>) {
-    let revealed_predicates_for_credential = mapping
-        .requested_predicates
-        .iter()
-        .map(|predicate| PredicateInfo {
-            name: predicate.name.clone(),
-            p_type: predicate.p_type.clone(),
-            p_value: predicate.p_value.clone(),
-            restrictions: None,
-            non_revoked: None,
-        })
-        .collect();
-    (revealed_predicates_for_credential, None)
+) -> Result<(Vec<PredicateInfo>, Option<NonRevokedInterval>)> {
+    let mut non_revoked_interval: Option<NonRevokedInterval> = None;
+    let mut revealed_predicates_for_credential: Vec<PredicateInfo> = Vec::new();
+    for predicate in mapping.requested_predicates.iter()  {
+        let info = pres_req.requested_predicates.get(&predicate.referent)
+            .cloned()
+            .ok_or(err_msg!("Requested Predicate {} not found in request", predicate.referent))?;
+        if let Some(int) = &info.non_revoked {
+            match non_revoked_interval.as_mut() {
+                Some(ni) => {
+                    ni.compare_and_set(int);
+                }
+                None => non_revoked_interval = Some(int.clone()),
+            }
+        };
+        revealed_predicates_for_credential.push(info);
+    }
+
+    Ok((revealed_predicates_for_credential, non_revoked_interval))
 }

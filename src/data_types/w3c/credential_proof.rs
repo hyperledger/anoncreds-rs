@@ -1,4 +1,5 @@
 use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
+use crate::utils::base64;
 use anoncreds_clsignatures::{
     CredentialSignature as CLCredentialSignature, RevocationRegistry, SignatureCorrectnessProof,
     Witness,
@@ -61,7 +62,7 @@ impl CredentialProof {
         }
     }
 
-    pub fn get_mut_credential_signature_proof(
+    pub(crate) fn get_mut_credential_signature_proof(
         &mut self,
     ) -> crate::Result<&mut CredentialSignatureProof> {
         match self {
@@ -80,25 +81,16 @@ impl CredentialProof {
             )),
         }
     }
-
-    pub fn get_mut_presentation_proof(
-        &mut self,
-    ) -> crate::Result<&mut CredentialPresentationProof> {
-        match self {
-            CredentialProof::AnonCredsCredentialPresentationProof(ref mut proof) => Ok(proof),
-            _ => Err(err_msg!(
-                "credential does not contain AnonCredsPresentationProof"
-            )),
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct CredentialSignature {
-    pub signature: CLCredentialSignature,
-    pub signature_correctness_proof: SignatureCorrectnessProof,
-    pub rev_reg: Option<RevocationRegistry>,
-    pub witness: Option<Witness>,
+    pub(crate) signature: CLCredentialSignature,
+    pub(crate) signature_correctness_proof: SignatureCorrectnessProof,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) rev_reg: Option<RevocationRegistry>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) witness: Option<Witness>,
 }
 
 impl CredentialSignature {
@@ -117,10 +109,10 @@ impl CredentialSignature {
     }
 
     pub fn encode(&self) -> String {
-        crate::utils::base64::encode_json(&self)
+        base64::encode_json(&self)
     }
 
     pub fn decode(string: &str) -> crate::Result<CredentialSignature> {
-        crate::utils::base64::decode_json(string)
+        base64::decode_json(string)
     }
 }

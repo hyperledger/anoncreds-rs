@@ -199,9 +199,9 @@ pub fn verify_w3c_presentation(
         let proof_data = credential_proof.get_proof_value()?;
 
         let (attrs_for_credential, attrs_nonrevoked_interval) =
-            get_revealed_attributes_for_credential_mapping(&credential_proof.mapping);
+            get_revealed_attributes_for_credential_mapping(&pres_req, &credential_proof.mapping)?;
         let (predicates_for_credential, pred_nonrevoked_interval) =
-            get_predicates_for_credential_mapping(&credential_proof.mapping);
+            get_predicates_for_credential_mapping(&pres_req, &credential_proof.mapping)?;
 
         let sub_proof_verifier = CLSubProofVerifier::new()
             .with_schema(&schemas, &verifiable_credential.credential_schema.schema)?

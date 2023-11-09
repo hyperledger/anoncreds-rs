@@ -82,28 +82,6 @@ pub struct CredentialInfo {
     pub cred_rev_id: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub enum CredentialValuesEncoding {
-    #[serde(rename = "auto")]
-    Auto,
-    Other(String),
-}
-
-impl From<&str> for CredentialValuesEncoding {
-    fn from(value: &str) -> Self {
-        match value {
-            "auto" => CredentialValuesEncoding::Auto,
-            other => CredentialValuesEncoding::Other(other.to_string()),
-        }
-    }
-}
-
-impl Default for CredentialValuesEncoding {
-    fn default() -> Self {
-        CredentialValuesEncoding::Auto
-    }
-}
-
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct RawCredentialValues(pub HashMap<String, String>);
 
@@ -147,18 +125,19 @@ impl From<&CredentialValues> for RawCredentialValues {
 
 impl RawCredentialValues {
     pub fn encode(&self, encoding: &CredentialValuesEncoding) -> Result<CredentialValues, Error> {
-        if encoding != &CredentialValuesEncoding::Auto {
-            return Err(err_msg!(
+        match encoding {
+            CredentialValuesEncoding::Auto => {
+                let mut cred_values = MakeCredentialValues::default();
+                for (attribute, raw_value) in self.0.iter() {
+                    cred_values.add_raw(attribute, &raw_value.to_string())?;
+                }
+                Ok(cred_values.into())
+            }
+            encoding => Err(err_msg!(
                 "Credential values encoding {:?} is not supported",
                 encoding
-            ));
+            )),
         }
-
-        let mut cred_values = MakeCredentialValues::default();
-        for (attribute, raw_value) in self.0.iter() {
-            cred_values.add_raw(attribute, &raw_value.to_string())?;
-        }
-        Ok(cred_values.into())
     }
 }
 
@@ -196,4 +175,26 @@ impl Zeroize for CredentialValues {
 pub struct AttributeValues {
     pub raw: String,
     pub encoded: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum CredentialValuesEncoding {
+    #[serde(rename = "auto")]
+    Auto,
+    Other(String),
+}
+
+impl From<&str> for CredentialValuesEncoding {
+    fn from(value: &str) -> Self {
+        match value {
+            "auto" => CredentialValuesEncoding::Auto,
+            other => CredentialValuesEncoding::Other(other.to_string()),
+        }
+    }
+}
+
+impl Default for CredentialValuesEncoding {
+    fn default() -> Self {
+        CredentialValuesEncoding::Auto
+    }
 }

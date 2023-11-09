@@ -140,7 +140,7 @@ impl W3CCredential {
         }
     }
 
-    pub fn get_mut_credential_signature_proof(&mut self) -> Result<&mut CredentialSignatureProof> {
+    pub(crate) fn get_mut_credential_signature_proof(&mut self) -> Result<&mut CredentialSignatureProof> {
         match self.proof {
             OneOrMany::One(ref mut proof) => proof.get_mut_credential_signature_proof(),
             OneOrMany::Many(ref mut proofs) => proofs
@@ -158,16 +158,6 @@ impl W3CCredential {
             OneOrMany::Many(ref proofs) => proofs
                 .iter()
                 .find_map(|proof| proof.get_presentation_proof().ok())
-                .ok_or(err_msg!("credential does not contain PresentationProof")),
-        }
-    }
-
-    pub fn get_mut_presentation_proof(&mut self) -> Result<&mut CredentialPresentationProof> {
-        match self.proof {
-            OneOrMany::One(ref mut proof) => proof.get_mut_presentation_proof(),
-            OneOrMany::Many(ref mut proofs) => proofs
-                .iter_mut()
-                .find_map(|proof| proof.get_mut_presentation_proof().ok())
                 .ok_or(err_msg!("credential does not contain PresentationProof")),
         }
     }

@@ -1,5 +1,6 @@
 use crate::data_types::nonce::Nonce;
 use crate::data_types::pres_request::PredicateTypes;
+use crate::utils::base64;
 use anoncreds_clsignatures::{AggregatedProof, SubProof};
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -7,14 +8,20 @@ use anoncreds_clsignatures::{AggregatedProof, SubProof};
 pub struct CredentialPresentationProof {
     #[serde(rename = "type")]
     pub type_: PresentationProofType,
+    /// Uniform Resource Identifier - https://www.w3.org/TR/vc-data-model/#dfn-uri
+    // FIXME: Consider either removing or moving under proof_value
+    //  In fact, it's only needed to make attributes validation on the verifier side
+    //  Revealed attributes and predicates can be restored from credential subject, but not unrevealed attributes
     pub mapping: CredentialAttributesMapping,
     pub proof_value: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    // Timestamp is needed to query revocation registry at the specific moment in time
     pub timestamp: Option<u64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CredentialPresentationProofValue {
-    pub sub_proof: SubProof,
+    pub(crate) sub_proof: SubProof,
 }
 
 impl CredentialPresentationProofValue {
@@ -23,11 +30,11 @@ impl CredentialPresentationProofValue {
     }
 
     pub fn encode(&self) -> String {
-        crate::utils::base64::encode_json(&self)
+        base64::encode_json(&self)
     }
 
     pub fn decode(string: &str) -> crate::Result<CredentialPresentationProofValue> {
-        crate::utils::base64::decode_json(string)
+        base64::decode_json(string)
     }
 }
 
@@ -65,7 +72,7 @@ pub struct PresentationProof {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PresentationProofValue {
-    pub aggregated: AggregatedProof,
+    pub(crate) aggregated: AggregatedProof,
 }
 
 impl PresentationProof {
@@ -94,11 +101,11 @@ impl PresentationProofValue {
     }
 
     pub fn encode(&self) -> String {
-        crate::utils::base64::encode_json(&self)
+        base64::encode_json(&self)
     }
 
     pub fn decode(string: &str) -> crate::Result<PresentationProofValue> {
-        crate::utils::base64::decode_json(string)
+        base64::decode_json(string)
     }
 }
 
