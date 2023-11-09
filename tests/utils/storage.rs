@@ -6,12 +6,12 @@ use anoncreds::data_types::rev_reg_def::{
     RevocationRegistryDefinitionPrivate,
 };
 use anoncreds::data_types::schema::{Schema, SchemaId};
+use anoncreds::data_types::w3c::credential::W3CCredential;
 use anoncreds::types::{
     CredentialDefinitionPrivate, CredentialKeyCorrectnessProof, CredentialOffer, CredentialRequest,
     CredentialRequestMetadata, CredentialRevocationState, RevocationStatusList,
 };
 use std::collections::HashMap;
-use anoncreds::data_types::w3c::credential::W3CCredential;
 
 #[derive(Debug)]
 pub struct StoredCredDef {

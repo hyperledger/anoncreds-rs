@@ -3,7 +3,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::string::ToString;
 
-use crate::Result;
+use crate::data_types::presentation::Identifier;
+use crate::data_types::w3c::credential_proof::{
+    CredentialProof, CredentialSignatureProof, NonAnonCredsDataIntegrityProof,
+};
+use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
 use crate::data_types::{
     cred_def::CredentialDefinitionId,
     credential::{CredentialValuesEncoding, RawCredentialValues},
@@ -11,14 +15,14 @@ use crate::data_types::{
     rev_reg_def::RevocationRegistryDefinitionId,
     schema::SchemaId,
     w3c::{
-        constants::{W3C_ANONCREDS_CONTEXT, W3C_ANONCREDS_CREDENTIAL_TYPE, W3C_CONTEXT, W3C_CREDENTIAL_TYPE},
+        constants::{
+            W3C_ANONCREDS_CONTEXT, W3C_ANONCREDS_CREDENTIAL_TYPE, W3C_CONTEXT, W3C_CREDENTIAL_TYPE,
+        },
         one_or_many::OneOrMany,
         uri::URI,
     },
 };
-use crate::data_types::presentation::Identifier;
-use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignatureProof, NonAnonCredsDataIntegrityProof};
-use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
+use crate::Result;
 
 /// AnonCreds W3C Credential definition
 /// Note, that this definition is tied to AnonCreds W3C form
@@ -97,12 +101,10 @@ impl W3CCredential {
     pub fn add_non_anoncreds_identity_proof(&mut self, proof: NonAnonCredsDataIntegrityProof) {
         match self.proof {
             OneOrMany::One(ref existing_proof) => {
-                self.proof = OneOrMany::Many(
-                    vec![
-                        existing_proof.clone(),
-                        CredentialProof::NonAnonCredsDataIntegrityProof(proof),
-                    ]
-                )
+                self.proof = OneOrMany::Many(vec![
+                    existing_proof.clone(),
+                    CredentialProof::NonAnonCredsDataIntegrityProof(proof),
+                ])
             }
             OneOrMany::Many(ref mut proofs) => {
                 proofs.push(CredentialProof::NonAnonCredsDataIntegrityProof(proof))
@@ -128,57 +130,45 @@ impl W3CCredential {
 
     pub fn get_credential_signature_proof(&self) -> Result<&CredentialSignatureProof> {
         match &self.proof {
-            OneOrMany::One(ref proof) => {
-                proof.get_credential_signature_proof()
-            }
-            OneOrMany::Many(ref proofs) => {
-                proofs
-                    .iter()
-                    .find_map(|proof| proof.get_credential_signature_proof().ok())
-                    .ok_or(err_msg!("credential does not contain AnonCredsSignatureProof"))
-            }
+            OneOrMany::One(ref proof) => proof.get_credential_signature_proof(),
+            OneOrMany::Many(ref proofs) => proofs
+                .iter()
+                .find_map(|proof| proof.get_credential_signature_proof().ok())
+                .ok_or(err_msg!(
+                    "credential does not contain AnonCredsSignatureProof"
+                )),
         }
     }
 
     pub fn get_mut_credential_signature_proof(&mut self) -> Result<&mut CredentialSignatureProof> {
         match self.proof {
-            OneOrMany::One(ref mut proof) => {
-                proof.get_mut_credential_signature_proof()
-            }
-            OneOrMany::Many(ref mut proofs) => {
-                proofs
-                    .iter_mut()
-                    .find_map(|proof| proof.get_mut_credential_signature_proof().ok())
-                    .ok_or(err_msg!("credential does not contain AnonCredsSignatureProof"))
-            }
+            OneOrMany::One(ref mut proof) => proof.get_mut_credential_signature_proof(),
+            OneOrMany::Many(ref mut proofs) => proofs
+                .iter_mut()
+                .find_map(|proof| proof.get_mut_credential_signature_proof().ok())
+                .ok_or(err_msg!(
+                    "credential does not contain AnonCredsSignatureProof"
+                )),
         }
     }
 
     pub fn get_presentation_proof(&self) -> Result<&CredentialPresentationProof> {
         match &self.proof {
-            OneOrMany::One(ref proof) => {
-                proof.get_presentation_proof()
-            }
-            OneOrMany::Many(ref proofs) => {
-                proofs
-                    .iter()
-                    .find_map(|proof| proof.get_presentation_proof().ok())
-                    .ok_or(err_msg!("credential does not contain PresentationProof"))
-            }
+            OneOrMany::One(ref proof) => proof.get_presentation_proof(),
+            OneOrMany::Many(ref proofs) => proofs
+                .iter()
+                .find_map(|proof| proof.get_presentation_proof().ok())
+                .ok_or(err_msg!("credential does not contain PresentationProof")),
         }
     }
 
     pub fn get_mut_presentation_proof(&mut self) -> Result<&mut CredentialPresentationProof> {
         match self.proof {
-            OneOrMany::One(ref mut proof) => {
-                proof.get_mut_presentation_proof()
-            }
-            OneOrMany::Many(ref mut proofs) => {
-                proofs
-                    .iter_mut()
-                    .find_map(|proof| proof.get_mut_presentation_proof().ok())
-                    .ok_or(err_msg!("credential does not contain PresentationProof"))
-            }
+            OneOrMany::One(ref mut proof) => proof.get_mut_presentation_proof(),
+            OneOrMany::Many(ref mut proofs) => proofs
+                .iter_mut()
+                .find_map(|proof| proof.get_mut_presentation_proof().ok())
+                .ok_or(err_msg!("credential does not contain PresentationProof")),
         }
     }
 
@@ -186,14 +176,22 @@ impl W3CCredential {
         if !self.context.0.contains(&URI(W3C_CONTEXT.to_string())) {
             return Err(err_msg!("Credential does not contain w3c context"));
         }
-        if !self.context.0.contains(&URI(W3C_ANONCREDS_CONTEXT.to_string())) {
-            return Err(err_msg!("Credential does not contain w3c anoncreds context"));
+        if !self
+            .context
+            .0
+            .contains(&URI(W3C_ANONCREDS_CONTEXT.to_string()))
+        {
+            return Err(err_msg!(
+                "Credential does not contain w3c anoncreds context"
+            ));
         }
         if !self.type_.0.contains(W3C_CREDENTIAL_TYPE) {
             return Err(err_msg!("Credential does not contain w3c credential type"));
         }
         if !self.type_.0.contains(W3C_ANONCREDS_CREDENTIAL_TYPE) {
-            return Err(err_msg!("Credential does not contain w3c anoncreds credential type"));
+            return Err(err_msg!(
+                "Credential does not contain w3c anoncreds credential type"
+            ));
         }
         Ok(())
     }

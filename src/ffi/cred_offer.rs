@@ -47,12 +47,7 @@ pub extern "C" fn anoncreds_w3c_create_credential_offer(
     key_proof: ObjectHandle,
     cred_offer_p: *mut ObjectHandle,
 ) -> ErrorCode {
-    anoncreds_create_credential_offer(
-        schema_id,
-        cred_def_id,
-        key_proof,
-        cred_offer_p
-    )
+    anoncreds_create_credential_offer(schema_id, cred_def_id, key_proof, cred_offer_p)
 }
 
 impl_anoncreds_object!(CredentialOffer, "CredentialOffer");

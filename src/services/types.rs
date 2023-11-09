@@ -1,4 +1,5 @@
 use crate::cl::{RevocationRegistry as CryptoRevocationRegistry, Witness};
+use crate::data_types::credential::RawCredentialValues;
 pub use crate::data_types::{
     cred_def::{CredentialDefinitionPrivate, CredentialKeyCorrectnessProof, SignatureType},
     cred_offer::CredentialOffer,
@@ -21,7 +22,6 @@ use crate::{
     utils::validation::Validatable,
 };
 use std::collections::HashSet;
-use crate::data_types::credential::RawCredentialValues;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CredentialDefinitionConfig {
@@ -80,15 +80,8 @@ impl From<MakeCredentialValues> for CredentialValues {
 pub struct MakeRawCredentialValues(pub(crate) RawCredentialValues);
 
 impl MakeRawCredentialValues {
-    pub fn add(
-        &mut self,
-        name: impl Into<String>,
-        raw: impl Into<String>,
-    ) {
-        self.0 .0.insert(
-            name.into(),
-            raw.into(),
-        );
+    pub fn add(&mut self, name: impl Into<String>, raw: impl Into<String>) {
+        self.0 .0.insert(name.into(), raw.into());
     }
 }
 
@@ -101,7 +94,7 @@ impl From<MakeRawCredentialValues> for RawCredentialValues {
 #[derive(Debug)]
 pub struct PresentCredentials<'p, T>(pub(crate) Vec<PresentCredential<'p, T>>);
 
-impl <'p, T>Default for PresentCredentials<'p, T> {
+impl<'p, T> Default for PresentCredentials<'p, T> {
     fn default() -> Self {
         PresentCredentials(Vec::new())
     }
@@ -140,7 +133,7 @@ impl<'p, T> PresentCredentials<'p, T> {
     }
 }
 
-impl <T>Validatable for PresentCredentials<'_, T> {
+impl<T> Validatable for PresentCredentials<'_, T> {
     fn validate(&self) -> std::result::Result<(), ValidationError> {
         let mut attr_names = HashSet::new();
         let mut pred_names = HashSet::new();
@@ -178,7 +171,7 @@ pub(crate) struct PresentCredential<'p, T> {
     pub requested_predicates: HashSet<String>,
 }
 
-impl <T>PresentCredential<'_, T> {
+impl<T> PresentCredential<'_, T> {
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.requested_attributes.is_empty() && self.requested_predicates.is_empty()

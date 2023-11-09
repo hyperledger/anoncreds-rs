@@ -63,7 +63,7 @@ impl CredentialDefinition {
             &self.value.primary,
             self.value.revocation.as_ref(),
         )
-            .map_err(|e| e.to_string())?;
+        .map_err(|e| e.to_string())?;
         Ok(key)
     }
 
@@ -125,7 +125,7 @@ mod test_cred_def {
             "did:example".try_into().unwrap(),
             vec!["name".to_owned(), "age".to_owned()].into(),
         )
-            .expect("Unable to create Schema")
+        .expect("Unable to create Schema")
     }
 
     fn cred_def() -> (
@@ -142,7 +142,7 @@ mod test_cred_def {
             SignatureType::CL,
             CredentialDefinitionConfig::default(),
         )
-            .expect("Unable to create credential Definition")
+        .expect("Unable to create credential Definition")
     }
 
     #[test]

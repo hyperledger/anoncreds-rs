@@ -3,11 +3,8 @@ macro_rules! impl_anoncreds_object_identifier {
     ($i:ident) => {
         use $crate::error::ValidationError;
         use $crate::utils::validation::{
-            Validatable,
-            LEGACY_CRED_DEF_IDENTIFIER,
-            LEGACY_DID_IDENTIFIER,
-            LEGACY_SCHEMA_IDENTIFIER,
-            URI_IDENTIFIER,
+            Validatable, LEGACY_CRED_DEF_IDENTIFIER, LEGACY_DID_IDENTIFIER,
+            LEGACY_SCHEMA_IDENTIFIER, URI_IDENTIFIER,
         };
 
         #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Default)]

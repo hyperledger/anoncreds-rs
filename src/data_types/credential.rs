@@ -4,10 +4,10 @@ use std::collections::HashMap;
 use zeroize::Zeroize;
 
 use crate::cl::{CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, Witness};
-use crate::Error;
 use crate::error::{ConversionError, ValidationError};
 use crate::types::MakeCredentialValues;
 use crate::utils::validation::Validatable;
+use crate::Error;
 
 use super::rev_reg_def::RevocationRegistryDefinitionId;
 use super::{cred_def::CredentialDefinitionId, schema::SchemaId};
@@ -93,7 +93,7 @@ impl From<&str> for CredentialValuesEncoding {
     fn from(value: &str) -> Self {
         match value {
             "auto" => CredentialValuesEncoding::Auto,
-            other => CredentialValuesEncoding::Other(other.to_string())
+            other => CredentialValuesEncoding::Other(other.to_string()),
         }
     }
 }
@@ -136,15 +136,11 @@ impl Validatable for RawCredentialValues {
 impl From<&CredentialValues> for RawCredentialValues {
     fn from(values: &CredentialValues) -> Self {
         RawCredentialValues(
-            values.0
+            values
+                .0
                 .iter()
-                .map(|(attribute, values)|
-                    (
-                        attribute.to_owned(),
-                        values.raw.to_owned()
-                    )
-                )
-                .collect()
+                .map(|(attribute, values)| (attribute.to_owned(), values.raw.to_owned()))
+                .collect(),
         )
     }
 }
@@ -152,7 +148,10 @@ impl From<&CredentialValues> for RawCredentialValues {
 impl RawCredentialValues {
     pub fn encode(&self, encoding: &CredentialValuesEncoding) -> Result<CredentialValues, Error> {
         if encoding != &CredentialValuesEncoding::Auto {
-            return Err(err_msg!("Credential values encoding {:?} is not supported", encoding));
+            return Err(err_msg!(
+                "Credential values encoding {:?} is not supported",
+                encoding
+            ));
         }
 
         let mut cred_values = MakeCredentialValues::default();

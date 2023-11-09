@@ -14,9 +14,9 @@ use crate::services::prover::{create_presentation, create_w3c_presentation};
 use crate::services::types::PresentCredentials;
 use crate::services::verifier::{verify_presentation, verify_w3c_presentation};
 
+use crate::ffi::object::AnyAnoncredsObject;
 use ffi_support::FfiStr;
 use std::collections::HashMap;
-use crate::ffi::object::AnyAnoncredsObject;
 
 impl_anoncreds_object!(Presentation, "Presentation");
 impl_anoncreds_object_from_json!(Presentation, anoncreds_presentation_from_json);
@@ -216,7 +216,8 @@ pub extern "C" fn anoncreds_verify_presentation(
         let schemas = _prepare_schemas(schemas, schema_ids)?;
         let rev_reg_defs = _rev_reg_defs(rev_reg_defs, rev_reg_def_ids)?;
         let rev_status_lists = _rev_status_list(rev_status_list)?;
-        let map_nonrevoked_interval_override = _nonrevoke_interval_override(nonrevoked_interval_override)?;
+        let map_nonrevoked_interval_override =
+            _nonrevoke_interval_override(nonrevoked_interval_override)?;
 
         let verify = verify_presentation(
             presentation.load()?.cast_ref()?,
@@ -268,7 +269,8 @@ pub extern "C" fn anoncreds_w3c_verify_presentation(
         let schemas = _prepare_schemas(schemas, schema_ids)?;
         let rev_reg_defs = _rev_reg_defs(rev_reg_defs, rev_reg_def_ids)?;
         let rev_status_lists = _rev_status_list(rev_status_list)?;
-        let map_nonrevoked_interval_override = _nonrevoke_interval_override(nonrevoked_interval_override)?;
+        let map_nonrevoked_interval_override =
+            _nonrevoke_interval_override(nonrevoked_interval_override)?;
 
         let verify = verify_w3c_presentation(
             presentation.load()?.cast_ref()?,
@@ -298,8 +300,8 @@ fn _prepare_cred_defs(
 ) -> Result<HashMap<CredentialDefinitionId, CredentialDefinition>> {
     if cred_defs.len() != cred_def_ids.len() {
         return Err(err_msg!(
-                "Inconsistent lengths for cred defs and cred def ids"
-            ));
+            "Inconsistent lengths for cred defs and cred def ids"
+        ));
     }
 
     let mut cred_def_identifiers: Vec<CredentialDefinitionId> = vec![];
@@ -348,8 +350,8 @@ fn _rev_reg_defs(
 ) -> Result<Option<HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>> {
     if rev_reg_defs.len() != rev_reg_def_ids.len() {
         return Err(err_msg!(
-                "Inconsistent lengths for rev reg defs and rev reg def ids"
-            ));
+            "Inconsistent lengths for rev reg defs and rev reg def ids"
+        ));
     }
 
     let mut rev_reg_def_identifiers: Vec<RevocationRegistryDefinitionId> = vec![];
@@ -376,7 +378,9 @@ fn _rev_reg_defs(
     Ok(rev_reg_defs)
 }
 
-fn _rev_status_list(rev_status_list: FfiList<ObjectHandle>) -> Result<Option<Vec<RevocationStatusList>>> {
+fn _rev_status_list(
+    rev_status_list: FfiList<ObjectHandle>,
+) -> Result<Option<Vec<RevocationStatusList>>> {
     let rev_status_list: AnoncredsObjectList =
         AnoncredsObjectList::load(rev_status_list.as_slice())?;
     let rev_status_list: Result<Vec<&RevocationStatusList>> = rev_status_list.refs();
@@ -389,8 +393,8 @@ fn _rev_status_list(rev_status_list: FfiList<ObjectHandle>) -> Result<Option<Vec
 }
 
 fn _nonrevoke_interval_override(
-    nonrevoked_interval_override: FfiList<FfiNonrevokedIntervalOverride>
-) -> Result<HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>, >> {
+    nonrevoked_interval_override: FfiList<FfiNonrevokedIntervalOverride>,
+) -> Result<HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>> {
     let override_entries = {
         let override_ffi_entries = nonrevoked_interval_override.as_slice();
         override_ffi_entries.iter().try_fold(
@@ -417,8 +421,8 @@ fn _self_attested(
 ) -> Result<Option<HashMap<String, String>>> {
     if self_attest_names.len() != self_attest_values.len() {
         return Err(err_msg!(
-                "Inconsistent lengths for self-attested value parameters"
-            ));
+            "Inconsistent lengths for self-attested value parameters"
+        ));
     }
 
     let self_attested = if self_attest_names.is_empty() {

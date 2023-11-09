@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use anoncreds::types::MakeRawCredentialValues;
 use anoncreds::{
     data_types::{
         cred_def::{CredentialDefinition, CredentialDefinitionId},
@@ -13,7 +14,6 @@ use anoncreds::{
         RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate, RevocationStatusList,
     },
 };
-use anoncreds::types::MakeRawCredentialValues;
 
 use super::storage::ProverWallet;
 
@@ -266,24 +266,17 @@ pub fn raw_credential_values(name: &str) -> MakeRawCredentialValues {
     match name {
         "GVT" => {
             let mut gvt_cred_values = MakeRawCredentialValues::default();
-            gvt_cred_values
-                .add("sex", "male");
-            gvt_cred_values
-                .add("name", "Alex");
-            gvt_cred_values
-                .add("height", "175");
-            gvt_cred_values
-                .add("age", "28");
+            gvt_cred_values.add("sex", "male");
+            gvt_cred_values.add("name", "Alex");
+            gvt_cred_values.add("height", "175");
+            gvt_cred_values.add("age", "28");
             gvt_cred_values
         }
         "EMP" => {
             let mut emp_cred_values = MakeRawCredentialValues::default();
-            emp_cred_values
-                .add("name", "John");
-            emp_cred_values
-                .add("role", "Developer");
-            emp_cred_values
-                .add("department", "IT");
+            emp_cred_values.add("name", "John");
+            emp_cred_values.add("role", "Developer");
+            emp_cred_values.add("department", "IT");
             emp_cred_values
         }
         unsupported => panic!("Unsupported credential values. {unsupported}"),

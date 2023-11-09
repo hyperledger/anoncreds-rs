@@ -14,8 +14,8 @@ impl From<&str> for URI {
 
 impl<'de> Deserialize<'de> for URI {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         let v = Value::deserialize(deserializer)?;
 

@@ -1,11 +1,9 @@
-use serde_json::Value;
+use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
 use anoncreds_clsignatures::{
-    CredentialSignature as CLCredentialSignature,
-    RevocationRegistry,
-    SignatureCorrectnessProof,
+    CredentialSignature as CLCredentialSignature, RevocationRegistry, SignatureCorrectnessProof,
     Witness,
 };
-use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
+use serde_json::Value;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -57,28 +55,40 @@ impl CredentialProof {
     pub fn get_credential_signature_proof(&self) -> crate::Result<&CredentialSignatureProof> {
         match self {
             CredentialProof::AnonCredsSignatureProof(ref signature) => Ok(signature),
-            _ => Err(err_msg!("credential does not contain AnonCredsSignatureProof"))
+            _ => Err(err_msg!(
+                "credential does not contain AnonCredsSignatureProof"
+            )),
         }
     }
 
-    pub fn get_mut_credential_signature_proof(&mut self) -> crate::Result<&mut CredentialSignatureProof> {
+    pub fn get_mut_credential_signature_proof(
+        &mut self,
+    ) -> crate::Result<&mut CredentialSignatureProof> {
         match self {
             CredentialProof::AnonCredsSignatureProof(ref mut signature) => Ok(signature),
-            _ => Err(err_msg!("credential does not contain AnonCredsSignatureProof"))
+            _ => Err(err_msg!(
+                "credential does not contain AnonCredsSignatureProof"
+            )),
         }
     }
 
     pub fn get_presentation_proof(&self) -> crate::Result<&CredentialPresentationProof> {
         match self {
             CredentialProof::AnonCredsCredentialPresentationProof(ref proof) => Ok(proof),
-            _ => Err(err_msg!("credential does not contain AnonCredsPresentationProof"))
+            _ => Err(err_msg!(
+                "credential does not contain AnonCredsPresentationProof"
+            )),
         }
     }
 
-    pub fn get_mut_presentation_proof(&mut self) -> crate::Result<&mut CredentialPresentationProof> {
+    pub fn get_mut_presentation_proof(
+        &mut self,
+    ) -> crate::Result<&mut CredentialPresentationProof> {
         match self {
             CredentialProof::AnonCredsCredentialPresentationProof(ref mut proof) => Ok(proof),
-            _ => Err(err_msg!("credential does not contain AnonCredsPresentationProof"))
+            _ => Err(err_msg!(
+                "credential does not contain AnonCredsPresentationProof"
+            )),
         }
     }
 }
@@ -92,10 +102,12 @@ pub struct CredentialSignature {
 }
 
 impl CredentialSignature {
-    pub fn new(signature: CLCredentialSignature,
-               signature_correctness_proof: SignatureCorrectnessProof,
-               rev_reg: Option<RevocationRegistry>,
-               witness: Option<Witness>, ) -> Self {
+    pub fn new(
+        signature: CLCredentialSignature,
+        signature_correctness_proof: SignatureCorrectnessProof,
+        rev_reg: Option<RevocationRegistry>,
+        witness: Option<Witness>,
+    ) -> Self {
         CredentialSignature {
             signature,
             signature_correctness_proof,

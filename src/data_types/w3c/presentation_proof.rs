@@ -1,6 +1,6 @@
-use anoncreds_clsignatures::{AggregatedProof, SubProof};
 use crate::data_types::nonce::Nonce;
 use crate::data_types::pres_request::PredicateTypes;
+use anoncreds_clsignatures::{AggregatedProof, SubProof};
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -19,9 +19,7 @@ pub struct CredentialPresentationProofValue {
 
 impl CredentialPresentationProofValue {
     pub fn new(sub_proof: SubProof) -> CredentialPresentationProofValue {
-        CredentialPresentationProofValue {
-            sub_proof,
-        }
+        CredentialPresentationProofValue { sub_proof }
     }
 
     pub fn encode(&self) -> String {
@@ -34,9 +32,11 @@ impl CredentialPresentationProofValue {
 }
 
 impl CredentialPresentationProof {
-    pub fn new(proof_value: CredentialPresentationProofValue,
-               mapping: CredentialAttributesMapping,
-               timestamp: Option<u64>) -> CredentialPresentationProof {
+    pub fn new(
+        proof_value: CredentialPresentationProofValue,
+        mapping: CredentialAttributesMapping,
+        timestamp: Option<u64>,
+    ) -> CredentialPresentationProof {
         CredentialPresentationProof {
             type_: PresentationProofType::AnonCredsPresentationProof2023,
             mapping,

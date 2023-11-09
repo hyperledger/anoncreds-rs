@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 use once_cell::sync::Lazy;
+use std::collections::HashSet;
 
 use crate::data_types::w3c::credential::{Contexts, Types};
 use crate::data_types::w3c::uri::URI;
@@ -12,22 +12,16 @@ pub const W3C_ANONCREDS_CONTEXT: &'static str = "https://github.io/anoncreds-w3c
 pub const W3C_CREDENTIAL_TYPE: &'static str = "VerifiableCredential";
 pub const W3C_ANONCREDS_CREDENTIAL_TYPE: &'static str = "AnonCredsCredential";
 
-pub(crate) static ANONCREDS_CONTEXTS: Lazy<Contexts> = Lazy::new(||
-    Contexts(
-        HashSet::from([
-            URI::from(W3C_CONTEXT),
-            URI::from(W3C_ANONCREDS_CONTEXT)
-        ])
-    )
-);
+pub(crate) static ANONCREDS_CONTEXTS: Lazy<Contexts> = Lazy::new(|| {
+    Contexts(HashSet::from([
+        URI::from(W3C_CONTEXT),
+        URI::from(W3C_ANONCREDS_CONTEXT),
+    ]))
+});
 
-pub(crate) static ANONCREDS_TYPES: Lazy<Types> = Lazy::new(||
-    Types(
-        HashSet::from([
-            String::from(W3C_CREDENTIAL_TYPE),
-            String::from(W3C_ANONCREDS_CREDENTIAL_TYPE)
-        ])
-    )
-);
-
-
+pub(crate) static ANONCREDS_TYPES: Lazy<Types> = Lazy::new(|| {
+    Types(HashSet::from([
+        String::from(W3C_CREDENTIAL_TYPE),
+        String::from(W3C_ANONCREDS_CREDENTIAL_TYPE),
+    ]))
+});

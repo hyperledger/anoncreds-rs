@@ -1,16 +1,16 @@
 use std::os::raw::c_char;
 use std::ptr;
 
-use ffi_support::{FfiStr, rust_string_to_c};
+use ffi_support::{rust_string_to_c, FfiStr};
 
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnoncredsObject, ObjectHandle};
 use super::util::FfiStrList;
-use crate::data_types::{
-    link_secret::LinkSecret,
-    w3c::credential::W3CCredential as W3CCredential,
-};
+use crate::conversion::{credential_from_w3c, credential_to_w3c};
 use crate::data_types::credential::{CredentialValuesEncoding, RawCredentialValues};
+use crate::data_types::w3c::credential_proof::NonAnonCredsDataIntegrityProof;
+use crate::data_types::w3c::uri::URI;
+use crate::data_types::{link_secret::LinkSecret, w3c::credential::W3CCredential};
 use crate::error::Result;
 use crate::services::{
     helpers::encode_credential_attribute,
@@ -18,11 +18,8 @@ use crate::services::{
     prover::{process_credential, process_w3c_credential},
     types::{Credential, CredentialRevocationConfig, MakeCredentialValues},
 };
-use crate::conversion::{credential_from_w3c, credential_to_w3c};
-use crate::data_types::w3c::credential_proof::NonAnonCredsDataIntegrityProof;
-use crate::data_types::w3c::uri::URI;
-use crate::Error;
 use crate::types::{CredentialValues, MakeRawCredentialValues};
+use crate::Error;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -279,10 +276,7 @@ pub extern "C" fn anoncreds_w3c_process_credential(
 
         let link_secret = _link_secret(link_secret)?;
 
-        let mut cred = cred
-            .load()?
-            .cast_ref::<W3CCredential>()?
-            .clone();
+        let mut cred = cred.load()?.cast_ref::<W3CCredential>()?.clone();
         process_w3c_credential(
             &mut cred,
             cred_req_metadata.load()?.cast_ref()?,
@@ -378,10 +372,7 @@ pub extern "C" fn anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(
         let proof = NonAnonCredsDataIntegrityProof::try_from(proof)
             .map_err(|_| err_msg!("Unable to parse proof"))?;
 
-        let mut cred = cred
-            .load()?
-            .cast_ref::<W3CCredential>()?
-            .clone();
+        let mut cred = cred.load()?.cast_ref::<W3CCredential>()?.clone();
 
         cred.add_non_anoncreds_identity_proof(proof);
 
@@ -410,14 +401,9 @@ pub extern "C" fn anoncreds_w3c_credential_id(
     catch_error(|| {
         check_useful_c_ptr!(cred_p);
 
-        let id = id
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing id"))?;
+        let id = id.as_opt_str().ok_or_else(|| err_msg!("Missing id"))?;
 
-        let mut cred = cred
-            .load()?
-            .cast_ref::<W3CCredential>()?
-            .clone();
+        let mut cred = cred.load()?.cast_ref::<W3CCredential>()?.clone();
 
         cred.set_id(URI::from(id));
 
@@ -446,14 +432,9 @@ pub extern "C" fn anoncreds_w3c_credential_subject_id(
     catch_error(|| {
         check_useful_c_ptr!(cred_p);
 
-        let id = id
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing id"))?;
+        let id = id.as_opt_str().ok_or_else(|| err_msg!("Missing id"))?;
 
-        let mut cred = cred
-            .load()?
-            .cast_ref::<W3CCredential>()?
-            .clone();
+        let mut cred = cred.load()?.cast_ref::<W3CCredential>()?.clone();
 
         cred.set_subject_id(URI::from(id));
 
@@ -486,10 +467,7 @@ pub extern "C" fn anoncreds_w3c_credential_add_context(
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing context"))?;
 
-        let mut cred = cred
-            .load()?
-            .cast_ref::<W3CCredential>()?
-            .clone();
+        let mut cred = cred.load()?.cast_ref::<W3CCredential>()?.clone();
 
         cred.add_context(URI::from(context));
 
@@ -518,14 +496,9 @@ pub extern "C" fn anoncreds_w3c_credential_add_type(
     catch_error(|| {
         check_useful_c_ptr!(cred_p);
 
-        let type_ = type_
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing type"))?;
+        let type_ = type_.as_opt_str().ok_or_else(|| err_msg!("Missing type"))?;
 
-        let mut cred = cred
-            .load()?
-            .cast_ref::<W3CCredential>()?
-            .clone();
+        let mut cred = cred.load()?.cast_ref::<W3CCredential>()?.clone();
 
         cred.add_type(type_.to_string());
 
@@ -546,8 +519,8 @@ fn _encoded_credential_values(
     }
     if attr_names.len() != attr_raw_values.len() {
         return Err(err_msg!(
-                "Mismatch between length of attribute names and raw values"
-            ));
+            "Mismatch between length of attribute names and raw values"
+        ));
     }
     let enc_values = attr_enc_values.as_slice();
     let mut cred_values = MakeCredentialValues::default();
@@ -588,15 +561,11 @@ fn _raw_credential_values(
     }
     if attr_names.len() != attr_raw_values.len() {
         return Err(err_msg!(
-                "Mismatch between length of attribute names and raw values"
-            ));
+            "Mismatch between length of attribute names and raw values"
+        ));
     }
     let mut cred_values = MakeRawCredentialValues::default();
-    for (name, raw) in attr_names
-        .as_slice()
-        .iter()
-        .zip(attr_raw_values.as_slice())
-    {
+    for (name, raw) in attr_names.as_slice().iter().zip(attr_raw_values.as_slice()) {
         let name = name
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing attribute name"))?
@@ -620,9 +589,7 @@ fn _revocation_config(revocation: *const FfiCredRevInfo) -> Result<Option<Revoca
     Ok(revocation_config)
 }
 
-fn _link_secret(
-    link_secret: FfiStr,
-) -> Result<LinkSecret> {
+fn _link_secret(link_secret: FfiStr) -> Result<LinkSecret> {
     let link_secret = link_secret
         .as_opt_str()
         .ok_or_else(|| err_msg!("Missing link secret"))?;

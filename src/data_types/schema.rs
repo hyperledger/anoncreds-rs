@@ -72,7 +72,7 @@ impl Validatable for AttributeNames {
                 self.0.len(),
                 MAX_ATTRIBUTES_COUNT
             )
-                .into());
+            .into());
         }
         Ok(())
     }
