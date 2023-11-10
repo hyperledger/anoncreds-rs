@@ -277,9 +277,6 @@ pub fn process_credential(
         credential.witness.as_ref(),
     )?;
 
-    credential.rev_reg = None;
-    credential.witness = None;
-
     trace!("process_credential <<< ");
 
     Ok(())
@@ -391,8 +388,8 @@ pub fn process_w3c_credential(
     proof.signature = CredentialSignature::new(
         signature.signature,
         signature.signature_correctness_proof,
-        None,
-        None,
+        signature.rev_reg,
+        signature.witness,
     )
     .encode();
 
