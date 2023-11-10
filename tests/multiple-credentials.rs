@@ -10,7 +10,9 @@ use anoncreds::{
     verifier,
 };
 
+use crate::utils::{CredentialFormat, PresentationFormat};
 use serde_json::json;
+use std::sync::Once;
 
 mod utils;
 
@@ -38,9 +40,18 @@ static CRED_DEF_ID_2: &str = "mock:uri:2";
 static REV_REG_ID_1: &str = "mock:uri:revregid1";
 static REV_REG_ID_2: &str = "mock:uri:revregid2";
 
-fn create_request(input: &ReqInput) -> PresentationRequest {
+static INIT_LOGGER: Once = Once::new();
+
+fn init_logger() {
+    INIT_LOGGER.call_once(|| {
+        #[cfg(feature = "logger")]
+        env_logger::init();
+    });
+}
+
+fn create_request(input: &ReqInput, include_self_attested: bool) -> PresentationRequest {
     let nonce = verifier::generate_nonce().unwrap();
-    let json = json!({
+    let mut request_json = json!({
         "nonce": nonce,
         "name":input.req_name ,
         "version":"0.1",
@@ -52,7 +63,6 @@ fn create_request(input: &ReqInput) -> PresentationRequest {
             "attr2_referent":{
                 "name":"sex"
             },
-            "attr3_referent":{"name":"phone"},
             "attr4_referent":{
                 "names": ["height"],
             },
@@ -63,8 +73,12 @@ fn create_request(input: &ReqInput) -> PresentationRequest {
             "predicate1_referent":{"name":"age","p_type":">=","p_value":18}
         },
     });
+    if include_self_attested {
+        request_json["requested_attributes"]["attr3_referent"] = json!({"name": "phone"});
+    }
 
-    let mut presentation: PresentationRequestPayload = serde_json::from_value(json).unwrap();
+    let mut presentation: PresentationRequestPayload =
+        serde_json::from_value(request_json).unwrap();
     presentation.non_revoked = input.global_nonrevoke.clone();
 
     for ni in input.attr_nonrevoke.iter() {
@@ -190,9 +204,39 @@ fn test_requests_generate<'a>() -> Vec<ReqInput<'a>> {
 }
 
 #[test]
-fn anoncreds_with_multiple_credentials_per_request() {
-    #[cfg(feature = "logger")]
-    env_logger::init();
+fn anoncreds_with_multiple_legacy_credentials_per_legacy_presentation() {
+    _anoncreds_with_multiple_credentials_per_request(
+        CredentialFormat::Legacy,
+        PresentationFormat::Legacy,
+    )
+}
+
+#[test]
+fn anoncreds_with_multiple_legacy_credentials_per_w3c_presentation() {
+    _anoncreds_with_multiple_credentials_per_request(
+        CredentialFormat::Legacy,
+        PresentationFormat::W3C,
+    )
+}
+
+#[test]
+fn anoncreds_with_multiple_w3c_credentials_per_w3c_presentation() {
+    _anoncreds_with_multiple_credentials_per_request(CredentialFormat::W3C, PresentationFormat::W3C)
+}
+
+#[test]
+fn anoncreds_with_multiple_w3c_credentials_per_legacy_presentation() {
+    _anoncreds_with_multiple_credentials_per_request(
+        CredentialFormat::W3C,
+        PresentationFormat::Legacy,
+    )
+}
+
+fn _anoncreds_with_multiple_credentials_per_request(
+    credential_format: CredentialFormat,
+    presentation_format: PresentationFormat,
+) {
+    init_logger();
 
     let mut mock = utils::Mock::new(&[ISSUER_ID], &[PROVER_ID], TF_PATH, MAX_CRED_NUM);
 
@@ -222,10 +266,11 @@ fn anoncreds_with_multiple_credentials_per_request() {
     // [2]: Global and Local attributes , where local is more stringent
     // [3]: Global and Local predeicate, where local is more stringent
     // [4]: no NRP required
-    let reqs: Vec<PresentationRequest> = test_requests_generate()
-        .iter()
-        .map(create_request)
-        .collect();
+    let mut reqs: Vec<PresentationRequest> = Vec::new();
+    for request in test_requests_generate().iter() {
+        let include_self_attested = presentation_format != PresentationFormat::W3C;
+        reqs.push(create_request(request, include_self_attested))
+    }
 
     // 1: Issuer setup (credate cred defs, rev defs(optional), cred_offers)
     mock.issuer_setup(
@@ -243,6 +288,7 @@ fn anoncreds_with_multiple_credentials_per_request() {
         &issuer1_creds,
         time_initial_rev_reg,
         time_after_credential,
+        credential_format,
     );
 
     // 3. Prover creates revocation states for all credentials with ledger values
@@ -260,7 +306,12 @@ fn anoncreds_with_multiple_credentials_per_request() {
         ),
         (CRED_DEF_ID_2, (vec!["attr5_referent"], vec![])),
     ]);
-    let self_attested = HashMap::from([("attr3_referent".to_string(), "8-800-300".to_string())]);
+    let self_attested = match presentation_format {
+        PresentationFormat::Legacy => {
+            HashMap::from([("attr3_referent".to_string(), "8-800-300".to_string())])
+        }
+        PresentationFormat::W3C => HashMap::new(),
+    };
 
     let mut presentations = vec![];
     for req in &reqs {
@@ -269,6 +320,7 @@ fn anoncreds_with_multiple_credentials_per_request() {
             prover_values.clone(),
             self_attested.clone(),
             req,
+            presentation_format.clone(),
         );
         presentations.push(p)
     }

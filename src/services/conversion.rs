@@ -59,8 +59,8 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
         values,
         signature: credential_signature.signature,
         signature_correctness_proof: credential_signature.signature_correctness_proof,
-        rev_reg: None,
-        witness: None,
+        rev_reg: credential_signature.rev_reg,
+        witness: credential_signature.witness,
     };
 
     Ok(credential)

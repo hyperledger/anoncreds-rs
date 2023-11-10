@@ -1,9 +1,16 @@
 use super::storage::{IssuerWallet, Ledger, ProverWallet, StoredCredDef, StoredRevDef};
+use serde_json::json;
 use std::{
     collections::{BTreeSet, HashMap},
     fs::create_dir,
 };
 
+use anoncreds::conversion::{credential_from_w3c, credential_to_w3c};
+use anoncreds::data_types::w3c::credential::W3CCredential;
+use anoncreds::data_types::w3c::presentation::W3CPresentation;
+use anoncreds::types::{
+    MakeRawCredentialValues, RevocationRegistryDefinition, RevocationStatusList,
+};
 use anoncreds::{
     data_types::{
         cred_def::{CredentialDefinition, CredentialDefinitionId},
@@ -24,6 +31,18 @@ use anoncreds::{
 
 #[derive(Debug)]
 pub struct TestError(String);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CredentialFormat {
+    Legacy,
+    W3C,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PresentationFormat {
+    Legacy,
+    W3C,
+}
 
 pub type IssuerValues<'a> =
     HashMap<&'a str, (&'a str, HashMap<&'a str, &'a str>, bool, &'a str, u32)>;
@@ -66,13 +85,14 @@ impl<'a> Mock<'a> {
         }
     }
 
-    pub fn verifer_verifies_presentations_for_requests(
+    fn prepare_presentation_verification_data(
         &self,
-        presentations: &[Presentation],
-        reqs: &[PresentationRequest],
-        overrides: &[Option<&Override>],
-    ) -> Vec<Result<bool, TestError>> {
-        let mut results = vec![];
+    ) -> (
+        HashMap<SchemaId, Schema>,
+        HashMap<CredentialDefinitionId, CredentialDefinition>,
+        Vec<RevocationStatusList>,
+        HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>,
+    ) {
         let schemas: HashMap<SchemaId, Schema> = HashMap::from_iter(
             self.ledger
                 .schemas
@@ -99,18 +119,42 @@ impl<'a> Mock<'a> {
                 .iter()
                 .map(|(k, v)| (k.clone(), v.clone())),
         );
+        (schemas, cred_defs, rev_status_lists, rev_reg_def_map)
+    }
+
+    pub fn verifer_verifies_presentations_for_requests(
+        &self,
+        presentations: &[Presentations],
+        reqs: &[PresentationRequest],
+        overrides: &[Option<&Override>],
+    ) -> Vec<Result<bool, TestError>> {
+        let mut results = vec![];
+        let (schemas, cred_defs, rev_status_lists, rev_reg_def_map) =
+            self.prepare_presentation_verification_data();
 
         for (i, presentation) in presentations.iter().enumerate() {
-            let valid = verifier::verify_presentation(
-                presentation,
-                &reqs[i],
-                &schemas,
-                &cred_defs,
-                Some(&rev_reg_def_map),
-                Some(rev_status_lists.clone()),
-                overrides[i],
-            )
-            .map_err(|e| TestError(e.to_string()));
+            let valid = match presentation {
+                Presentations::Legacy(presentation) => verifier::verify_presentation(
+                    presentation,
+                    &reqs[i],
+                    &schemas,
+                    &cred_defs,
+                    Some(&rev_reg_def_map),
+                    Some(rev_status_lists.clone()),
+                    overrides[i],
+                )
+                .map_err(|e| TestError(e.to_string())),
+                Presentations::W3C(presentation) => verifier::verify_w3c_presentation(
+                    presentation,
+                    &reqs[i],
+                    &schemas,
+                    &cred_defs,
+                    Some(&rev_reg_def_map),
+                    Some(rev_status_lists.clone()),
+                    overrides[i],
+                )
+                .map_err(|e| TestError(e.to_string())),
+            };
             results.push(valid);
         }
         results
@@ -233,6 +277,43 @@ impl<'a> Mock<'a> {
         }
     }
 
+    fn get_schema(&self, schema_id: &SchemaId) -> &Schema {
+        self.ledger.schemas.get(schema_id).unwrap()
+    }
+
+    fn get_cred_def(&self, cred_def_id: &CredentialDefinitionId) -> &CredentialDefinition {
+        self.ledger.cred_defs.get(cred_def_id).unwrap()
+    }
+
+    fn get_rev_config(
+        &self,
+        issuer_wallet: &'a IssuerWallet,
+        rev_reg_id: &str,
+        rev_idx: u32,
+        prev_rev_reg_time: u64,
+    ) -> Option<CredentialRevocationConfig> {
+        let revocation_list = self
+            .ledger
+            .revocation_list
+            .get(rev_reg_id)
+            .and_then(|h| h.get(&prev_rev_reg_time));
+
+        issuer_wallet
+            .rev_defs
+            .get(rev_reg_id)
+            .map(|stored_rev_def| {
+                Result::<_, TestError>::Ok(CredentialRevocationConfig {
+                    reg_def: &stored_rev_def.public,
+                    reg_def_private: &stored_rev_def.private,
+                    registry_idx: rev_idx,
+                    status_list: revocation_list
+                        .ok_or_else(|| TestError("Missing status list".to_string()))?,
+                })
+            })
+            .transpose()
+            .expect("Error creating revocation config")
+    }
+
     fn issuer_create_credential(
         &self,
         issuer_wallet: &IssuerWallet,
@@ -245,12 +326,10 @@ impl<'a> Mock<'a> {
         prev_rev_reg_time: u64,
         rev_idx: u32,
     ) -> Credential {
-        let schema = self.ledger.schemas.get(&offer.schema_id).unwrap();
-        let revocation_list = self
-            .ledger
-            .revocation_list
-            .get(rev_reg_id)
-            .and_then(|h| h.get(&prev_rev_reg_time));
+        let schema = self.get_schema(&offer.schema_id);
+        let cred_def = self.get_cred_def(&offer.cred_def_id);
+        let rev_config = self.get_rev_config(issuer_wallet, rev_reg_id, rev_idx, prev_rev_reg_time);
+
         let mut cred_values = MakeCredentialValues::default();
         let names: Vec<String> = schema.attr_names.clone().0.into_iter().collect();
         for (i, v) in names.iter().enumerate() {
@@ -266,31 +345,56 @@ impl<'a> Mock<'a> {
             }
         }
 
-        let rev_config = issuer_wallet
-            .rev_defs
-            .get(rev_reg_id)
-            .map(|stored_rev_def| {
-                Result::<_, TestError>::Ok(CredentialRevocationConfig {
-                    reg_def: &stored_rev_def.public,
-                    reg_def_private: &stored_rev_def.private,
-                    registry_idx: rev_idx,
-                    status_list: revocation_list
-                        .ok_or_else(|| TestError("Missing status list".to_string()))?,
-                })
-            })
-            .transpose()
-            .expect("Error creating revocation config");
-
         let issue_cred = issuer::create_credential(
-            ledger
-                .cred_defs
-                .get(&CredentialDefinitionId::new_unchecked(cred_def_id))
-                .unwrap(),
+            cred_def,
             &issuer_wallet.cred_defs[cred_def_id].private,
             offer,
             cred_request,
             cred_values.into(),
             rev_config,
+        )
+        .expect("Error creating credential");
+
+        issue_cred
+    }
+
+    fn issuer_create_w3c_credential(
+        &self,
+        issuer_wallet: &IssuerWallet,
+        ledger: &Ledger,
+        cred_request: &CredentialRequest,
+        offer: &CredentialOffer,
+        rev_reg_id: &str,
+        cred_def_id: &str,
+        values: &HashMap<&str, &str>,
+        prev_rev_reg_time: u64,
+        rev_idx: u32,
+    ) -> W3CCredential {
+        let schema = self.get_schema(&offer.schema_id);
+        let cred_def = self.get_cred_def(&offer.cred_def_id);
+        let rev_config = self.get_rev_config(issuer_wallet, rev_reg_id, rev_idx, prev_rev_reg_time);
+
+        let mut cred_values = MakeRawCredentialValues::default();
+        let names: Vec<String> = schema.attr_names.clone().0.into_iter().collect();
+        for (i, v) in names.iter().enumerate() {
+            if let Some(value) = values.get(&v.as_str()) {
+                cred_values.add(names[i].clone(), value.to_string());
+            } else {
+                panic!(
+                    "No credential value given for attribute name: {} in {:?}",
+                    v, values
+                );
+            }
+        }
+
+        let issue_cred = issuer::create_w3c_credential(
+            cred_def,
+            &issuer_wallet.cred_defs[cred_def_id].private,
+            offer,
+            cred_request,
+            cred_values.into(),
+            rev_config,
+            None,
         )
         .expect("Error creating credential");
 
@@ -306,6 +410,7 @@ impl<'a> Mock<'a> {
         values: &'a IssuerValues,
         time_prev_rev_reg: u64,
         time_new_rev_reg: u64,
+        credential_format: CredentialFormat,
     ) {
         for (cred_def_id, (_, cred_values, _, rev_reg_id, rev_idx)) in values.iter() {
             let offer = &self.prover_wallets[prover_id].cred_offers[cred_def_id];
@@ -325,19 +430,6 @@ impl<'a> Mock<'a> {
             )
             .expect("Error creating credential request");
 
-            // Issuer creates a credential
-            let mut recv_cred = self.issuer_create_credential(
-                &self.issuer_wallets[issuer_id],
-                &self.ledger,
-                &cred_req_data.0,
-                offer,
-                rev_reg_id,
-                cred_def_id,
-                cred_values,
-                time_prev_rev_reg,
-                *rev_idx,
-            );
-
             let rev_def = self.issuer_wallets[issuer_id]
                 .rev_defs
                 .get(*rev_reg_id)
@@ -348,20 +440,69 @@ impl<'a> Mock<'a> {
                 .get(*rev_reg_id)
                 .map(|e| &e.private);
 
-            // prover processes it
-            prover::process_credential(
-                &mut recv_cred,
-                &cred_req_data.1,
-                &self.prover_wallets[prover_id].link_secret,
-                cred_def,
-                rev_def,
-            )
-            .expect("Error processing credential");
+            // Issuer creates a credential
+            let (legacy_credential, w3c_credential) = match credential_format {
+                CredentialFormat::Legacy => {
+                    let mut recv_cred = self.issuer_create_credential(
+                        &self.issuer_wallets[issuer_id],
+                        &self.ledger,
+                        &cred_req_data.0,
+                        offer,
+                        rev_reg_id,
+                        cred_def_id,
+                        cred_values,
+                        time_prev_rev_reg,
+                        *rev_idx,
+                    );
+                    // prover processes it
+                    prover::process_credential(
+                        &mut recv_cred,
+                        &cred_req_data.1,
+                        &self.prover_wallets[prover_id].link_secret,
+                        cred_def,
+                        rev_def,
+                    )
+                    .expect("Error processing credential");
+
+                    let w3c_credential =
+                        credential_to_w3c(&recv_cred).expect("Error converting credential to w3c");
+
+                    (recv_cred, w3c_credential)
+                }
+                CredentialFormat::W3C => {
+                    let mut recv_cred = self.issuer_create_w3c_credential(
+                        &self.issuer_wallets[issuer_id],
+                        &self.ledger,
+                        &cred_req_data.0,
+                        offer,
+                        rev_reg_id,
+                        cred_def_id,
+                        cred_values,
+                        time_prev_rev_reg,
+                        *rev_idx,
+                    );
+                    // prover processes it
+                    prover::process_w3c_credential(
+                        &mut recv_cred,
+                        &cred_req_data.1,
+                        &self.prover_wallets[prover_id].link_secret,
+                        cred_def,
+                        rev_def,
+                    )
+                    .expect("Error processing credential");
+
+                    let legacy_credential = credential_from_w3c(&recv_cred)
+                        .expect("Error converting credential to w3c");
+
+                    (legacy_credential, recv_cred)
+                }
+            };
 
             // Update prover wallets and ledger with new revocation status list
             let pw = self.prover_wallets.get_mut(prover_id).unwrap();
             pw.cred_reqs.push(cred_req_data);
-            pw.credentials.push(recv_cred);
+            pw.credentials.push(legacy_credential);
+            pw.w3c_credentials.push(w3c_credential);
 
             if let Some(rev_def) = rev_def {
                 let list = self
@@ -419,30 +560,32 @@ impl<'a> Mock<'a> {
         self.prover_wallets.get_mut(prover_id).unwrap().rev_states = rev_states;
     }
 
-    pub fn prover_creates_presentation(
-        &self,
-        prover_id: &'static str,
-        prover_values: ProverValues,
-        self_attested: HashMap<String, String>,
-        req: &PresentationRequest,
-    ) -> Presentation {
-        let schemas: HashMap<SchemaId, Schema> = HashMap::from_iter(
+    fn get_schemas(&self) -> HashMap<SchemaId, Schema> {
+        HashMap::from_iter(
             self.ledger
                 .schemas
                 .iter()
                 .map(|(k, v)| (k.clone(), v.clone())),
-        );
+        )
+    }
 
-        let cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition> = HashMap::from_iter(
+    fn get_cred_defs(&self) -> HashMap<CredentialDefinitionId, CredentialDefinition> {
+        HashMap::from_iter(
             self.ledger
                 .cred_defs
                 .iter()
                 .map(|(k, v)| v.try_clone().map(|v| (k.clone(), v)))
                 .collect::<Result<HashMap<_, _>, anoncreds::Error>>()
                 .unwrap(),
-        );
+        )
+    }
 
-        let mut present = PresentCredentials::default();
+    fn prepare_present_credential(
+        &self,
+        prover_id: &str,
+        prover_values: ProverValues,
+    ) -> PresentCredentials<Credential> {
+        let mut present: PresentCredentials<Credential> = PresentCredentials::default();
         for cred in self.prover_wallets[prover_id].credentials.iter() {
             let values = prover_values
                 .get(cred.cred_def_id.to_string().as_str())
@@ -454,7 +597,7 @@ impl<'a> Mock<'a> {
                     &(None, None)
                 };
 
-                let mut cred1 = present.add_credential(cred, *timestamp, rev_state.as_ref());
+                let mut cred1 = present.add_credential(&cred, *timestamp, rev_state.as_ref());
                 for a in &values.0 {
                     cred1.add_requested_attribute(*a, true);
                 }
@@ -463,15 +606,81 @@ impl<'a> Mock<'a> {
                 }
             }
         }
-
-        prover::create_presentation(
-            req,
-            present,
-            Some(self_attested),
-            &self.prover_wallets[prover_id].link_secret,
-            &schemas,
-            &cred_defs,
-        )
-        .expect("Error creating presentation")
+        present
     }
+
+    fn prepare_present_w3c_credential(
+        &self,
+        prover_id: &str,
+        prover_values: ProverValues,
+    ) -> PresentCredentials<W3CCredential> {
+        let mut present: PresentCredentials<W3CCredential> = PresentCredentials::default();
+        for cred in self.prover_wallets[prover_id].w3c_credentials.iter() {
+            let values = prover_values
+                .get(cred.credential_schema.definition.to_string().as_str())
+                .unwrap();
+            {
+                let (rev_state, timestamp) =
+                    if let Some(id) = &cred.credential_schema.revocation_registry {
+                        self.prover_wallets[prover_id].rev_states.get(id).unwrap()
+                    } else {
+                        &(None, None)
+                    };
+
+                let mut cred1 = present.add_credential(&cred, *timestamp, rev_state.as_ref());
+                for a in &values.0 {
+                    cred1.add_requested_attribute(*a, true);
+                }
+                for p in &values.1 {
+                    cred1.add_requested_predicate(*p);
+                }
+            }
+        }
+        present
+    }
+
+    pub fn prover_creates_presentation(
+        &self,
+        prover_id: &'static str,
+        prover_values: ProverValues,
+        self_attested: HashMap<String, String>,
+        req: &PresentationRequest,
+        format: PresentationFormat,
+    ) -> Presentations {
+        let schemas = self.get_schemas();
+        let cred_defs = self.get_cred_defs();
+
+        match format {
+            PresentationFormat::Legacy => {
+                let present = self.prepare_present_credential(prover_id, prover_values);
+                let presentation = prover::create_presentation(
+                    req,
+                    present,
+                    Some(self_attested),
+                    &self.prover_wallets[prover_id].link_secret,
+                    &schemas,
+                    &cred_defs,
+                )
+                .expect("Error creating presentation");
+                Presentations::Legacy(presentation)
+            }
+            PresentationFormat::W3C => {
+                let present = self.prepare_present_w3c_credential(prover_id, prover_values);
+                let presentation = prover::create_w3c_presentation(
+                    req,
+                    present,
+                    &self.prover_wallets[prover_id].link_secret,
+                    &schemas,
+                    &cred_defs,
+                )
+                .expect("Error creating presentation");
+                Presentations::W3C(presentation)
+            }
+        }
+    }
+}
+
+pub enum Presentations {
+    Legacy(Presentation),
+    W3C(W3CPresentation),
 }

@@ -902,7 +902,7 @@ pub fn create_or_update_revocation_state(
     rev_state: Option<&CredentialRevocationState>, // for witness update
     old_rev_status_list: Option<&RevocationStatusList>, // for witness update
 ) -> Result<CredentialRevocationState> {
-    println!(
+    trace!(
         "create_or_update_revocation_state >>> revoc_reg_def: {:?}, \
     rev_status_list: {:?}, rev_reg_idx: {},  rev_state: {:?}, old_rev_status_list {:?}",
         rev_reg_def,
