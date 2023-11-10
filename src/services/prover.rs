@@ -889,7 +889,7 @@ pub fn create_revocation_state_with_witness(
 ///     prover::create_or_update_revocation_state(&rev_reg_def.value.tails_location,
 ///                                               &rev_reg_def,
 ///                                               &rev_status_list,
-///                                               0,
+///                                               1,
 ///                                               None,
 ///                                               None
 ///                                               ).expect("Unable to create or update the revocation state");
@@ -902,7 +902,7 @@ pub fn create_or_update_revocation_state(
     rev_state: Option<&CredentialRevocationState>, // for witness update
     old_rev_status_list: Option<&RevocationStatusList>, // for witness update
 ) -> Result<CredentialRevocationState> {
-    trace!(
+    println!(
         "create_or_update_revocation_state >>> revoc_reg_def: {:?}, \
     rev_status_list: {:?}, rev_reg_idx: {},  rev_state: {:?}, old_rev_status_list {:?}",
         rev_reg_def,
