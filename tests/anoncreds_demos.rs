@@ -2808,6 +2808,7 @@ fn anoncreds_works_for_restrictions_as_empty_array() {
     let rev_reg_defs_json = json!({}).to_string();
     let rev_regs_json = json!({}).to_string();
 
+
     let valid = anoncreds::verifier_verify_proof(
         &proof_req_json,
         &proof_json,

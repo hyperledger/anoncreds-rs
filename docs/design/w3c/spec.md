@@ -313,26 +313,9 @@ Example of an AnonCreds W3C presentation which will be explained in details:
       "proof": {
         "type": "AnonCredsPresentationProof2023",
         "mapping": {
-          "revealedAttributes": [
-            {
-              "name": "firstName",
-              "referent": "attribute_0"
-            }
-          ],
-          "unrevealedAttributes": [
-            {
-              "name": "lastName",
-              "referent": "attribute_1"
-            }
-          ],
-          "requestedPredicates": [
-            {
-              "name": "age",
-              "p_type": "<",
-              "value": 18,
-              "referent": "predicate_1"
-            }
-          ]
+          "revealedAttributes": ["attribute_0"],
+          "unrevealedAttributes": ["attribute_1"],
+          "requestedPredicates": ["predicate_1"]
         },
         "proofValue": "AAEBAnr2Ql...0UhJ-bIIdWFKVWxjU3ePxv_7HoY5pUw"
       }
@@ -410,26 +393,9 @@ type pointing to the difference in a presentation structure and looks the follow
   "proof": {
     "type": "AnonCredsPresentationProof2023",
     "mapping": {
-      "revealedAttributes": [
-        {
-          "name": "firstName",
-          "referent": "attribute_0"
-        }
-      ],
-      "unrevealedAttributes": [
-        {
-          "name": "lastName",
-          "referent": "attribute_1"
-        }
-      ],
-      "requestedPredicates": [
-        {
-          "name": "age",
-          "p_type": "<",
-          "value": 18,
-          "referent": "predicate_1"
-        }
-      ]
+      "revealedAttributes": ["attribute_0"],
+      "unrevealedAttributes": ["attribute_1"],
+      "requestedPredicates": ["predicate_1"]
       },
       "timestamp": Option<1234567>,
       "proofValue": "AAEBAnr2Ql...0UhJ-bIIdWFKVWxjU3ePxv_7HoY5pUw"****

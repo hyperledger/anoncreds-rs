@@ -569,3 +569,180 @@ rsa_integrity_proof_presentation = extartnal_library.create_presentation_using_r
 extartnal_verifier.verify_rsa_integrity_proof_presentation(rsa_integrity_proof_presentation)
 ```
 
+### Presentation validation
+
+**Request**
+```
+{
+   "name":"pres_req_1",
+   "non_revoked":null,
+   "nonce":"358493544514389191968232",
+   "requested_attributes":{
+      "attr1_referent":{
+         "name":"first_name",
+         "non_revoked":null,
+         "restrictions":null
+      },
+      "attr2_referent":{
+         "name":"sex",
+         "non_revoked":null,
+         "restrictions":null
+      },
+      "attr3_referent":{
+         "names":[
+            "last_name",
+            "height"
+         ],
+         "non_revoked":null,
+         "restrictions":null
+      }
+   },
+   "requested_predicates":{
+      "predicate1_referent":{
+         "name":"age",
+         "non_revoked":null,
+         "p_type":">=",
+         "p_value":18,
+         "restrictions":null
+      }
+   },
+   "ver":"1.0",
+   "version":"0.1"
+}
+```
+
+**Presentation**
+```
+{
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1",
+    "https://raw.githubusercontent.com/DSRCorporation/anoncreds-rs/design/w3c-support/docs/design/w3c/context.json"
+  ],
+  "type": [
+    "VerifiablePresentation",
+    "AnonCredsPresentation"
+  ],
+  "verifiableCredential": [
+    {
+      "@context": [
+        "https://www.w3.org/2018/credentials/v1",
+        "https://raw.githubusercontent.com/DSRCorporation/anoncreds-rs/design/w3c-support/docs/design/w3c/context.json"
+      ],
+      "type": [
+        "VerifiableCredential",
+        "AnonCredsPresentation"
+      ],
+      "issuer": "did:sov:3avoBCqDMFHFaKUHug9s8W",
+      "issuanceDate": "2023-10-26T01:17:32Z",
+      "credentialSchema": {
+        "type": "AnonCredsDefinition",
+        "definition": "did:sov:3avoBCqDMFHFaKUHug9s8W:3:CL:13:default",
+        "schema": "did:sov:3avoBCqDMFHFaKUHug9s8W:2:basic_person:0.1.0",
+        "encoding": "auto"
+      },
+      "credentialSubject": {
+        "first_name": "Alice"
+        "lastt_name": "Jons"
+        "height": "185"
+      },
+      "proof": {
+        "type": "AnonCredsPresentationProof2023",
+        "mapping": {
+          "revealedAttributes": ["attr1_referent"],
+          "unrevealedAttributes": ["attr2_referent"],
+          "revealedAttributeGroups": ["attr3_referent"],
+          "requestedPredicates": ["predicate1_referent"]
+        },
+        "proofValue": "AAEBAnr2Ql...0UhJ-bIIdWFKVWxjU3ePxv_7HoY5pUw"
+      }
+    }
+  ],
+  "proof": {
+    "type": "AnonCredsPresentationProof2023",
+    "challenge": "182453895158932070575246",
+    "proofValue": "AAAgtMR4....J19l-agSA"
+  }
+}
+```
+
+**Verifier validation steps is we keep mapping**:
+```
+// validate requested attributes
+for (referent, requested) in presentation_request.requested_attributes {
+    credential = presentation.verifiableCredential.find((verifiableCredential) => 
+        verifiableCredential.proof.mapping.revealedAttributes.includes(referent) || 
+        verifiableCredential.proof.mapping.unrevealedAttributes.includes(referent) || 
+        verifiableCredential.proof.mapping.revealedAttributeGroups.includes(referent))
+        
+    credential.checkRestrictions(requested.restrictions)
+        
+    if !credential {
+        error
+    }
+    if requested.name {
+        assert(credential.credentialSubject[requested.name])
+    }
+    if requested.names {
+        names.forEach((name) => assert(credential.credentialSubject[name]))
+    }
+}
+
+// validate requested predicates
+for (referent, requested) in presentation_request.requested_predicates {
+    credential = presentation.verifiableCredential.find((verifiableCredential) => 
+        verifiableCredential.proof.mapping.requestedPredicates.includes(referent))
+    credential.checkRestrictions(requested.restrictions)
+    assert(credential.credentialSubject[requested.name]) // if we include derived predicate into subject
+}
+```
+
+**Verifier validation steps is we drop mapping**:
+```
+// validate requested attributes
+for (referent, requested) in presentation_request.requested_attributes {
+    if requested.name {
+        // or filter if requted same attribute multiple times?
+        credential = presentation.verifiableCredential.find((verifiableCredential) => 
+            credentialSubject.contains(requested[name])
+        )
+        if credential {
+            credential.checkRestrictions(requested.restrictions)
+            assert(credential.credentialSubject[requested.name])
+        }
+        if !credential {
+            // consider attribute as unrevealed
+            // If we need to support and validate unrevealed attributes
+            credential_with_attribute = presentation.verifiableCredential.find((verifiableCredential) => 
+                schema = get_schema(verifiableCredential.schema_id) // all schemas already passed into verification function   
+                schema.attributes.includes(requested.name)
+                verifiableCredential.matches(restrictions)
+            )
+            if !credential_with_attribute {
+                error    
+            }
+        }
+    }
+    if requested.names {
+        for (referent, requested) in requested.names {
+            // do same as for single attribute above 
+            // make sure that all come from single credential
+        }
+    }
+}
+
+// validate requested predicates - we put predicate derived string or object into credentialSubject
+// {
+//    "age" ">= 18"
+// }
+for (referent, requested) in presentation_request.requested_predicates {
+    // or filter if requted same attribute multiple times?
+    credential = presentation.verifiableCredential.find((verifiableCredential) => 
+        credentialSubject.contains(requested[name])
+    )
+    if !credential {
+        error
+    }
+    credential.checkRestrictions(requested.restrictions)
+    assert(credential.credentialSubject[requested.name])
+}
+```
