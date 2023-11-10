@@ -95,7 +95,7 @@ pub extern "C" fn anoncreds_create_credential(
             cred_def_private.load()?.cast_ref()?,
             cred_offer.load()?.cast_ref()?,
             cred_request.load()?.cast_ref()?,
-            cred_values.into(),
+            cred_values,
             revocation_config
                 .as_ref()
                 .map(TryInto::try_into)
@@ -235,7 +235,7 @@ pub extern "C" fn anoncreds_w3c_create_credential(
             cred_def_private.load()?.cast_ref()?,
             cred_offer.load()?.cast_ref()?,
             cred_request.load()?.cast_ref()?,
-            cred_values.into(),
+            cred_values,
             revocation_config
                 .as_ref()
                 .map(TryInto::try_into)
@@ -313,7 +313,7 @@ pub extern "C" fn anoncreds_credential_to_w3c(
         let credential = cred.load()?;
         let credential = credential.cast_ref::<Credential>()?;
 
-        let w3c_credential = credential_to_w3c(&credential)?;
+        let w3c_credential = credential_to_w3c(credential)?;
         let w3c_cred = ObjectHandle::create(w3c_credential)?;
 
         unsafe { *cred_p = w3c_cred };
@@ -340,7 +340,7 @@ pub extern "C" fn anoncreds_credential_from_w3c(
         let credential = cred.load()?;
         let credential = credential.cast_ref::<W3CCredential>()?;
 
-        let credential = credential_from_w3c(&credential)?;
+        let credential = credential_from_w3c(credential)?;
         let cred = ObjectHandle::create(credential)?;
 
         unsafe { *cred_p = cred };

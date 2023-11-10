@@ -14,7 +14,7 @@ pub enum CredentialProof {
     NonAnonCredsDataIntegrityProof(NonAnonCredsDataIntegrityProof),
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialSignatureProof {
     #[serde(rename = "type")]
     pub type_: CredentialSignatureType,
@@ -40,7 +40,7 @@ impl CredentialSignatureProof {
 
 pub type NonAnonCredsDataIntegrityProof = Value;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CredentialSignatureType {
     #[serde(rename = "CLSignature2023")]
     CLSignature2023,

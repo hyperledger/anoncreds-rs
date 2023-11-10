@@ -26,8 +26,9 @@ use crate::data_types::w3c::presentation::W3CPresentation;
 use crate::error::{Error, Result};
 use crate::services::helpers::{
     attr_common_view, build_credential_schema, build_credential_values,
-    build_non_credential_schema, get_predicates_for_credential,
-    get_revealed_attributes_for_credential, new_nonce,
+    build_non_credential_schema, get_non_revoked_interval, get_predicates_for_credential,
+    get_predicates_for_credential_mapping, get_revealed_attributes_for_credential,
+    get_revealed_attributes_for_credential_mapping, new_nonce,
 };
 use crate::types::{
     CredentialRevocationState, CredentialValues, PresentCredential, PresentCredentials,
@@ -41,9 +42,8 @@ use crate::data_types::w3c::presentation_proof::{
     CredentialPresentationProofValue, Predicate, PresentationProof, PresentationProofValue,
 };
 use anoncreds_clsignatures::{
-    CredentialSchema, CredentialSignature as CLCredentialSignature,
-    CredentialValues as CLCredentialValues, NonCredentialSchema, Proof, ProofBuilder,
-    RevocationKeyPublic, SignatureCorrectnessProof,
+    CredentialSignature as CLCredentialSignature, NonCredentialSchema, ProofBuilder,
+    SignatureCorrectnessProof,
 };
 use bitvec::bitvec;
 use std::collections::{HashMap, HashSet};
@@ -265,18 +265,17 @@ pub fn process_credential(
     trace!("process_credential >>> credential: {:?}, cred_request_metadata: {:?}, link_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
             credential, cred_request_metadata, secret!(&link_secret), cred_def, rev_reg_def);
 
-    CLCredentialSigner::init(cred_def)?
-        .with_values(&credential.values, link_secret)?
-        .with_revocation(
-            rev_reg_def,
-            credential.rev_reg.as_ref(),
-            credential.witness.as_ref(),
-        )?
-        .process(
-            &mut credential.signature,
-            &credential.signature_correctness_proof,
-            cred_request_metadata,
-        )?;
+    _process_credential(
+        &mut credential.signature,
+        &credential.signature_correctness_proof,
+        &credential.values,
+        cred_request_metadata,
+        link_secret,
+        cred_def,
+        rev_reg_def,
+        credential.rev_reg.as_ref(),
+        credential.witness.as_ref(),
+    )?;
 
     credential.rev_reg = None;
     credential.witness = None;
@@ -377,18 +376,17 @@ pub fn process_w3c_credential(
     let proof = w3c_credential.get_mut_credential_signature_proof()?;
     let mut signature = proof.get_credential_signature()?;
 
-    CLCredentialSigner::init(cred_def)?
-        .with_values(&cred_values, link_secret)?
-        .with_revocation(
-            rev_reg_def,
-            signature.rev_reg.as_ref(),
-            signature.witness.as_ref(),
-        )?
-        .process(
-            &mut signature.signature,
-            &signature.signature_correctness_proof,
-            cred_request_metadata,
-        )?;
+    _process_credential(
+        &mut signature.signature,
+        &signature.signature_correctness_proof,
+        &cred_values,
+        cred_request_metadata,
+        link_secret,
+        cred_def,
+        rev_reg_def,
+        signature.rev_reg.as_ref(),
+        signature.witness.as_ref(),
+    )?;
 
     proof.signature = CredentialSignature::new(
         signature.signature,
@@ -403,76 +401,40 @@ pub fn process_w3c_credential(
     Ok(())
 }
 
-struct CLCredentialSigner<'a> {
-    public_key: CredentialPublicKey,
-    credential_values: Option<CLCredentialValues>,
-    rev_reg: Option<&'a RevocationRegistry>,
-    witness: Option<&'a Witness>,
-    rev_pub_key: Option<&'a RevocationKeyPublic>,
-}
+#[allow(clippy::too_many_arguments)]
+pub fn _process_credential(
+    signature: &mut CLCredentialSignature,
+    signature_correctness_proof: &SignatureCorrectnessProof,
+    credential_values: &CredentialValues,
+    cred_request_metadata: &CredentialRequestMetadata,
+    link_secret: &LinkSecret,
+    cred_def: &CredentialDefinition,
+    rev_reg_def: Option<&RevocationRegistryDefinition>,
+    rev_reg: Option<&RevocationRegistry>,
+    witness: Option<&Witness>,
+) -> Result<()> {
+    let credential_pub_key = CredentialPublicKey::build_from_parts(
+        &cred_def.value.primary,
+        cred_def.value.revocation.as_ref(),
+    )?;
+    let credential_values = build_credential_values(credential_values, Some(link_secret))?;
+    let rev_pub_key = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
 
-impl<'a> CLCredentialSigner<'a> {
-    fn init(cred_def: &CredentialDefinition) -> Result<Self> {
-        let public_key = CredentialPublicKey::build_from_parts(
-            &cred_def.value.primary,
-            cred_def.value.revocation.as_ref(),
-        )?;
-        Ok(CLCredentialSigner {
-            public_key,
-            credential_values: None,
-            rev_reg: None,
-            witness: None,
-            rev_pub_key: None,
-        })
-    }
+    Prover::process_credential_signature(
+        signature,
+        &credential_values,
+        signature_correctness_proof,
+        &cred_request_metadata.link_secret_blinding_data,
+        &credential_pub_key,
+        cred_request_metadata.nonce.as_native(),
+        rev_pub_key,
+        rev_reg,
+        witness,
+    )?;
 
-    fn with_values(
-        mut self,
-        cred_values: &CredentialValues,
-        link_secret: &LinkSecret,
-    ) -> Result<Self> {
-        let credential_values = build_credential_values(&cred_values, Some(&link_secret))?;
-        self.credential_values = Some(credential_values);
-        Ok(self)
-    }
+    trace!("process_credential <<< ");
 
-    fn with_revocation(
-        mut self,
-        rev_reg_def: Option<&'a RevocationRegistryDefinition>,
-        rev_reg: Option<&'a RevocationRegistry>,
-        witness: Option<&'a Witness>,
-    ) -> Result<Self> {
-        let rev_pub_key = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
-        self.rev_reg = rev_reg;
-        self.witness = witness;
-        self.rev_pub_key = rev_pub_key;
-        Ok(self)
-    }
-
-    fn process(
-        self,
-        signature: &mut CLCredentialSignature,
-        signature_correctness_proof: &SignatureCorrectnessProof,
-        cred_request_metadata: &CredentialRequestMetadata,
-    ) -> Result<()> {
-        let credential_values = self
-            .credential_values
-            .ok_or(err_msg!("credential_values is not ser"))?;
-
-        Prover::process_credential_signature(
-            signature,
-            &credential_values,
-            &signature_correctness_proof,
-            &cred_request_metadata.link_secret_blinding_data,
-            &self.public_key,
-            cred_request_metadata.nonce.as_native(),
-            self.rev_pub_key,
-            self.rev_reg,
-            self.witness,
-        )?;
-
-        Ok(())
-    }
+    Ok(())
 }
 
 /// Process an incoming credential as received from the issuer.
@@ -615,22 +577,32 @@ pub fn create_presentation(
     // check for duplicate referents
     credentials.validate()?;
 
-    let pres_req_val = pres_req.value();
-    let mut proof_builder = CLProofBuilder::init()?;
-
     let mut requested_proof = RequestedProof {
         self_attested_attrs: self_attested.unwrap_or_default(),
         ..Default::default()
     };
 
+    let pres_req_val = pres_req.value();
     let mut sub_proof_index = 0;
     let mut identifiers: Vec<Identifier> = Vec::with_capacity(credentials.len());
+
+    let mut proof_builder = _proof_builder()?;
+    let non_credential_schema = build_non_credential_schema()?;
 
     for present in credentials.0 {
         if present.is_empty() {
             continue;
         }
         let credential = present.cred;
+
+        update_requested_proof(
+            &present.requested_attributes,
+            &present.requested_predicates,
+            pres_req_val,
+            credential,
+            sub_proof_index,
+            &mut requested_proof,
+        )?;
 
         let (_, attrs_nonrevoked_interval) = get_revealed_attributes_for_credential(
             sub_proof_index as usize,
@@ -640,24 +612,27 @@ pub fn create_presentation(
         let (_, pred_nonrevoked_interval) =
             get_predicates_for_credential(sub_proof_index as usize, &requested_proof, pres_req_val);
 
-        let credential_nonrevoked_interval = attrs_nonrevoked_interval.or(pred_nonrevoked_interval);
-
-        let sub_proof_builder = CLSubProofBuilder::new(&pres_req_val)
-            .with_schema(&schemas, &credential.schema_id)?
-            .with_cred_def(&cred_defs, &credential.cred_def_id)?
-            .with_cred_values(&credential.values, link_secret)?
-            .with_attributes(&present.requested_attributes, &present.requested_predicates)?
-            .with_revocation(credential_nonrevoked_interval, present.rev_state)?;
-
-        proof_builder.add_sub_proof_request(&sub_proof_builder, &credential.signature)?;
-
-        update_requested_proof(
-            &present.requested_attributes,
-            &present.requested_predicates,
+        let non_revoked_interval = get_non_revoked_interval(
+            attrs_nonrevoked_interval,
+            pred_nonrevoked_interval,
             pres_req_val,
-            credential,
-            sub_proof_index,
-            &mut requested_proof,
+            present.cred.rev_reg_id.as_ref(),
+            None,
+        );
+
+        _add_sub_proof(
+            &mut proof_builder,
+            &credential.signature,
+            &present,
+            pres_req_val,
+            &non_credential_schema,
+            &credential.schema_id,
+            schemas,
+            &credential.cred_def_id,
+            cred_defs,
+            &credential.values,
+            link_secret,
+            non_revoked_interval,
         )?;
 
         let identifier = match pres_req {
@@ -675,7 +650,7 @@ pub fn create_presentation(
         sub_proof_index += 1;
     }
 
-    let proof = proof_builder.create(&pres_req_val)?;
+    let proof = proof_builder.finalize(pres_req_val.nonce.as_native())?;
 
     let full_proof = Presentation {
         proof,
@@ -708,7 +683,9 @@ pub fn create_w3c_presentation(
     credentials.validate()?;
 
     let pres_req_val = pres_req.value();
-    let mut proof_builder = CLProofBuilder::init()?;
+    let mut proof_builder = _proof_builder()?;
+
+    let non_credential_schema = build_non_credential_schema()?;
 
     let mut verifiable_credentials: Vec<W3CCredential> = Vec::new();
 
@@ -723,18 +700,39 @@ pub fn create_w3c_presentation(
             .encode(&credential.credential_schema.encoding)?;
         let proof = credential.get_credential_signature_proof()?;
         let signature = proof.get_credential_signature()?;
+        let mapping = build_mapping(pres_req_val, present);
+        let rev_reg_id = credential.credential_schema.revocation_registry.as_ref();
 
-        let sub_proof = CLSubProofBuilder::new(&pres_req_val)
-            .with_schema(&schemas, &credential.credential_schema.schema)?
-            .with_cred_def(&cred_defs, &credential.credential_schema.definition)?
-            .with_cred_values(&credential_values, link_secret)?
-            .with_attributes(&present.requested_attributes, &present.requested_predicates)?
-            .with_revocation(None, present.rev_state)?;
+        let (_, attrs_nonrevoked_interval) =
+            get_revealed_attributes_for_credential_mapping(pres_req_val, &mapping)?;
+        let (_, pred_nonrevoked_interval) =
+            get_predicates_for_credential_mapping(pres_req_val, &mapping)?;
 
-        proof_builder.add_sub_proof_request(&sub_proof, &signature.signature)?;
+        let non_revoked_interval = get_non_revoked_interval(
+            attrs_nonrevoked_interval,
+            pred_nonrevoked_interval,
+            pres_req_val,
+            rev_reg_id,
+            None,
+        );
+
+        _add_sub_proof(
+            &mut proof_builder,
+            &signature.signature,
+            present,
+            pres_req_val,
+            &non_credential_schema,
+            &credential.credential_schema.schema,
+            schemas,
+            &credential.credential_schema.definition,
+            cred_defs,
+            &credential_values,
+            link_secret,
+            non_revoked_interval,
+        )?;
     }
 
-    let cl_proof = proof_builder.create(&pres_req_val)?;
+    let cl_proof = proof_builder.finalize(pres_req_val.nonce.as_native())?;
 
     let nonce = pres_req_val.nonce.try_clone()?;
     let presentation_proof_value = PresentationProofValue::new(cl_proof.aggregated_proof);
@@ -743,8 +741,8 @@ pub fn create_w3c_presentation(
     // cl signatures generates sub proofs and aggregated at once at the end
     // so we need to iterate over credentials again an put sub proofs into their proofs
     for (present, sub_proof) in credentials.0.iter().zip(cl_proof.proofs) {
-        let mapping = build_mapping(&pres_req_val, &present);
-        let credential_subject = build_credential_subject(&pres_req_val, &present)?;
+        let mapping = build_mapping(pres_req_val, present);
+        let credential_subject = build_credential_subject(pres_req_val, present)?;
         let proof_value = CredentialPresentationProofValue::new(sub_proof);
         let proof = CredentialPresentationProof::new(proof_value, mapping, present.timestamp);
         let verifiable_credential = W3CCredential {
@@ -768,6 +766,78 @@ pub fn create_w3c_presentation(
     );
 
     Ok(presentation)
+}
+
+fn _proof_builder() -> Result<ProofBuilder> {
+    let mut proof_builder = Prover::new_proof_builder()?;
+    proof_builder.add_common_attribute("master_secret")?;
+    Ok(proof_builder)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn _add_sub_proof<T>(
+    proof_builder: &mut ProofBuilder,
+    credential_signature: &anoncreds_clsignatures::CredentialSignature,
+    present: &PresentCredential<T>,
+    presentation_request: &PresentationRequestPayload,
+    non_credential_schema: &NonCredentialSchema,
+    schema_id: &SchemaId,
+    schemas: &HashMap<SchemaId, Schema>,
+    cred_def_id: &CredentialDefinitionId,
+    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
+    credential_values: &CredentialValues,
+    link_secret: &LinkSecret,
+    non_revoked_interval: Option<NonRevokedInterval>,
+) -> Result<()> {
+    let schema = schemas
+        .get(schema_id)
+        .ok_or_else(|| err_msg!("Schema not provided for ID: {}", schema_id))?;
+
+    let cred_def = cred_defs
+        .get(cred_def_id)
+        .ok_or_else(|| err_msg!("Credential Definition not provided for ID: {}", cred_def_id))?;
+
+    let credential_pub_key = CredentialPublicKey::build_from_parts(
+        &cred_def.value.primary,
+        cred_def.value.revocation.as_ref(),
+    )?;
+
+    let credential_schema = build_credential_schema(schema)?;
+    let credential_values = build_credential_values(credential_values, Some(link_secret))?;
+    let (attrs_for_credential, predicates_for_credential) = prepare_credential_for_proving(
+        &present.requested_attributes,
+        &present.requested_predicates,
+        presentation_request,
+    )?;
+    let sub_proof_request =
+        build_sub_proof_request(&attrs_for_credential, &predicates_for_credential)?;
+
+    // Checks conditions to add revocation proof
+    let (rev_reg, witness) = match non_revoked_interval {
+        Some(_interval) => (
+            present.rev_state.as_ref().map(|r_info| &r_info.rev_reg),
+            present.rev_state.as_ref().map(|r_info| &r_info.witness),
+        ),
+        None => (None, None),
+    };
+
+    // if `present.rev_state` is available,
+    // then it will create an init_proof that contains NRP.
+    //
+    // Therefore, this will have to be part of the finalised `aggregated_proof`.
+    // Regardless if nonrevoke_interval is requested by the verifier
+    proof_builder.add_sub_proof_request(
+        &sub_proof_request,
+        &credential_schema,
+        non_credential_schema,
+        credential_signature,
+        &credential_values,
+        &credential_pub_key,
+        rev_reg,
+        witness,
+    )?;
+
+    Ok(())
 }
 
 /// Create a [`CredentialRevocationState`] based on a [`Witness`], [`RevocationStatusList`] and
@@ -993,7 +1063,7 @@ fn prepare_credential_for_proving(
         attrs.push(RequestedAttributeInfo {
             attr_referent: attr_referent.clone(),
             attr_info: attr_info.clone(),
-            revealed: revealed.clone(),
+            revealed: *revealed,
         });
     }
 
@@ -1119,215 +1189,54 @@ fn update_requested_proof(
     Ok(())
 }
 
-struct CLProofBuilder {
-    proof_builder: ProofBuilder,
-    non_credential_schema: NonCredentialSchema,
-}
+fn build_sub_proof_request(
+    req_attrs_for_credential: &[RequestedAttributeInfo],
+    req_predicates_for_credential: &[RequestedPredicateInfo],
+) -> Result<SubProofRequest> {
+    trace!("_build_sub_proof_request <<< req_attrs_for_credential: {:?}, req_predicates_for_credential: {:?}",
+           req_attrs_for_credential, req_predicates_for_credential);
 
-impl CLProofBuilder {
-    pub fn init() -> Result<CLProofBuilder> {
-        let mut proof_builder = Prover::new_proof_builder()?;
-        proof_builder.add_common_attribute("master_secret")?;
-        let non_credential_schema = build_non_credential_schema()?;
-        Ok(CLProofBuilder {
-            proof_builder,
-            non_credential_schema,
-        })
-    }
+    let mut sub_proof_request_builder = Verifier::new_sub_proof_request_builder()?;
 
-    pub fn add_sub_proof_request(
-        &mut self,
-        sub_proof: &CLSubProofBuilder,
-        credential_signature: &CLCredentialSignature,
-    ) -> Result<()> {
-        let sub_proof_request = sub_proof
-            .sub_proof_request
-            .as_ref()
-            .ok_or(err_msg!("sub_proof_request is not set"))?;
-
-        let credential_schema = sub_proof
-            .credential_schema
-            .as_ref()
-            .ok_or(err_msg!("credential_schema is not set"))?;
-
-        let credential_values = sub_proof
-            .credential_values
-            .as_ref()
-            .ok_or(err_msg!("credential_values is not set"))?;
-
-        let credential_pub_key = sub_proof
-            .credential_pub_key
-            .as_ref()
-            .ok_or(err_msg!("credential_pub_key is not set"))?;
-
-        self.proof_builder.add_sub_proof_request(
-            sub_proof_request,
-            credential_schema,
-            &self.non_credential_schema,
-            credential_signature,
-            credential_values,
-            credential_pub_key,
-            sub_proof.rev_reg,
-            sub_proof.witness,
-        )?;
-        Ok(())
-    }
-
-    pub fn create(&mut self, request: &PresentationRequestPayload) -> Result<Proof> {
-        let proof = self.proof_builder.finalize(request.nonce.as_native())?;
-        Ok(proof)
-    }
-}
-
-struct CLSubProofBuilder<'a> {
-    presentation_request: &'a PresentationRequestPayload,
-    cred_def: Option<&'a CredentialDefinition>,
-    rev_reg: Option<&'a RevocationRegistry>,
-    witness: Option<&'a Witness>,
-    credential_schema: Option<CredentialSchema>,
-    credential_pub_key: Option<CredentialPublicKey>,
-    credential_values: Option<CLCredentialValues>,
-    sub_proof_request: Option<SubProofRequest>,
-}
-
-impl<'a> CLSubProofBuilder<'a> {
-    pub fn new(presentation_request: &'a PresentationRequestPayload) -> CLSubProofBuilder<'a> {
-        CLSubProofBuilder {
-            presentation_request,
-            credential_schema: None,
-            cred_def: None,
-            credential_pub_key: None,
-            credential_values: None,
-            sub_proof_request: None,
-            rev_reg: None,
-            witness: None,
-        }
-    }
-
-    pub fn with_schema(
-        mut self,
-        schemas: &'a HashMap<SchemaId, Schema>,
-        schema_id: &SchemaId,
-    ) -> Result<Self> {
-        let schema = schemas
-            .get(schema_id)
-            .ok_or_else(|| err_msg!("Schema not provided for ID: {:?}", schema_id))?;
-        let credential_schema = build_credential_schema(&schema.attr_names.0)?;
-        self.credential_schema = Some(credential_schema);
-        Ok(self)
-    }
-
-    pub fn with_cred_def(
-        mut self,
-        cred_defs: &'a HashMap<CredentialDefinitionId, CredentialDefinition>,
-        cred_def_id: &CredentialDefinitionId,
-    ) -> Result<Self> {
-        let cred_def = cred_defs.get(cred_def_id).ok_or_else(|| {
-            err_msg!(
-                "Credential Definition not provided for ID: {:?}",
-                cred_def_id
-            )
-        })?;
-
-        let credential_pub_key = CredentialPublicKey::build_from_parts(
-            &cred_def.value.primary,
-            cred_def.value.revocation.as_ref(),
-        )?;
-
-        self.cred_def = Some(cred_def);
-        self.credential_pub_key = Some(credential_pub_key);
-
-        Ok(self)
-    }
-
-    pub fn with_cred_values(
-        mut self,
-        credential_values: &CredentialValues,
-        link_secret: &LinkSecret,
-    ) -> Result<Self> {
-        let credential_values = build_credential_values(credential_values, Some(link_secret))?;
-        self.credential_values = Some(credential_values);
-        Ok(self)
-    }
-
-    pub fn with_attributes(
-        mut self,
-        requested_attributes: &HashSet<(String, bool)>,
-        requested_predicates: &HashSet<String>,
-    ) -> Result<Self> {
-        let (req_attrs, req_predicates) = prepare_credential_for_proving(
-            requested_attributes,
-            requested_predicates,
-            self.presentation_request,
-        )?;
-
-        let mut sub_proof_request_builder = Verifier::new_sub_proof_request_builder()?;
-
-        for attr in req_attrs {
-            if attr.revealed {
-                if let Some(ref name) = &attr.attr_info.name {
+    for attr in req_attrs_for_credential {
+        if attr.revealed {
+            if let Some(ref name) = &attr.attr_info.name {
+                sub_proof_request_builder.add_revealed_attr(&attr_common_view(name))?;
+            } else if let Some(ref names) = &attr.attr_info.names {
+                for name in names {
                     sub_proof_request_builder.add_revealed_attr(&attr_common_view(name))?;
-                } else if let Some(ref names) = &attr.attr_info.names {
-                    for name in names {
-                        sub_proof_request_builder.add_revealed_attr(&attr_common_view(name))?;
-                    }
                 }
             }
         }
-
-        for predicate in req_predicates {
-            let p_type = format!("{}", predicate.predicate_info.p_type);
-
-            sub_proof_request_builder.add_predicate(
-                &attr_common_view(&predicate.predicate_info.name),
-                &p_type,
-                predicate.predicate_info.p_value,
-            )?;
-        }
-
-        let sub_proof_request = sub_proof_request_builder.finalize()?;
-
-        self.sub_proof_request = Some(sub_proof_request);
-        Ok(self)
     }
 
-    pub fn with_revocation(
-        mut self,
-        credential_nonrevoked_interval: Option<NonRevokedInterval>,
-        credential_rev_state: Option<&'a CredentialRevocationState>,
-    ) -> Result<Self> {
-        // Checks conditions to add revocation proof
-        let (rev_reg, witness) = if self.presentation_request.non_revoked.is_some() {
-            // Global revocation request
-            (
-                credential_rev_state.map(|r_info| &r_info.rev_reg),
-                credential_rev_state.map(|r_info| &r_info.witness),
-            )
-        } else {
-            // // There exists at least 1 local revocation request
-            if credential_nonrevoked_interval.is_some() {
-                (
-                    credential_rev_state.as_ref().map(|r_info| &r_info.rev_reg),
-                    credential_rev_state.as_ref().map(|r_info| &r_info.witness),
-                )
-            } else {
-                // Neither global nor local is required
-                (None, None)
-            }
-        };
-        self.rev_reg = rev_reg;
-        self.witness = witness;
-        Ok(self)
+    for predicate in req_predicates_for_credential {
+        let p_type = format!("{}", predicate.predicate_info.p_type);
+
+        sub_proof_request_builder.add_predicate(
+            &attr_common_view(&predicate.predicate_info.name),
+            &p_type,
+            predicate.predicate_info.p_value,
+        )?;
     }
+
+    let sub_proof_request = sub_proof_request_builder.finalize()?;
+
+    trace!(
+        "_build_sub_proof_request <<< sub_proof_request: {:?}",
+        sub_proof_request
+    );
+
+    Ok(sub_proof_request)
 }
 
 fn build_mapping<'p>(
     pres_req_val: &PresentationRequestPayload,
-    credentials: &PresentCredential<'p, W3CCredential>,
+    credential: &PresentCredential<'p, W3CCredential>,
 ) -> CredentialAttributesMapping {
     let mut mapping = CredentialAttributesMapping::default();
 
-    for (referent, reveal) in credentials.requested_attributes.iter() {
+    for (referent, reveal) in credential.requested_attributes.iter() {
         let requested_attribute = pres_req_val.requested_attributes.get(referent).unwrap();
         if let Some(ref name) = requested_attribute.name {
             let attribute = Attribute {
@@ -1348,7 +1257,7 @@ fn build_mapping<'p>(
         }
     }
 
-    for referent in credentials.requested_predicates.iter() {
+    for referent in credential.requested_predicates.iter() {
         let predicate_info = pres_req_val
             .requested_predicates
             .get(referent)
@@ -1376,7 +1285,7 @@ fn build_credential_subject<'p>(
         let requested_attribute = pres_req_val
             .requested_attributes
             .get(referent)
-            .ok_or(err_msg!("attribute {} not found request", referent))?;
+            .ok_or_else(|| err_msg!("attribute {} not found request", referent))?;
 
         if let Some(ref name) = requested_attribute.name {
             let value = credentials
@@ -1385,7 +1294,7 @@ fn build_credential_subject<'p>(
                 .attributes
                 .0
                 .get(name)
-                .ok_or(err_msg!("attribute {} not found credential", name))?;
+                .ok_or_else(|| err_msg!("attribute {} not found credential", name))?;
 
             if *reveal {
                 credential_subject
@@ -1402,7 +1311,7 @@ fn build_credential_subject<'p>(
                     .attributes
                     .0
                     .get(name)
-                    .ok_or(err_msg!("attribute {} not found credential", name))?;
+                    .ok_or_else(|| err_msg!("attribute {} not found credential", name))?;
                 credential_subject
                     .attributes
                     .0
@@ -1419,11 +1328,7 @@ fn build_credential_subject<'p>(
             .clone();
         credential_subject.attributes.0.insert(
             predicate_info.name.to_string(),
-            format!(
-                "{} {}",
-                predicate_info.p_type.to_string(),
-                predicate_info.p_value
-            ),
+            format!("{} {}", predicate_info.p_type, predicate_info.p_value),
         );
     }
 

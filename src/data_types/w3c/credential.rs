@@ -48,15 +48,15 @@ pub struct W3CCredential {
     pub expiration_date: Option<Date>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Contexts(pub HashSet<URI>);
 
-#[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Types(pub HashSet<String>);
 
 pub type Date = DateTime<Utc>;
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CredentialSubject {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -65,14 +65,14 @@ pub struct CredentialSubject {
     pub attributes: RawCredentialValues,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialStatus {
     pub id: URI,
     #[serde(rename = "type")]
     pub type_: String,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CredentialSchema {
     #[serde(rename = "type")]
@@ -85,7 +85,7 @@ pub struct CredentialSchema {
     pub encoding: CredentialValuesEncoding,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CredentialSchemaType {
     #[serde(rename = "AnonCredsDefinition")]
     AnonCredsDefinition,
@@ -134,21 +134,19 @@ impl W3CCredential {
             OneOrMany::Many(ref proofs) => proofs
                 .iter()
                 .find_map(|proof| proof.get_credential_signature_proof().ok())
-                .ok_or(err_msg!(
-                    "credential does not contain AnonCredsSignatureProof"
-                )),
+                .ok_or_else(|| err_msg!("credential does not contain AnonCredsSignatureProof")),
         }
     }
 
-    pub(crate) fn get_mut_credential_signature_proof(&mut self) -> Result<&mut CredentialSignatureProof> {
+    pub(crate) fn get_mut_credential_signature_proof(
+        &mut self,
+    ) -> Result<&mut CredentialSignatureProof> {
         match self.proof {
             OneOrMany::One(ref mut proof) => proof.get_mut_credential_signature_proof(),
             OneOrMany::Many(ref mut proofs) => proofs
                 .iter_mut()
                 .find_map(|proof| proof.get_mut_credential_signature_proof().ok())
-                .ok_or(err_msg!(
-                    "credential does not contain AnonCredsSignatureProof"
-                )),
+                .ok_or_else(|| err_msg!("credential does not contain AnonCredsSignatureProof")),
         }
     }
 
@@ -158,7 +156,7 @@ impl W3CCredential {
             OneOrMany::Many(ref proofs) => proofs
                 .iter()
                 .find_map(|proof| proof.get_presentation_proof().ok())
-                .ok_or(err_msg!("credential does not contain PresentationProof")),
+                .ok_or_else(|| err_msg!("credential does not contain PresentationProof")),
         }
     }
 
@@ -187,12 +185,12 @@ impl W3CCredential {
     }
 }
 
-impl Into<Identifier> for CredentialSchema {
-    fn into(self) -> Identifier {
+impl From<CredentialSchema> for Identifier {
+    fn from(credential_schema: CredentialSchema) -> Self {
         Identifier {
-            schema_id: self.schema.clone(),
-            cred_def_id: self.definition.clone(),
-            rev_reg_id: self.revocation_registry.clone(),
+            schema_id: credential_schema.schema,
+            cred_def_id: credential_schema.definition,
+            rev_reg_id: credential_schema.revocation_registry,
             timestamp: None,
         }
     }

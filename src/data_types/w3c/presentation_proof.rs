@@ -3,7 +3,7 @@ use crate::data_types::pres_request::PredicateTypes;
 use crate::utils::base64;
 use anoncreds_clsignatures::{AggregatedProof, SubProof};
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CredentialPresentationProof {
     #[serde(rename = "type")]
@@ -61,7 +61,7 @@ impl CredentialPresentationProof {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PresentationProof {
     #[serde(rename = "type")]
@@ -109,7 +109,7 @@ impl PresentationProofValue {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PresentationProofType {
     #[serde(rename = "AnonCredsPresentationProof2023")]
     AnonCredsPresentationProof2023,
@@ -121,7 +121,7 @@ impl Default for PresentationProofType {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CredentialAttributesMapping {
     #[serde(default)]
@@ -133,19 +133,19 @@ pub struct CredentialAttributesMapping {
     pub requested_predicates: Vec<Predicate>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Attribute {
     pub referent: String,
     pub name: String,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttributeGroup {
     pub referent: String,
     pub names: Vec<String>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Predicate {
     pub referent: String,
     pub name: String,

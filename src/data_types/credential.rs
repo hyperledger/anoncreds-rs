@@ -177,7 +177,7 @@ pub struct AttributeValues {
     pub encoded: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CredentialValuesEncoding {
     #[serde(rename = "auto")]
     Auto,

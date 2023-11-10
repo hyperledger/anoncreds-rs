@@ -462,7 +462,7 @@ fn _credentials(credentials: FfiList<FfiCredentialEntry>) -> Result<Vec<Credenti
 }
 
 fn _present_credentials<'a, T: AnyAnoncredsObject + 'static>(
-    credentials: &'a Vec<CredentialEntry>,
+    credentials: &'a [CredentialEntry],
     credentials_prove: FfiList<'a, FfiCredentialProve<'a>>,
 ) -> Result<PresentCredentials<'a, T>> {
     let mut present_creds = PresentCredentials::default();
