@@ -5,7 +5,6 @@ use crate::cl::{
 use crate::data_types::presentation::RequestedProof;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
-use crate::data_types::w3c::presentation_proof::CredentialAttributesMapping;
 use crate::data_types::{
     credential::CredentialValues,
     link_secret::LinkSecret,
@@ -274,27 +273,6 @@ impl RequestedProof {
             if info.sub_proof_index == index {
                 referents.insert(referent.to_string());
             }
-        }
-        referents
-    }
-}
-
-impl CredentialAttributesMapping {
-    pub(crate) fn attribute_referents(&self) -> HashSet<String> {
-        let mut referents = HashSet::new();
-        for attribute in self.revealed_attributes.iter() {
-            referents.insert(attribute.referent.to_string());
-        }
-        for attribute in self.revealed_attribute_groups.iter() {
-            referents.insert(attribute.referent.to_string());
-        }
-        referents
-    }
-
-    pub(crate) fn predicate_referents(&self) -> HashSet<String> {
-        let mut referents = HashSet::new();
-        for attribute in self.requested_predicates.iter() {
-            referents.insert(attribute.referent.to_string());
         }
         referents
     }

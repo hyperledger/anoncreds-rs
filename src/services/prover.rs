@@ -33,8 +33,8 @@ use crate::utils::validation::Validatable;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignature};
 use crate::data_types::w3c::presentation_proof::{
-    Attribute, AttributeGroup, CredentialAttributesMapping, CredentialPresentationProof,
-    CredentialPresentationProofValue, Predicate, PresentationProof, PresentationProofValue,
+    CredentialAttributesMapping, CredentialPresentationProof, CredentialPresentationProofValue,
+    PresentationProof, PresentationProofValue,
 };
 use anoncreds_clsignatures::{
     CredentialSignature as CLCredentialSignature, NonCredentialSchema, ProofBuilder,
@@ -1109,43 +1109,21 @@ fn build_mapping<'p>(
                 referent
             )
         })?;
-        if let Some(ref name) = requested_attribute.name {
-            let attribute = Attribute {
-                referent: referent.to_string(),
-                name: name.to_string(),
-            };
+        if requested_attribute.name.is_some() {
             if *reveal {
-                mapping.revealed_attributes.push(attribute)
+                mapping.revealed_attributes.insert(referent.to_string());
             } else {
-                mapping.unrevealed_attributes.push(attribute)
+                mapping.unrevealed_attributes.insert(referent.to_string());
             }
         }
-        if let Some(ref names) = requested_attribute.names {
-            mapping.revealed_attribute_groups.push(AttributeGroup {
-                referent: referent.to_string(),
-                names: names.clone(),
-            })
+        if requested_attribute.names.is_some() {
+            mapping
+                .revealed_attribute_groups
+                .insert(referent.to_string());
         }
     }
-
     for referent in credential.requested_predicates.iter() {
-        let predicate_info = pres_req
-            .requested_predicates
-            .get(referent)
-            .cloned()
-            .ok_or_else(|| {
-                err_msg!(
-                    "Attribute with referent \"{}\" not found in ProofRequests",
-                    referent
-                )
-            })?;
-        let predicate = Predicate {
-            referent: referent.to_string(),
-            name: predicate_info.name,
-            p_type: predicate_info.p_type,
-            p_value: predicate_info.p_value,
-        };
-        mapping.requested_predicates.push(predicate)
+        mapping.predicates.insert(referent.to_string());
     }
 
     Ok(mapping)

@@ -1,6 +1,6 @@
-use crate::data_types::pres_request::PredicateTypes;
 use crate::utils::base64;
 use anoncreds_clsignatures::{AggregatedProof, SubProof};
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -124,30 +124,10 @@ impl Default for PresentationProofType {
 #[serde(rename_all = "camelCase")]
 pub struct CredentialAttributesMapping {
     #[serde(default)]
-    pub revealed_attributes: Vec<Attribute>,
-    pub revealed_attribute_groups: Vec<AttributeGroup>,
+    pub revealed_attributes: HashSet<String>,
+    pub revealed_attribute_groups: HashSet<String>,
     #[serde(default)]
-    pub unrevealed_attributes: Vec<Attribute>,
+    pub unrevealed_attributes: HashSet<String>,
     #[serde(default)]
-    pub requested_predicates: Vec<Predicate>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Attribute {
-    pub referent: String,
-    pub name: String,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AttributeGroup {
-    pub referent: String,
-    pub names: Vec<String>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Predicate {
-    pub referent: String,
-    pub name: String,
-    pub p_type: PredicateTypes,
-    pub p_value: i32,
+    pub predicates: HashSet<String>,
 }

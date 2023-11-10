@@ -164,7 +164,7 @@ pub fn verify_w3c_presentation(
     )?;
 
     // Ensures the restrictions set out in the request is met
-    let requested_proof = build_requested_proof_from_w3c_presentation(presentation)?;
+    let requested_proof = build_requested_proof_from_w3c_presentation(presentation, pres_req)?;
     verify_requested_restrictions(
         pres_req,
         schemas,
@@ -195,14 +195,15 @@ pub fn verify_w3c_presentation(
             .revocation_registry
             .as_ref();
 
-        let attributes = credential_proof.mapping.attribute_referents();
-        let predicates = credential_proof.mapping.predicate_referents();
+        let mut revealed_attribute: HashSet<String> =
+            credential_proof.mapping.revealed_attributes.clone();
+        revealed_attribute.extend(credential_proof.mapping.revealed_attribute_groups.clone());
 
         _add_sub_proof(
             &mut proof_verifier,
             pres_req,
-            &attributes,
-            &predicates,
+            &revealed_attribute,
+            &credential_proof.mapping.predicates,
             &non_credential_schema,
             schema_id,
             schemas,
@@ -998,24 +999,18 @@ fn collect_received_attrs_and_predicates_from_w3c_presentation(
             timestamp: None,
         };
         for revealed_attribute in &presentation_proof.mapping.revealed_attributes {
-            revealed.insert(revealed_attribute.referent.to_string(), identifier.clone());
+            revealed.insert(revealed_attribute.to_string(), identifier.clone());
         }
         for revealed_attribute_group in &presentation_proof.mapping.revealed_attribute_groups {
-            revealed.insert(
-                revealed_attribute_group.referent.to_string(),
-                identifier.clone(),
-            );
+            revealed.insert(revealed_attribute_group.to_string(), identifier.clone());
         }
 
         for unrevealed_attribute in &presentation_proof.mapping.unrevealed_attributes {
-            unrevealed.insert(
-                unrevealed_attribute.referent.to_string(),
-                identifier.clone(),
-            );
+            unrevealed.insert(unrevealed_attribute.to_string(), identifier.clone());
         }
 
-        for predicate in &presentation_proof.mapping.requested_predicates {
-            predicates.insert(predicate.referent.to_string(), identifier.clone());
+        for predicate in &presentation_proof.mapping.predicates {
+            predicates.insert(predicate.to_string(), identifier.clone());
         }
     }
 
@@ -1024,38 +1019,53 @@ fn collect_received_attrs_and_predicates_from_w3c_presentation(
 
 fn build_requested_proof_from_w3c_presentation(
     presentation: &W3CPresentation,
+    presentation_request: &PresentationRequestPayload,
 ) -> Result<RequestedProof> {
     let mut requested_proof = RequestedProof::default();
 
     for (index, credential) in presentation.verifiable_credential.iter().enumerate() {
+        let sub_proof_index = index as u32;
         let proof = credential.get_presentation_proof()?;
-        for revealed_attribute in proof.mapping.revealed_attributes.iter() {
+        for referent in proof.mapping.revealed_attributes.iter() {
+            let requested_attribute = presentation_request
+                .requested_attributes
+                .get(referent)
+                .cloned()
+                .ok_or_else(|| err_msg!("Requested Attribute {} not found in request", referent))?;
+
+            let name = requested_attribute
+                .name
+                .ok_or_else(|| err_msg!("Requested Attribute expected to have a name attribute"))?;
+
             let raw = credential
                 .credential_subject
                 .attributes
                 .0
-                .get(&revealed_attribute.name)
-                .ok_or_else(|| {
-                    err_msg!(
-                        "Attribute {} not found in credential",
-                        &revealed_attribute.name
-                    )
-                })?;
+                .get(&name)
+                .ok_or_else(|| err_msg!("Attribute {} not found in credential", &name))?;
             requested_proof.revealed_attrs.insert(
-                revealed_attribute.referent.clone(),
+                referent.clone(),
                 RevealedAttributeInfo {
-                    sub_proof_index: index as u32,
+                    sub_proof_index,
                     raw: raw.to_string(),
-                    encoded: "".to_string(), // encoded value not needed?
+                    encoded: "".to_string(), // encoded value not needed
                 },
             );
         }
-        for revealed_attribute in proof.mapping.revealed_attribute_groups.iter() {
+        for referent in proof.mapping.revealed_attribute_groups.iter() {
+            let requested_attribute = presentation_request
+                .requested_attributes
+                .get(referent)
+                .cloned()
+                .ok_or_else(|| err_msg!("Requested Attribute {} not found in request", referent))?;
+            let names = requested_attribute.names.ok_or_else(|| {
+                err_msg!("Requested Attribute expected to have a names attribute")
+            })?;
             let mut group_info = RevealedAttributeGroupInfo {
-                sub_proof_index: index as u32,
+                sub_proof_index,
                 values: HashMap::new(),
             };
-            for name in revealed_attribute.names.iter() {
+            for name in names.iter() {
                 let raw = credential
                     .credential_subject
                     .attributes
@@ -1072,23 +1082,17 @@ fn build_requested_proof_from_w3c_presentation(
             }
             requested_proof
                 .revealed_attr_groups
-                .insert(revealed_attribute.referent.clone(), group_info);
+                .insert(referent.to_string(), group_info);
         }
-        for revealed_attribute in proof.mapping.unrevealed_attributes.iter() {
-            requested_proof.unrevealed_attrs.insert(
-                revealed_attribute.referent.clone(),
-                SubProofReferent {
-                    sub_proof_index: index as u32,
-                },
-            );
+        for referent in proof.mapping.unrevealed_attributes.iter() {
+            requested_proof
+                .unrevealed_attrs
+                .insert(referent.to_string(), SubProofReferent { sub_proof_index });
         }
-        for revealed_attribute in proof.mapping.requested_predicates.iter() {
-            requested_proof.predicates.insert(
-                revealed_attribute.referent.clone(),
-                SubProofReferent {
-                    sub_proof_index: index as u32,
-                },
-            );
+        for referent in proof.mapping.predicates.iter() {
+            requested_proof
+                .predicates
+                .insert(referent.to_string(), SubProofReferent { sub_proof_index });
         }
     }
     Ok(requested_proof)
