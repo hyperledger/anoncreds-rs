@@ -9,9 +9,8 @@ use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
 use crate::data_types::nonce::Nonce;
-use crate::data_types::pres_request::NonRevokedInterval;
+use crate::data_types::pres_request::AttributeInfo;
 use crate::data_types::pres_request::PresentationRequestPayload;
-use crate::data_types::pres_request::{AttributeInfo, PredicateInfo};
 use crate::data_types::presentation::{
     AttributeValue, Identifier, RequestedProof, RevealedAttributeGroupInfo, RevealedAttributeInfo,
     SubProofReferent,
@@ -23,10 +22,6 @@ use crate::data_types::w3c::presentation::W3CPresentation;
 use crate::error::Result;
 use crate::services::helpers::build_non_credential_schema;
 use crate::services::helpers::build_sub_proof_request;
-use crate::services::helpers::get_predicates_for_credential;
-use crate::services::helpers::get_predicates_for_credential_mapping;
-use crate::services::helpers::get_revealed_attributes_for_credential;
-use crate::services::helpers::get_revealed_attributes_for_credential_mapping;
 use crate::services::helpers::{build_credential_schema, get_non_revoked_interval};
 use crate::utils::query::Query;
 use crate::utils::validation::LEGACY_DID_IDENTIFIER;
@@ -104,25 +99,18 @@ pub fn verify_presentation(
     for sub_proof_index in 0..presentation.identifiers.len() {
         let identifier = presentation.identifiers[sub_proof_index].clone();
 
-        let (attrs_for_credential, attrs_nonrevoked_interval) =
-            get_revealed_attributes_for_credential(
-                sub_proof_index,
-                &presentation.requested_proof,
-                pres_req,
-            );
-        let (predicates_for_credential, pred_nonrevoked_interval) =
-            get_predicates_for_credential(sub_proof_index, &presentation.requested_proof, pres_req);
-
-        let credential_nonrevoked_interval = get_non_revoked_interval(
-            attrs_nonrevoked_interval,
-            pred_nonrevoked_interval,
-            pres_req,
-            identifier.rev_reg_id.as_ref(),
-            nonrevoke_interval_override,
-        );
+        let attributes = presentation
+            .requested_proof
+            .attribute_referents(sub_proof_index as u32);
+        let predicates = presentation
+            .requested_proof
+            .predicate_referents(sub_proof_index as u32);
 
         _add_sub_proof(
             &mut proof_verifier,
+            pres_req,
+            &attributes,
+            &predicates,
             &non_credential_schema,
             &identifier.schema_id,
             schemas,
@@ -132,9 +120,7 @@ pub fn verify_presentation(
             rev_reg_defs,
             rev_status_lists.as_ref(),
             identifier.timestamp,
-            &attrs_for_credential,
-            &predicates_for_credential,
-            credential_nonrevoked_interval,
+            nonrevoke_interval_override,
         )?;
     }
 
@@ -202,38 +188,31 @@ pub fn verify_w3c_presentation(
     for verifiable_credential in presentation.verifiable_credential.iter() {
         let credential_proof = verifiable_credential.get_presentation_proof()?;
         let proof_data = credential_proof.get_proof_value()?;
+        let schema_id = &verifiable_credential.credential_schema.schema;
+        let cred_def_id = &verifiable_credential.credential_schema.definition;
         let rev_reg_id = verifiable_credential
             .credential_schema
             .revocation_registry
             .as_ref();
 
-        let (attrs_for_credential, attrs_nonrevoked_interval) =
-            get_revealed_attributes_for_credential_mapping(pres_req, &credential_proof.mapping)?;
-        let (predicates_for_credential, pred_nonrevoked_interval) =
-            get_predicates_for_credential_mapping(pres_req, &credential_proof.mapping)?;
-
-        let credential_nonrevoked_interval = get_non_revoked_interval(
-            attrs_nonrevoked_interval,
-            pred_nonrevoked_interval,
-            pres_req,
-            rev_reg_id,
-            nonrevoke_interval_override,
-        );
+        let attributes = credential_proof.mapping.attribute_referents();
+        let predicates = credential_proof.mapping.predicate_referents();
 
         _add_sub_proof(
             &mut proof_verifier,
+            pres_req,
+            &attributes,
+            &predicates,
             &non_credential_schema,
-            &verifiable_credential.credential_schema.schema,
+            schema_id,
             schemas,
-            &verifiable_credential.credential_schema.definition,
+            cred_def_id,
             cred_defs,
             rev_reg_id,
             rev_reg_defs,
             rev_status_lists.as_ref(),
             credential_proof.timestamp,
-            &attrs_for_credential,
-            &predicates_for_credential,
-            credential_nonrevoked_interval,
+            nonrevoke_interval_override,
         )?;
 
         proof.proofs.push(proof_data.sub_proof);
@@ -254,6 +233,9 @@ pub fn generate_nonce() -> Result<Nonce> {
 #[allow(clippy::too_many_arguments)]
 fn _add_sub_proof(
     proof_verifier: &mut ProofVerifier,
+    pres_req: &PresentationRequestPayload,
+    attributes: &HashSet<String>,
+    predicates: &HashSet<String>,
     non_credential_schema: &NonCredentialSchema,
     schema_id: &SchemaId,
     schemas: &HashMap<SchemaId, Schema>,
@@ -263,9 +245,9 @@ fn _add_sub_proof(
     rev_reg_defs: Option<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
     rev_status_lists: Option<&Vec<RevocationStatusList>>,
     timestamp: Option<u64>,
-    attrs_for_credential: &[AttributeInfo],
-    predicates_for_credential: &[PredicateInfo],
-    cred_nonrevoked_interval: Option<NonRevokedInterval>,
+    nonrevoke_interval_override: Option<
+        &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+    >,
 ) -> Result<()> {
     let schema = schemas
         .get(schema_id)
@@ -285,8 +267,21 @@ fn _add_sub_proof(
         cred_def.value.revocation.as_ref(),
     )?;
 
+    let (attrs_for_credential, attrs_nonrevoked_interval) =
+        pres_req.get_requested_attributes(attributes)?;
+    let (predicates_for_credential, pred_nonrevoked_interval) =
+        pres_req.get_requested_predicates(predicates)?;
+
+    let cred_nonrevoked_interval = get_non_revoked_interval(
+        attrs_nonrevoked_interval,
+        pred_nonrevoked_interval,
+        pres_req,
+        rev_reg_id,
+        nonrevoke_interval_override,
+    );
+
     let sub_pres_request =
-        build_sub_proof_request(attrs_for_credential, predicates_for_credential)?;
+        build_sub_proof_request(&attrs_for_credential, &predicates_for_credential)?;
 
     let rev_reg_map = if let Some(lists) = rev_status_lists {
         let mut map: HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>> =
@@ -993,7 +988,15 @@ fn collect_received_attrs_and_predicates_from_w3c_presentation(
 
     for verifiable_credential in proof.verifiable_credential.iter() {
         let presentation_proof = verifiable_credential.get_presentation_proof()?;
-        let identifier: Identifier = verifiable_credential.credential_schema.clone().into();
+        let identifier: Identifier = Identifier {
+            schema_id: verifiable_credential.credential_schema.schema.clone(),
+            cred_def_id: verifiable_credential.credential_schema.definition.clone(),
+            rev_reg_id: verifiable_credential
+                .credential_schema
+                .revocation_registry
+                .clone(),
+            timestamp: None,
+        };
         for revealed_attribute in &presentation_proof.mapping.revealed_attributes {
             revealed.insert(revealed_attribute.referent.to_string(), identifier.clone());
         }

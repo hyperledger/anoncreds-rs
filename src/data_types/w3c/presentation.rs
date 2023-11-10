@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
 use crate::data_types::w3c::credential::{Contexts, Types};
 use crate::data_types::w3c::presentation_proof::PresentationProof;
 use crate::data_types::w3c::{
@@ -25,6 +26,23 @@ pub struct W3CPresentation {
 }
 
 impl W3CPresentation {
+    pub fn new() -> W3CPresentation {
+        W3CPresentation {
+            context: ANONCREDS_CONTEXTS.clone(),
+            type_: ANONCREDS_TYPES.clone(),
+            verifiable_credential: Vec::new(),
+            proof: PresentationProof::default(),
+        }
+    }
+
+    pub fn add_verifiable_credential(&mut self, verifiable_credential: W3CCredential) {
+        self.verifiable_credential.push(verifiable_credential);
+    }
+
+    pub fn set_proof(&mut self, proof: PresentationProof) {
+        self.proof = proof;
+    }
+
     pub fn validate(&self) -> Result<()> {
         if !self.context.0.contains(&URI(W3C_CONTEXT.to_string())) {
             return Err(err_msg!("Credential does not contain w3c context"));

@@ -1,4 +1,3 @@
-use crate::data_types::nonce::Nonce;
 use crate::data_types::pres_request::PredicateTypes;
 use crate::utils::base64;
 use anoncreds_clsignatures::{AggregatedProof, SubProof};
@@ -76,10 +75,10 @@ pub struct PresentationProofValue {
 }
 
 impl PresentationProof {
-    pub fn new(proof_value: PresentationProofValue, nonce: Nonce) -> PresentationProof {
+    pub fn new(proof_value: PresentationProofValue, nonce: String) -> PresentationProof {
         PresentationProof {
             type_: PresentationProofType::AnonCredsPresentationProof2023,
-            challenge: nonce.to_string(),
+            challenge: nonce,
             proof_value: proof_value.encode(),
         }
     }

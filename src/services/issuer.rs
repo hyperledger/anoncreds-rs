@@ -4,14 +4,10 @@ use crate::data_types::credential::{CredentialValuesEncoding, RawCredentialValue
 use crate::data_types::issuer_id::IssuerId;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
-use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
-use crate::data_types::w3c::credential::{
-    CredentialSchema, CredentialSchemaType, CredentialSubject, W3CCredential,
-};
+use crate::data_types::w3c::credential::{CredentialSchema, W3CCredential};
 use crate::data_types::w3c::credential_proof::{
     CredentialProof, CredentialSignature, CredentialSignatureProof,
 };
-use crate::data_types::w3c::one_or_many::OneOrMany;
 use crate::data_types::{
     cred_def::{CredentialDefinition, CredentialDefinitionData},
     nonce::Nonce,
@@ -23,7 +19,6 @@ use crate::services::helpers::{
     build_credential_schema, build_credential_values, build_non_credential_schema,
 };
 use crate::types::{CredentialDefinitionConfig, CredentialRevocationConfig};
-use crate::utils::datetime;
 use crate::utils::validation::Validatable;
 use anoncreds_clsignatures::{SignatureCorrectnessProof, Witness};
 use bitvec::bitvec;
@@ -809,8 +804,8 @@ pub fn create_credential(
 ///                                       ).expect("Unable to create credential request");
 ///
 /// let mut credential_values = MakeRawCredentialValues::default();
-/// credential_values.add("name", "john").expect("Unable to add credential value");
-/// credential_values.add("age", "28").expect("Unable to add credential value");
+/// credential_values.add("name", "john");
+/// credential_values.add("age", "28");
 ///
 /// let credential =
 ///     issuer::create_w3c_credential(&cred_def,
@@ -858,25 +853,16 @@ pub fn create_w3c_credential(
     );
     let proof = CredentialSignatureProof::new(signature);
 
-    let credential = W3CCredential {
-        context: ANONCREDS_CONTEXTS.clone(),
-        type_: ANONCREDS_TYPES.clone(),
-        issuer: cred_def.issuer_id.clone(),
-        issuance_date: datetime::today(),
-        credential_schema: CredentialSchema {
-            type_: CredentialSchemaType::AnonCredsDefinition,
-            definition: cred_offer.cred_def_id.clone(),
-            schema: cred_offer.schema_id.clone(),
-            revocation_registry: rev_reg_id,
-            encoding,
-        },
-        credential_subject: CredentialSubject {
-            id: None,
-            attributes: raw_credential_values,
-        },
-        proof: OneOrMany::Many(vec![CredentialProof::AnonCredsSignatureProof(proof)]),
-        ..Default::default()
-    };
+    let mut credential = W3CCredential::new();
+    credential.set_issuer(cred_def.issuer_id.clone());
+    credential.set_credential_schema(CredentialSchema::new(
+        cred_offer.schema_id.clone(),
+        cred_offer.cred_def_id.clone(),
+        rev_reg_id,
+        encoding,
+    ));
+    credential.set_attributes(raw_credential_values);
+    credential.add_proof(CredentialProof::AnonCredsSignatureProof(proof));
 
     trace!(
         "w3c_create_credential <<< credential {:?}",

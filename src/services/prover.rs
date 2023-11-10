@@ -4,14 +4,11 @@ use super::types::{
     Presentation, PresentationRequest, RevocationRegistryDefinition,
 };
 use crate::cl::{
-    CredentialPublicKey, Issuer, Prover, RevocationRegistry, RevocationRegistryDelta,
-    SubProofRequest, Verifier, Witness,
+    CredentialPublicKey, Issuer, Prover, RevocationRegistry, RevocationRegistryDelta, Witness,
 };
 use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
 use crate::data_types::credential::AttributeValues;
-use crate::data_types::pres_request::{
-    NonRevokedInterval, PresentationRequestPayload, RequestedAttributeInfo, RequestedPredicateInfo,
-};
+use crate::data_types::pres_request::PresentationRequestPayload;
 use crate::data_types::presentation::AttributeValue;
 use crate::data_types::presentation::Identifier;
 use crate::data_types::presentation::RequestedProof;
@@ -26,16 +23,14 @@ use crate::data_types::w3c::presentation::W3CPresentation;
 use crate::error::{Error, Result};
 use crate::services::helpers::{
     attr_common_view, build_credential_schema, build_credential_values,
-    build_non_credential_schema, get_non_revoked_interval, get_predicates_for_credential,
-    get_predicates_for_credential_mapping, get_revealed_attributes_for_credential,
-    get_revealed_attributes_for_credential_mapping, new_nonce,
+    build_non_credential_schema, build_sub_proof_request, get_non_revoked_interval, new_nonce,
 };
 use crate::types::{
     CredentialRevocationState, CredentialValues, PresentCredential, PresentCredentials,
 };
 use crate::utils::validation::Validatable;
 
-use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
+use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignature};
 use crate::data_types::w3c::presentation_proof::{
     Attribute, AttributeGroup, CredentialAttributesMapping, CredentialPresentationProof,
@@ -336,8 +331,8 @@ pub fn process_credential(
 ///                                       ).expect("Unable to create credential request");
 ///
 /// let mut credential_values = MakeRawCredentialValues::default();
-/// credential_values.add("name", "john").expect("Unable to add credential value");
-/// credential_values.add("age", "28").expect("Unable to add credential value");
+/// credential_values.add("name", "john");
+/// credential_values.add("age", "28");
 ///
 /// let mut credential =
 ///     issuer::create_w3c_credential(&cred_def,
@@ -601,35 +596,19 @@ pub fn create_presentation(
             &mut requested_proof,
         )?;
 
-        let (_, attrs_nonrevoked_interval) = get_revealed_attributes_for_credential(
-            sub_proof_index as usize,
-            &requested_proof,
-            pres_req_val,
-        );
-        let (_, pred_nonrevoked_interval) =
-            get_predicates_for_credential(sub_proof_index as usize, &requested_proof, pres_req_val);
-
-        let non_revoked_interval = get_non_revoked_interval(
-            attrs_nonrevoked_interval,
-            pred_nonrevoked_interval,
-            pres_req_val,
-            present.cred.rev_reg_id.as_ref(),
-            None,
-        );
-
         _add_sub_proof(
             &mut proof_builder,
-            &credential.signature,
-            &present,
             pres_req_val,
+            &credential.values,
+            &credential.signature,
+            link_secret,
+            &present,
             &non_credential_schema,
             &credential.schema_id,
             schemas,
             &credential.cred_def_id,
             cred_defs,
-            &credential.values,
-            link_secret,
-            non_revoked_interval,
+            credential.rev_reg_id.as_ref(),
         )?;
 
         let identifier = match pres_req {
@@ -679,12 +658,10 @@ pub fn create_w3c_presentation(
     // check for duplicate referents
     credentials.validate()?;
 
-    let pres_req_val = pres_req.value();
+    let pres_req = pres_req.value();
     let mut proof_builder = _proof_builder()?;
 
     let non_credential_schema = build_non_credential_schema()?;
-
-    let mut verifiable_credentials: Vec<W3CCredential> = Vec::new();
 
     for present in credentials.0.iter() {
         if present.is_empty() {
@@ -697,49 +674,37 @@ pub fn create_w3c_presentation(
             .encode(&credential.credential_schema.encoding)?;
         let proof = credential.get_credential_signature_proof()?;
         let signature = proof.get_credential_signature()?;
-        let mapping = build_mapping(pres_req_val, present);
-        let rev_reg_id = credential.credential_schema.revocation_registry.as_ref();
-
-        let (_, attrs_nonrevoked_interval) =
-            get_revealed_attributes_for_credential_mapping(pres_req_val, &mapping)?;
-        let (_, pred_nonrevoked_interval) =
-            get_predicates_for_credential_mapping(pres_req_val, &mapping)?;
-
-        let non_revoked_interval = get_non_revoked_interval(
-            attrs_nonrevoked_interval,
-            pred_nonrevoked_interval,
-            pres_req_val,
-            rev_reg_id,
-            None,
-        );
 
         _add_sub_proof(
             &mut proof_builder,
+            pres_req,
+            &credential_values,
             &signature.signature,
+            link_secret,
             present,
-            pres_req_val,
             &non_credential_schema,
             &credential.credential_schema.schema,
             schemas,
             &credential.credential_schema.definition,
             cred_defs,
-            &credential_values,
-            link_secret,
-            non_revoked_interval,
+            credential.credential_schema.revocation_registry.as_ref(),
         )?;
     }
 
-    let cl_proof = proof_builder.finalize(pres_req_val.nonce.as_native())?;
+    let cl_proof = proof_builder.finalize(pres_req.nonce.as_native())?;
 
-    let nonce = pres_req_val.nonce.try_clone()?;
     let presentation_proof_value = PresentationProofValue::new(cl_proof.aggregated_proof);
-    let presentation_proof = PresentationProof::new(presentation_proof_value, nonce);
+    let presentation_proof =
+        PresentationProof::new(presentation_proof_value, pres_req.nonce.to_string());
+
+    let mut presentation = W3CPresentation::new();
+    presentation.set_proof(presentation_proof);
 
     // cl signatures generates sub proofs and aggregated at once at the end
     // so we need to iterate over credentials again an put sub proofs into their proofs
     for (present, sub_proof) in credentials.0.iter().zip(cl_proof.proofs) {
-        let mapping = build_mapping(pres_req_val, present);
-        let credential_subject = build_credential_subject(pres_req_val, present)?;
+        let mapping = build_mapping(pres_req, present)?;
+        let credential_subject = build_credential_subject(pres_req, present)?;
         let proof_value = CredentialPresentationProofValue::new(sub_proof);
         let proof = CredentialPresentationProof::new(proof_value, mapping, present.timestamp);
         let verifiable_credential = W3CCredential {
@@ -747,15 +712,8 @@ pub fn create_w3c_presentation(
             proof: OneOrMany::One(CredentialProof::AnonCredsCredentialPresentationProof(proof)),
             ..present.cred.to_owned()
         };
-        verifiable_credentials.push(verifiable_credential);
+        presentation.add_verifiable_credential(verifiable_credential);
     }
-
-    let presentation = W3CPresentation {
-        context: ANONCREDS_CONTEXTS.clone(),
-        type_: ANONCREDS_TYPES.clone(),
-        verifiable_credential: verifiable_credentials,
-        proof: presentation_proof,
-    };
 
     trace!(
         "create_proof <<< presentation: {:?}",
@@ -774,17 +732,17 @@ fn _proof_builder() -> Result<ProofBuilder> {
 #[allow(clippy::too_many_arguments)]
 fn _add_sub_proof<T>(
     proof_builder: &mut ProofBuilder,
-    credential_signature: &anoncreds_clsignatures::CredentialSignature,
-    present: &PresentCredential<T>,
     presentation_request: &PresentationRequestPayload,
+    credential_values: &CredentialValues,
+    credential_signature: &anoncreds_clsignatures::CredentialSignature,
+    link_secret: &LinkSecret,
+    present: &PresentCredential<T>,
     non_credential_schema: &NonCredentialSchema,
     schema_id: &SchemaId,
     schemas: &HashMap<SchemaId, Schema>,
     cred_def_id: &CredentialDefinitionId,
     cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
-    credential_values: &CredentialValues,
-    link_secret: &LinkSecret,
-    non_revoked_interval: Option<NonRevokedInterval>,
+    rev_reg_id: Option<&RevocationRegistryDefinitionId>,
 ) -> Result<()> {
     let schema = schemas
         .get(schema_id)
@@ -801,11 +759,22 @@ fn _add_sub_proof<T>(
 
     let credential_schema = build_credential_schema(schema)?;
     let credential_values = build_credential_values(credential_values, Some(link_secret))?;
-    let (attrs_for_credential, predicates_for_credential) = prepare_credential_for_proving(
-        &present.requested_attributes,
-        &present.requested_predicates,
+
+    let attributes = present.attribute_referents();
+
+    let (attrs_for_credential, attrs_nonrevoked_interval) =
+        presentation_request.get_requested_attributes(&attributes)?;
+    let (predicates_for_credential, pred_nonrevoked_interval) =
+        presentation_request.get_requested_predicates(&present.requested_predicates)?;
+
+    let non_revoked_interval = get_non_revoked_interval(
+        attrs_nonrevoked_interval,
+        pred_nonrevoked_interval,
         presentation_request,
-    )?;
+        rev_reg_id,
+        None,
+    );
+
     let sub_proof_request =
         build_sub_proof_request(&attrs_for_credential, &predicates_for_credential)?;
 
@@ -1031,65 +1000,6 @@ fn create_index_deltas(
     }
 }
 
-fn prepare_credential_for_proving(
-    requested_attributes: &HashSet<(String, bool)>,
-    requested_predicates: &HashSet<String>,
-    pres_req: &PresentationRequestPayload,
-) -> Result<(Vec<RequestedAttributeInfo>, Vec<RequestedPredicateInfo>)> {
-    trace!(
-        "_prepare_credentials_for_proving >>> requested_attributes: {:?}, requested_predicates: {:?}, pres_req: {:?}",
-        requested_attributes,
-        requested_predicates,
-        pres_req
-    );
-
-    let mut attrs = Vec::with_capacity(requested_attributes.len());
-    let mut preds = Vec::with_capacity(requested_predicates.len());
-
-    for (attr_referent, revealed) in requested_attributes {
-        let attr_info = pres_req
-            .requested_attributes
-            .get(attr_referent.as_str())
-            .ok_or_else(|| {
-                err_msg!(
-                    "AttributeInfo not found in PresentationRequest for referent \"{}\"",
-                    attr_referent.as_str()
-                )
-            })?;
-
-        attrs.push(RequestedAttributeInfo {
-            attr_referent: attr_referent.clone(),
-            attr_info: attr_info.clone(),
-            revealed: *revealed,
-        });
-    }
-
-    for predicate_referent in requested_predicates {
-        let predicate_info = pres_req
-            .requested_predicates
-            .get(predicate_referent.as_str())
-            .ok_or_else(|| {
-                err_msg!(
-                    "PredicateInfo not found in PresentationRequest for referent \"{}\"",
-                    predicate_referent.as_str()
-                )
-            })?;
-
-        preds.push(RequestedPredicateInfo {
-            predicate_referent: predicate_referent.clone(),
-            predicate_info: predicate_info.clone(),
-        });
-    }
-
-    trace!(
-        "_prepare_credential_for_proving <<< attrs: {:?}, preds: {:?}",
-        attrs,
-        preds
-    );
-
-    Ok((attrs, preds))
-}
-
 fn get_credential_values_for_attribute(
     credential_attrs: &HashMap<String, AttributeValues>,
     requested_attr: &str,
@@ -1186,55 +1096,19 @@ fn update_requested_proof(
     Ok(())
 }
 
-fn build_sub_proof_request(
-    req_attrs_for_credential: &[RequestedAttributeInfo],
-    req_predicates_for_credential: &[RequestedPredicateInfo],
-) -> Result<SubProofRequest> {
-    trace!("_build_sub_proof_request <<< req_attrs_for_credential: {:?}, req_predicates_for_credential: {:?}",
-           req_attrs_for_credential, req_predicates_for_credential);
-
-    let mut sub_proof_request_builder = Verifier::new_sub_proof_request_builder()?;
-
-    for attr in req_attrs_for_credential {
-        if attr.revealed {
-            if let Some(ref name) = &attr.attr_info.name {
-                sub_proof_request_builder.add_revealed_attr(&attr_common_view(name))?;
-            } else if let Some(ref names) = &attr.attr_info.names {
-                for name in names {
-                    sub_proof_request_builder.add_revealed_attr(&attr_common_view(name))?;
-                }
-            }
-        }
-    }
-
-    for predicate in req_predicates_for_credential {
-        let p_type = format!("{}", predicate.predicate_info.p_type);
-
-        sub_proof_request_builder.add_predicate(
-            &attr_common_view(&predicate.predicate_info.name),
-            &p_type,
-            predicate.predicate_info.p_value,
-        )?;
-    }
-
-    let sub_proof_request = sub_proof_request_builder.finalize()?;
-
-    trace!(
-        "_build_sub_proof_request <<< sub_proof_request: {:?}",
-        sub_proof_request
-    );
-
-    Ok(sub_proof_request)
-}
-
 fn build_mapping<'p>(
-    pres_req_val: &PresentationRequestPayload,
+    pres_req: &PresentationRequestPayload,
     credential: &PresentCredential<'p, W3CCredential>,
-) -> CredentialAttributesMapping {
+) -> Result<CredentialAttributesMapping> {
     let mut mapping = CredentialAttributesMapping::default();
 
     for (referent, reveal) in credential.requested_attributes.iter() {
-        let requested_attribute = pres_req_val.requested_attributes.get(referent).unwrap();
+        let requested_attribute = pres_req.requested_attributes.get(referent).ok_or_else(|| {
+            err_msg!(
+                "Attribute with referent \"{}\" not found in ProofRequests",
+                referent
+            )
+        })?;
         if let Some(ref name) = requested_attribute.name {
             let attribute = Attribute {
                 referent: referent.to_string(),
@@ -1255,11 +1129,16 @@ fn build_mapping<'p>(
     }
 
     for referent in credential.requested_predicates.iter() {
-        let predicate_info = pres_req_val
+        let predicate_info = pres_req
             .requested_predicates
             .get(referent)
-            .unwrap()
-            .clone();
+            .cloned()
+            .ok_or_else(|| {
+                err_msg!(
+                    "Attribute with referent \"{}\" not found in ProofRequests",
+                    referent
+                )
+            })?;
         let predicate = Predicate {
             referent: referent.to_string(),
             name: predicate_info.name,
@@ -1269,7 +1148,7 @@ fn build_mapping<'p>(
         mapping.requested_predicates.push(predicate)
     }
 
-    mapping
+    Ok(mapping)
 }
 
 fn build_credential_subject<'p>(
@@ -1359,114 +1238,6 @@ mod tests {
                 )*
                 set
             }
-        }
-    }
-
-    mod prepare_credentials_for_proving {
-        use crate::data_types::pres_request::{AttributeInfo, PredicateInfo};
-
-        use super::*;
-
-        const ATTRIBUTE_REFERENT: &str = "attribute_referent";
-        const PREDICATE_REFERENT: &str = "predicate_referent";
-
-        fn _attr_info() -> AttributeInfo {
-            AttributeInfo {
-                name: Some("name".to_string()),
-                names: None,
-                restrictions: None,
-                non_revoked: None,
-            }
-        }
-
-        fn _predicate_info() -> PredicateInfo {
-            PredicateInfo {
-                name: "age".to_string(),
-                p_type: PredicateTypes::GE,
-                p_value: 8,
-                restrictions: None,
-                non_revoked: None,
-            }
-        }
-
-        fn _proof_req() -> PresentationRequestPayload {
-            PresentationRequestPayload {
-                nonce: new_nonce().unwrap(),
-                name: "Job-Application".to_string(),
-                version: "0.1".to_string(),
-                requested_attributes: hashmap!(
-                    ATTRIBUTE_REFERENT.to_string() => _attr_info()
-                ),
-                requested_predicates: hashmap!(
-                    PREDICATE_REFERENT.to_string() => _predicate_info()
-                ),
-                non_revoked: None,
-            }
-        }
-
-        fn _req_cred() -> (HashSet<(String, bool)>, HashSet<String>) {
-            (
-                hashset!((ATTRIBUTE_REFERENT.to_string(), false)),
-                hashset!(PREDICATE_REFERENT.to_string()),
-            )
-        }
-
-        #[test]
-        fn prepare_credential_for_proving_works() {
-            let (req_attrs, req_preds) = _req_cred();
-            let proof_req = _proof_req();
-
-            let (req_attr_info, req_pred_info) =
-                prepare_credential_for_proving(&req_attrs, &req_preds, &proof_req).unwrap();
-
-            assert_eq!(1, req_attr_info.len());
-            assert_eq!(1, req_pred_info.len());
-        }
-
-        #[test]
-        fn prepare_credential_for_proving_works_for_multiple_attributes() {
-            let (mut req_attrs, req_preds) = _req_cred();
-            let mut proof_req = _proof_req();
-
-            req_attrs.insert(("attribute_referent_2".to_string(), false));
-
-            proof_req.requested_attributes.insert(
-                "attribute_referent_2".to_string(),
-                AttributeInfo {
-                    name: Some("last_name".to_string()),
-                    names: None,
-                    restrictions: None,
-                    non_revoked: None,
-                },
-            );
-
-            let (req_attr_info, req_pred_info) =
-                prepare_credential_for_proving(&req_attrs, &req_preds, &proof_req).unwrap();
-
-            assert_eq!(2, req_attr_info.len());
-            assert_eq!(1, req_pred_info.len());
-        }
-
-        #[test]
-        fn prepare_credential_for_proving_works_for_missed_attribute() {
-            let (req_attrs, req_preds) = _req_cred();
-            let mut proof_req = _proof_req();
-
-            proof_req.requested_attributes.clear();
-
-            let res = prepare_credential_for_proving(&req_attrs, &req_preds, &proof_req);
-            assert_kind!(Input, res);
-        }
-
-        #[test]
-        fn prepare_credential_for_proving_works_for_missed_predicate() {
-            let (req_attrs, req_preds) = _req_cred();
-            let mut proof_req = _proof_req();
-
-            proof_req.requested_predicates.clear();
-
-            let res = prepare_credential_for_proving(&req_attrs, &req_preds, &proof_req);
-            assert_kind!(Input, res);
         }
     }
 

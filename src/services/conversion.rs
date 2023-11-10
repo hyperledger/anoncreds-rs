@@ -1,14 +1,9 @@
 use crate::data_types::credential::{CredentialValuesEncoding, RawCredentialValues};
-use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
-use crate::data_types::w3c::credential::{
-    CredentialSchema, CredentialSchemaType, CredentialSubject, W3CCredential,
-};
+use crate::data_types::w3c::credential::{CredentialSchema, W3CCredential};
 use crate::data_types::w3c::credential_proof::{
     CredentialProof, CredentialSignature, CredentialSignatureProof,
 };
-use crate::data_types::w3c::one_or_many::OneOrMany;
 use crate::types::Credential;
-use crate::utils::datetime;
 use crate::utils::validation::Validatable;
 use crate::Error;
 
@@ -21,8 +16,6 @@ pub fn credential_to_w3c(credential: &Credential) -> Result<W3CCredential, Error
     //  For conversion into W3C Credentials form we need to set issuer_id attribute but legacy credentials do not contain it explicitly.
     //  We only can parse issuer from the legacy form?
     let issuer = credential.cred_def_id.issuer_did();
-    let cred_def_id = credential.cred_def_id;
-    let schema_id = credential.schema_id;
     let signature = CredentialSignature::new(
         credential.signature,
         credential.signature_correctness_proof,
@@ -31,27 +24,17 @@ pub fn credential_to_w3c(credential: &Credential) -> Result<W3CCredential, Error
     );
     let proof = CredentialSignatureProof::new(signature);
     let attributes = RawCredentialValues::from(&credential.values);
-    let issuance_date = datetime::today();
 
-    let w3c_credential = W3CCredential {
-        context: ANONCREDS_CONTEXTS.clone(),
-        type_: ANONCREDS_TYPES.clone(),
-        issuer,
-        issuance_date,
-        credential_schema: CredentialSchema {
-            type_: CredentialSchemaType::AnonCredsDefinition,
-            definition: cred_def_id,
-            schema: schema_id,
-            revocation_registry: None,
-            encoding: CredentialValuesEncoding::Auto,
-        },
-        credential_subject: CredentialSubject {
-            id: None,
-            attributes,
-        },
-        proof: OneOrMany::Many(vec![CredentialProof::AnonCredsSignatureProof(proof)]),
-        ..Default::default()
-    };
+    let mut w3c_credential = W3CCredential::new();
+    w3c_credential.set_issuer(issuer);
+    w3c_credential.set_credential_schema(CredentialSchema::new(
+        credential.schema_id,
+        credential.cred_def_id,
+        credential.rev_reg_id,
+        CredentialValuesEncoding::Auto,
+    ));
+    w3c_credential.set_attributes(attributes);
+    w3c_credential.add_proof(CredentialProof::AnonCredsSignatureProof(proof));
 
     Ok(w3c_credential)
 }
@@ -89,7 +72,8 @@ mod tests {
     use crate::data_types::cred_def::CredentialDefinitionId;
     use crate::data_types::issuer_id::IssuerId;
     use crate::data_types::schema::SchemaId;
-    use crate::data_types::w3c::credential_proof::CredentialSignatureType;
+    use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
+    use crate::data_types::w3c::one_or_many::OneOrMany;
     use crate::types::{CredentialValues, MakeCredentialValues};
     use crate::ErrorKind;
     use anoncreds_clsignatures::{
@@ -162,32 +146,19 @@ mod tests {
     }
 
     fn _w3c_credential() -> W3CCredential {
-        W3CCredential {
-            context: ANONCREDS_CONTEXTS.clone(),
-            type_: ANONCREDS_TYPES.clone(),
-            issuer: _issuer_id(),
-            issuance_date: datetime::today(),
-            credential_schema: CredentialSchema {
-                type_: CredentialSchemaType::AnonCredsDefinition,
-                definition: _cred_def_id(),
-                schema: _schema_id(),
-                revocation_registry: None,
-                encoding: CredentialValuesEncoding::Auto,
-            },
-            credential_subject: CredentialSubject {
-                id: None,
-                attributes: RawCredentialValues::from(&_cred_values()),
-            },
-            proof: OneOrMany::One(CredentialProof::AnonCredsSignatureProof(
-                CredentialSignatureProof {
-                    type_: CredentialSignatureType::CLSignature2023,
-                    signature: _signature_data().encode(),
-                },
-            )),
-            id: None,
-            credential_status: None,
-            expiration_date: None,
-        }
+        let mut credential = W3CCredential::new();
+        credential.set_issuer(_issuer_id());
+        credential.set_credential_schema(CredentialSchema::new(
+            _schema_id(),
+            _cred_def_id(),
+            None,
+            CredentialValuesEncoding::Auto,
+        ));
+        credential.set_attributes(RawCredentialValues::from(&_cred_values()));
+        credential.add_proof(CredentialProof::AnonCredsSignatureProof(
+            CredentialSignatureProof::new(_signature_data()),
+        ));
+        credential
     }
 
     #[test]

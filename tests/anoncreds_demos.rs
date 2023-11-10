@@ -2,6 +2,7 @@ use anoncreds::conversion::{credential_from_w3c, credential_to_w3c};
 use anoncreds::data_types::cred_def::CredentialDefinitionId;
 use anoncreds::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use anoncreds::data_types::schema::SchemaId;
+use anoncreds::data_types::w3c::credential_proof::CredentialProof;
 use anoncreds::data_types::w3c::uri::URI;
 use anoncreds::issuer;
 use anoncreds::prover;
@@ -3554,7 +3555,9 @@ fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_
           X16dUEMGlv50aqzpqh4Qktb3rk-BuQy72IFLOqV0G_zS245-kronKb78cPN25DGlcTwLtj
           PAYuNzVBAh4vGHSrQyHUdBBPM"
     });
-    w3c_cred.add_non_anoncreds_identity_proof(rsa_signature);
+    w3c_cred.add_proof(CredentialProof::NonAnonCredsDataIntegrityProof(
+        rsa_signature,
+    ));
     w3c_cred.set_subject_id(URI::from("did:example:ebfeb1f712ebc6f1c276e12ec21"));
     w3c_cred.add_context(URI::from("https://www.w3.org/2018/credentials/examples/v1"));
     w3c_cred.add_type("AlumniCredential".to_string());

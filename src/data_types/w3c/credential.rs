@@ -3,10 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::string::ToString;
 
-use crate::data_types::presentation::Identifier;
-use crate::data_types::w3c::credential_proof::{
-    CredentialProof, CredentialSignatureProof, NonAnonCredsDataIntegrityProof,
-};
+use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
+use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignatureProof};
 use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
 use crate::data_types::{
     cred_def::CredentialDefinitionId,
@@ -22,6 +20,7 @@ use crate::data_types::{
         uri::URI,
     },
 };
+use crate::utils::datetime;
 use crate::Result;
 
 /// AnonCreds W3C Credential definition
@@ -85,6 +84,23 @@ pub struct CredentialSchema {
     pub encoding: CredentialValuesEncoding,
 }
 
+impl CredentialSchema {
+    pub fn new(
+        schema: SchemaId,
+        definition: CredentialDefinitionId,
+        revocation_registry: Option<RevocationRegistryDefinitionId>,
+        encoding: CredentialValuesEncoding,
+    ) -> CredentialSchema {
+        CredentialSchema {
+            type_: CredentialSchemaType::AnonCredsDefinition,
+            definition,
+            schema,
+            revocation_registry,
+            encoding,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CredentialSchemaType {
     #[serde(rename = "AnonCredsDefinition")]
@@ -98,22 +114,30 @@ impl Default for CredentialSchemaType {
 }
 
 impl W3CCredential {
-    pub fn add_non_anoncreds_identity_proof(&mut self, proof: NonAnonCredsDataIntegrityProof) {
-        match self.proof {
-            OneOrMany::One(ref existing_proof) => {
-                self.proof = OneOrMany::Many(vec![
-                    existing_proof.clone(),
-                    CredentialProof::NonAnonCredsDataIntegrityProof(proof),
-                ])
-            }
-            OneOrMany::Many(ref mut proofs) => {
-                proofs.push(CredentialProof::NonAnonCredsDataIntegrityProof(proof))
-            }
+    pub fn new() -> W3CCredential {
+        W3CCredential {
+            context: ANONCREDS_CONTEXTS.clone(),
+            type_: ANONCREDS_TYPES.clone(),
+            issuance_date: datetime::today(),
+            proof: OneOrMany::Many(Vec::new()),
+            ..Default::default()
         }
     }
 
     pub fn set_id(&mut self, id: URI) {
         self.id = Some(id)
+    }
+
+    pub fn set_issuer(&mut self, issuer: IssuerId) {
+        self.issuer = issuer
+    }
+
+    pub fn set_credential_schema(&mut self, credential_schema: CredentialSchema) {
+        self.credential_schema = credential_schema
+    }
+
+    pub fn set_attributes(&mut self, attributes: RawCredentialValues) {
+        self.credential_subject.attributes = attributes
     }
 
     pub fn set_subject_id(&mut self, id: URI) {
@@ -126,6 +150,15 @@ impl W3CCredential {
 
     pub fn add_type(&mut self, types: String) {
         self.type_.0.insert(types);
+    }
+
+    pub fn add_proof(&mut self, proof: CredentialProof) {
+        match self.proof {
+            OneOrMany::One(ref existing_proof) => {
+                self.proof = OneOrMany::Many(vec![existing_proof.clone(), proof])
+            }
+            OneOrMany::Many(ref mut proofs) => proofs.push(proof),
+        }
     }
 
     pub fn get_credential_signature_proof(&self) -> Result<&CredentialSignatureProof> {
@@ -182,16 +215,5 @@ impl W3CCredential {
             ));
         }
         Ok(())
-    }
-}
-
-impl From<CredentialSchema> for Identifier {
-    fn from(credential_schema: CredentialSchema) -> Self {
-        Identifier {
-            schema_id: credential_schema.schema,
-            cred_def_id: credential_schema.definition,
-            rev_reg_id: credential_schema.revocation_registry,
-            timestamp: None,
-        }
     }
 }

@@ -8,7 +8,7 @@ use super::object::{AnoncredsObject, ObjectHandle};
 use super::util::FfiStrList;
 use crate::conversion::{credential_from_w3c, credential_to_w3c};
 use crate::data_types::credential::{CredentialValuesEncoding, RawCredentialValues};
-use crate::data_types::w3c::credential_proof::NonAnonCredsDataIntegrityProof;
+use crate::data_types::w3c::credential_proof::{CredentialProof, NonAnonCredsDataIntegrityProof};
 use crate::data_types::w3c::uri::URI;
 use crate::data_types::{link_secret::LinkSecret, w3c::credential::W3CCredential};
 use crate::error::Result;
@@ -374,7 +374,7 @@ pub extern "C" fn anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(
 
         let mut cred = cred.load()?.cast_ref::<W3CCredential>()?.clone();
 
-        cred.add_non_anoncreds_identity_proof(proof);
+        cred.add_proof(CredentialProof::NonAnonCredsDataIntegrityProof(proof));
 
         let cred = ObjectHandle::create(cred)?;
         unsafe { *cred_p = cred };
