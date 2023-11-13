@@ -498,6 +498,11 @@ impl<'a> Mock<'a> {
                 }
             };
 
+            println!("--------");
+            println!("Legacy Credential {}", json!(legacy_credential).to_string());
+            println!("W3C Credential {}", json!(w3c_credential).to_string());
+            println!("--------");
+
             // Update prover wallets and ledger with new revocation status list
             let pw = self.prover_wallets.get_mut(prover_id).unwrap();
             pw.cred_reqs.push(cred_req_data);
@@ -674,6 +679,9 @@ impl<'a> Mock<'a> {
                     &cred_defs,
                 )
                 .expect("Error creating presentation");
+                println!("--------");
+                println!("W3C Presentation {}", json!(presentation).to_string());
+                println!("--------");
                 Presentations::W3C(presentation)
             }
         }

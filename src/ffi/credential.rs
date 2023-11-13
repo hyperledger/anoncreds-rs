@@ -212,7 +212,7 @@ pub extern "C" fn anoncreds_credential_get_attribute(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_create_credential(
+pub extern "C" fn anoncreds_create_w3c_credential(
     cred_def: ObjectHandle,
     cred_def_private: ObjectHandle,
     cred_offer: ObjectHandle,
@@ -263,7 +263,7 @@ pub extern "C" fn anoncreds_w3c_create_credential(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_process_credential(
+pub extern "C" fn anoncreds_process_w3c_credential(
     cred: ObjectHandle,
     cred_req_metadata: ObjectHandle,
     link_secret: FfiStr,
@@ -393,7 +393,7 @@ pub extern "C" fn anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_id(
+pub extern "C" fn anoncreds_w3c_set_credential_id(
     cred: ObjectHandle,
     id: FfiStr,
     cred_p: *mut ObjectHandle,
@@ -424,7 +424,7 @@ pub extern "C" fn anoncreds_w3c_credential_id(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_subject_id(
+pub extern "C" fn anoncreds_credential_w3c_subject_id(
     cred: ObjectHandle,
     id: FfiStr,
     cred_p: *mut ObjectHandle,
@@ -505,6 +505,37 @@ pub extern "C" fn anoncreds_w3c_credential_add_type(
         let cred = ObjectHandle::create(cred)?;
         unsafe { *cred_p = cred };
 
+        Ok(())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn anoncreds_w3c_credential_get_attribute(
+    handle: ObjectHandle,
+    name: FfiStr,
+    result_p: *mut *const c_char,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(result_p);
+        let cred = handle.load()?;
+        let cred = cred.cast_ref::<W3CCredential>()?;
+        let val = match name.as_opt_str().unwrap_or_default() {
+            "schema_id" => rust_string_to_c(cred.credential_schema.schema.clone()),
+            "cred_def_id" => rust_string_to_c(cred.credential_schema.definition.to_string()),
+            "rev_reg_id" => cred
+                .credential_schema
+                .revocation_registry
+                .as_ref()
+                .map_or(ptr::null_mut(), |s| rust_string_to_c(s.to_string())),
+            "rev_reg_index" => cred
+                .get_credential_signature_proof()?
+                .get_credential_signature()?
+                .signature
+                .extract_index()
+                .map_or(ptr::null_mut(), |s| rust_string_to_c(s.to_string())),
+            s => return Err(err_msg!("Unsupported attribute: {}", s)),
+        };
+        unsafe { *result_p = val };
         Ok(())
     })
 }
