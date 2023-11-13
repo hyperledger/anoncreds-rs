@@ -128,6 +128,8 @@ verifiable credential and presentation described in the [document]().
     * How should we get issuer DID for putting into credential?
         * Require `CredentialDefinition` to be passed as parameter
         * Parse if `legacy` cred def id form is used
+* Q13: Issuance data: W3C specification requires setting of `issuanceDate` property to express the date and time when a credential becomes valid.
+  * What datetime should we use? current / random of the day / start of the day
 
 ### Proposed implementation path for first iteration
 
@@ -235,6 +237,38 @@ pub extern "C" fn anoncreds_w3c_credential_add_type(
     type_: FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
+
+/// Set subject id to W3C AnonCreds credential
+///
+/// # Params
+/// cred -      object handle pointing to W3C AnonCreds credential
+/// id -        subject id to add into credential
+/// cred_p:     reference that will contain update credential
+///
+/// # Returns
+/// Error code
+#[no_mangle]
+pub extern "C" fn anoncreds_w3c_credential_set_subject_id(
+    cred: ObjectHandle,
+    id: FfiStr,
+    cred_p: *mut ObjectHandle,
+) -> ErrorCode {}
+
+/// Set id to W3C AnonCreds credential
+///
+/// # Params
+/// cred -      object handle pointing to W3C AnonCreds credential
+/// id -        id to add into credential
+/// cred_p:     reference that will contain update credential
+///
+/// # Returns
+/// Error code
+#[no_mangle]
+pub extern "C" fn anoncreds_w3c_credential_id(
+    cred: ObjectHandle,
+    id: FfiStr,
+    cred_p: *mut ObjectHandle,
+) -> ErrorCode {}
 ```
 
 #### Optional: Presentation Conversion methods
@@ -322,7 +356,7 @@ The reasons for adding duplication methods:
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_create_credential_offer(
+pub extern "C" fn anoncreds_create_w3c_credential_offer(
     schema_id: FfiStr,
     cred_def_id: FfiStr,
     key_proof: ObjectHandle,
@@ -345,7 +379,7 @@ pub extern "C" fn anoncreds_w3c_create_credential_offer(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_create_credential_request(
+pub extern "C" fn anoncreds_create_w3c_credential_request(
     entropy: FfiStr,
     prover_did: FfiStr,
     cred_def: ObjectHandle,
@@ -372,7 +406,7 @@ pub extern "C" fn anoncreds_w3c_create_credential_request(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_create_credential(
+pub extern "C" fn anoncreds_create_w3c_credential(
     cred_def: ObjectHandle,
     cred_def_private: ObjectHandle,
     cred_offer: ObjectHandle,
@@ -397,7 +431,7 @@ pub extern "C" fn anoncreds_w3c_create_credential(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_process_credential(
+pub extern "C" fn anoncreds_process_w3c_credential(
     cred: ObjectHandle,
     cred_req_metadata: ObjectHandle,
     link_secret: FfiStr,
@@ -438,7 +472,7 @@ pub extern "C" fn anoncreds_w3c_credential_get_attribute(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_create_presentation(
+pub extern "C" fn anoncreds_create_w3c_presentation(
     pres_req: ObjectHandle,
     credentials: FfiList<FfiCredentialEntry>,
     credentials_prove: FfiList<FfiCredentialProve>,
@@ -468,7 +502,7 @@ pub extern "C" fn anoncreds_w3c_create_presentation(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_verify_presentation(
+pub extern "C" fn anoncreds_verify_w3c_presentation(
     presentation: ObjectHandle,
     pres_req: ObjectHandle,
     schemas: FfiList<ObjectHandle>,
