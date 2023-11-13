@@ -120,16 +120,20 @@ verifiable credential and presentation described in the [document]().
     * For doing crypto `proofValue` verification we only need the names of revealed attributes and predicated (with
       type)
     * `revealed attributes` and `predicates` can be validated as we include them into `credentialSubject` but `unrevealed` attributes cannot.
-    * **Answer**: Need more discussion
+    * **Answer**: Drop `mapping` - see at the bottom of the document an example on how the validation of verifier's side still can be done
 * Q11: Revocation signature/proof: Should it be put into the same value of two independent signatures/proofs must be put into credential/presentation?
+    * **Answer**: For the current implementation it's good just to put everything inside encoded proof value
+      * For future: Prepare a section example describing how non revocation can be extracted into a separate proof  
 * Q12: For conversion of legacy credentials into W3C Credentials form we need to set `issuer_id` attribute. But legacy
   credentials do not contain this field explicitly. `AnonCreds-rs` is designed to be ledger/DID method agnostic, so it
   does not analyze/handle the values of id fields.
     * How should we get issuer DID for putting into credential?
         * Require `CredentialDefinition` to be passed as parameter
         * Parse if `legacy` cred def id form is used
+    * **Answer**: Require passing credential definition as parameter 
 * Q13: Issuance data: W3C specification requires setting of `issuanceDate` property to express the date and time when a credential becomes valid.
-  * What datetime should we use? current / random of the day / start of the day
+    * What datetime should we use? current / random of the day / start of the day
+    * **Answer**: It's ok just to use the current time  
 
 ### Proposed implementation path for first iteration
 
