@@ -102,6 +102,16 @@ export class NodeJSAnoncreds implements Anoncreds {
     return handleReturnPointer<string>(ret)
   }
 
+  public w3cCredentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }) {
+    const { objectHandle, name } = serializeArguments(options)
+
+    const ret = allocateStringBuffer()
+    this.nativeAnoncreds.anoncreds_w3c_credential_get_attribute(objectHandle, name, ret)
+    this.handleError()
+
+    return handleReturnPointer<string>(ret)
+  }
+
   public createCredentialDefinition(options: {
     schemaId: string
     schema: ObjectHandle
@@ -617,6 +627,366 @@ export class NodeJSAnoncreds implements Anoncreds {
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
 
+  public createW3CCredentialOffer(options: {
+    schemaId: string
+    credentialDefinitionId: string
+    keyCorrectnessProof: ObjectHandle
+  }): ObjectHandle {
+    const { schemaId, credentialDefinitionId, keyCorrectnessProof } = serializeArguments(options)
+
+    const ret = allocatePointer()
+    this.nativeAnoncreds.anoncreds_create_w3c_credential_offer(
+      schemaId,
+      credentialDefinitionId,
+      keyCorrectnessProof,
+      ret
+    )
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public createW3CCredentialRequest(options: {
+    entropy?: string
+    proverDid?: string
+    credentialDefinition: ObjectHandle
+    linkSecret: string
+    linkSecretId: string
+    credentialOffer: ObjectHandle
+  }): { credentialRequest: ObjectHandle; credentialRequestMetadata: ObjectHandle } {
+    const { entropy, proverDid, credentialDefinition, linkSecret, linkSecretId, credentialOffer } =
+      serializeArguments(options)
+
+    const credentialRequestPtr = allocatePointer()
+    const credentialRequestMetadataPtr = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_create_w3c_credential_request(
+      entropy,
+      proverDid,
+      credentialDefinition,
+      linkSecret,
+      linkSecretId,
+      credentialOffer,
+      credentialRequestPtr,
+      credentialRequestMetadataPtr
+    )
+    this.handleError()
+
+    return {
+      credentialRequest: new ObjectHandle(handleReturnPointer<number>(credentialRequestPtr)),
+      credentialRequestMetadata: new ObjectHandle(handleReturnPointer<number>(credentialRequestMetadataPtr))
+    }
+  }
+
+  public createW3CCredential(options: {
+    credentialDefinition: ObjectHandle
+    credentialDefinitionPrivate: ObjectHandle
+    credentialOffer: ObjectHandle
+    credentialRequest: ObjectHandle
+    attributeRawValues: Record<string, string>
+    revocationConfiguration?: NativeCredentialRevocationConfig
+    encoding?: string
+  }): ObjectHandle {
+    const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest } =
+      serializeArguments(options)
+
+    const attributeNames = StringListStruct({
+      count: Object.keys(options.attributeRawValues).length,
+      data: Object.keys(options.attributeRawValues) as unknown as TypedArray<string>
+    })
+
+    const attributeRawValues = StringListStruct({
+      count: Object.keys(options.attributeRawValues).length,
+      data: Object.values(options.attributeRawValues) as unknown as TypedArray<string>
+    })
+
+    let revocationConfiguration
+    if (options.revocationConfiguration) {
+      const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate, revocationStatusList, registryIndex } =
+        serializeArguments(options.revocationConfiguration)
+
+      revocationConfiguration = CredRevInfoStruct({
+        reg_def: revocationRegistryDefinition,
+        reg_def_private: revocationRegistryDefinitionPrivate,
+        status_list: revocationStatusList,
+        reg_idx: registryIndex
+      })
+    }
+
+    const credentialPtr = allocatePointer()
+    this.nativeAnoncreds.anoncreds_create_w3c_credential(
+      credentialDefinition,
+      credentialDefinitionPrivate,
+      credentialOffer,
+      credentialRequest,
+      attributeNames as unknown as Buffer,
+      attributeRawValues as unknown as Buffer,
+      revocationConfiguration?.ref().address() ?? 0,
+      options.encoding,
+      credentialPtr
+    )
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(credentialPtr))
+  }
+
+  public processW3CCredential(options: {
+    credential: ObjectHandle
+    credentialRequestMetadata: ObjectHandle
+    linkSecret: string
+    credentialDefinition: ObjectHandle
+    revocationRegistryDefinition?: ObjectHandle | undefined
+  }): ObjectHandle {
+    const { credential, credentialRequestMetadata, linkSecret, credentialDefinition } = serializeArguments(options)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_process_w3c_credential(
+      credential,
+      credentialRequestMetadata,
+      linkSecret,
+      credentialDefinition,
+      options.revocationRegistryDefinition?.handle ?? 0,
+      ret
+    )
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public createW3CPresentation(options: {
+    presentationRequest: ObjectHandle
+    credentials: NativeCredentialEntry[]
+    credentialsProve: NativeCredentialProve[]
+    linkSecret: string
+    schemas: Record<string, ObjectHandle>
+    credentialDefinitions: Record<string, ObjectHandle>
+  }): ObjectHandle {
+    const { presentationRequest, linkSecret } = serializeArguments(options)
+
+    const credentialEntries = options.credentials.map((value) =>
+      CredentialEntryStruct({
+        credential: value.credential.handle,
+        timestamp: value.timestamp ?? -1,
+        rev_state: value.revocationState?.handle ?? 0
+      })
+    )
+
+    const credentialEntryList = CredentialEntryListStruct({
+      count: credentialEntries.length,
+      data: credentialEntries as unknown as TypedArray<
+        StructObject<{
+          credential: number
+          timestamp: number
+          rev_state: number
+        }>
+      >
+    })
+
+    const credentialProves = options.credentialsProve.map((value) => {
+      const { entryIndex: entry_idx, isPredicate: is_predicate, reveal, referent } = serializeArguments(value)
+      return CredentialProveStruct({ entry_idx, referent, is_predicate, reveal })
+    })
+
+    const credentialProveList = CredentialProveListStruct({
+      count: credentialProves.length,
+      data: credentialProves as unknown as TypedArray<
+        StructObject<{
+          entry_idx: string | number
+          referent: string
+          is_predicate: number
+          reveal: number
+        }>
+      >
+    })
+
+    const schemaKeys = Object.keys(options.schemas)
+    const schemaIds = StringListStruct({
+      count: schemaKeys.length,
+      data: schemaKeys as unknown as TypedArray<string>
+    })
+
+    const schemaValues = Object.values(options.schemas)
+    const schemas = ObjectHandleListStruct({
+      count: schemaValues.length,
+      data: ObjectHandleArray(schemaValues.map((o) => o.handle))
+    })
+
+    const credentialDefinitionKeys = Object.keys(options.credentialDefinitions)
+    const credentialDefinitionIds = StringListStruct({
+      count: credentialDefinitionKeys.length,
+      data: credentialDefinitionKeys as unknown as TypedArray<string>
+    })
+
+    const credentialDefinitionValues = Object.values(options.credentialDefinitions)
+    const credentialDefinitions = ObjectHandleListStruct({
+      count: credentialDefinitionValues.length,
+      data: ObjectHandleArray(credentialDefinitionValues.map((o) => o.handle))
+    })
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_create_w3c_presentation(
+      presentationRequest,
+      credentialEntryList as unknown as Buffer,
+      credentialProveList as unknown as Buffer,
+      linkSecret,
+      schemas as unknown as Buffer,
+      schemaIds as unknown as Buffer,
+      credentialDefinitions as unknown as Buffer,
+      credentialDefinitionIds as unknown as Buffer,
+      ret
+    )
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public verifyW3CPresentation(options: {
+    presentation: ObjectHandle
+    presentationRequest: ObjectHandle
+    schemas: ObjectHandle[]
+    schemaIds: string[]
+    credentialDefinitions: ObjectHandle[]
+    credentialDefinitionIds: string[]
+    revocationRegistryDefinitions?: ObjectHandle[]
+    revocationRegistryDefinitionIds?: string[]
+    revocationStatusLists?: ObjectHandle[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
+  }): boolean {
+    const {
+      presentation,
+      presentationRequest,
+      schemas,
+      credentialDefinitions,
+      revocationRegistryDefinitions,
+      revocationStatusLists,
+      revocationRegistryDefinitionIds,
+      schemaIds,
+      credentialDefinitionIds
+    } = serializeArguments(options)
+
+    const nativeNonRevokedIntervalOverrides = options.nonRevokedIntervalOverrides?.map((value) => {
+      const { requestedFromTimestamp, revocationRegistryDefinitionId, overrideRevocationStatusListTimestamp } =
+        serializeArguments(value)
+      return NonRevokedIntervalOverrideStruct({
+        rev_reg_def_id: revocationRegistryDefinitionId,
+        requested_from_ts: requestedFromTimestamp,
+        override_rev_status_list_ts: overrideRevocationStatusListTimestamp
+      })
+    })
+
+    const nonRevokedIntervalOverrideList = NonRevokedIntervalOverrideListStruct({
+      count: options.nonRevokedIntervalOverrides?.length ?? 0,
+      data: nativeNonRevokedIntervalOverrides as unknown as TypedArray<
+        StructObject<{
+          rev_reg_def_id: string
+          requested_from_ts: number
+          override_rev_status_list_ts: number
+        }>
+      >
+    })
+
+    const ret = allocateInt8Buffer()
+
+    this.nativeAnoncreds.anoncreds_verify_w3c_presentation(
+      presentation,
+      presentationRequest,
+      schemas,
+      schemaIds,
+      credentialDefinitions,
+      credentialDefinitionIds,
+      revocationRegistryDefinitions,
+      revocationRegistryDefinitionIds,
+      revocationStatusLists,
+      nonRevokedIntervalOverrideList as unknown as Buffer,
+      ret
+    )
+    this.handleError()
+
+    return Boolean(handleReturnPointer<number>(ret))
+  }
+
+  public credentialToW3C(options: { objectHandle: ObjectHandle }): ObjectHandle {
+    const { objectHandle } = serializeArguments(options)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_credential_to_w3c(objectHandle, ret)
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public credentialFromW3C(options: { objectHandle: ObjectHandle }): ObjectHandle {
+    const { objectHandle } = serializeArguments(options)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_credential_from_w3c(objectHandle, ret)
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public w3cCredentialAddNonAnoncredsIntegrityProof(options: {
+    objectHandle: ObjectHandle
+    proof: string
+  }): ObjectHandle {
+    const { objectHandle, proof } = serializeArguments(options)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(objectHandle, proof, ret)
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public w3cCredentialSetId(options: { objectHandle: ObjectHandle; id: string }): ObjectHandle {
+    const { objectHandle, id } = serializeArguments(options)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_w3c_credential_set_id(objectHandle, id, ret)
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public w3cCredentialSetSubjectId(options: { objectHandle: ObjectHandle; id: string }): ObjectHandle {
+    const { objectHandle, id } = serializeArguments(options)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_w3c_credential_set_subject_id(objectHandle, id, ret)
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public w3cCredentialAddContext(options: { objectHandle: ObjectHandle; context: string }): ObjectHandle {
+    const { objectHandle, context } = serializeArguments(options)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_w3c_credential_add_context(objectHandle, context, ret)
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public w3cCredentialAddType(options: { objectHandle: ObjectHandle; type_: string }): ObjectHandle {
+    const { objectHandle, type_ } = serializeArguments(options)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_w3c_credential_add_type(objectHandle, type_, ret)
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
   public version(): string {
     return this.nativeAnoncreds.anoncreds_version()
   }
@@ -704,6 +1074,22 @@ export class NodeJSAnoncreds implements Anoncreds {
 
   public keyCorrectnessProofFromJson(options: { json: string }): ObjectHandle {
     return this.objectFromJson(this.nativeAnoncreds.anoncreds_key_correctness_proof_from_json, options)
+  }
+
+  public w3cCredentialOfferFromJson(options: { json: string }): ObjectHandle {
+    return this.objectFromJson(this.nativeAnoncreds.anoncreds_credential_offer_from_json, options)
+  }
+
+  public w3cCredentialRequestFromJson(options: { json: string }): ObjectHandle {
+    return this.objectFromJson(this.nativeAnoncreds.anoncreds_credential_request_from_json, options)
+  }
+
+  public w3cCredentialFromJson(options: { json: string }): ObjectHandle {
+    return this.objectFromJson(this.nativeAnoncreds.anoncreds_w3c_credential_from_json, options)
+  }
+
+  public w3cPresentationFromJson(options: { json: string }): ObjectHandle {
+    return this.objectFromJson(this.nativeAnoncreds.anoncreds_w3c_presentation_from_json, options)
   }
 
   public getJson(options: { objectHandle: ObjectHandle }) {
