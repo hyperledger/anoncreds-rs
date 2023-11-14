@@ -1,10 +1,10 @@
 use crate::cl::{Issuer, RevocationRegistry as CryptoRevocationRegistry};
 use crate::data_types::cred_def::CredentialDefinitionId;
-use crate::data_types::credential::{CredentialValuesEncoding, RawCredentialValues};
+use crate::data_types::credential::CredentialValuesEncoding;
 use crate::data_types::issuer_id::IssuerId;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
-use crate::data_types::w3c::credential::{CredentialSchema, W3CCredential};
+use crate::data_types::w3c::credential::{CredentialAttributes, CredentialSchema, W3CCredential};
 use crate::data_types::w3c::credential_proof::{
     CredentialProof, CredentialSignature, CredentialSignatureProof,
 };
@@ -757,7 +757,7 @@ pub fn create_credential(
 /// ```rust
 /// use anoncreds::issuer;
 /// use anoncreds::prover;
-/// use anoncreds::types::MakeRawCredentialValues;
+/// use anoncreds::types::MakeCredentialAttributes;
 ///
 /// use anoncreds::types::CredentialDefinitionConfig;
 /// use anoncreds::types::SignatureType;
@@ -803,7 +803,7 @@ pub fn create_credential(
 ///                                       &credential_offer,
 ///                                       ).expect("Unable to create credential request");
 ///
-/// let mut credential_values = MakeRawCredentialValues::default();
+/// let mut credential_values = MakeCredentialAttributes::default();
 /// credential_values.add("name", "john");
 /// credential_values.add("age", "28");
 ///
@@ -823,7 +823,7 @@ pub fn create_w3c_credential(
     cred_def_private: &CredentialDefinitionPrivate,
     cred_offer: &CredentialOffer,
     cred_request: &CredentialRequest,
-    raw_credential_values: RawCredentialValues,
+    raw_credential_values: CredentialAttributes,
     revocation_config: Option<CredentialRevocationConfig>,
     encoding: Option<CredentialValuesEncoding>,
 ) -> Result<W3CCredential> {

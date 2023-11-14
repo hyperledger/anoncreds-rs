@@ -9,7 +9,7 @@ use anoncreds::conversion::{credential_from_w3c, credential_to_w3c};
 use anoncreds::data_types::w3c::credential::W3CCredential;
 use anoncreds::data_types::w3c::presentation::W3CPresentation;
 use anoncreds::types::{
-    MakeRawCredentialValues, RevocationRegistryDefinition, RevocationStatusList,
+    MakeCredentialAttributes, RevocationRegistryDefinition, RevocationStatusList,
 };
 use anoncreds::{
     data_types::{
@@ -374,7 +374,7 @@ impl<'a> Mock<'a> {
         let cred_def = self.get_cred_def(&offer.cred_def_id);
         let rev_config = self.get_rev_config(issuer_wallet, rev_reg_id, rev_idx, prev_rev_reg_time);
 
-        let mut cred_values = MakeRawCredentialValues::default();
+        let mut cred_values = MakeCredentialAttributes::default();
         let names: Vec<String> = schema.attr_names.clone().0.into_iter().collect();
         for (i, v) in names.iter().enumerate() {
             if let Some(value) = values.get(&v.as_str()) {
@@ -464,8 +464,8 @@ impl<'a> Mock<'a> {
                     )
                     .expect("Error processing credential");
 
-                    let w3c_credential =
-                        credential_to_w3c(&recv_cred).expect("Error converting credential to w3c");
+                    let w3c_credential = credential_to_w3c(&recv_cred, cred_def)
+                        .expect("Error converting credential to w3c");
 
                     (recv_cred, w3c_credential)
                 }

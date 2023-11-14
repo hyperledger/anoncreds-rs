@@ -13,19 +13,6 @@ pub const CL_SIGNATURE_TYPE: &str = "CL";
 
 impl_anoncreds_object_identifier!(CredentialDefinitionId);
 
-impl CredentialDefinitionId {
-    // FIXME: As AnonCreds-rs is DID method agnostic, so it does not analyze/handle the values of id fields.
-    //  For conversion into W3C Credentials form we need to set issuer_id attribute but legacy credentials do not contain it explicitly.
-    //  We only can parse issuer from the legacy form?
-    pub fn issuer_did(&self) -> IssuerId {
-        if let Some(caps) = LEGACY_CRED_DEF_IDENTIFIER.captures(&self.0) {
-            IssuerId(caps[0].to_string())
-        } else {
-            IssuerId(self.0.to_owned())
-        }
-    }
-}
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignatureType {
     CL,

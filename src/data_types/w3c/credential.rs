@@ -1,14 +1,17 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use serde_json::{json, Value};
+use std::collections::{HashMap, HashSet};
 use std::string::ToString;
+use zeroize::Zeroize;
 
+use crate::data_types::pres_request::{PredicateInfo, PredicateTypes};
 use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
 use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignatureProof};
 use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
 use crate::data_types::{
     cred_def::CredentialDefinitionId,
-    credential::{CredentialValuesEncoding, RawCredentialValues},
+    credential::CredentialValuesEncoding,
     issuer_id::IssuerId,
     rev_reg_def::RevocationRegistryDefinitionId,
     schema::SchemaId,
@@ -20,7 +23,9 @@ use crate::data_types::{
         uri::URI,
     },
 };
-use crate::utils::datetime;
+use crate::error::ValidationError;
+use crate::types::{CredentialValues, MakeCredentialValues};
+use crate::utils::validation::Validatable;
 use crate::Result;
 
 /// AnonCreds W3C Credential definition
@@ -61,7 +66,138 @@ pub struct CredentialSubject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<URI>,
     #[serde(flatten)]
-    pub attributes: RawCredentialValues,
+    pub attributes: CredentialAttributes,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+pub struct CredentialAttributes(pub HashMap<String, Value>);
+
+#[cfg(feature = "zeroize")]
+impl Drop for CredentialAttributes {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+#[cfg(feature = "zeroize")]
+impl Zeroize for CredentialAttributes {
+    fn zeroize(&mut self) {
+        for attr in self.0.values_mut() {
+            if let Value::String(attr) = attr {
+                attr.zeroize()
+            }
+        }
+    }
+}
+
+impl Validatable for CredentialAttributes {
+    fn validate(&self) -> std::result::Result<(), ValidationError> {
+        if self.0.is_empty() {
+            return Err(
+                "CredentialAttributes validation failed: empty list has been passed".into(),
+            );
+        }
+        for (attribute, value) in self.0.iter() {
+            match value {
+                Value::String(_) | Value::Object(_) => {}
+                _ => {
+                    return Err(format!(
+                        "CredentialAttributes validation failed: {} value format is not supported",
+                        attribute
+                    )
+                    .into())
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl From<&CredentialValues> for CredentialAttributes {
+    fn from(values: &CredentialValues) -> Self {
+        CredentialAttributes(
+            values
+                .0
+                .iter()
+                .map(|(attribute, values)| {
+                    (attribute.to_owned(), Value::String(values.raw.to_owned()))
+                })
+                .collect(),
+        )
+    }
+}
+
+impl CredentialAttributes {
+    pub fn add_attribute(&mut self, attribute: String, value: Value) {
+        self.0.insert(attribute, value);
+    }
+
+    pub fn add_predicate(&mut self, attribute: String, value: PredicateAttribute) {
+        self.0.insert(attribute, json!(value));
+    }
+
+    pub fn get_attribute(&self, attribute: &str) -> Result<&Value> {
+        self.0
+            .get(attribute)
+            .ok_or_else(|| err_msg!("Credential attribute {} not found", attribute))
+    }
+
+    pub fn encode(&self, encoding: &CredentialValuesEncoding) -> Result<CredentialValues> {
+        match encoding {
+            CredentialValuesEncoding::Auto => {
+                let mut cred_values = MakeCredentialValues::default();
+                for (attribute, raw_value) in self.0.iter() {
+                    match raw_value {
+                        Value::String(raw_value) => {
+                            cred_values.add_raw(attribute, &raw_value.to_string())?
+                        }
+                        value => {
+                            return Err(err_msg!(
+                                "Encoding is not supported for credential value {:?}",
+                                value
+                            ));
+                        }
+                    }
+                }
+                Ok(cred_values.into())
+            }
+            encoding => Err(err_msg!(
+                "Credential values encoding {:?} is not supported",
+                encoding
+            )),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+pub struct PredicateAttribute {
+    #[serde(rename = "type")]
+    pub type_: PredicateAttributeType,
+    pub p_type: PredicateTypes,
+    pub p_value: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PredicateAttributeType {
+    #[serde(rename = "AnonCredsPredicate")]
+    AnonCredsPredicate,
+}
+
+impl Default for PredicateAttributeType {
+    fn default() -> Self {
+        PredicateAttributeType::AnonCredsPredicate
+    }
+}
+
+impl From<PredicateInfo> for PredicateAttribute {
+    fn from(info: PredicateInfo) -> Self {
+        PredicateAttribute {
+            type_: PredicateAttributeType::AnonCredsPredicate,
+            p_type: info.p_type,
+            p_value: info.p_value,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -118,7 +254,7 @@ impl W3CCredential {
         W3CCredential {
             context: ANONCREDS_CONTEXTS.clone(),
             type_: ANONCREDS_TYPES.clone(),
-            issuance_date: datetime::today(),
+            issuance_date: Utc::now(),
             proof: OneOrMany::Many(Vec::new()),
             ..Default::default()
         }
@@ -136,7 +272,7 @@ impl W3CCredential {
         self.credential_schema = credential_schema
     }
 
-    pub fn set_attributes(&mut self, attributes: RawCredentialValues) {
+    pub fn set_attributes(&mut self, attributes: CredentialAttributes) {
         self.credential_subject.attributes = attributes
     }
 

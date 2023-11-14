@@ -2884,8 +2884,8 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
     .expect("Error processing credential");
 
     // Convert legacy credential into W3C form
-    let w3c_cred =
-        credential_to_w3c(&legacy_cred).expect("Error converting legacy credential into W3C form");
+    let w3c_cred = credential_to_w3c(&legacy_cred, &gvt_cred_def)
+        .expect("Error converting legacy credential into W3C form");
 
     // Store both credential forms in wallet
     prover_wallet.credentials.push(legacy_cred);
@@ -2947,12 +2947,13 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
     );
 
     assert_eq!(
-        "GE 18",
+        json!({ "type": "AnonCredsPredicate", "p_type": ">=", "p_value": 18  }),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
             .0
             .get("age")
+            .cloned()
             .unwrap()
     );
 
@@ -3086,12 +3087,13 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation() 
     );
 
     assert_eq!(
-        "GE 18",
+        json!({ "type": "AnonCredsPredicate", "p_type": ">=", "p_value": 18  }),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
             .0
             .get("age")
+            .cloned()
             .unwrap()
     );
 
@@ -3313,7 +3315,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
     .expect("Error processing credential");
 
     // Convert legacy GVT credential into W3C form
-    let w3c_gvt_cred = credential_to_w3c(&legacy_gvt_cred)
+    let w3c_gvt_cred = credential_to_w3c(&legacy_gvt_cred, &gvt_cred_def)
         .expect("Error converting w3c credential into legacy form");
 
     // Store both credential forms in wallet
@@ -3621,12 +3623,13 @@ fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_
     );
 
     assert_eq!(
-        "GE 18",
+        json!({ "type": "AnonCredsPredicate", "p_type": ">=", "p_value": 18  }),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
             .0
             .get("age")
+            .cloned()
             .unwrap()
     );
 

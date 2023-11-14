@@ -1,5 +1,6 @@
-use crate::data_types::credential::{CredentialValuesEncoding, RawCredentialValues};
-use crate::data_types::w3c::credential::{CredentialSchema, W3CCredential};
+use crate::data_types::cred_def::CredentialDefinition;
+use crate::data_types::credential::CredentialValuesEncoding;
+use crate::data_types::w3c::credential::{CredentialAttributes, CredentialSchema, W3CCredential};
 use crate::data_types::w3c::credential_proof::{
     CredentialProof, CredentialSignature, CredentialSignatureProof,
 };
@@ -7,15 +8,92 @@ use crate::types::Credential;
 use crate::utils::validation::Validatable;
 use crate::Error;
 
-pub fn credential_to_w3c(credential: &Credential) -> Result<W3CCredential, Error> {
+/// Convert credential in legacy form into W3C AnonCreds credential form
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::conversion;
+/// use anoncreds::issuer;
+/// use anoncreds::prover;
+/// use anoncreds::types::MakeCredentialValues;
+///
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+/// use anoncreds::data_types::issuer_id::IssuerId;
+/// use anoncreds::data_types::schema::SchemaId;
+/// use anoncreds::data_types::cred_def::CredentialDefinitionId;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let issuer_id = IssuerId::new("did:web:xyz").expect("Invalid issuer ID");
+/// let schema_id = SchemaId::new("did:web:xyz/resource/schema").expect("Invalid schema ID");
+/// let cred_def_id = CredentialDefinitionId::new("did:web:xyz/resource/cred-def").expect("Invalid credential definition ID");
+///
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    issuer_id.clone(),
+///                                    attribute_names.into(),
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition(schema_id.clone(),
+///                                          &schema,
+///                                          issuer_id,
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig::default(),
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let credential_offer =
+///     issuer::create_credential_offer(schema_id,
+///                                     cred_def_id,
+///                                     &key_correctness_proof,
+///                                     ).expect("Unable to create Credential Offer");
+///
+/// let link_secret =
+///     prover::create_link_secret().expect("Unable to create link secret");
+///
+/// let (credential_request, credential_request_metadata) =
+///     prover::create_credential_request(Some("entropy"),
+///                                       None,
+///                                       &cred_def,
+///                                       &link_secret,
+///                                       "my-secret-id",
+///                                       &credential_offer,
+///                                       ).expect("Unable to create credential request");
+///
+/// let mut credential_values = MakeCredentialValues::default();
+/// credential_values.add_raw("name", "john").expect("Unable to add credential value");
+/// credential_values.add_raw("age", "28").expect("Unable to add credential value");
+///
+/// let mut credential =
+///     issuer::create_credential(&cred_def,
+///                               &cred_def_priv,
+///                               &credential_offer,
+///                               &credential_request,
+///                               credential_values.into(),
+///                               None,
+///                               ).expect("Unable to create credential");
+///
+/// prover::process_credential(&mut credential,
+///                            &credential_request_metadata,
+///                            &link_secret,
+///                            &cred_def,
+///                            None,
+///                            ).expect("Unable to process the credential");
+///
+/// let _w3c_credential = conversion::credential_to_w3c(&credential, &cred_def)
+///                         .expect("Unable to convert credential to w3c form");
+///
+/// ```
+pub fn credential_to_w3c(
+    credential: &Credential,
+    cred_def: &CredentialDefinition,
+) -> Result<W3CCredential, Error> {
     credential.validate()?;
 
     let credential = credential.try_clone()?;
-
-    // FIXME: As AnonCreds-rs is DID method agnostic, so it does not analyze/handle the values of id fields.
-    //  For conversion into W3C Credentials form we need to set issuer_id attribute but legacy credentials do not contain it explicitly.
-    //  We only can parse issuer from the legacy form?
-    let issuer = credential.cred_def_id.issuer_did();
+    let issuer = cred_def.issuer_id.clone();
     let signature = CredentialSignature::new(
         credential.signature,
         credential.signature_correctness_proof,
@@ -23,7 +101,7 @@ pub fn credential_to_w3c(credential: &Credential) -> Result<W3CCredential, Error
         credential.witness,
     );
     let proof = CredentialSignatureProof::new(signature);
-    let attributes = RawCredentialValues::from(&credential.values);
+    let attributes = CredentialAttributes::from(&credential.values);
 
     let mut w3c_credential = W3CCredential::new();
     w3c_credential.set_issuer(issuer);
@@ -39,6 +117,85 @@ pub fn credential_to_w3c(credential: &Credential) -> Result<W3CCredential, Error
     Ok(w3c_credential)
 }
 
+/// Convert credential in W3C form into legacy credential form
+///
+/// # Example
+///
+/// ```rust
+/// use anoncreds::conversion;
+/// use anoncreds::issuer;
+/// use anoncreds::prover;
+/// use anoncreds::types::{MakeCredentialAttributes, MakeCredentialValues};
+///
+/// use anoncreds::types::CredentialDefinitionConfig;
+/// use anoncreds::types::SignatureType;
+/// use anoncreds::data_types::issuer_id::IssuerId;
+/// use anoncreds::data_types::schema::SchemaId;
+/// use anoncreds::data_types::cred_def::CredentialDefinitionId;
+///
+/// let attribute_names: &[&str] = &["name", "age"];
+/// let issuer_id = IssuerId::new("did:web:xyz").expect("Invalid issuer ID");
+/// let schema_id = SchemaId::new("did:web:xyz/resource/schema").expect("Invalid schema ID");
+/// let cred_def_id = CredentialDefinitionId::new("did:web:xyz/resource/cred-def").expect("Invalid credential definition ID");
+///
+/// let schema = issuer::create_schema("schema name",
+///                                    "1.0",
+///                                    issuer_id.clone(),
+///                                    attribute_names.into(),
+///                                    ).expect("Unable to create schema");
+///
+/// let (cred_def, cred_def_priv, key_correctness_proof) =
+///     issuer::create_credential_definition(schema_id.clone(),
+///                                          &schema,
+///                                          issuer_id,
+///                                          "default-tag",
+///                                          SignatureType::CL,
+///                                          CredentialDefinitionConfig::default(),
+///                                          ).expect("Unable to create Credential Definition");
+///
+/// let credential_offer =
+///     issuer::create_credential_offer(schema_id,
+///                                     cred_def_id,
+///                                     &key_correctness_proof,
+///                                     ).expect("Unable to create Credential Offer");
+///
+/// let link_secret =
+///     prover::create_link_secret().expect("Unable to create link secret");
+///
+/// let (credential_request, credential_request_metadata) =
+///     prover::create_credential_request(Some("entropy"),
+///                                       None,
+///                                       &cred_def,
+///                                       &link_secret,
+///                                       "my-secret-id",
+///                                       &credential_offer,
+///                                       ).expect("Unable to create credential request");
+///
+/// let mut credential_values = MakeCredentialAttributes::default();
+/// credential_values.add("name", "john");
+/// credential_values.add("age", "28");
+///
+/// let mut credential =
+///     issuer::create_w3c_credential(&cred_def,
+///                                   &cred_def_priv,
+///                                   &credential_offer,
+///                                   &credential_request,
+///                                   credential_values.into(),
+///                                   None,
+///                                   None,
+///                                   ).expect("Unable to create credential");
+///
+/// prover::process_w3c_credential(&mut credential,
+///                                &credential_request_metadata,
+///                                &link_secret,
+///                                &cred_def,
+///                                None,
+///                                ).expect("Unable to process the credential");
+///
+/// let _w3c_credential = conversion::credential_from_w3c(&credential)
+///                         .expect("Unable to convert credential to w3c form");
+///
+/// ```
 pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential, Error> {
     w3c_credential.validate()?;
 
@@ -71,11 +228,14 @@ mod tests {
     use super::*;
     use crate::data_types::cred_def::CredentialDefinitionId;
     use crate::data_types::issuer_id::IssuerId;
-    use crate::data_types::schema::SchemaId;
+    use crate::data_types::schema::{Schema, SchemaId};
     use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
     use crate::data_types::w3c::one_or_many::OneOrMany;
-    use crate::types::{CredentialValues, MakeCredentialValues};
-    use crate::ErrorKind;
+    use crate::types::{
+        AttributeNames, CredentialDefinitionConfig, CredentialValues, MakeCredentialValues,
+        SignatureType,
+    };
+    use crate::{issuer, ErrorKind};
     use anoncreds_clsignatures::{
         CredentialSignature as CLCredentialSignature,
         SignatureCorrectnessProof as CLSignatureCorrectnessProof,
@@ -95,6 +255,27 @@ mod tests {
 
     fn _cred_def_id() -> CredentialDefinitionId {
         CredentialDefinitionId::new_unchecked(CRED_DEF_ID)
+    }
+
+    fn _attributes() -> AttributeNames {
+        AttributeNames::from(vec!["name".to_owned(), "age".to_owned()])
+    }
+
+    fn _credential_definition() -> CredentialDefinition {
+        let schema =
+            issuer::create_schema("schema:name", "1.0", _issuer_id(), _attributes()).unwrap();
+        let (cred_def, _, _) = issuer::create_credential_definition(
+            _schema_id(),
+            &schema,
+            _issuer_id(),
+            "default",
+            SignatureType::CL,
+            CredentialDefinitionConfig {
+                support_revocation: true,
+            },
+        )
+        .unwrap();
+        cred_def
     }
 
     fn _cred_values() -> CredentialValues {
@@ -154,7 +335,7 @@ mod tests {
             None,
             CredentialValuesEncoding::Auto,
         ));
-        credential.set_attributes(RawCredentialValues::from(&_cred_values()));
+        credential.set_attributes(CredentialAttributes::from(&_cred_values()));
         credential.add_proof(CredentialProof::AnonCredsSignatureProof(
             CredentialSignatureProof::new(_signature_data()),
         ));
@@ -164,8 +345,9 @@ mod tests {
     #[test]
     fn test_convert_credential_to_and_from_w3c() {
         let original_legacy_credential = _legacy_credential();
-        let w3c_credential = credential_to_w3c(&original_legacy_credential)
-            .expect("unable to convert credential to w3c form");
+        let w3c_credential =
+            credential_to_w3c(&original_legacy_credential, &_credential_definition())
+                .expect("unable to convert credential to w3c form");
         let legacy_credential = credential_from_w3c(&w3c_credential)
             .expect("unable to convert credential to legacy form");
         assert_eq!(json!(original_legacy_credential), json!(legacy_credential),)
@@ -174,7 +356,7 @@ mod tests {
     #[test]
     fn test_credential_to_w3c_form() {
         let legacy_credential = _legacy_credential();
-        let w3c_credential = credential_to_w3c(&legacy_credential)
+        let w3c_credential = credential_to_w3c(&legacy_credential, &_credential_definition())
             .expect("unable to convert credential to w3c form");
         assert_eq!(w3c_credential.context, ANONCREDS_CONTEXTS.clone());
         assert_eq!(w3c_credential.type_, ANONCREDS_TYPES.clone());
@@ -196,7 +378,7 @@ mod tests {
         );
         assert_eq!(
             w3c_credential.credential_subject.attributes,
-            RawCredentialValues::from(&legacy_credential.values)
+            CredentialAttributes::from(&legacy_credential.values)
         );
         let proof = w3c_credential
             .get_credential_signature_proof()

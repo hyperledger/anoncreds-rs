@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anoncreds::types::MakeRawCredentialValues;
+use anoncreds::types::MakeCredentialAttributes;
 use anoncreds::{
     data_types::{
         cred_def::{CredentialDefinition, CredentialDefinitionId},
@@ -262,10 +262,10 @@ pub fn credential_values(name: &str) -> MakeCredentialValues {
     }
 }
 
-pub fn raw_credential_values(name: &str) -> MakeRawCredentialValues {
+pub fn raw_credential_values(name: &str) -> MakeCredentialAttributes {
     match name {
         "GVT" => {
-            let mut gvt_cred_values = MakeRawCredentialValues::default();
+            let mut gvt_cred_values = MakeCredentialAttributes::default();
             gvt_cred_values.add("sex", "male");
             gvt_cred_values.add("name", "Alex");
             gvt_cred_values.add("height", "175");
@@ -273,7 +273,7 @@ pub fn raw_credential_values(name: &str) -> MakeRawCredentialValues {
             gvt_cred_values
         }
         "EMP" => {
-            let mut emp_cred_values = MakeRawCredentialValues::default();
+            let mut emp_cred_values = MakeCredentialAttributes::default();
             emp_cred_values.add("name", "John");
             emp_cred_values.add("role", "Developer");
             emp_cred_values.add("department", "IT");

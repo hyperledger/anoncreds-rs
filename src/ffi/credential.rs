@@ -7,7 +7,8 @@ use super::error::{catch_error, ErrorCode};
 use super::object::{AnoncredsObject, ObjectHandle};
 use super::util::FfiStrList;
 use crate::conversion::{credential_from_w3c, credential_to_w3c};
-use crate::data_types::credential::{CredentialValuesEncoding, RawCredentialValues};
+use crate::data_types::credential::CredentialValuesEncoding;
+use crate::data_types::w3c::credential::CredentialAttributes;
 use crate::data_types::w3c::credential_proof::{CredentialProof, NonAnonCredsDataIntegrityProof};
 use crate::data_types::w3c::uri::URI;
 use crate::data_types::{link_secret::LinkSecret, w3c::credential::W3CCredential};
@@ -18,7 +19,7 @@ use crate::services::{
     prover::{process_credential, process_w3c_credential},
     types::{Credential, CredentialRevocationConfig, MakeCredentialValues},
 };
-use crate::types::{CredentialValues, MakeRawCredentialValues};
+use crate::types::{CredentialValues, MakeCredentialAttributes};
 use crate::Error;
 
 #[derive(Debug)]
@@ -226,7 +227,7 @@ pub extern "C" fn anoncreds_create_w3c_credential(
     catch_error(|| {
         check_useful_c_ptr!(cred_p);
 
-        let cred_values = _raw_credential_values(attr_names, attr_raw_values)?;
+        let cred_values = _credential_attributes(attr_names, attr_raw_values)?;
         let revocation_config = _revocation_config(revocation)?;
         let encoding = encoding.as_opt_str().map(CredentialValuesEncoding::from);
 
@@ -305,6 +306,7 @@ pub extern "C" fn anoncreds_process_w3c_credential(
 #[no_mangle]
 pub extern "C" fn anoncreds_credential_to_w3c(
     cred: ObjectHandle,
+    cred_def: ObjectHandle,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
@@ -313,7 +315,7 @@ pub extern "C" fn anoncreds_credential_to_w3c(
         let credential = cred.load()?;
         let credential = credential.cast_ref::<Credential>()?;
 
-        let w3c_credential = credential_to_w3c(credential)?;
+        let w3c_credential = credential_to_w3c(credential, cred_def.load()?.cast_ref()?)?;
         let w3c_cred = ObjectHandle::create(w3c_credential)?;
 
         unsafe { *cred_p = w3c_cred };
@@ -583,10 +585,10 @@ fn _encoded_credential_values(
     Ok(cred_values.into())
 }
 
-fn _raw_credential_values(
+fn _credential_attributes(
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
-) -> Result<RawCredentialValues> {
+) -> Result<CredentialAttributes> {
     if attr_names.is_empty() {
         return Err(err_msg!("Cannot create credential with no attribute"));
     }
@@ -595,7 +597,7 @@ fn _raw_credential_values(
             "Mismatch between length of attribute names and raw values"
         ));
     }
-    let mut cred_values = MakeRawCredentialValues::default();
+    let mut cred_values = MakeCredentialAttributes::default();
     for (name, raw) in attr_names.as_slice().iter().zip(attr_raw_values.as_slice()) {
         let name = name
             .as_opt_str()

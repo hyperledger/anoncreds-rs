@@ -1,5 +1,5 @@
 use crate::cl::{RevocationRegistry as CryptoRevocationRegistry, Witness};
-use crate::data_types::credential::RawCredentialValues;
+use crate::data_types::w3c::credential::CredentialAttributes;
 pub use crate::data_types::{
     cred_def::{CredentialDefinitionPrivate, CredentialKeyCorrectnessProof, SignatureType},
     cred_offer::CredentialOffer,
@@ -21,6 +21,7 @@ use crate::{
     invalid,
     utils::validation::Validatable,
 };
+use serde_json::Value;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -77,16 +78,16 @@ impl From<MakeCredentialValues> for CredentialValues {
 }
 
 #[derive(Debug, Default)]
-pub struct MakeRawCredentialValues(pub(crate) RawCredentialValues);
+pub struct MakeCredentialAttributes(pub(crate) CredentialAttributes);
 
-impl MakeRawCredentialValues {
+impl MakeCredentialAttributes {
     pub fn add(&mut self, name: impl Into<String>, raw: impl Into<String>) {
-        self.0 .0.insert(name.into(), raw.into());
+        self.0 .0.insert(name.into(), Value::String(raw.into()));
     }
 }
 
-impl From<MakeRawCredentialValues> for RawCredentialValues {
-    fn from(m: MakeRawCredentialValues) -> Self {
+impl From<MakeCredentialAttributes> for CredentialAttributes {
+    fn from(m: MakeCredentialAttributes) -> Self {
         m.0
     }
 }

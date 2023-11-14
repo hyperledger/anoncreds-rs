@@ -17,7 +17,7 @@ use crate::data_types::presentation::RevealedAttributeInfo;
 use crate::data_types::presentation::SubProofReferent;
 use crate::data_types::rev_status_list::RevocationStatusList;
 use crate::data_types::schema::{Schema, SchemaId};
-use crate::data_types::w3c::credential::{CredentialSubject, W3CCredential};
+use crate::data_types::w3c::credential::{CredentialSubject, PredicateAttribute, W3CCredential};
 use crate::data_types::w3c::one_or_many::OneOrMany;
 use crate::data_types::w3c::presentation::W3CPresentation;
 use crate::error::{Error, Result};
@@ -284,7 +284,7 @@ pub fn process_credential(
 /// ```rust
 /// use anoncreds::issuer;
 /// use anoncreds::prover;
-/// use anoncreds::types::MakeRawCredentialValues;
+/// use anoncreds::types::MakeCredentialAttributes;
 ///
 /// use anoncreds::types::CredentialDefinitionConfig;
 /// use anoncreds::types::SignatureType;
@@ -330,7 +330,7 @@ pub fn process_credential(
 ///                                       &credential_offer,
 ///                                       ).expect("Unable to create credential request");
 ///
-/// let mut credential_values = MakeRawCredentialValues::default();
+/// let mut credential_values = MakeCredentialAttributes::default();
 /// credential_values.add("name", "john");
 /// credential_values.add("age", "28");
 ///
@@ -1146,15 +1146,12 @@ fn build_credential_subject<'p>(
                 .cred
                 .credential_subject
                 .attributes
-                .0
-                .get(name)
-                .ok_or_else(|| err_msg!("attribute {} not found credential", name))?;
+                .get_attribute(name)?;
 
             if *reveal {
                 credential_subject
                     .attributes
-                    .0
-                    .insert(name.to_string(), value.to_string());
+                    .add_attribute(name.to_string(), value.to_owned());
             }
         }
         if let Some(ref names) = requested_attribute.names {
@@ -1163,13 +1160,10 @@ fn build_credential_subject<'p>(
                     .cred
                     .credential_subject
                     .attributes
-                    .0
-                    .get(name)
-                    .ok_or_else(|| err_msg!("attribute {} not found credential", name))?;
+                    .get_attribute(name)?;
                 credential_subject
                     .attributes
-                    .0
-                    .insert(name.to_string(), value.to_string());
+                    .add_attribute(name.to_string(), value.to_owned());
             }
         }
     }
@@ -1180,10 +1174,9 @@ fn build_credential_subject<'p>(
             .get(referent)
             .unwrap()
             .clone();
-        credential_subject.attributes.0.insert(
-            predicate_info.name.to_string(),
-            format!("{} {}", predicate_info.p_type, predicate_info.p_value),
-        );
+        let name = predicate_info.name.to_owned();
+        let attribute = PredicateAttribute::from(predicate_info);
+        credential_subject.attributes.add_predicate(name, attribute);
     }
 
     Ok(credential_subject)
