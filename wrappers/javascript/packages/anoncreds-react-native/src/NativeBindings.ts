@@ -185,4 +185,91 @@ export type NativeBindings = {
   credentialDefinitionPrivateFromJson(options: { json: string }): ReturnObject<Handle>
 
   keyCorrectnessProofFromJson(options: { json: string }): ReturnObject<Handle>
+
+  createW3CCredentialOffer(options: {
+    schemaId: string
+    credentialDefinitionId: string
+    keyCorrectnessProof: number
+  }): ReturnObject<Handle>
+
+  createW3CCredentialRequest(options: {
+    entropy?: string
+    proverDid?: string
+    credentialDefinition: number
+    linkSecret: string
+    linkSecretId: string
+    credentialOffer: number
+  }): ReturnObject<{ credentialRequest: Handle; credentialRequestMetadata: Handle }>
+
+  createW3CCredential(options: {
+    credentialDefinition: number
+    credentialDefinitionPrivate: number
+    credentialOffer: number
+    credentialRequest: number
+    attributeNames: string[]
+    attributeRawValues: string[]
+    revocationConfiguration?: {
+      registryIndex: number
+      revocationRegistryDefinition: number
+      revocationRegistryDefinitionPrivate: number
+      revocationStatusList?: number
+    }
+    encoding?: string
+  }): ReturnObject<Handle>
+
+  processW3CCredential(options: {
+    credential: number
+    credentialRequestMetadata: number
+    linkSecret: string
+    credentialDefinition: number
+    revocationRegistryDefinition?: number
+  }): ReturnObject<Handle>
+
+  w3cCredentialGetAttribute(options: { objectHandle: number; name: string }): ReturnObject<string>
+
+  w3cCredentialAddNonAnonCredsIntegrityProof(options: { objectHandle: number; proof: string }): ReturnObject<Handle>
+
+  w3cCredentialSetId(options: { objectHandle: number; id: string }): ReturnObject<Handle>
+
+  w3cCredentialSetSubjectId(options: { objectHandle: number; id: string }): ReturnObject<Handle>
+
+  w3cCredentialAddContext(options: { objectHandle: number; context: string }): ReturnObject<Handle>
+
+  w3cCredentialAddType(options: { objectHandle: number; type_: string }): ReturnObject<Handle>
+
+  credentialToW3C(options: { objectHandle: number }): ReturnObject<Handle>
+
+  credentialFromW3C(options: { objectHandle: number }): ReturnObject<Handle>
+
+  createW3CPresentation(options: {
+    presentationRequest: number
+    credentials: { credential: number; timestamp?: number; revocationState?: number }[]
+    credentialsProve: NativeCredentialProve[]
+    linkSecret: string
+    schemaIds: string[]
+    schemas: number[]
+    credentialDefinitionIds: string[]
+    credentialDefinitions: number[]
+  }): ReturnObject<Handle>
+
+  verifyW3CPresentation(options: {
+    presentation: number
+    presentationRequest: number
+    schemas: number[]
+    schemaIds: string[]
+    credentialDefinitions: number[]
+    credentialDefinitionIds: string[]
+    revocationRegistryDefinitions?: number[]
+    revocationRegistryDefinitionIds?: string[]
+    revocationStatusLists?: number[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
+  }): ReturnObject<number>
+
+  w3cCredentialOfferFromJson(options: { json: string }): ReturnObject<Handle>
+
+  w3cCredentialRequestFromJson(options: { json: string }): ReturnObject<Handle>
+
+  w3cCredentialFromJson(options: { json: string }): ReturnObject<Handle>
+
+  w3cPresentationFromJson(options: { json: string }): ReturnObject<Handle>
 }

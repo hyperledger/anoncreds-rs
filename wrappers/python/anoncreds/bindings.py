@@ -1091,13 +1091,13 @@ def w3c_credential_add_non_anoncreds_integrity_proof(
     return result
 
 
-def w3c_credential_id(
+def w3c_set_credential_id(
     cred: ObjectHandle,
     id: str,
 ) -> ObjectHandle:
     result = ObjectHandle()
     do_call(
-        "anoncreds_w3c_credential_id",
+        "anoncreds_w3c_set_credential_id",
         cred,
         encode_str(id),
         byref(result),
@@ -1105,13 +1105,13 @@ def w3c_credential_id(
     return result
 
 
-def w3c_credential_subject_id(
+def w3c_credential_set_subject_id(
     cred: ObjectHandle,
     id: str,
 ) -> ObjectHandle:
     result = ObjectHandle()
     do_call(
-        "anoncreds_w3c_credential_subject_id",
+        "anoncreds_w3c_credential_set_subject_id",
         cred,
         encode_str(id),
         byref(result),

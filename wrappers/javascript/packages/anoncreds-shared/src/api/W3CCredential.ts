@@ -6,36 +6,36 @@ import type { JsonObject } from '../types'
 import { AnoncredsObject } from '../AnoncredsObject'
 import { anoncreds } from '../register'
 
+import { Credential } from './Credential'
 import { CredentialDefinition } from './CredentialDefinition'
 import { CredentialDefinitionPrivate } from './CredentialDefinitionPrivate'
-import { CredentialOffer } from './CredentialOffer'
-import { CredentialRequest } from './CredentialRequest'
 import { CredentialRequestMetadata } from './CredentialRequestMetadata'
 import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
-import { W3CCredential } from './W3CCredential'
+import { W3CCredentialOffer } from './W3CCredentialOffer'
+import { W3CCredentialRequest } from './W3CCredentialRequest'
 import { pushToArray } from './utils'
 
-export type CreateCredentialOptions = {
+export type CreateW3CCredentialOptions = {
   credentialDefinition: CredentialDefinition | JsonObject
   credentialDefinitionPrivate: CredentialDefinitionPrivate | JsonObject
-  credentialOffer: CredentialOffer | JsonObject
-  credentialRequest: CredentialRequest | JsonObject
+  credentialOffer: W3CCredentialOffer | JsonObject
+  credentialRequest: W3CCredentialRequest | JsonObject
   attributeRawValues: Record<string, string>
-  attributeEncodedValues?: Record<string, string>
   revocationRegistryId?: string
   revocationConfiguration?: CredentialRevocationConfig
   revocationStatusList?: RevocationStatusList | JsonObject
+  encoding?: string
 }
 
-export type ProcessCredentialOptions = {
+export type ProcessW3CCredentialOptions = {
   credentialRequestMetadata: CredentialRequestMetadata | JsonObject
   linkSecret: string
   credentialDefinition: CredentialDefinition | JsonObject
   revocationRegistryDefinition?: RevocationRegistryDefinition | JsonObject
 }
 
-export class Credential extends AnoncredsObject {
-  public static create(options: CreateCredentialOptions) {
+export class W3CCredential extends AnoncredsObject {
+  public static create(options: CreateW3CCredentialOptions) {
     let credential
     // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
@@ -51,37 +51,37 @@ export class Credential extends AnoncredsObject {
           : pushToArray(CredentialDefinitionPrivate.fromJson(options.credentialDefinitionPrivate).handle, objectHandles)
 
       const credentialOffer =
-        options.credentialOffer instanceof CredentialOffer
+        options.credentialOffer instanceof W3CCredentialOffer
           ? options.credentialOffer.handle
-          : pushToArray(CredentialOffer.fromJson(options.credentialOffer).handle, objectHandles)
+          : pushToArray(W3CCredentialOffer.fromJson(options.credentialOffer).handle, objectHandles)
 
       const credentialRequest =
-        options.credentialRequest instanceof CredentialRequest
+        options.credentialRequest instanceof W3CCredentialRequest
           ? options.credentialRequest.handle
-          : pushToArray(CredentialRequest.fromJson(options.credentialRequest).handle, objectHandles)
+          : pushToArray(W3CCredentialRequest.fromJson(options.credentialRequest).handle, objectHandles)
 
-      credential = anoncreds.createCredential({
+      credential = anoncreds.createW3CCredential({
         credentialDefinition,
         credentialDefinitionPrivate,
         credentialOffer,
         credentialRequest,
         attributeRawValues: options.attributeRawValues,
-        attributeEncodedValues: options.attributeEncodedValues,
-        revocationConfiguration: options.revocationConfiguration?.native
+        revocationConfiguration: options.revocationConfiguration?.native,
+        encoding: options.encoding
       })
     } finally {
       objectHandles.forEach((handle) => {
         handle.clear()
       })
     }
-    return new Credential(credential.handle)
+    return new W3CCredential(credential.handle)
   }
 
   public static fromJson(json: JsonObject) {
-    return new Credential(anoncreds.credentialFromJson({ json: JSON.stringify(json) }).handle)
+    return new W3CCredential(anoncreds.credentialFromJson({ json: JSON.stringify(json) }).handle)
   }
 
-  public process(options: ProcessCredentialOptions) {
+  public process(options: ProcessW3CCredentialOptions) {
     let credential
     // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
@@ -106,7 +106,7 @@ export class Credential extends AnoncredsObject {
             )
           : undefined
 
-      credential = anoncreds.processCredential({
+      credential = anoncreds.processW3CCredential({
         credential: this.handle,
         credentialDefinition,
         credentialRequestMetadata,
@@ -126,31 +126,76 @@ export class Credential extends AnoncredsObject {
   }
 
   public get schemaId() {
-    return anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'schema_id' })
+    return anoncreds.w3cCredentialGetAttribute({ objectHandle: this.handle, name: 'schema_id' })
   }
 
   public get credentialDefinitionId() {
-    return anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'cred_def_id' })
+    return anoncreds.w3cCredentialGetAttribute({ objectHandle: this.handle, name: 'cred_def_id' })
   }
 
   public get revocationRegistryId() {
-    return anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'rev_reg_id' })
+    return anoncreds.w3cCredentialGetAttribute({ objectHandle: this.handle, name: 'rev_reg_id' })
   }
 
   public get revocationRegistryIndex() {
-    const index = anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'rev_reg_index' })
+    const index = anoncreds.w3cCredentialGetAttribute({ objectHandle: this.handle, name: 'rev_reg_index' })
     return index ? Number(index) : undefined
   }
 
-  public toW3c(): W3CCredential {
-    return new W3CCredential(
-      anoncreds.credentialToW3C({
+  public toLegacy(): Credential {
+    return new Credential(
+      anoncreds.credentialFromW3C({
         objectHandle: this.handle
       }).handle
     )
   }
 
-  public static fromW3C(credential: W3CCredential) {
-    return new Credential(anoncreds.credentialFromW3C({ objectHandle: credential.handle }).handle)
+  public static fromLegacy(credential: Credential): W3CCredential {
+    return new W3CCredential(anoncreds.credentialToW3C({ objectHandle: credential.handle }).handle)
+  }
+
+  public addNonAnonCredsIntegrityProof(proof: string): W3CCredential {
+    return new W3CCredential(
+      anoncreds.w3cCredentialAddNonAnonCredsIntegrityProof({
+        objectHandle: this.handle,
+        proof
+      }).handle
+    )
+  }
+
+  public setId(id: string): W3CCredential {
+    return new W3CCredential(
+      anoncreds.w3cCredentialSetId({
+        objectHandle: this.handle,
+        id
+      }).handle
+    )
+  }
+
+  public setSubjectId(id: string): W3CCredential {
+    return new W3CCredential(
+      anoncreds.w3cCredentialSetSubjectId({
+        objectHandle: this.handle,
+        id
+      }).handle
+    )
+  }
+
+  public addContext(context: string): W3CCredential {
+    return new W3CCredential(
+      anoncreds.w3cCredentialAddContext({
+        objectHandle: this.handle,
+        context
+      }).handle
+    )
+  }
+
+  public addType(type_: string): W3CCredential {
+    return new W3CCredential(
+      anoncreds.w3cCredentialAddType({
+        objectHandle: this.handle,
+        type_
+      }).handle
+    )
   }
 }

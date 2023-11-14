@@ -204,4 +204,83 @@ export type Anoncreds = {
   getTypeName(options: { objectHandle: ObjectHandle }): string
 
   objectFree(options: { objectHandle: ObjectHandle }): void
+
+  createW3CCredentialOffer(options: {
+    schemaId: string
+    credentialDefinitionId: string
+    keyCorrectnessProof: ObjectHandle
+  }): ObjectHandle
+
+  createW3CCredentialRequest(options: {
+    entropy?: string
+    proverDid?: string
+    credentialDefinition: ObjectHandle
+    linkSecret: string
+    linkSecretId: string
+    credentialOffer: ObjectHandle
+  }): { credentialRequest: ObjectHandle; credentialRequestMetadata: ObjectHandle }
+
+  createW3CCredential(options: {
+    credentialDefinition: ObjectHandle
+    credentialDefinitionPrivate: ObjectHandle
+    credentialOffer: ObjectHandle
+    credentialRequest: ObjectHandle
+    attributeRawValues: Record<string, string>
+    revocationConfiguration?: NativeCredentialRevocationConfig
+    encoding?: string
+  }): ObjectHandle
+
+  processW3CCredential(options: {
+    credential: ObjectHandle
+    credentialRequestMetadata: ObjectHandle
+    linkSecret: string
+    credentialDefinition: ObjectHandle
+    revocationRegistryDefinition?: ObjectHandle
+  }): ObjectHandle
+
+  createW3CPresentation(options: {
+    presentationRequest: ObjectHandle
+    credentials: NativeCredentialEntry[]
+    credentialsProve: NativeCredentialProve[]
+    linkSecret: string
+    schemas: Record<string, ObjectHandle>
+    credentialDefinitions: Record<string, ObjectHandle>
+  }): ObjectHandle
+
+  verifyW3CPresentation(options: {
+    presentation: ObjectHandle
+    presentationRequest: ObjectHandle
+    schemas: ObjectHandle[]
+    schemaIds: string[]
+    credentialDefinitions: ObjectHandle[]
+    credentialDefinitionIds: string[]
+    revocationRegistryDefinitions?: ObjectHandle[]
+    revocationRegistryDefinitionIds?: string[]
+    revocationStatusLists?: ObjectHandle[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
+  }): boolean
+
+  w3cPresentationFromJson(options: { json: string }): ObjectHandle
+
+  w3cCredentialAddNonAnonCredsIntegrityProof(options: { objectHandle: ObjectHandle; proof: string }): ObjectHandle
+
+  w3cCredentialSetId(options: { objectHandle: ObjectHandle; id: string }): ObjectHandle
+
+  w3cCredentialSetSubjectId(options: { objectHandle: ObjectHandle; id: string }): ObjectHandle
+
+  w3cCredentialAddContext(options: { objectHandle: ObjectHandle; context: string }): ObjectHandle
+
+  w3cCredentialAddType(options: { objectHandle: ObjectHandle; type_: string }): ObjectHandle
+
+  w3cCredentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string
+
+  w3cCredentialOfferFromJson(options: { json: string }): ObjectHandle
+
+  w3cCredentialRequestFromJson(options: { json: string }): ObjectHandle
+
+  w3cCredentialFromJson(options: { json: string }): ObjectHandle
+
+  credentialToW3C(options: { objectHandle: ObjectHandle }): ObjectHandle
+
+  credentialFromW3C(options: { objectHandle: ObjectHandle }): ObjectHandle
 }

@@ -147,7 +147,6 @@ export const nativeBindings = {
       FFI_INT8_PTR
     ]
   ],
-
   anoncreds_create_revocation_status_list: [
     FFI_ERRORCODE,
     [
@@ -192,5 +191,83 @@ export const nativeBindings = {
   anoncreds_credential_definition_private_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
   anoncreds_revocation_registry_definition_private_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
   anoncreds_key_correctness_proof_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
-  anoncreds_schema_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]]
+  anoncreds_schema_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_create_w3c_credential_offer: [
+    FFI_ERRORCODE,
+    [FFI_STRING, FFI_STRING, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR]
+  ],
+  anoncreds_create_w3c_credential_request: [
+    FFI_ERRORCODE,
+    [
+      FFI_STRING,
+      FFI_STRING,
+      FFI_OBJECT_HANDLE,
+      FFI_STRING,
+      FFI_STRING,
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE_PTR,
+      FFI_OBJECT_HANDLE_PTR
+    ]
+  ],
+  anoncreds_create_w3c_credential: [
+    FFI_ERRORCODE,
+    [
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE,
+      StringListStruct,
+      StringListStruct,
+      FFI_OBJECT_HANDLE,
+      FFI_STRING,
+      FFI_OBJECT_HANDLE_PTR
+    ]
+  ],
+  anoncreds_process_w3c_credential: [
+    FFI_ERRORCODE,
+    [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_STRING, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR]
+  ],
+  anoncreds_create_w3c_presentation: [
+    FFI_ERRORCODE,
+    [
+      FFI_OBJECT_HANDLE,
+      CredentialEntryListStruct,
+      CredentialProveListStruct,
+      FFI_STRING,
+      ObjectHandleListStruct,
+      StringListStruct,
+      ObjectHandleListStruct,
+      StringListStruct,
+      FFI_OBJECT_HANDLE_PTR
+    ]
+  ],
+  anoncreds_verify_w3c_presentation: [
+    FFI_ERRORCODE,
+    [
+      FFI_OBJECT_HANDLE,
+      FFI_OBJECT_HANDLE,
+      ObjectHandleListStruct,
+      StringListStruct,
+      ObjectHandleListStruct,
+      StringListStruct,
+      ObjectHandleListStruct,
+      StringListStruct,
+      ObjectHandleListStruct,
+      NonRevokedIntervalOverrideListStruct,
+      FFI_INT8_PTR
+    ]
+  ],
+  anoncreds_credential_to_w3c: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR]],
+  anoncreds_credential_from_w3c: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR]],
+  anoncreds_w3c_credential_add_non_anoncreds_integrity_proof: [
+    FFI_ERRORCODE,
+    [FFI_OBJECT_HANDLE, FFI_STRING, FFI_OBJECT_HANDLE_PTR]
+  ],
+  anoncreds_w3c_credential_set_id: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_OBJECT_HANDLE_PTR]],
+  anoncreds_w3c_credential_set_subject_id: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_OBJECT_HANDLE_PTR]],
+  anoncreds_w3c_credential_add_context: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_OBJECT_HANDLE_PTR]],
+  anoncreds_w3c_credential_add_type: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_OBJECT_HANDLE_PTR]],
+  anoncreds_w3c_credential_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
+  anoncreds_w3c_presentation_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
+  anoncreds_w3c_credential_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]]
 } as const

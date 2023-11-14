@@ -359,6 +359,61 @@ class Credential(bindings.AnoncredsObject):
             )
         )
 
+    def add_non_anoncreds_integrity_proof(
+        self,
+        proof: str
+    ) -> "W3CCredential":
+        return W3CCredential(
+            bindings.w3c_credential_add_non_anoncreds_integrity_proof(
+                self.handle,
+                proof,
+            )
+        )
+
+    def set_credential_id(
+        self,
+        id: str
+    ) -> "W3CCredential":
+        return W3CCredential(
+            bindings.w3c_credential_set_credential_id(
+                self.handle,
+                id,
+            )
+        )
+
+    def set_subject_id(
+        self,
+        id: str
+    ) -> "W3CCredential":
+        return W3CCredential(
+            bindings.w3c_credential_set_subject_id(
+                self.handle,
+                id,
+            )
+        )
+
+    def add_context(
+        self,
+        context: str
+    ) -> "W3CCredential":
+        return W3CCredential(
+            bindings.w3c_credential_add_context(
+                self.handle,
+                context,
+            )
+        )
+
+    def add_type(
+        self,
+        type: str
+    ) -> "W3CCredential":
+        return W3CCredential(
+            bindings.w3c_credential_add_type(
+                self.handle,
+                type,
+            )
+        )
+
 
 class W3CCredential(bindings.AnoncredsObject):
     GET_ATTR = "anoncreds_w3c_credential_get_attribute"
