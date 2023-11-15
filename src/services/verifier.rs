@@ -963,7 +963,7 @@ struct CLProofVerifier<'a> {
     cred_defs: &'a HashMap<CredentialDefinitionId, CredentialDefinition>,
     rev_reg_defs: Option<&'a HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
     revocation_map:
-        Option<HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>>>,
+    Option<HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>>>,
 }
 
 impl<'a> CLProofVerifier<'a> {
@@ -1090,46 +1090,41 @@ impl<'a> CLProofVerifier<'a> {
         Option<&'a RevocationRegistryDefinition>,
         Option<&'a RevocationRegistry>,
     )> {
-        let (rev_reg_def, rev_reg) = if rev_reg_id.is_some() {
-            let timestamp = timestamp
-                .ok_or_else(|| err_msg!("Identifier timestamp not found for revocation check"))?;
+        let (rev_reg_def, rev_reg) =
+            if let (Some(rev_reg_id), Some(timestamp)) = (rev_reg_id, timestamp) {
+                let rev_reg_defs = self.rev_reg_defs.ok_or_else(|| {
+                    err_msg!("Could not load the Revocation Registry Definitions mapping")
+                })?;
 
-            let rev_reg_defs = self.rev_reg_defs.ok_or_else(|| {
-                err_msg!("Could not load the Revocation Registry Definitions mapping")
-            })?;
+                let rev_reg_map = self
+                    .revocation_map
+                    .as_ref()
+                    .ok_or_else(|| err_msg!("Could not load the Revocation Registry mapping"))?;
 
-            let rev_reg_map = self
-                .revocation_map
-                .as_ref()
-                .ok_or_else(|| err_msg!("Could not load the Revocation Registry mapping"))?;
-
-            let rev_reg_id = rev_reg_id
-                .ok_or_else(|| err_msg!("Revocation Registry Id not found for revocation check"))?;
-
-            let rev_reg_def = Some(rev_reg_defs.get(rev_reg_id).ok_or_else(|| {
-                err_msg!(
+                let rev_reg_def = Some(rev_reg_defs.get(rev_reg_id).ok_or_else(|| {
+                    err_msg!(
                     "Revocation Registry Definition not provided for ID: {:?}",
                     rev_reg_id
                 )
-            })?);
+                })?);
 
-            let rev_reg = Some(
-                rev_reg_map
-                    .get(rev_reg_id)
-                    .and_then(|regs| regs.get(&timestamp))
-                    .ok_or_else(|| {
-                        err_msg!(
+                let rev_reg = Some(
+                    rev_reg_map
+                        .get(rev_reg_id)
+                        .and_then(|regs| regs.get(&timestamp))
+                        .ok_or_else(|| {
+                            err_msg!(
                             "Revocation Registry not provided for ID and timestamp: {:?}, {:?}",
                             rev_reg_id,
                             timestamp
                         )
-                    })?,
-            );
+                        })?,
+                );
 
-            (rev_reg_def, rev_reg)
-        } else {
-            (None, None)
-        };
+                (rev_reg_def, rev_reg)
+            } else {
+                (None, None)
+            };
 
         Ok((rev_reg_def, rev_reg))
     }
