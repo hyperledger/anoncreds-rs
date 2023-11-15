@@ -63,10 +63,10 @@ pub struct PresentationProofValue {
 }
 
 impl PresentationProof {
-    pub fn new(proof_value: PresentationProofValue, nonce: String) -> PresentationProof {
+    pub fn new(proof_value: PresentationProofValue, challenge: String) -> PresentationProof {
         PresentationProof {
             type_: PresentationProofType::AnonCredsPresentationProof2023,
-            challenge: nonce,
+            challenge,
             proof_value: proof_value.encode(),
         }
     }
