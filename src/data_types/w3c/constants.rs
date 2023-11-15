@@ -10,7 +10,9 @@ pub const W3C_ANONCREDS_CONTEXT: &str = "https://github.io/anoncreds-w3c/context
 
 // Types
 pub const W3C_CREDENTIAL_TYPE: &str = "VerifiableCredential";
+pub const W3C_PRESENTATION_TYPE: &str = "VerifiablePresentation";
 pub const W3C_ANONCREDS_CREDENTIAL_TYPE: &str = "AnonCredsCredential";
+pub const W3C_ANONCREDS_PRESENTATION_TYPE: &str = "AnonCredsPresentation";
 
 pub(crate) static ANONCREDS_CONTEXTS: Lazy<Contexts> = Lazy::new(|| {
     Contexts(HashSet::from([
@@ -19,9 +21,16 @@ pub(crate) static ANONCREDS_CONTEXTS: Lazy<Contexts> = Lazy::new(|| {
     ]))
 });
 
-pub(crate) static ANONCREDS_TYPES: Lazy<Types> = Lazy::new(|| {
+pub(crate) static ANONCREDS_CREDENTIAL_TYPES: Lazy<Types> = Lazy::new(|| {
     Types(HashSet::from([
         String::from(W3C_CREDENTIAL_TYPE),
         String::from(W3C_ANONCREDS_CREDENTIAL_TYPE),
+    ]))
+});
+
+pub(crate) static ANONCREDS_PRESENTATION_TYPES: Lazy<Types> = Lazy::new(|| {
+    Types(HashSet::from([
+        String::from(W3C_PRESENTATION_TYPE),
+        String::from(W3C_ANONCREDS_PRESENTATION_TYPE),
     ]))
 });

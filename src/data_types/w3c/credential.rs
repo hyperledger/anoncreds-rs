@@ -6,7 +6,7 @@ use std::string::ToString;
 use zeroize::Zeroize;
 
 use crate::data_types::pres_request::{PredicateInfo, PredicateTypes};
-use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
+use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_CREDENTIAL_TYPES};
 use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignatureProof};
 use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
 use crate::data_types::{
@@ -253,7 +253,7 @@ impl W3CCredential {
     pub fn new() -> W3CCredential {
         W3CCredential {
             context: ANONCREDS_CONTEXTS.clone(),
-            type_: ANONCREDS_TYPES.clone(),
+            type_: ANONCREDS_CREDENTIAL_TYPES.clone(),
             issuance_date: Utc::now(),
             proof: OneOrMany::Many(Vec::new()),
             ..Default::default()

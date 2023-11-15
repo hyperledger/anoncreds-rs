@@ -229,7 +229,7 @@ mod tests {
     use crate::data_types::cred_def::CredentialDefinitionId;
     use crate::data_types::issuer_id::IssuerId;
     use crate::data_types::schema::SchemaId;
-    use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
+    use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_CREDENTIAL_TYPES};
     use crate::data_types::w3c::one_or_many::OneOrMany;
     use crate::types::{
         AttributeNames, CredentialDefinitionConfig, CredentialValues, MakeCredentialValues,
@@ -359,7 +359,7 @@ mod tests {
         let w3c_credential = credential_to_w3c(&legacy_credential, &_credential_definition())
             .expect("unable to convert credential to w3c form");
         assert_eq!(w3c_credential.context, ANONCREDS_CONTEXTS.clone());
-        assert_eq!(w3c_credential.type_, ANONCREDS_TYPES.clone());
+        assert_eq!(w3c_credential.type_, ANONCREDS_CREDENTIAL_TYPES.clone());
         assert_eq!(
             w3c_credential.credential_schema.schema,
             legacy_credential.schema_id

@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
 use crate::data_types::w3c::credential::{Contexts, Types};
 use crate::data_types::w3c::presentation_proof::PresentationProof;
 use crate::data_types::w3c::{
     constants::{
-        W3C_ANONCREDS_CONTEXT, W3C_ANONCREDS_CREDENTIAL_TYPE, W3C_CONTEXT, W3C_CREDENTIAL_TYPE,
+        ANONCREDS_CONTEXTS, ANONCREDS_PRESENTATION_TYPES, W3C_ANONCREDS_CONTEXT,
+        W3C_ANONCREDS_PRESENTATION_TYPE, W3C_CONTEXT, W3C_PRESENTATION_TYPE,
     },
     credential::W3CCredential,
     uri::URI,
@@ -29,7 +29,7 @@ impl W3CPresentation {
     pub fn new() -> W3CPresentation {
         W3CPresentation {
             context: ANONCREDS_CONTEXTS.clone(),
-            type_: ANONCREDS_TYPES.clone(),
+            type_: ANONCREDS_PRESENTATION_TYPES.clone(),
             verifiable_credential: Vec::new(),
             proof: PresentationProof::default(),
         }
@@ -56,12 +56,14 @@ impl W3CPresentation {
                 "Credential does not contain w3c anoncreds context"
             ));
         }
-        if !self.type_.0.contains(W3C_CREDENTIAL_TYPE) {
-            return Err(err_msg!("Credential does not contain w3c credential type"));
-        }
-        if !self.type_.0.contains(W3C_ANONCREDS_CREDENTIAL_TYPE) {
+        if !self.type_.0.contains(W3C_PRESENTATION_TYPE) {
             return Err(err_msg!(
-                "Credential does not contain w3c anoncreds credential type"
+                "Credential does not contain w3c presentation type"
+            ));
+        }
+        if !self.type_.0.contains(W3C_ANONCREDS_PRESENTATION_TYPE) {
+            return Err(err_msg!(
+                "Credential does not contain w3c anoncreds presentation type"
             ));
         }
         Ok(())
