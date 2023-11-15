@@ -93,8 +93,13 @@ pub fn verify_presentation(
         &received_self_attested_attrs,
     )?;
 
-    let mut proof_verifier = Verifier::new_proof_verifier()?;
-    let non_credential_schema = build_non_credential_schema()?;
+    let mut proof_verifier = CLProofVerifier::init(
+        pres_req,
+        schemas,
+        cred_defs,
+        rev_reg_defs,
+        rev_status_lists.as_ref(),
+    )?;
 
     for sub_proof_index in 0..presentation.identifiers.len() {
         let identifier = presentation.identifiers[sub_proof_index].clone();
@@ -106,25 +111,18 @@ pub fn verify_presentation(
             .requested_proof
             .predicate_referents(sub_proof_index as u32);
 
-        _add_sub_proof(
-            &mut proof_verifier,
-            pres_req,
+        proof_verifier.add_sub_proof(
             &attributes,
             &predicates,
-            &non_credential_schema,
             &identifier.schema_id,
-            schemas,
             &identifier.cred_def_id,
-            cred_defs,
             identifier.rev_reg_id.as_ref(),
-            rev_reg_defs,
-            rev_status_lists.as_ref(),
             identifier.timestamp,
             nonrevoke_interval_override,
         )?;
     }
 
-    let valid = proof_verifier.verify(&presentation.proof, pres_req.nonce.as_native())?;
+    let valid = proof_verifier.verify(&presentation.proof)?;
 
     trace!("verify <<< valid: {:?}", valid);
 
@@ -182,8 +180,13 @@ pub fn verify_w3c_presentation(
         aggregated_proof: proof_data.aggregated,
     };
 
-    let mut proof_verifier = Verifier::new_proof_verifier()?;
-    let non_credential_schema = build_non_credential_schema()?;
+    let mut proof_verifier = CLProofVerifier::init(
+        pres_req,
+        schemas,
+        cred_defs,
+        rev_reg_defs,
+        rev_status_lists.as_ref(),
+    )?;
 
     for verifiable_credential in presentation.verifiable_credential.iter() {
         let credential_proof = verifiable_credential.get_presentation_proof()?;
@@ -199,27 +202,19 @@ pub fn verify_w3c_presentation(
             credential_proof.mapping.revealed_attributes.clone();
         revealed_attribute.extend(credential_proof.mapping.revealed_attribute_groups.clone());
 
-        _add_sub_proof(
-            &mut proof_verifier,
-            pres_req,
+        proof_verifier.add_sub_proof(
             &revealed_attribute,
             &credential_proof.mapping.predicates,
-            &non_credential_schema,
             schema_id,
-            schemas,
             cred_def_id,
-            cred_defs,
             rev_reg_id,
-            rev_reg_defs,
-            rev_status_lists.as_ref(),
             credential_proof.timestamp,
             nonrevoke_interval_override,
         )?;
-
         proof.proofs.push(proof_data.sub_proof);
     }
 
-    let valid = proof_verifier.verify(&proof, pres_req.nonce.as_native())?;
+    let valid = proof_verifier.verify(&proof)?;
 
     trace!("verify <<< valid: {:?}", valid);
 
@@ -229,166 +224,6 @@ pub fn verify_w3c_presentation(
 /// Generates a cryptographically strong pseudo-random nonce with a length of 80 bits
 pub fn generate_nonce() -> Result<Nonce> {
     new_nonce()
-}
-
-#[allow(clippy::too_many_arguments)]
-fn _add_sub_proof(
-    proof_verifier: &mut ProofVerifier,
-    pres_req: &PresentationRequestPayload,
-    attributes: &HashSet<String>,
-    predicates: &HashSet<String>,
-    non_credential_schema: &NonCredentialSchema,
-    schema_id: &SchemaId,
-    schemas: &HashMap<SchemaId, Schema>,
-    cred_def_id: &CredentialDefinitionId,
-    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
-    rev_reg_id: Option<&RevocationRegistryDefinitionId>,
-    rev_reg_defs: Option<&HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
-    rev_status_lists: Option<&Vec<RevocationStatusList>>,
-    timestamp: Option<u64>,
-    nonrevoke_interval_override: Option<
-        &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
-    >,
-) -> Result<()> {
-    let schema = schemas
-        .get(schema_id)
-        .ok_or_else(|| err_msg!("Schema not provided for ID: {:?}", schema_id))?;
-
-    let cred_def = cred_defs.get(cred_def_id).ok_or_else(|| {
-        err_msg!(
-            "Credential Definition not provided for ID: {:?}",
-            cred_def_id
-        )
-    })?;
-
-    let credential_schema = build_credential_schema(schema)?;
-
-    let credential_pub_key = CredentialPublicKey::build_from_parts(
-        &cred_def.value.primary,
-        cred_def.value.revocation.as_ref(),
-    )?;
-
-    let (attrs_for_credential, attrs_nonrevoked_interval) =
-        pres_req.get_requested_attributes(attributes)?;
-    let (predicates_for_credential, pred_nonrevoked_interval) =
-        pres_req.get_requested_predicates(predicates)?;
-
-    let cred_nonrevoked_interval = get_non_revoked_interval(
-        attrs_nonrevoked_interval,
-        pred_nonrevoked_interval,
-        pres_req,
-        rev_reg_id,
-        nonrevoke_interval_override,
-    );
-
-    let sub_pres_request =
-        build_sub_proof_request(&attrs_for_credential, &predicates_for_credential)?;
-
-    let rev_reg_map = if let Some(lists) = rev_status_lists {
-        let mut map: HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>> =
-            HashMap::new();
-
-        for list in lists {
-            let id = list
-                .id()
-                .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing Id"))?;
-
-            let timestamp = list
-                .timestamp()
-                .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing timestamp"))?;
-
-            let rev_reg: Option<RevocationRegistry> = (list).into();
-            let rev_reg = rev_reg.ok_or_else(|| {
-                err_msg!(Unexpected, "Revocation status list missing accumulator")
-            })?;
-
-            map.entry(id)
-                .or_insert_with(HashMap::new)
-                .insert(timestamp, rev_reg);
-        }
-        Some(map)
-    } else {
-        None
-    };
-
-    // Revocation checks is required iff both conditions are met:
-    // - Credential is revokable (input from verifier, trustable)
-    // - PresentationReq has asked for NRP* (input from verifier, trustable)
-    //
-    // * This is done by setting a NonRevokedInterval either for attr / predicate / global
-    let (rev_reg_def, rev_reg) = if let (Some(_), true) = (
-        cred_def.value.revocation.as_ref(),
-        cred_nonrevoked_interval.is_some(),
-    ) {
-        let timestamp = timestamp
-            .ok_or_else(|| err_msg!("Identifier timestamp not found for revocation check"))?;
-
-        if rev_reg_defs.is_none() {
-            return Err(err_msg!(
-                "Timestamp provided but no Revocation Registry Definitions found"
-            ));
-        }
-        if rev_reg_map.is_none() {
-            return Err(err_msg!(
-                "Timestamp provided but no Revocation Registries found"
-            ));
-        }
-
-        let rev_reg_id = rev_reg_id
-            .ok_or_else(|| err_msg!("Revocation Registry Id not found for revocation check"))?;
-
-        // Revocation registry definition id is the same as the rev reg id
-        let rev_reg_def_id = RevocationRegistryDefinitionId::new(rev_reg_id.clone())?;
-
-        // Validate timestamp
-        cred_nonrevoked_interval
-            .map(|int| int.is_valid(timestamp))
-            .transpose()?;
-
-        let rev_reg_def = Some(
-            rev_reg_defs
-                .ok_or_else(|| err_msg!("Could not load the Revocation Registry Definition"))?
-                .get(&rev_reg_def_id)
-                .ok_or_else(|| {
-                    err_msg!(
-                        "Revocation Registry Definition not provided for ID: {:?}",
-                        rev_reg_def_id
-                    )
-                })?,
-        );
-
-        let rev_reg = Some(
-            rev_reg_map
-                .as_ref()
-                .ok_or_else(|| err_msg!("Could not load the Revocation Registry mapping"))?
-                .get(&rev_reg_def_id)
-                .and_then(|regs| regs.get(&timestamp))
-                .ok_or_else(|| {
-                    err_msg!(
-                        "Revocation Registry not provided for ID and timestamp: {:?}, {:?}",
-                        rev_reg_id,
-                        timestamp
-                    )
-                })?,
-        );
-
-        (rev_reg_def, rev_reg)
-    } else {
-        (None, None)
-    };
-
-    let rev_key_pub = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
-
-    proof_verifier.add_sub_proof_request(
-        &sub_pres_request,
-        &credential_schema,
-        non_credential_schema,
-        &credential_pub_key,
-        rev_key_pub,
-        rev_reg,
-    )?;
-
-    Ok(())
 }
 
 fn compare_attr_from_proof_and_request(
@@ -1037,12 +872,7 @@ fn build_requested_proof_from_w3c_presentation(
                 .name
                 .ok_or_else(|| err_msg!("Requested Attribute expected to have a name attribute"))?;
 
-            let raw = credential
-                .credential_subject
-                .attributes
-                .0
-                .get(&name)
-                .ok_or_else(|| err_msg!("Attribute {} not found in credential", &name))?;
+            let (_, raw) = credential.get_attribute(&name)?;
             requested_proof.revealed_attrs.insert(
                 referent.clone(),
                 RevealedAttributeInfo {
@@ -1066,12 +896,7 @@ fn build_requested_proof_from_w3c_presentation(
                 values: HashMap::new(),
             };
             for name in names.iter() {
-                let raw = credential
-                    .credential_subject
-                    .attributes
-                    .0
-                    .get(name)
-                    .ok_or_else(|| err_msg!("Attribute {} not found in credential", &name))?;
+                let (_, raw) = credential.get_attribute(name)?;
                 group_info.values.insert(
                     name.clone(),
                     AttributeValue {
@@ -1096,6 +921,218 @@ fn build_requested_proof_from_w3c_presentation(
         }
     }
     Ok(requested_proof)
+}
+
+fn build_revocation_registry_map(
+    rev_status_lists: Option<&Vec<RevocationStatusList>>,
+) -> Result<Option<HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>>>> {
+    let rev_reg_map = if let Some(lists) = rev_status_lists {
+        let mut map: HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>> =
+            HashMap::new();
+
+        for list in lists {
+            let id = list
+                .id()
+                .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing Id"))?;
+
+            let timestamp = list
+                .timestamp()
+                .ok_or_else(|| err_msg!(Unexpected, "RevStatusList missing timestamp"))?;
+
+            let rev_reg: Option<RevocationRegistry> = (list).into();
+            let rev_reg = rev_reg.ok_or_else(|| {
+                err_msg!(Unexpected, "Revocation status list missing accumulator")
+            })?;
+
+            map.entry(id)
+                .or_insert_with(HashMap::new)
+                .insert(timestamp, rev_reg);
+        }
+        Some(map)
+    } else {
+        None
+    };
+    Ok(rev_reg_map)
+}
+
+struct CLProofVerifier<'a> {
+    proof_verifier: ProofVerifier,
+    presentation_request: &'a PresentationRequestPayload,
+    non_credential_schema: NonCredentialSchema,
+    schemas: &'a HashMap<SchemaId, Schema>,
+    cred_defs: &'a HashMap<CredentialDefinitionId, CredentialDefinition>,
+    rev_reg_defs: Option<&'a HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
+    revocation_map:
+        Option<HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>>>,
+}
+
+impl<'a> CLProofVerifier<'a> {
+    fn init(
+        presentation_request: &'a PresentationRequestPayload,
+        schemas: &'a HashMap<SchemaId, Schema>,
+        cred_defs: &'a HashMap<CredentialDefinitionId, CredentialDefinition>,
+        rev_reg_defs: Option<
+            &'a HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>,
+        >,
+        rev_status_lists: Option<&'a Vec<RevocationStatusList>>,
+    ) -> Result<CLProofVerifier<'a>> {
+        let proof_verifier = Verifier::new_proof_verifier()?;
+        let non_credential_schema = build_non_credential_schema()?;
+        let revocation_map = build_revocation_registry_map(rev_status_lists)?;
+        Ok(CLProofVerifier {
+            proof_verifier,
+            presentation_request,
+            non_credential_schema,
+            schemas,
+            cred_defs,
+            rev_reg_defs,
+            revocation_map,
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn add_sub_proof(
+        &mut self,
+        attributes: &HashSet<String>,
+        predicates: &HashSet<String>,
+        schema_id: &SchemaId,
+        cred_def_id: &CredentialDefinitionId,
+        rev_reg_def_id: Option<&RevocationRegistryDefinitionId>,
+        timestamp: Option<u64>,
+        nonrevoke_interval_override: Option<
+            &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+        >,
+    ) -> Result<()> {
+        let schema = self.get_schema(schema_id)?;
+        let cred_def = self.get_credential_definition(cred_def_id)?;
+        let (rev_reg_def, rev_reg) = self.get_revocation_registry(rev_reg_def_id, timestamp)?;
+
+        let credential_schema = build_credential_schema(schema)?;
+        let credential_pub_key = CredentialPublicKey::build_from_parts(
+            &cred_def.value.primary,
+            cred_def.value.revocation.as_ref(),
+        )?;
+
+        let (attrs_for_credential, attrs_nonrevoked_interval) = self
+            .presentation_request
+            .get_requested_attributes(attributes)?;
+        let (predicates_for_credential, pred_nonrevoked_interval) = self
+            .presentation_request
+            .get_requested_predicates(predicates)?;
+
+        let cred_nonrevoked_interval = get_non_revoked_interval(
+            attrs_nonrevoked_interval,
+            pred_nonrevoked_interval,
+            self.presentation_request,
+            rev_reg_def_id,
+            nonrevoke_interval_override,
+        );
+
+        if let (Some(_), true) = (
+            cred_def.value.revocation.as_ref(),
+            cred_nonrevoked_interval.is_some(),
+        ) {
+            let timestamp = timestamp
+                .ok_or_else(|| err_msg!("Identifier timestamp not found for revocation check"))?;
+
+            // Validate timestamp
+            cred_nonrevoked_interval
+                .map(|int| int.is_valid(timestamp))
+                .transpose()?;
+        };
+
+        let sub_pres_request =
+            build_sub_proof_request(&attrs_for_credential, &predicates_for_credential)?;
+
+        let rev_key_pub = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
+        self.proof_verifier.add_sub_proof_request(
+            &sub_pres_request,
+            &credential_schema,
+            &self.non_credential_schema,
+            &credential_pub_key,
+            rev_key_pub.cloned().as_ref(),
+            rev_reg.cloned().as_ref(),
+        )?;
+
+        Ok(())
+    }
+
+    fn verify(&mut self, proof: &Proof) -> Result<bool> {
+        let valid = self
+            .proof_verifier
+            .verify(proof, self.presentation_request.nonce.as_native())?;
+        Ok(valid)
+    }
+
+    fn get_schema(&self, schema_id: &SchemaId) -> Result<&'a Schema> {
+        self.schemas
+            .get(schema_id)
+            .ok_or_else(|| err_msg!("Schema not provided for ID: {:?}", schema_id))
+    }
+
+    fn get_credential_definition(
+        &self,
+        cred_def_id: &CredentialDefinitionId,
+    ) -> Result<&'a CredentialDefinition> {
+        self.cred_defs.get(cred_def_id).ok_or_else(|| {
+            err_msg!(
+                "Credential Definition not provided for ID: {:?}",
+                cred_def_id
+            )
+        })
+    }
+
+    fn get_revocation_registry(
+        &'a self,
+        rev_reg_id: Option<&RevocationRegistryDefinitionId>,
+        timestamp: Option<u64>,
+    ) -> Result<(
+        Option<&'a RevocationRegistryDefinition>,
+        Option<&'a RevocationRegistry>,
+    )> {
+        let (rev_reg_def, rev_reg) = if rev_reg_id.is_some() {
+            let timestamp = timestamp
+                .ok_or_else(|| err_msg!("Identifier timestamp not found for revocation check"))?;
+
+            let rev_reg_defs = self.rev_reg_defs.ok_or_else(|| {
+                err_msg!("Could not load the Revocation Registry Definitions mapping")
+            })?;
+
+            let rev_reg_map = self
+                .revocation_map
+                .as_ref()
+                .ok_or_else(|| err_msg!("Could not load the Revocation Registry mapping"))?;
+
+            let rev_reg_id = rev_reg_id
+                .ok_or_else(|| err_msg!("Revocation Registry Id not found for revocation check"))?;
+
+            let rev_reg_def = Some(rev_reg_defs.get(rev_reg_id).ok_or_else(|| {
+                err_msg!(
+                    "Revocation Registry Definition not provided for ID: {:?}",
+                    rev_reg_id
+                )
+            })?);
+
+            let rev_reg = Some(
+                rev_reg_map
+                    .get(rev_reg_id)
+                    .and_then(|regs| regs.get(&timestamp))
+                    .ok_or_else(|| {
+                        err_msg!(
+                            "Revocation Registry not provided for ID and timestamp: {:?}, {:?}",
+                            rev_reg_id,
+                            timestamp
+                        )
+                    })?,
+            );
+
+            (rev_reg_def, rev_reg)
+        } else {
+            (None, None)
+        };
+
+        Ok((rev_reg_def, rev_reg))
+    }
 }
 
 #[cfg(test)]

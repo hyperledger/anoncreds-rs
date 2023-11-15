@@ -7,7 +7,7 @@ use anoncreds::data_types::w3c::uri::URI;
 use anoncreds::issuer;
 use anoncreds::prover;
 use anoncreds::tails::TailsFileWriter;
-use anoncreds::types::{CredentialRevocationConfig, PresentCredentials};
+use anoncreds::types::{CredentialRevocationConfig, MakeCredentialAttributes, PresentCredentials};
 use anoncreds::verifier;
 use serde_json::json;
 use std::collections::{BTreeSet, HashMap};
@@ -3629,6 +3629,177 @@ fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_
             .attributes
             .0
             .get("age")
+            .cloned()
+            .unwrap()
+    );
+
+    let valid = verifier::verify_w3c_presentation(
+        &presentation,
+        &pres_request,
+        &schemas,
+        &cred_defs,
+        None,
+        None,
+        None,
+    )
+    .expect("Error verifying presentation");
+
+    assert!(valid);
+}
+
+#[test]
+fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation_for_restrictions() {
+    // Create Prover pseudo wallet and link secret
+    let mut prover_wallet = ProverWallet::default();
+
+    // Create schema
+    let (gvt_schema, gvt_schema_id) = fixtures::create_schema("GVT");
+
+    // Create credential definition
+    let ((gvt_cred_def, gvt_cred_def_priv, gvt_cred_key_correctness_proof), gvt_cred_def_id) =
+        fixtures::create_cred_def(&gvt_schema, false);
+
+    // Issue GVT credential in W3C form
+
+    // Issuer creates a Credential Offer
+    let cred_offer = issuer::create_credential_offer(
+        gvt_schema_id.try_into().unwrap(),
+        gvt_cred_def_id.try_into().unwrap(),
+        &gvt_cred_key_correctness_proof,
+    )
+    .expect("Error creating credential offer");
+
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) = prover::create_credential_request(
+        Some("entropy"),
+        None,
+        &gvt_cred_def,
+        &prover_wallet.link_secret,
+        "default",
+        &cred_offer,
+    )
+    .expect("Error creating credential request");
+
+    // Issuer creates a credential
+    let mut gvt_cred_values = MakeCredentialAttributes::default();
+    gvt_cred_values.add("Sex", "male");
+    gvt_cred_values.add("Name", "Alex");
+    gvt_cred_values.add("Height", "175");
+    gvt_cred_values.add("Age", "28");
+
+    let issue_cred = issuer::create_w3c_credential(
+        &gvt_cred_def,
+        &gvt_cred_def_priv,
+        &cred_offer,
+        &cred_request,
+        gvt_cred_values.into(),
+        None,
+        None,
+    )
+    .expect("Error creating w3c credential");
+
+    // Prover receives the credential and processes it
+    let mut w3c_credential = issue_cred;
+    prover::process_w3c_credential(
+        &mut w3c_credential,
+        &cred_request_metadata,
+        &prover_wallet.link_secret,
+        &gvt_cred_def,
+        None,
+    )
+    .expect("Error processing credential");
+
+    // Store W3C credential form in wallet
+    prover_wallet.w3c_credentials.push(w3c_credential);
+
+    // Create and Verify W3C presentation using W3C credential
+
+    // Verifier creates a presentation request
+    let nonce = verifier::generate_nonce().expect("Error generating presentation request nonce");
+    let pres_request = serde_json::from_value(json!({
+        "nonce": nonce,
+        "name":"pres_req_1",
+        "version":"0.1",
+        "requested_attributes":{
+            "attr1_referent":{
+                "name":"name"
+            },
+            "attr2_referent":{
+                "names":["SEX", "height"]
+            }
+        },
+        "requested_predicates":{
+            "predicate1_referent":{"name":"AGE","p_type":">=","p_value":18}
+        }
+    }))
+    .expect("Error creating proof request");
+
+    // Prover creates presentation
+    let mut present = PresentCredentials::default();
+    {
+        let mut cred1 = present.add_credential(&prover_wallet.w3c_credentials[0], None, None);
+        cred1.add_requested_attribute("attr1_referent", true);
+        cred1.add_requested_attribute("attr2_referent", true);
+        cred1.add_requested_predicate("predicate1_referent");
+    }
+
+    let mut schemas = HashMap::new();
+    let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
+    schemas.insert(gvt_schema_id, gvt_schema.clone());
+
+    let mut cred_defs = HashMap::new();
+    let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
+    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
+
+    let presentation = prover::create_w3c_presentation(
+        &pres_request,
+        present,
+        &prover_wallet.link_secret,
+        &schemas,
+        &cred_defs,
+    )
+    .expect("Error creating presentation");
+
+    // Verifier verifies presentation
+    assert_eq!(
+        "Alex",
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes
+            .0
+            .get("Name")
+            .unwrap()
+    );
+
+    // Verifier verifies presentation
+    assert_eq!(
+        "male",
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes
+            .0
+            .get("Sex")
+            .unwrap()
+    );
+
+    // Verifier verifies presentation
+    assert_eq!(
+        "175",
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes
+            .0
+            .get("Height")
+            .unwrap()
+    );
+
+    assert_eq!(
+        json!({ "type": "AnonCredsPredicate", "p_type": ">=", "p_value": 18  }),
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes
+            .0
+            .get("Age")
             .cloned()
             .unwrap()
     );

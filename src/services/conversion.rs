@@ -228,7 +228,7 @@ mod tests {
     use super::*;
     use crate::data_types::cred_def::CredentialDefinitionId;
     use crate::data_types::issuer_id::IssuerId;
-    use crate::data_types::schema::{Schema, SchemaId};
+    use crate::data_types::schema::SchemaId;
     use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_TYPES};
     use crate::data_types::w3c::one_or_many::OneOrMany;
     use crate::types::{
