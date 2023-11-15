@@ -82,7 +82,7 @@ legacy_cred = recv_cred.to_legacy()
 print("Legacy Credential")
 print(legacy_cred.to_json())
 
-w3c_cred = legacy_cred.to_w3c()
+w3c_cred = legacy_cred.to_w3c(cred_def_pub)
 print("W3C converted Credential")
 print(w3c_cred.to_json())
 

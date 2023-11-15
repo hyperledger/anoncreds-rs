@@ -983,11 +983,13 @@ jsi::Value w3cCredentialAddType(jsi::Runtime &rt, jsi::Object options) {
 
 jsi::Value credentialToW3C(jsi::Runtime &rt, jsi::Object options) {
   auto credential = jsiToValue<ObjectHandle>(rt, options, "objectHandle");
+  auto credentialDefinition =
+      jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
 
   ObjectHandle out;
 
   ErrorCode code = anoncreds_credential_to_w3c(
-      credential, &out);
+      credential, credentialDefinition, &out);
 
   return createReturnValue(rt, code, &out);
 };

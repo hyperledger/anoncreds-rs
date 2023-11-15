@@ -257,7 +257,7 @@ export const nativeBindings = {
       FFI_INT8_PTR
     ]
   ],
-  anoncreds_credential_to_w3c: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR]],
+  anoncreds_credential_to_w3c: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR]],
   anoncreds_credential_from_w3c: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR]],
   anoncreds_w3c_credential_add_non_anoncreds_integrity_proof: [
     FFI_ERRORCODE,

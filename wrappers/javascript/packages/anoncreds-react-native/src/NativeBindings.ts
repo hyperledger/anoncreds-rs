@@ -237,7 +237,7 @@ export type NativeBindings = {
 
   w3cCredentialAddType(options: { objectHandle: number; type_: string }): ReturnObject<Handle>
 
-  credentialToW3C(options: { objectHandle: number }): ReturnObject<Handle>
+  credentialToW3C(options: { objectHandle: number, credentialDefinition: number }): ReturnObject<Handle>
 
   credentialFromW3C(options: { objectHandle: number }): ReturnObject<Handle>
 

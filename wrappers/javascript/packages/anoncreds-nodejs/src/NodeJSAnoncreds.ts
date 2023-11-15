@@ -907,12 +907,12 @@ export class NodeJSAnoncreds implements Anoncreds {
     return Boolean(handleReturnPointer<number>(ret))
   }
 
-  public credentialToW3C(options: { objectHandle: ObjectHandle }): ObjectHandle {
-    const { objectHandle } = serializeArguments(options)
+  public credentialToW3C(options: { objectHandle: ObjectHandle, credentialDefinition: ObjectHandle }): ObjectHandle {
+    const { objectHandle, credentialDefinition } = serializeArguments(options)
 
     const ret = allocatePointer()
 
-    this.nativeAnoncreds.anoncreds_credential_to_w3c(objectHandle, ret)
+    this.nativeAnoncreds.anoncreds_credential_to_w3c(objectHandle, credentialDefinition, ret)
     this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
