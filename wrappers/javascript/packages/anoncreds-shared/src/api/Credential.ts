@@ -34,6 +34,10 @@ export type ProcessCredentialOptions = {
   revocationRegistryDefinition?: RevocationRegistryDefinition | JsonObject
 }
 
+export type CredentialToW3COptions = {
+  credentialDefinition: CredentialDefinition | JsonObject
+}
+
 export class Credential extends AnoncredsObject {
   public static create(options: CreateCredentialOptions) {
     let credential
@@ -142,12 +146,28 @@ export class Credential extends AnoncredsObject {
     return index ? Number(index) : undefined
   }
 
-  public toW3c(): W3CCredential {
-    return new W3CCredential(
-      anoncreds.credentialToW3C({
-        objectHandle: this.handle
-      }).handle
-    )
+  public toW3C(options: CredentialToW3COptions): W3CCredential {
+    let credential
+    // Objects created within this method must be freed up
+    const objectHandles: ObjectHandle[] = []
+    try {
+        const credentialDefinition =
+          options.credentialDefinition instanceof CredentialDefinition
+            ? options.credentialDefinition.handle
+            : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
+
+        credential = new W3CCredential(
+          anoncreds.credentialToW3C({
+            objectHandle: this.handle,
+            credentialDefinition,
+          }).handle
+        )
+    } finally {
+      objectHandles.forEach((handle) => {
+        handle.clear()
+      })
+    }
+    return credential
   }
 
   public static fromW3C(credential: W3CCredential) {

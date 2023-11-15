@@ -34,6 +34,11 @@ export type ProcessW3CCredentialOptions = {
   revocationRegistryDefinition?: RevocationRegistryDefinition | JsonObject
 }
 
+export type W3CCredentialFromLegacyOptions = {
+  credential: Credential
+  credentialDefinition: CredentialDefinition | JsonObject
+}
+
 export class W3CCredential extends AnoncredsObject {
   public static create(options: CreateW3CCredentialOptions) {
     let credential
@@ -150,8 +155,28 @@ export class W3CCredential extends AnoncredsObject {
     )
   }
 
-  public static fromLegacy(credential: Credential): W3CCredential {
-    return new W3CCredential(anoncreds.credentialToW3C({ objectHandle: credential.handle }).handle)
+  public static fromLegacy(options: W3CCredentialFromLegacyOptions): W3CCredential {
+    let credential
+    // Objects created within this method must be freed up
+    const objectHandles: ObjectHandle[] = []
+    try {
+        const credentialDefinition =
+          options.credentialDefinition instanceof CredentialDefinition
+            ? options.credentialDefinition.handle
+            : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
+
+        credential = new W3CCredential(
+          anoncreds.credentialToW3C({
+            objectHandle: options.credential.handle,
+            credentialDefinition,
+          }).handle
+        )
+    } finally {
+      objectHandles.forEach((handle) => {
+        handle.clear()
+      })
+    }
+    return credential
   }
 
   public addNonAnonCredsIntegrityProof(proof: string): W3CCredential {

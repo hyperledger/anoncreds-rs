@@ -343,11 +343,15 @@ class Credential(bindings.AnoncredsObject):
         return int(str(sval)) if sval is not None else None
 
     def to_w3c(
-        self
+        self,
+        cred_def: Union[str, CredentialDefinition]
     ) -> "W3CCredential":
+        if not isinstance(cred_def, bindings.AnoncredsObject):
+            cred_def = CredentialDefinition.load(cred_def)
         return W3CCredential(
             bindings.credential_to_w3c(
                 self.handle,
+                cred_def.handle,
             )
         )
 
@@ -522,8 +526,8 @@ class W3CCredential(bindings.AnoncredsObject):
         return Credential.from_w3c(self)
 
     @classmethod
-    def from_legacy(cls, cred: "Credential") -> "W3CCredential":
-        return cred.to_w3c()
+    def from_legacy(cls, cred: "Credential", cred_def: Union[str, CredentialDefinition]) -> "W3CCredential":
+        return cred.to_w3c(cred_def)
 
 
 class PresentationRequest(bindings.AnoncredsObject):
