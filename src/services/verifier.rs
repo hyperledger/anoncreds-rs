@@ -963,7 +963,7 @@ struct CLProofVerifier<'a> {
     cred_defs: &'a HashMap<CredentialDefinitionId, CredentialDefinition>,
     rev_reg_defs: Option<&'a HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>,
     revocation_map:
-    Option<HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>>>,
+        Option<HashMap<RevocationRegistryDefinitionId, HashMap<u64, RevocationRegistry>>>,
 }
 
 impl<'a> CLProofVerifier<'a> {
@@ -1103,9 +1103,9 @@ impl<'a> CLProofVerifier<'a> {
 
                 let rev_reg_def = Some(rev_reg_defs.get(rev_reg_id).ok_or_else(|| {
                     err_msg!(
-                    "Revocation Registry Definition not provided for ID: {:?}",
-                    rev_reg_id
-                )
+                        "Revocation Registry Definition not provided for ID: {:?}",
+                        rev_reg_id
+                    )
                 })?);
 
                 let rev_reg = Some(
@@ -1114,10 +1114,10 @@ impl<'a> CLProofVerifier<'a> {
                         .and_then(|regs| regs.get(&timestamp))
                         .ok_or_else(|| {
                             err_msg!(
-                            "Revocation Registry not provided for ID and timestamp: {:?}, {:?}",
-                            rev_reg_id,
-                            timestamp
-                        )
+                                "Revocation Registry not provided for ID and timestamp: {:?}, {:?}",
+                                rev_reg_id,
+                                timestamp
+                            )
                         })?,
                 );
 

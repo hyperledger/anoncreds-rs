@@ -3648,7 +3648,8 @@ fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_
 }
 
 #[test]
-fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation_for_restrictions() {
+fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation_for_case_incentive_attributes(
+) {
     // Create Prover pseudo wallet and link secret
     let mut prover_wallet = ProverWallet::default();
 
