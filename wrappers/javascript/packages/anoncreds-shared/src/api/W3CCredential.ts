@@ -160,17 +160,17 @@ export class W3CCredential extends AnoncredsObject {
     // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
     try {
-        const credentialDefinition =
-          options.credentialDefinition instanceof CredentialDefinition
-            ? options.credentialDefinition.handle
-            : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
+      const credentialDefinition =
+        options.credentialDefinition instanceof CredentialDefinition
+          ? options.credentialDefinition.handle
+          : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
 
-        credential = new W3CCredential(
-          anoncreds.credentialToW3C({
-            objectHandle: options.credential.handle,
-            credentialDefinition,
-          }).handle
-        )
+      credential = new W3CCredential(
+        anoncreds.credentialToW3C({
+          objectHandle: options.credential.handle,
+          credentialDefinition
+        }).handle
+      )
     } finally {
       objectHandles.forEach((handle) => {
         handle.clear()
