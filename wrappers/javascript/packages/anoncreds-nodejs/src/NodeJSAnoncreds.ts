@@ -687,7 +687,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     revocationConfiguration?: NativeCredentialRevocationConfig
     encoding?: string
   }): ObjectHandle {
-    const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest } =
+    const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest, encoding } =
       serializeArguments(options)
 
     const attributeNames = StringListStruct({
@@ -722,7 +722,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       attributeNames as unknown as Buffer,
       attributeRawValues as unknown as Buffer,
       revocationConfiguration?.ref().address() ?? 0,
-      options.encoding,
+      encoding,
       credentialPtr
     )
     this.handleError()
@@ -907,7 +907,7 @@ export class NodeJSAnoncreds implements Anoncreds {
     return Boolean(handleReturnPointer<number>(ret))
   }
 
-  public credentialToW3C(options: { objectHandle: ObjectHandle, credentialDefinition: ObjectHandle }): ObjectHandle {
+  public credentialToW3C(options: { objectHandle: ObjectHandle; credentialDefinition: ObjectHandle }): ObjectHandle {
     const { objectHandle, credentialDefinition } = serializeArguments(options)
 
     const ret = allocatePointer()
@@ -930,6 +930,20 @@ export class NodeJSAnoncreds implements Anoncreds {
   }
 
   public w3cCredentialAddNonAnoncredsIntegrityProof(options: {
+    objectHandle: ObjectHandle
+    proof: string
+  }): ObjectHandle {
+    const { objectHandle, proof } = serializeArguments(options)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(objectHandle, proof, ret)
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public w3cCredentialAddNonAnonCredsIntegrityProof(options: {
     objectHandle: ObjectHandle
     proof: string
   }): ObjectHandle {

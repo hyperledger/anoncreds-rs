@@ -280,7 +280,7 @@ export type Anoncreds = {
 
   w3cCredentialFromJson(options: { json: string }): ObjectHandle
 
-  credentialToW3C(options: { objectHandle: ObjectHandle, credentialDefinition: ObjectHandle }): ObjectHandle
+  credentialToW3C(options: { objectHandle: ObjectHandle; credentialDefinition: ObjectHandle }): ObjectHandle
 
   credentialFromW3C(options: { objectHandle: ObjectHandle }): ObjectHandle
 }
