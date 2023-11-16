@@ -1,3 +1,4 @@
+import json
 from typing import Mapping, Optional, Sequence, Tuple, Union
 
 from . import bindings
@@ -363,61 +364,6 @@ class Credential(bindings.AnoncredsObject):
             )
         )
 
-    def add_non_anoncreds_integrity_proof(
-        self,
-        proof: str
-    ) -> "W3CCredential":
-        return W3CCredential(
-            bindings.w3c_credential_add_non_anoncreds_integrity_proof(
-                self.handle,
-                proof,
-            )
-        )
-
-    def set_credential_id(
-        self,
-        id: str
-    ) -> "W3CCredential":
-        return W3CCredential(
-            bindings.w3c_credential_set_credential_id(
-                self.handle,
-                id,
-            )
-        )
-
-    def set_subject_id(
-        self,
-        id: str
-    ) -> "W3CCredential":
-        return W3CCredential(
-            bindings.w3c_credential_set_subject_id(
-                self.handle,
-                id,
-            )
-        )
-
-    def add_context(
-        self,
-        context: str
-    ) -> "W3CCredential":
-        return W3CCredential(
-            bindings.w3c_credential_add_context(
-                self.handle,
-                context,
-            )
-        )
-
-    def add_type(
-        self,
-        type: str
-    ) -> "W3CCredential":
-        return W3CCredential(
-            bindings.w3c_credential_add_type(
-                self.handle,
-                type,
-            )
-        )
-
 
 class W3CCredential(bindings.AnoncredsObject):
     GET_ATTR = "anoncreds_w3c_credential_get_attribute"
@@ -528,6 +474,53 @@ class W3CCredential(bindings.AnoncredsObject):
     @classmethod
     def from_legacy(cls, cred: "Credential", cred_def: Union[str, CredentialDefinition]) -> "W3CCredential":
         return cred.to_w3c(cred_def)
+
+    def add_non_anoncreds_integrity_proof(
+        self,
+        proof: Union[str, dict]
+    ) -> "W3CCredential":
+        if isinstance(proof, dict):
+            proof = json.dumps(proof)
+        self.handle = bindings.w3c_credential_add_non_anoncreds_integrity_proof(
+            self.handle,
+            proof,
+        )
+
+    def set_id(
+        self,
+        id: str
+    ) -> "W3CCredential":
+        self.handle = bindings.w3c_credential_set_id(
+            self.handle,
+            id,
+        )
+
+    def set_subject_id(
+        self,
+        id: str
+    ) -> "W3CCredential":
+        self.handle = bindings.w3c_credential_set_subject_id(
+            self.handle,
+            id,
+        )
+
+    def add_context(
+        self,
+        context: str
+    ) -> "W3CCredential":
+        self.handle = bindings.w3c_credential_add_context(
+            self.handle,
+            context,
+        )
+
+    def add_type(
+        self,
+        type: str
+    ) -> "W3CCredential":
+        self.handle = bindings.w3c_credential_add_type(
+            self.handle,
+            type,
+        )
 
 
 class PresentationRequest(bindings.AnoncredsObject):

@@ -179,48 +179,53 @@ export class W3CCredential extends AnoncredsObject {
     return credential
   }
 
-  public addNonAnonCredsIntegrityProof(proof: string): W3CCredential {
-    return new W3CCredential(
-      anoncreds.w3cCredentialAddNonAnonCredsIntegrityProof({
-        objectHandle: this.handle,
-        proof
-      }).handle
-    )
+  public addNonAnonCredsIntegrityProof(proof: JsonObject) {
+    const credential = anoncreds.w3cCredentialAddNonAnonCredsIntegrityProof({
+      objectHandle: this.handle,
+      proof: JSON.stringify(proof)
+    })
+
+    this.handle.clear()
+    this.handle = credential
   }
 
-  public setId(id: string): W3CCredential {
-    return new W3CCredential(
-      anoncreds.w3cCredentialSetId({
-        objectHandle: this.handle,
-        id
-      }).handle
-    )
+  public setId(id: string) {
+    const credential = anoncreds.w3cCredentialSetId({
+      objectHandle: this.handle,
+      id
+    })
+
+    this.handle.clear()
+    this.handle = credential
   }
 
-  public setSubjectId(id: string): W3CCredential {
-    return new W3CCredential(
-      anoncreds.w3cCredentialSetSubjectId({
-        objectHandle: this.handle,
-        id
-      }).handle
-    )
+  public setSubjectId(id: string) {
+    const credential = anoncreds.w3cCredentialSetSubjectId({
+      objectHandle: this.handle,
+      id
+    })
+
+    this.handle.clear()
+    this.handle = credential
   }
 
-  public addContext(context: string): W3CCredential {
-    return new W3CCredential(
-      anoncreds.w3cCredentialAddContext({
-        objectHandle: this.handle,
-        context
-      }).handle
-    )
+  public addContext(context: string) {
+    const credential = anoncreds.w3cCredentialAddContext({
+      objectHandle: this.handle,
+      context
+    })
+
+    this.handle.clear()
+    this.handle = credential
   }
 
-  public addType(type_: string): W3CCredential {
-    return new W3CCredential(
-      anoncreds.w3cCredentialAddType({
-        objectHandle: this.handle,
-        type_
-      }).handle
-    )
+  public addType(type_: string) {
+    const credential = anoncreds.w3cCredentialAddType({
+      objectHandle: this.handle,
+      type_
+    })
+
+    this.handle.clear()
+    this.handle = credential
   }
 }
