@@ -12,8 +12,8 @@ use crate::utils::validation::Validatable;
 
 use crate::data_types::w3c::credential_proof::{CredentialSignature, CredentialSignatureProof};
 use crate::data_types::w3c::presentation_proof::{
-    CredentialAttributesMapping, CredentialPresentationProof, CredentialPresentationProofValue,
-    PredicateAttribute, PresentationProof, PresentationProofValue,
+    CredentialPresentationProof, CredentialPresentationProofValue, PredicateAttribute,
+    PresentationProof, PresentationProofValue,
 };
 use crate::prover::{CLCredentialProver, CLProofBuilder};
 use std::collections::HashMap;
@@ -192,7 +192,6 @@ pub fn create_presentation(
     // cl signatures generates sub proofs and aggregated at once at the end
     // so we need to iterate over credentials again an put sub proofs into their proofs
     for (present, sub_proof) in credentials.0.iter().zip(cl_proof.proofs) {
-        let mapping = build_mapping(pres_req, present)?;
         let credential_subject = build_credential_subject(pres_req, present)?;
         let proof_value = CredentialPresentationProofValue::new(sub_proof);
         let proof = CredentialPresentationProof::new(proof_value, mapping, present.timestamp);
@@ -210,39 +209,6 @@ pub fn create_presentation(
     );
 
     Ok(presentation)
-}
-
-fn build_mapping<'p>(
-    pres_req: &PresentationRequestPayload,
-    credential: &PresentCredential<'p, W3CCredential>,
-) -> Result<CredentialAttributesMapping> {
-    let mut mapping = CredentialAttributesMapping::default();
-
-    for (referent, reveal) in credential.requested_attributes.iter() {
-        let requested_attribute = pres_req.requested_attributes.get(referent).ok_or_else(|| {
-            err_msg!(
-                "Attribute with referent \"{}\" not found in ProofRequest",
-                referent
-            )
-        })?;
-        if requested_attribute.name.is_some() {
-            if *reveal {
-                mapping.revealed_attributes.insert(referent.to_string());
-            } else {
-                mapping.unrevealed_attributes.insert(referent.to_string());
-            }
-        }
-        if requested_attribute.names.is_some() {
-            mapping
-                .revealed_attribute_groups
-                .insert(referent.to_string());
-        }
-    }
-    for referent in credential.requested_predicates.iter() {
-        mapping.predicates.insert(referent.to_string());
-    }
-
-    Ok(mapping)
 }
 
 fn build_credential_subject<'p>(

@@ -1,3 +1,5 @@
+use crate::data_types::pres_request::{AttributeInfo, PredicateInfo};
+use crate::data_types::schema::Schema;
 use crate::data_types::w3c::credential::{CredentialAttributeValue, W3CCredential};
 use crate::error::Result;
 use crate::helpers::attr_common_view;
@@ -16,6 +18,87 @@ impl W3CCredential {
             .find(|(attribute, _)| attr_common_view(attribute) == requested_attribute)
             .map(|(attribute, value)| (attribute.to_owned(), value.to_owned()))
             .ok_or_else(|| err_msg!("Credential attribute {} not found", requested_attribute))
+    }
+
+    pub(crate) fn has_attribute(&self, requested_attribute: &str) -> bool {
+        for (attribute, value) in self.credential_subject.attributes.0.iter() {
+            if attr_common_view(attribute) == attr_common_view(requested_attribute) {
+                if let CredentialAttributeValue::Attribute(_) = value {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    pub(crate) fn has_predicate(&self, predicate: &PredicateInfo) -> bool {
+        let predicate_attribute = attr_common_view(&predicate.name);
+        for (attribute, value) in self.credential_subject.attributes.0.iter() {
+            if attr_common_view(attribute) == predicate_attribute {
+                if let CredentialAttributeValue::Predicate(predicates) = value {
+                    let found = predicates.iter().find(|shared_predicate| {
+                        shared_predicate.predicate == predicate.p_type
+                            && shared_predicate.value == predicate.p_value
+                    });
+                    if found.is_some() {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    pub(crate) fn attributes(&self) -> Vec<AttributeInfo> {
+        self.credential_subject
+            .attributes
+            .0
+            .iter()
+            .flat_map(|(attribute, value)| match value {
+                CredentialAttributeValue::Attribute(_) => Some(AttributeInfo {
+                    name: Some(attribute.to_owned()),
+                    names: None,
+                    restrictions: None,
+                    non_revoked: None,
+                }),
+                CredentialAttributeValue::Predicate(_) => None,
+            })
+            .collect()
+    }
+
+    pub(crate) fn predicates(&self) -> Vec<PredicateInfo> {
+        self.credential_subject
+            .attributes
+            .0
+            .iter()
+            .flat_map(|(attribute, value)| match value {
+                CredentialAttributeValue::Attribute(_) => None,
+                CredentialAttributeValue::Predicate(predicates) => Some(
+                    predicates
+                        .iter()
+                        .map(|predicate| PredicateInfo {
+                            name: attribute.to_owned(),
+                            p_type: predicate.predicate.clone(),
+                            p_value: predicate.value,
+                            restrictions: None,
+                            non_revoked: None,
+                        })
+                        .collect::<Vec<PredicateInfo>>(),
+                ),
+            })
+            .flatten()
+            .collect()
+    }
+}
+
+impl Schema {
+    pub(crate) fn has_attribute(&self, requested_attribute: &str) -> bool {
+        for attribute in self.attr_names.0.iter() {
+            if attr_common_view(attribute) == attr_common_view(requested_attribute) {
+                return true;
+            }
+        }
+        false
     }
 
     pub(crate) fn get_attributes(&self) -> HashMap<String, String> {

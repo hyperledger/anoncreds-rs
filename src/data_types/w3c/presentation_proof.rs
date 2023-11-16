@@ -2,17 +2,12 @@ use crate::data_types::pres_request::{PredicateInfo, PredicateTypes};
 use crate::utils::encoded_object::EncodedObject;
 use crate::Result;
 use anoncreds_clsignatures::{AggregatedProof, SubProof};
-use std::collections::HashSet;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CredentialPresentationProof {
     #[serde(rename = "type")]
     pub type_: PresentationProofType,
-    // FIXME: Consider either removing or moving under proof_value
-    //  In fact, it's only needed to make attributes validation on the verifier side
-    //  Revealed attributes and predicates can be restored from credential subject, but not unrevealed attributes
-    pub mapping: CredentialAttributesMapping,
     pub proof_value: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     // Timestamp is needed to query revocation registry at the specific moment in time
@@ -35,12 +30,10 @@ impl EncodedObject for CredentialPresentationProofValue {}
 impl CredentialPresentationProof {
     pub fn new(
         proof_value: CredentialPresentationProofValue,
-        mapping: CredentialAttributesMapping,
         timestamp: Option<u64>,
     ) -> CredentialPresentationProof {
         CredentialPresentationProof {
             type_: PresentationProofType::AnonCredsPresentationProof2023,
-            mapping,
             timestamp,
             proof_value: proof_value.encode(),
         }
@@ -107,18 +100,6 @@ impl Default for PresentationProofType {
     fn default() -> Self {
         PresentationProofType::AnonCredsPresentationProof2023
     }
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CredentialAttributesMapping {
-    #[serde(default)]
-    pub revealed_attributes: HashSet<String>,
-    pub revealed_attribute_groups: HashSet<String>,
-    #[serde(default)]
-    pub unrevealed_attributes: HashSet<String>,
-    #[serde(default)]
-    pub predicates: HashSet<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]

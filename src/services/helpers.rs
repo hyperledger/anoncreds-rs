@@ -249,6 +249,34 @@ pub fn get_non_revoked_interval(
     interval
 }
 
+pub fn get_requested_non_revoked_interval(
+    rev_reg_id: Option<&RevocationRegistryDefinitionId>,
+    local_nonrevoked_interval: Option<&NonRevokedInterval>,
+    global_nonrevoked_interval: Option<&NonRevokedInterval>,
+    nonrevoke_interval_override: Option<
+        &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+    >,
+) -> Option<NonRevokedInterval> {
+    let mut interval: Option<NonRevokedInterval> = local_nonrevoked_interval.cloned();
+
+    if let Some(rev_reg_id) = rev_reg_id {
+        // Global interval is override by the local one,
+        // we only need to update if local is None and Global is Some,
+        // do not need to update if global is more stringent
+        if let (Some(global), None) = (global_nonrevoked_interval, interval.as_mut()) {
+            interval = Some(global.clone());
+        };
+
+        // Override Interval if an earlier `from` value is accepted by the verifier
+        nonrevoke_interval_override.map(|maps| {
+            maps.get(rev_reg_id)
+                .map(|map| interval.as_mut().map(|int| int.update_with_override(map)))
+        });
+    }
+
+    interval
+}
+
 impl RequestedProof {
     // get list of revealed attributes per credential
     pub(crate) fn get_attribute_referents(&self, index: u32) -> HashSet<String> {

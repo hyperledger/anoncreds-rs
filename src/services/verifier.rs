@@ -9,16 +9,16 @@ use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
 use crate::data_types::nonce::Nonce;
-use crate::data_types::pres_request::AttributeInfo;
 use crate::data_types::pres_request::PresentationRequestPayload;
-use crate::data_types::presentation::{Identifier, RequestedProof};
+use crate::data_types::pres_request::{AttributeInfo, NonRevokedInterval, PredicateInfo};
+use crate::data_types::presentation::{Identifier, RequestedProof, RevealedAttributeInfo};
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
 use crate::data_types::schema::SchemaId;
 use crate::error::Result;
-use crate::services::helpers::build_non_credential_schema;
+use crate::services::helpers::build_credential_schema;
 use crate::services::helpers::build_sub_proof_request;
-use crate::services::helpers::{build_credential_schema, get_non_revoked_interval};
+use crate::services::helpers::{build_non_credential_schema, get_requested_non_revoked_interval};
 use crate::utils::query::Query;
 use crate::utils::validation::LEGACY_DID_IDENTIFIER;
 
@@ -107,6 +107,23 @@ pub fn verify_presentation(
             .requested_proof
             .get_predicate_referents(sub_proof_index as u32);
 
+        let (attributes, attrs_nonrevoked_interval) =
+            pres_req.get_requested_attributes(&attributes)?;
+        let (predicates, pred_nonrevoked_interval) =
+            pres_req.get_requested_predicates(&predicates)?;
+
+        {
+            check_non_revoked_interval(
+                proof_verifier.get_credential_definition(&identifier.cred_def_id)?,
+                attrs_nonrevoked_interval,
+                pred_nonrevoked_interval,
+                pres_req,
+                identifier.rev_reg_id.as_ref(),
+                nonrevoke_interval_override,
+                identifier.timestamp,
+            )?;
+        }
+
         proof_verifier.add_sub_proof(
             &attributes,
             &predicates,
@@ -114,7 +131,6 @@ pub fn verify_presentation(
             &identifier.cred_def_id,
             identifier.rev_reg_id.as_ref(),
             identifier.timestamp,
-            nonrevoke_interval_override,
         )?;
     }
 
@@ -412,7 +428,14 @@ pub(crate) fn verify_requested_restrictions(
 
     for (referent, info) in &requested_attrs {
         if let Some(ref query) = info.restrictions {
-            let filter = gather_filter_info(referent, &proof_attr_identifiers, schemas, cred_defs)?;
+            let identifier = proof_attr_identifiers.get(referent).ok_or_else(|| {
+                err_msg!(
+                    InvalidState,
+                    "Identifier not found for referent: {}",
+                    referent
+                )
+            })?;
+            let filter = gather_filter_info(identifier, schemas, cred_defs)?;
 
             let attr_value_map: HashMap<String, Option<&str>> = if let Some(name) =
                 info.name.as_ref()
@@ -456,7 +479,14 @@ pub(crate) fn verify_requested_restrictions(
 
     for (referent, info) in &pres_req.requested_predicates {
         if let Some(ref query) = info.restrictions {
-            let filter = gather_filter_info(referent, received_predicates, schemas, cred_defs)?;
+            let identifier = received_predicates.get(referent).ok_or_else(|| {
+                err_msg!(
+                    InvalidState,
+                    "Identifier not found for referent: {}",
+                    referent
+                )
+            })?;
+            let filter = gather_filter_info(identifier, schemas, cred_defs)?;
 
             // start with the predicate requested attribute, which is un-revealed
             let mut attr_value_map = HashMap::new();
@@ -516,20 +546,11 @@ fn is_self_attested(
     }
 }
 
-fn gather_filter_info(
-    referent: &str,
-    identifiers: &HashMap<String, Identifier>,
+pub(crate) fn gather_filter_info(
+    identifier: &Identifier,
     schemas: &HashMap<SchemaId, Schema>,
     cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
 ) -> Result<Filter> {
-    let identifier = identifiers.get(referent).ok_or_else(|| {
-        err_msg!(
-            InvalidState,
-            "Identifier not found for referent: {}",
-            referent
-        )
-    })?;
-
     let schema_id = &identifier.schema_id;
     let cred_def_id = &identifier.cred_def_id;
 
@@ -551,7 +572,7 @@ fn gather_filter_info(
     })
 }
 
-fn process_operator(
+pub(crate) fn process_operator(
     attr_value_map: &HashMap<String, Option<&str>>,
     restriction_op: &Query,
     filter: &Filter,
@@ -748,6 +769,52 @@ fn build_revocation_registry_map(
     Ok(rev_reg_map)
 }
 
+fn check_non_revoked_interval(
+    cred_def: &CredentialDefinition,
+    attrs_nonrevoked_interval: Option<NonRevokedInterval>,
+    pred_nonrevoked_interval: Option<NonRevokedInterval>,
+    pres_req: &PresentationRequestPayload,
+    rev_reg_id: Option<&RevocationRegistryDefinitionId>,
+    nonrevoke_interval_override: Option<
+        &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+    >,
+    timestamp: Option<u64>,
+) -> Result<()> {
+    if cred_def.value.revocation.is_some() {
+        // Collapse to the most stringent local interval for the attributes / predicates,
+        // we can do this because there is only 1 revocation status list for this credential
+        // if it satisfies the most stringent interval, it will satisfy all intervals
+        let interval = match (attrs_nonrevoked_interval, pred_nonrevoked_interval) {
+            (Some(attr), None) => Some(attr),
+            (None, Some(pred)) => Some(pred),
+            (Some(mut attr), Some(pred)) => {
+                attr.compare_and_set(&pred);
+                Some(attr)
+            }
+            _ => None,
+        };
+
+        let cred_nonrevoked_interval = get_requested_non_revoked_interval(
+            rev_reg_id,
+            interval.as_ref(),
+            pres_req.non_revoked.as_ref(),
+            nonrevoke_interval_override,
+        );
+
+        if let (Some(_), Some(cred_nonrevoked_interval)) = (
+            cred_def.value.revocation.as_ref(),
+            cred_nonrevoked_interval.as_ref(),
+        ) {
+            let timestamp = timestamp
+                .ok_or_else(|| err_msg!("Identifier timestamp not found for revocation check"))?;
+
+            cred_nonrevoked_interval.is_valid(timestamp)?;
+        }
+    }
+
+    Ok(())
+}
+
 pub(crate) struct CLProofVerifier<'a> {
     proof_verifier: ProofVerifier,
     presentation_request: &'a PresentationRequestPayload,
@@ -786,15 +853,12 @@ impl<'a> CLProofVerifier<'a> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn add_sub_proof(
         &mut self,
-        attributes: &HashSet<String>,
-        predicates: &HashSet<String>,
+        attributes: &[AttributeInfo],
+        predicates: &[PredicateInfo],
         schema_id: &SchemaId,
         cred_def_id: &CredentialDefinitionId,
         rev_reg_def_id: Option<&RevocationRegistryDefinitionId>,
         timestamp: Option<u64>,
-        nonrevoke_interval_override: Option<
-            &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
-        >,
     ) -> Result<()> {
         let schema = self.get_schema(schema_id)?;
         let cred_def = self.get_credential_definition(cred_def_id)?;
@@ -805,38 +869,7 @@ impl<'a> CLProofVerifier<'a> {
             &cred_def.value.primary,
             cred_def.value.revocation.as_ref(),
         )?;
-
-        let (attrs_for_credential, attrs_nonrevoked_interval) = self
-            .presentation_request
-            .get_requested_attributes(attributes)?;
-        let (predicates_for_credential, pred_nonrevoked_interval) = self
-            .presentation_request
-            .get_requested_predicates(predicates)?;
-
-        let cred_nonrevoked_interval = get_non_revoked_interval(
-            attrs_nonrevoked_interval,
-            pred_nonrevoked_interval,
-            self.presentation_request,
-            rev_reg_def_id,
-            nonrevoke_interval_override,
-        );
-
-        if let (Some(_), true) = (
-            cred_def.value.revocation.as_ref(),
-            cred_nonrevoked_interval.is_some(),
-        ) {
-            let timestamp = timestamp
-                .ok_or_else(|| err_msg!("Identifier timestamp not found for revocation check"))?;
-
-            // Validate timestamp
-            cred_nonrevoked_interval
-                .map(|int| int.is_valid(timestamp))
-                .transpose()?;
-        };
-
-        let sub_pres_request =
-            build_sub_proof_request(&attrs_for_credential, &predicates_for_credential)?;
-
+        let sub_pres_request = build_sub_proof_request(attributes, predicates)?;
         let rev_key_pub = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
         self.proof_verifier.add_sub_proof_request(
             &sub_pres_request,
