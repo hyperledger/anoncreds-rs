@@ -21,9 +21,9 @@ impl<'de> Deserialize<'de> for URI {
 
         let id: String = Deserialize::deserialize(v).map_err(de::Error::custom)?;
 
-        URI_IDENTIFIER.captures(&id).ok_or_else(|| {
-            de::Error::custom("CredentialWC3 `id` validation failed: not URI id is passed")
-        })?;
+        URI_IDENTIFIER
+            .captures(&id)
+            .ok_or_else(|| de::Error::custom("Invalid URI passed"))?;
 
         Ok(URI(id))
     }

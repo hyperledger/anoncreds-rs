@@ -13,7 +13,7 @@ use crate::Error;
 /// # Example
 ///
 /// ```rust
-/// use anoncreds::conversion;
+/// use anoncreds::credential_conversion;
 /// use anoncreds::issuer;
 /// use anoncreds::prover;
 /// use anoncreds::types::MakeCredentialValues;
@@ -82,7 +82,7 @@ use crate::Error;
 ///                            None,
 ///                            ).expect("Unable to process the credential");
 ///
-/// let _w3c_credential = conversion::credential_to_w3c(&credential, &cred_def)
+/// let _w3c_credential = credential_conversion::credential_to_w3c(&credential, &cred_def)
 ///                         .expect("Unable to convert credential to w3c form");
 ///
 /// ```
@@ -90,6 +90,12 @@ pub fn credential_to_w3c(
     credential: &Credential,
     cred_def: &CredentialDefinition,
 ) -> Result<W3CCredential, Error> {
+    trace!(
+        "credential_to_w3c >>> credential: {:?}, cred_def: {:?}",
+        credential,
+        cred_def
+    );
+
     credential.validate()?;
 
     let credential = credential.try_clone()?;
@@ -114,6 +120,11 @@ pub fn credential_to_w3c(
     w3c_credential.set_attributes(attributes);
     w3c_credential.add_proof(CredentialProof::AnonCredsSignatureProof(proof));
 
+    trace!(
+        "w3c_process_credential <<< w3c_credential {:?}",
+        w3c_credential
+    );
+
     Ok(w3c_credential)
 }
 
@@ -122,7 +133,7 @@ pub fn credential_to_w3c(
 /// # Example
 ///
 /// ```rust
-/// use anoncreds::conversion;
+/// use anoncreds::credential_conversion;
 /// use anoncreds::issuer;
 /// use anoncreds::prover;
 /// use anoncreds::types::{MakeCredentialAttributes, MakeCredentialValues};
@@ -192,11 +203,16 @@ pub fn credential_to_w3c(
 ///                                None,
 ///                                ).expect("Unable to process the credential");
 ///
-/// let _w3c_credential = conversion::credential_from_w3c(&credential)
+/// let _w3c_credential = credential_conversion::credential_from_w3c(&credential)
 ///                         .expect("Unable to convert credential to w3c form");
 ///
 /// ```
 pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential, Error> {
+    trace!(
+        "credential_from_w3c >>> w3c_credential: {:?}",
+        w3c_credential
+    );
+
     w3c_credential.validate()?;
 
     let schema_id = w3c_credential.credential_schema.schema.clone();
@@ -219,6 +235,8 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
         rev_reg: credential_signature.rev_reg,
         witness: credential_signature.witness,
     };
+
+    trace!("credential_from_w3c <<< credential: {:?}", credential);
 
     Ok(credential)
 }

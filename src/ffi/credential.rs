@@ -6,7 +6,7 @@ use ffi_support::{rust_string_to_c, FfiStr};
 use super::error::{catch_error, ErrorCode};
 use super::object::{AnoncredsObject, ObjectHandle};
 use super::util::FfiStrList;
-use crate::conversion::{credential_from_w3c, credential_to_w3c};
+use crate::credential_conversion::{credential_from_w3c, credential_to_w3c};
 use crate::data_types::credential::CredentialValuesEncoding;
 use crate::data_types::w3c::credential::CredentialAttributes;
 use crate::data_types::w3c::credential_proof::{CredentialProof, NonAnonCredsDataIntegrityProof};
@@ -299,6 +299,7 @@ pub extern "C" fn anoncreds_process_w3c_credential(
 ///
 /// # Params
 /// cred:       object handle pointing to credential in legacy form to convert
+/// cred_def:   object handle pointing to the credential definition
 /// cred_p:     reference that will contain converted credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -353,8 +354,8 @@ pub extern "C" fn anoncreds_credential_from_w3c(
 /// Add Non-Anoncreds Data Integrity proof signature to W3C AnonCreds credential
 ///
 /// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// proof -     data integrity proof as JSON string
+/// cred:       object handle pointing to W3C AnonCreds credential
+/// proof:      data integrity proof as JSON string
 /// cred_p:     reference that will contain update credential
 ///
 /// # Returns
@@ -388,8 +389,8 @@ pub extern "C" fn anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(
 /// Set id to W3C AnonCreds credential
 ///
 /// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// id -        id to add into credential
+/// cred:       object handle pointing to W3C AnonCreds credential
+/// id:         id to add into credential
 /// cred_p:     reference that will contain update credential
 ///
 /// # Returns
@@ -419,8 +420,8 @@ pub extern "C" fn anoncreds_w3c_set_credential_id(
 /// Set subject id to W3C AnonCreds credential
 ///
 /// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// id -        subject id to add into credential
+/// cred:       object handle pointing to W3C AnonCreds credential
+/// id:         subject id to add into credential
 /// cred_p:     reference that will contain update credential
 ///
 /// # Returns
@@ -450,8 +451,8 @@ pub extern "C" fn anoncreds_credential_w3c_subject_id(
 /// Add context to W3C AnonCreds credential
 ///
 /// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// context -   context to add into credential
+/// cred:       object handle pointing to W3C AnonCreds credential
+/// context:    context to add into credential
 /// cred_p:     reference that will contain update credential
 ///
 /// # Returns
@@ -483,8 +484,8 @@ pub extern "C" fn anoncreds_w3c_credential_add_context(
 /// Add type to W3C AnonCreds credential
 ///
 /// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// type -      type to add into credential
+/// cred:       object handle pointing to W3C AnonCreds credential
+/// type:       type to add into credential
 /// cred_p:     reference that will contain update credential
 ///
 /// # Returns
@@ -511,6 +512,15 @@ pub extern "C" fn anoncreds_w3c_credential_add_type(
     })
 }
 
+/// Get value of requested credential attribute as string
+///
+/// # Params
+/// handle:                object handle pointing to the credential (in W3 form)
+/// name:                  name of attribute to retrieve
+/// result_p:              reference that will contain value of request credential attribute
+///
+/// # Returns
+/// Error code
 #[no_mangle]
 pub extern "C" fn anoncreds_w3c_credential_get_attribute(
     handle: ObjectHandle,

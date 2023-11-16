@@ -141,7 +141,7 @@ pub fn verify_w3c_presentation(
         &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
 ) -> Result<bool> {
-    trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
+    trace!("verify_w3c_presentation >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
 
     // These values are from the prover and cannot be trusted
@@ -216,7 +216,7 @@ pub fn verify_w3c_presentation(
 
     let valid = proof_verifier.verify(&proof)?;
 
-    trace!("verify <<< valid: {:?}", valid);
+    trace!("verify_w3c_presentation <<< valid: {:?}", valid);
 
     Ok(valid)
 }

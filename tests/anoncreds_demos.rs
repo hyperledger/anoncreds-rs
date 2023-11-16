@@ -1,4 +1,4 @@
-use anoncreds::conversion::{credential_from_w3c, credential_to_w3c};
+use anoncreds::credential_conversion::{credential_from_w3c, credential_to_w3c};
 use anoncreds::data_types::cred_def::CredentialDefinitionId;
 use anoncreds::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use anoncreds::data_types::schema::SchemaId;

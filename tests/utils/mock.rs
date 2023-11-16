@@ -5,7 +5,7 @@ use std::{
     fs::create_dir,
 };
 
-use anoncreds::conversion::{credential_from_w3c, credential_to_w3c};
+use anoncreds::credential_conversion::{credential_from_w3c, credential_to_w3c};
 use anoncreds::data_types::w3c::credential::W3CCredential;
 use anoncreds::data_types::w3c::presentation::W3CPresentation;
 use anoncreds::types::{

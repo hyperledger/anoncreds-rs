@@ -1,3 +1,4 @@
+use crate::data_types::pres_request::{PredicateInfo, PredicateTypes};
 use crate::utils::base64;
 use anoncreds_clsignatures::{AggregatedProof, SubProof};
 use std::collections::HashSet;
@@ -130,4 +131,34 @@ pub struct CredentialAttributesMapping {
     pub unrevealed_attributes: HashSet<String>,
     #[serde(default)]
     pub predicates: HashSet<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+pub struct PredicateAttribute {
+    #[serde(rename = "type")]
+    pub type_: PredicateAttributeType,
+    pub p_type: PredicateTypes,
+    pub p_value: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PredicateAttributeType {
+    #[serde(rename = "AnonCredsPredicate")]
+    AnonCredsPredicate,
+}
+
+impl Default for PredicateAttributeType {
+    fn default() -> Self {
+        PredicateAttributeType::AnonCredsPredicate
+    }
+}
+
+impl From<PredicateInfo> for PredicateAttribute {
+    fn from(info: PredicateInfo) -> Self {
+        PredicateAttribute {
+            type_: PredicateAttributeType::AnonCredsPredicate,
+            p_type: info.p_type,
+            p_value: info.p_value,
+        }
+    }
 }

@@ -129,7 +129,7 @@ impl RawCredentialValues {
             CredentialValuesEncoding::Auto => {
                 let mut cred_values = MakeCredentialValues::default();
                 for (attribute, raw_value) in self.0.iter() {
-                    cred_values.add_raw(attribute, &raw_value.to_string())?;
+                    cred_values.add_raw(attribute, raw_value)?;
                 }
                 Ok(cred_values.into())
             }

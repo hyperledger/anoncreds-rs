@@ -17,7 +17,7 @@ use crate::data_types::presentation::RevealedAttributeInfo;
 use crate::data_types::presentation::SubProofReferent;
 use crate::data_types::rev_status_list::RevocationStatusList;
 use crate::data_types::schema::{Schema, SchemaId};
-use crate::data_types::w3c::credential::{CredentialSubject, PredicateAttribute, W3CCredential};
+use crate::data_types::w3c::credential::{CredentialSubject, W3CCredential};
 use crate::data_types::w3c::one_or_many::OneOrMany;
 use crate::data_types::w3c::presentation::W3CPresentation;
 use crate::error::{Error, Result};
@@ -34,13 +34,14 @@ use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignature};
 use crate::data_types::w3c::presentation_proof::{
     CredentialAttributesMapping, CredentialPresentationProof, CredentialPresentationProofValue,
-    PresentationProof, PresentationProofValue,
+    PredicateAttribute, PresentationProof, PresentationProofValue,
 };
 use anoncreds_clsignatures::{
     CredentialSignature as CLCredentialSignature, NonCredentialSchema, Proof, ProofBuilder,
     SignatureCorrectnessProof,
 };
 use bitvec::bitvec;
+use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::ops::BitXor;
@@ -358,7 +359,7 @@ pub fn process_w3c_credential(
     cred_def: &CredentialDefinition,
     rev_reg_def: Option<&RevocationRegistryDefinition>,
 ) -> Result<()> {
-    trace!("w3c_process_credential >>> credential: {:?}, cred_request_metadata: {:?}, link_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
+    trace!("process_w3c_credential >>> credential: {:?}, cred_request_metadata: {:?}, link_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
             w3c_credential, cred_request_metadata, secret!(&link_secret), cred_def, rev_reg_def);
 
     let cred_values = w3c_credential
@@ -388,7 +389,7 @@ pub fn process_w3c_credential(
     )
     .encode();
 
-    trace!("w3c_process_credential <<< ");
+    trace!("process_w3c_credential <<< ");
 
     Ok(())
 }
@@ -558,7 +559,7 @@ pub fn create_presentation(
     schemas: &HashMap<SchemaId, Schema>,
     cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
 ) -> Result<Presentation> {
-    trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, link_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
+    trace!("create_presentation >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, link_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
             credentials, pres_req, credentials, &self_attested, secret!(&link_secret), schemas, cred_defs);
 
     if credentials.is_empty() && self_attested.as_ref().map_or(true, HashMap::is_empty) {
@@ -628,7 +629,10 @@ pub fn create_presentation(
         identifiers,
     };
 
-    trace!("create_proof <<< full_proof: {:?}", secret!(&full_proof));
+    trace!(
+        "create_presentation <<< full_proof: {:?}",
+        secret!(&full_proof)
+    );
 
     Ok(full_proof)
 }
@@ -641,7 +645,7 @@ pub fn create_w3c_presentation(
     schemas: &HashMap<SchemaId, Schema>,
     cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
 ) -> Result<W3CPresentation> {
-    trace!("create_proof >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, link_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
+    trace!("create_w3c_presentation >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, link_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
             credentials, pres_req, credentials, secret!(&link_secret), schemas, cred_defs);
 
     if credentials.is_empty() {
@@ -704,7 +708,7 @@ pub fn create_w3c_presentation(
     }
 
     trace!(
-        "create_proof <<< presentation: {:?}",
+        "create_w3c_presentation <<< presentation: {:?}",
         secret!(&presentation)
     );
 
@@ -1057,7 +1061,7 @@ fn build_credential_subject<'p>(
             if *reveal {
                 credential_subject
                     .attributes
-                    .add_attribute(attribute, value);
+                    .add(attribute, value);
             }
         }
         if let Some(ref names) = requested_attribute.names {
@@ -1065,7 +1069,7 @@ fn build_credential_subject<'p>(
                 let (attribute, value) = credentials.cred.get_attribute(name)?;
                 credential_subject
                     .attributes
-                    .add_attribute(attribute, value);
+                    .add(attribute, value);
             }
         }
     }
@@ -1074,13 +1078,13 @@ fn build_credential_subject<'p>(
         let predicate_info = pres_req_val
             .requested_predicates
             .get(referent)
-            .unwrap()
+            .ok_or_else(|| err_msg!("predicate {} not found request", referent))?
             .clone();
         let (attribute, _) = credentials.cred.get_attribute(&predicate_info.name)?;
         let predicate = PredicateAttribute::from(predicate_info);
         credential_subject
             .attributes
-            .add_predicate(attribute, predicate);
+            .add(attribute, json!(predicate));
     }
 
     Ok(credential_subject)
@@ -1210,7 +1214,7 @@ impl<'a> CLProofBuilder<'a> {
 mod tests {
     use super::*;
 
-    use crate::data_types::pres_request::PredicateTypes;
+    // use crate::data_types::pres_request::PredicateTypes;
 
     macro_rules! hashmap {
         ($( $key: expr => $val: expr ),*) => {
@@ -1220,18 +1224,6 @@ mod tests {
                     map.insert($key, $val);
                 )*
                 map
-            }
-        }
-    }
-
-    macro_rules! hashset {
-        ($( $val: expr ),*) => {
-            {
-                let mut set = ::std::collections::HashSet::new();
-                $(
-                    set.insert($val);
-                )*
-                set
             }
         }
     }

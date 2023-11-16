@@ -1,4 +1,4 @@
-pub mod conversion;
+pub mod credential_conversion;
 pub(crate) mod helpers;
 pub mod issuer;
 pub mod prover;

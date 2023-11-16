@@ -1,11 +1,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::string::ToString;
 use zeroize::Zeroize;
 
-use crate::data_types::pres_request::{PredicateInfo, PredicateTypes};
 use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_CREDENTIAL_TYPES};
 use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignatureProof};
 use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
@@ -105,7 +104,7 @@ impl Validatable for CredentialAttributes {
                         "CredentialAttributes validation failed: {} value format is not supported",
                         attribute
                     )
-                    .into())
+                    .into());
                 }
             }
         }
@@ -129,29 +128,17 @@ impl From<&CredentialValues> for CredentialAttributes {
 }
 
 impl CredentialAttributes {
-    pub fn add_attribute(&mut self, attribute: String, value: Value) {
+    pub(crate) fn add(&mut self, attribute: String, value: Value) {
         self.0.insert(attribute, value);
     }
 
-    pub fn add_predicate(&mut self, attribute: String, value: PredicateAttribute) {
-        self.0.insert(attribute, json!(value));
-    }
-
-    pub fn get_attribute(&self, attribute: &str) -> Result<&Value> {
-        self.0
-            .get(attribute)
-            .ok_or_else(|| err_msg!("Credential attribute {} not found", attribute))
-    }
-
-    pub fn encode(&self, encoding: &CredentialValuesEncoding) -> Result<CredentialValues> {
+    pub(crate) fn encode(&self, encoding: &CredentialValuesEncoding) -> Result<CredentialValues> {
         match encoding {
             CredentialValuesEncoding::Auto => {
                 let mut cred_values = MakeCredentialValues::default();
                 for (attribute, raw_value) in self.0.iter() {
                     match raw_value {
-                        Value::String(raw_value) => {
-                            cred_values.add_raw(attribute, &raw_value.to_string())?
-                        }
+                        Value::String(raw_value) => cred_values.add_raw(attribute, raw_value)?,
                         value => {
                             return Err(err_msg!(
                                 "Encoding is not supported for credential value {:?}",
@@ -166,36 +153,6 @@ impl CredentialAttributes {
                 "Credential values encoding {:?} is not supported",
                 encoding
             )),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
-pub struct PredicateAttribute {
-    #[serde(rename = "type")]
-    pub type_: PredicateAttributeType,
-    pub p_type: PredicateTypes,
-    pub p_value: i32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PredicateAttributeType {
-    #[serde(rename = "AnonCredsPredicate")]
-    AnonCredsPredicate,
-}
-
-impl Default for PredicateAttributeType {
-    fn default() -> Self {
-        PredicateAttributeType::AnonCredsPredicate
-    }
-}
-
-impl From<PredicateInfo> for PredicateAttribute {
-    fn from(info: PredicateInfo) -> Self {
-        PredicateAttribute {
-            type_: PredicateAttributeType::AnonCredsPredicate,
-            p_type: info.p_type,
-            p_value: info.p_value,
         }
     }
 }
@@ -298,35 +255,21 @@ impl W3CCredential {
     }
 
     pub fn get_credential_signature_proof(&self) -> Result<&CredentialSignatureProof> {
-        match &self.proof {
-            OneOrMany::One(ref proof) => proof.get_credential_signature_proof(),
-            OneOrMany::Many(ref proofs) => proofs
-                .iter()
-                .find_map(|proof| proof.get_credential_signature_proof().ok())
-                .ok_or_else(|| err_msg!("credential does not contain AnonCredsSignatureProof")),
-        }
+        self.proof
+            .get_value(&|proof: &CredentialProof| proof.get_credential_signature_proof())
     }
 
     pub(crate) fn get_mut_credential_signature_proof(
         &mut self,
     ) -> Result<&mut CredentialSignatureProof> {
-        match self.proof {
-            OneOrMany::One(ref mut proof) => proof.get_mut_credential_signature_proof(),
-            OneOrMany::Many(ref mut proofs) => proofs
-                .iter_mut()
-                .find_map(|proof| proof.get_mut_credential_signature_proof().ok())
-                .ok_or_else(|| err_msg!("credential does not contain AnonCredsSignatureProof")),
-        }
+        self.proof.get_mut_value(&|proof: &mut CredentialProof| {
+            proof.get_mut_credential_signature_proof()
+        })
     }
 
     pub fn get_presentation_proof(&self) -> Result<&CredentialPresentationProof> {
-        match &self.proof {
-            OneOrMany::One(ref proof) => proof.get_presentation_proof(),
-            OneOrMany::Many(ref proofs) => proofs
-                .iter()
-                .find_map(|proof| proof.get_presentation_proof().ok())
-                .ok_or_else(|| err_msg!("credential does not contain PresentationProof")),
-        }
+        self.proof
+            .get_value(&|proof: &CredentialProof| proof.get_presentation_proof())
     }
 
     pub fn validate(&self) -> Result<()> {

@@ -827,7 +827,7 @@ pub fn create_w3c_credential(
     revocation_config: Option<CredentialRevocationConfig>,
     encoding: Option<CredentialValuesEncoding>,
 ) -> Result<W3CCredential> {
-    trace!("w3c_create_credential >>> cred_def: {:?}, cred_def_private: {:?}, cred_offer.nonce: {:?}, cred_request: {:?},\
+    trace!("create_w3c_credential >>> cred_def: {:?}, cred_def_private: {:?}, cred_offer.nonce: {:?}, cred_request: {:?},\
             cred_values: {:?}, revocation_config: {:?}",
             cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&raw_credential_values), revocation_config,
             );
@@ -865,7 +865,7 @@ pub fn create_w3c_credential(
     credential.add_proof(CredentialProof::AnonCredsSignatureProof(proof));
 
     trace!(
-        "w3c_create_credential <<< credential {:?}",
+        "create_w3c_credential <<< credential {:?}",
         secret!(&credential),
     );
 
