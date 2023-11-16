@@ -784,3 +784,104 @@ for (referent, requested) in presentation_request.requested_predicates {
     assert(credential.credentialSubject[requested.name])
 }
 ```
+
+### Examples
+
+Example of an AnonCreds W3C credential:
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1",
+    "https://raw.githubusercontent.com/DSRCorporation/anoncreds-rs/design/w3c-support/docs/design/w3c/context.json"
+  ],
+  "type": [
+    "VerifiableCredential",
+    "AnonCredsCredential"
+  ],
+  "issuer": "did:sov:3avoBCqDMFHFaKUHug9s8W",
+  "issuanceDate": "2023-10-26T01:17:32Z",
+  "credentialSchema": {
+    "type": "AnonCredsDefinition",
+    "definition": "did:sov:3avoBCqDMFHFaKUHug9s8W:3:CL:13:default",
+    "schema": "did:sov:3avoBCqDMFHFaKUHug9s8W:2:basic_person:0.1.0",
+    "encoding": "auto"
+  },
+  "credentialSubject": {
+    "firstName": "Alice",
+    "lastName": "Jones",
+    "age": "18"
+  },
+  "proof": [
+    {
+      "type": "CLSignature2023",
+      "signature": "AAAgf9w5.....8Z_x3FqdwRHoWruiF0FlM"
+    },
+    {
+      "type": "Ed25519Signature2020",
+      "created": "2021-11-13T18:19:39Z",
+      "verificationMethod": "did:sov:3avoBCqDMFHFaKUHug9s8W#key-1",
+      "proofPurpose": "assertionMethod",
+      "proofValue": "z58DAdFfa9SkqZMVPxAQpic7ndSayn1PzZs6ZjWp1CktyGesjuTSwRdoWhAfGFCF5bppETSTojQCrfFPP2oumHKtz"
+    }
+  ]
+}
+```
+
+Example of an AnonCreds W3C presentation:
+
+```json
+{
+  "@context":[
+    "https://www.w3.org/2018/credentials/v1",
+    "https://raw.githubusercontent.com/DSRCorporation/anoncreds-spec/w3c-credentials/data/anoncreds-w3c-context.json"
+  ],
+  "type":[
+    "VerifiablePresentation",
+    "AnonCredsPresentation"
+  ],
+  "verifiableCredential":[
+    {
+      "@context":[
+        "https://www.w3.org/2018/credentials/v1",
+        "https://raw.githubusercontent.com/DSRCorporation/anoncreds-spec/w3c-credentials/data/anoncreds-w3c-context.json"
+      ],
+      "type":[
+        "VerifiableCredential",
+        "AnonCredsCredential"
+      ],
+      "credentialSchema": {
+        "type": "AnonCredsDefinition",
+        "definition": "did:sov:3avoBCqDMFHFaKUHug9s8W:3:CL:13:default",
+        "schema": "did:sov:3avoBCqDMFHFaKUHug9s8W:2:basic_person:0.1.0",
+        "encoding": "auto"
+      },
+      "credentialSubject":{
+        "firstName":"Alice",
+        "age":{
+          "type":"AnonCredsPredicate",
+          "p_type":">=",
+          "p_value":18
+        }
+      },
+      "issuanceDate":"2023-11-15T10:59:48.036203Z",
+      "issuer":"issuer:id/path=bar",
+      "proof":{
+        "type":"AnonCredsPresentationProof2023",
+        "mapping":{
+          "predicates":["predicate1_referent"],
+          "revealedAttributeGroups":[],
+          "revealedAttributes":["attr1_referent"],
+          "unrevealedAttributes":[]
+        },
+        "proofValue":"eyJzdWJfcHJvb2Yi...zMTc1NzU0NDAzNDQ0ODUifX1dfX19"
+      }
+    }
+  ],
+  "proof":{
+    "type":"AnonCredsPresentationProof2023",
+    "challenge":"413296376279822794586260",
+    "proofValue":"eyJhZ2dyZWdhdGVkIjp7ImNfaGFzaCI6IjEwMT...IsMzAsMTM1LDE4MywxMDcsMTYwXV19fQ=="
+  }
+}
+```
