@@ -371,8 +371,8 @@ pub extern "C" fn anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(
         let proof = proof
             .as_opt_str()
             .ok_or_else(|| err_msg!("Missing proof"))?;
-        let proof = NonAnonCredsDataIntegrityProof::try_from(proof)
-            .map_err(|_| err_msg!("Unable to parse proof"))?;
+        let proof: NonAnonCredsDataIntegrityProof =
+            serde_json::from_str(proof).map_err(|_| err_msg!("Unable to parse proof"))?;
 
         let mut cred = cred.load()?.cast_ref::<W3CCredential>()?.clone();
 
