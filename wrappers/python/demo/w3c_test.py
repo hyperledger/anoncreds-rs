@@ -79,12 +79,36 @@ print("W3C Credential")
 print(recv_cred.to_json())
 
 legacy_cred = recv_cred.to_legacy()
-print("Legacy Credential")
+print("Legacy Credential `to_legacy`")
+print(legacy_cred.to_json())
+
+legacy_cred = Credential.from_w3c(recv_cred)
+print("Legacy Credential `from_w3c`")
 print(legacy_cred.to_json())
 
 w3c_cred = legacy_cred.to_w3c(cred_def_pub)
-print("W3C converted Credential")
+print("W3C converted Credential `to_w3c`")
 print(w3c_cred.to_json())
+
+w3c_cred_restored = W3CCredential.from_legacy(legacy_cred, cred_def_pub)
+print("W3C restored Credential `from_legacy`")
+print(w3c_cred_restored.to_json())
+
+
+w3c_cred_restored.add_non_anoncreds_integrity_proof({
+    "type": "Ed25519Signature2020",
+    "created": "2021-11-13T18:19:39Z",
+    "verificationMethod": "did:sov:3avoBCqDMFHFaKUHug9s8W#key-1",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "z58DAdFfa9SkqZMVPxAQpic7ndSayn1PzZs6ZjWp1CktyGesjuTSwRdoWhAfGFCF5bppETSTojQCrfFPP2oumHKtz"
+})
+w3c_cred_restored.set_id("http://example.com/credentials/3732")
+w3c_cred_restored.set_subject_id("did:example:ebfeb1f712ebc6f1c276e12ec21")
+w3c_cred_restored.add_context("https://www.w3.org/2018/credentials/examples/v1")
+w3c_cred_restored.add_type("UniversityDegreeCredential")
+
+print("W3C extended Credential")
+print(w3c_cred_restored.to_json())
 
 time_after_creating_cred = time_create_rev_status_list + 1
 issued_rev_status_list = revocation_status_list.update(

@@ -643,6 +643,10 @@ describe('API W3C', () => {
     expect('mock:uri').toEqual(legacyCredential.schemaId)
     expect('mock:uri').toEqual(legacyCredential.credentialDefinitionId)
 
+    const legacyCredentialFrom = Credential.fromW3C({ credential })
+    expect('mock:uri').toEqual(legacyCredentialFrom.schemaId)
+    expect('mock:uri').toEqual(legacyCredentialFrom.credentialDefinitionId)
+
     const w3cCredential = W3CCredential.fromLegacy({ credential: legacyCredential, credentialDefinition })
     expect('mock:uri').toEqual(w3cCredential.schemaId)
     expect('mock:uri').toEqual(w3cCredential.credentialDefinitionId)
@@ -650,6 +654,26 @@ describe('API W3C', () => {
     const convertedW3CCredential = legacyCredential.toW3C({ credentialDefinition })
     expect('mock:uri').toEqual(convertedW3CCredential.schemaId)
     expect('mock:uri').toEqual(convertedW3CCredential.credentialDefinitionId)
+
+    convertedW3CCredential.addNonAnonCredsIntegrityProof({
+      type: 'Ed25519Signature2020',
+      created: '2021-11-13T18:19:39Z',
+      verificationMethod: 'did:sov:3avoBCqDMFHFaKUHug9s8W#key-1',
+      proofPurpose: 'assertionMethod',
+      proofValue: 'z58DAdFfa9SkqZMVPxAQpic7ndSayn1PzZs6ZjWp1CktyGesjuTSwRdoWhAfGFCF5bppETSTojQCrfFPP2oumHKtz'
+    })
+
+    const id = 'http://example.com/credentials/3732'
+    const subjectId = 'did:example:ebfeb1f712ebc6f1c276e12ec21'
+
+    convertedW3CCredential.setId(id)
+    convertedW3CCredential.setSubjectId(subjectId)
+    convertedW3CCredential.addContext('https://www.w3.org/2018/credentials/examples/v1')
+    convertedW3CCredential.addType('UniversityDegreeCredential')
+    const convertedW3CCredentialJson = convertedW3CCredential.toJson()
+
+    expect(id).toEqual(convertedW3CCredentialJson.id)
+    expect(subjectId).toEqual(convertedW3CCredentialJson.credentialSubject.id)
 
     const credentialReceived = credential.process({
       credentialDefinition,

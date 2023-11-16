@@ -38,6 +38,10 @@ export type CredentialToW3COptions = {
   credentialDefinition: CredentialDefinition | JsonObject
 }
 
+export type CredentialFromW3COptions = {
+  credential: W3CCredential
+}
+
 export class Credential extends AnoncredsObject {
   public static create(options: CreateCredentialOptions) {
     let credential
@@ -170,7 +174,7 @@ export class Credential extends AnoncredsObject {
     return credential
   }
 
-  public static fromW3C(credential: W3CCredential) {
-    return new Credential(anoncreds.credentialFromW3C({ objectHandle: credential.handle }).handle)
+  public static fromW3C(options: CredentialFromW3COptions) {
+    return new Credential(anoncreds.credentialFromW3C({ objectHandle: options.credential.handle }).handle)
   }
 }
