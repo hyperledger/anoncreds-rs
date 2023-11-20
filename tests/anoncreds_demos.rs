@@ -1,8 +1,11 @@
 use anoncreds::credential_conversion::{credential_from_w3c, credential_to_w3c};
 use anoncreds::data_types::cred_def::CredentialDefinitionId;
+use anoncreds::data_types::pres_request::PredicateTypes;
 use anoncreds::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use anoncreds::data_types::schema::SchemaId;
+use anoncreds::data_types::w3c::credential::CredentialAttributeValue;
 use anoncreds::data_types::w3c::credential_proof::CredentialProof;
+use anoncreds::data_types::w3c::presentation_proof::{PredicateAttribute, PredicateAttributeType};
 use anoncreds::data_types::w3c::uri::URI;
 use anoncreds::issuer;
 use anoncreds::prover;
@@ -2937,7 +2940,7 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
 
     // Verifier verifies presentation
     assert_eq!(
-        "Alex",
+        &CredentialAttributeValue::Attribute("Alex".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -2947,7 +2950,11 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
     );
 
     assert_eq!(
-        json!({ "type": "AnonCredsPredicate", "p_type": ">=", "p_value": 18  }),
+        CredentialAttributeValue::Predicate(vec![PredicateAttribute {
+            type_: PredicateAttributeType::AnonCredsPredicate,
+            p_type: PredicateTypes::GE,
+            p_value: 18,
+        }]),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3077,7 +3084,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation() 
 
     // Verifier verifies presentation
     assert_eq!(
-        "Alex",
+        &CredentialAttributeValue::Attribute("Alex".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3087,7 +3094,11 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation() 
     );
 
     assert_eq!(
-        json!({ "type": "AnonCredsPredicate", "p_type": ">=", "p_value": 18  }),
+        CredentialAttributeValue::Predicate(vec![PredicateAttribute {
+            type_: PredicateAttributeType::AnonCredsPredicate,
+            p_type: PredicateTypes::GE,
+            p_value: 18,
+        }]),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3438,7 +3449,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
 
     // Verifier verifies presentation
     assert_eq!(
-        "Alex",
+        &CredentialAttributeValue::Attribute("Alex".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3448,7 +3459,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
     );
 
     assert_eq!(
-        "male",
+        &CredentialAttributeValue::Attribute("male".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3458,7 +3469,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
     );
 
     assert_eq!(
-        "Developer",
+        &CredentialAttributeValue::Attribute("Developer".to_string()),
         presentation.verifiable_credential[1]
             .credential_subject
             .attributes
@@ -3468,7 +3479,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
     );
 
     assert_eq!(
-        "IT",
+        &CredentialAttributeValue::Attribute("IT".to_string()),
         presentation.verifiable_credential[1]
             .credential_subject
             .attributes
@@ -3613,7 +3624,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_
 
     // Verifier verifies presentation
     assert_eq!(
-        "Alex",
+        &CredentialAttributeValue::Attribute("Alex".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3623,7 +3634,11 @@ fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_
     );
 
     assert_eq!(
-        json!({ "type": "AnonCredsPredicate", "p_type": ">=", "p_value": 18  }),
+        CredentialAttributeValue::Predicate(vec![PredicateAttribute {
+            type_: PredicateAttributeType::AnonCredsPredicate,
+            p_type: PredicateTypes::GE,
+            p_value: 18,
+        }]),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3763,7 +3778,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation_fo
 
     // Verifier verifies presentation
     assert_eq!(
-        "Alex",
+        &CredentialAttributeValue::Attribute("Alex".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3774,7 +3789,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation_fo
 
     // Verifier verifies presentation
     assert_eq!(
-        "male",
+        &CredentialAttributeValue::Attribute("male".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3785,7 +3800,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation_fo
 
     // Verifier verifies presentation
     assert_eq!(
-        "175",
+        &CredentialAttributeValue::Attribute("175".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3795,7 +3810,11 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation_fo
     );
 
     assert_eq!(
-        json!({ "type": "AnonCredsPredicate", "p_type": ">=", "p_value": 18  }),
+        CredentialAttributeValue::Predicate(vec![PredicateAttribute {
+            type_: PredicateAttributeType::AnonCredsPredicate,
+            p_type: PredicateTypes::GE,
+            p_value: 18,
+        }]),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes

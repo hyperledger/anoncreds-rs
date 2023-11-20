@@ -5,7 +5,7 @@ use crate::cl::{
 use crate::data_types::presentation::RequestedProof;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
-use crate::data_types::w3c::credential::W3CCredential;
+use crate::data_types::w3c::credential::{CredentialAttributeValue, W3CCredential};
 use crate::data_types::{
     credential::CredentialValues,
     link_secret::LinkSecret,
@@ -14,7 +14,6 @@ use crate::data_types::{
 };
 use crate::error::Result;
 use crate::utils::hash::SHA256;
-use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
 pub fn attr_common_view(attr: &str) -> String {
@@ -281,9 +280,13 @@ impl RequestedProof {
 }
 
 impl W3CCredential {
-    pub(crate) fn get_attribute(&self, requested_attribute: &str) -> Result<(String, Value)> {
+    pub(crate) fn get_attribute(
+        &self,
+        requested_attribute: &str,
+    ) -> Result<(String, CredentialAttributeValue)> {
+        let requested_attribute = attr_common_view(requested_attribute);
         for (attribute, value) in self.credential_subject.attributes.0.iter() {
-            if attr_common_view(attribute) == attr_common_view(requested_attribute) {
+            if attr_common_view(attribute) == requested_attribute {
                 return Ok((attribute.to_owned(), value.to_owned()));
             }
         }

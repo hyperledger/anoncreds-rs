@@ -41,7 +41,6 @@ use anoncreds_clsignatures::{
     SignatureCorrectnessProof,
 };
 use bitvec::bitvec;
-use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::ops::BitXor;
@@ -649,9 +648,7 @@ pub fn create_w3c_presentation(
             credentials, pres_req, credentials, secret!(&link_secret), schemas, cred_defs);
 
     if credentials.is_empty() {
-        return Err(err_msg!(
-            "No credential mapping or self-attested attributes presented"
-        ));
+        return Err(err_msg!("No credential mapping"));
     }
     // check for duplicate referents
     credentials.validate()?;
@@ -671,15 +668,18 @@ pub fn create_w3c_presentation(
             .encode(&credential.credential_schema.encoding)?;
         let proof = credential.get_credential_signature_proof()?;
         let signature = proof.get_credential_signature()?;
+        let schema_id = &credential.credential_schema.schema;
+        let cred_def_id = &credential.credential_schema.definition;
+        let rev_reg_id = credential.credential_schema.revocation_registry.as_ref();
 
         proof_builder.add_sub_proof(
             &credential_values,
             &signature.signature,
             link_secret,
             present,
-            &credential.credential_schema.schema,
-            &credential.credential_schema.definition,
-            credential.credential_schema.revocation_registry.as_ref(),
+            schema_id,
+            cred_def_id,
+            rev_reg_id,
         )?;
     }
 
@@ -713,12 +713,6 @@ pub fn create_w3c_presentation(
     );
 
     Ok(presentation)
-}
-
-fn _proof_builder() -> Result<ProofBuilder> {
-    let mut proof_builder = Prover::new_proof_builder()?;
-    proof_builder.add_common_attribute("master_secret")?;
-    Ok(proof_builder)
 }
 
 /// Create a [`CredentialRevocationState`] based on a [`Witness`], [`RevocationStatusList`] and
@@ -1061,7 +1055,7 @@ fn build_credential_subject<'p>(
             if *reveal {
                 credential_subject
                     .attributes
-                    .add(attribute, value);
+                    .add_attribute(attribute, value);
             }
         }
         if let Some(ref names) = requested_attribute.names {
@@ -1069,7 +1063,7 @@ fn build_credential_subject<'p>(
                 let (attribute, value) = credentials.cred.get_attribute(name)?;
                 credential_subject
                     .attributes
-                    .add(attribute, value);
+                    .add_attribute(attribute, value);
             }
         }
     }
@@ -1084,7 +1078,7 @@ fn build_credential_subject<'p>(
         let predicate = PredicateAttribute::from(predicate_info);
         credential_subject
             .attributes
-            .add(attribute, json!(predicate));
+            .add_predicate(attribute, predicate)?;
     }
 
     Ok(credential_subject)

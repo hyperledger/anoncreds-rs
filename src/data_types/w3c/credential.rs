@@ -1,13 +1,12 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::string::ToString;
 use zeroize::Zeroize;
 
 use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_CREDENTIAL_TYPES};
 use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignatureProof};
-use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
+use crate::data_types::w3c::presentation_proof::{CredentialPresentationProof, PredicateAttribute};
 use crate::data_types::{
     cred_def::CredentialDefinitionId,
     credential::CredentialValuesEncoding,
@@ -69,7 +68,20 @@ pub struct CredentialSubject {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
-pub struct CredentialAttributes(pub HashMap<String, Value>);
+pub struct CredentialAttributes(pub HashMap<String, CredentialAttributeValue>);
+
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum CredentialAttributeValue {
+    Attribute(String),
+    Predicate(Vec<PredicateAttribute>),
+}
+
+impl Default for CredentialAttributeValue {
+    fn default() -> Self {
+        CredentialAttributeValue::Attribute(String::new())
+    }
+}
 
 #[cfg(feature = "zeroize")]
 impl Drop for CredentialAttributes {
@@ -82,7 +94,7 @@ impl Drop for CredentialAttributes {
 impl Zeroize for CredentialAttributes {
     fn zeroize(&mut self) {
         for attr in self.0.values_mut() {
-            if let Value::String(attr) = attr {
+            if let CredentialAttributeValue::Attribute(attr) = attr {
                 attr.zeroize()
             }
         }
@@ -96,19 +108,6 @@ impl Validatable for CredentialAttributes {
                 "CredentialAttributes validation failed: empty list has been passed".into(),
             );
         }
-        for (attribute, value) in self.0.iter() {
-            match value {
-                Value::String(_) | Value::Object(_) => {}
-                _ => {
-                    return Err(format!(
-                        "CredentialAttributes validation failed: {} value format is not supported",
-                        attribute
-                    )
-                    .into());
-                }
-            }
-        }
-
         Ok(())
     }
 }
@@ -120,7 +119,10 @@ impl From<&CredentialValues> for CredentialAttributes {
                 .0
                 .iter()
                 .map(|(attribute, values)| {
-                    (attribute.to_owned(), Value::String(values.raw.to_owned()))
+                    (
+                        attribute.to_owned(),
+                        CredentialAttributeValue::Attribute(values.raw.to_owned()),
+                    )
                 })
                 .collect(),
         )
@@ -128,8 +130,30 @@ impl From<&CredentialValues> for CredentialAttributes {
 }
 
 impl CredentialAttributes {
-    pub(crate) fn add(&mut self, attribute: String, value: Value) {
+    pub(crate) fn add_attribute(&mut self, attribute: String, value: CredentialAttributeValue) {
         self.0.insert(attribute, value);
+    }
+
+    pub(crate) fn add_predicate(
+        &mut self,
+        attribute: String,
+        predicate: PredicateAttribute,
+    ) -> Result<()> {
+        match self.0.get_mut(&attribute) {
+            Some(value) => match value {
+                CredentialAttributeValue::Attribute(_) => {
+                    return Err(err_msg!("Predicate cannot be added for revealed attribute"));
+                }
+                CredentialAttributeValue::Predicate(predicates) => predicates.push(predicate),
+            },
+            None => {
+                self.0.insert(
+                    attribute,
+                    CredentialAttributeValue::Predicate(vec![predicate]),
+                );
+            }
+        }
+        Ok(())
     }
 
     pub(crate) fn encode(&self, encoding: &CredentialValuesEncoding) -> Result<CredentialValues> {
@@ -138,7 +162,9 @@ impl CredentialAttributes {
                 let mut cred_values = MakeCredentialValues::default();
                 for (attribute, raw_value) in self.0.iter() {
                     match raw_value {
-                        Value::String(raw_value) => cred_values.add_raw(attribute, raw_value)?,
+                        CredentialAttributeValue::Attribute(raw_value) => {
+                            cred_values.add_raw(attribute, raw_value)?
+                        }
                         value => {
                             return Err(err_msg!(
                                 "Encoding is not supported for credential value {:?}",

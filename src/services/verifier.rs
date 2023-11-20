@@ -26,6 +26,7 @@ use crate::services::helpers::{build_credential_schema, get_non_revoked_interval
 use crate::utils::query::Query;
 use crate::utils::validation::LEGACY_DID_IDENTIFIER;
 
+use crate::data_types::w3c::credential::CredentialAttributeValue;
 use anoncreds_clsignatures::{NonCredentialSchema, Proof, ProofVerifier};
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -873,14 +874,16 @@ fn build_requested_proof_from_w3c_presentation(
                 .ok_or_else(|| err_msg!("Requested Attribute expected to have a name attribute"))?;
 
             let (_, raw) = credential.get_attribute(&name)?;
-            requested_proof.revealed_attrs.insert(
-                referent.clone(),
-                RevealedAttributeInfo {
-                    sub_proof_index,
-                    raw: raw.to_string(),
-                    encoded: "".to_string(), // encoded value not needed
-                },
-            );
+            if let CredentialAttributeValue::Attribute(raw) = raw {
+                requested_proof.revealed_attrs.insert(
+                    referent.clone(),
+                    RevealedAttributeInfo {
+                        sub_proof_index,
+                        raw: raw.to_string(),
+                        encoded: "".to_string(), // encoded value not needed
+                    },
+                );
+            }
         }
         for referent in proof.mapping.revealed_attribute_groups.iter() {
             let requested_attribute = presentation_request
@@ -897,13 +900,15 @@ fn build_requested_proof_from_w3c_presentation(
             };
             for name in names.iter() {
                 let (_, raw) = credential.get_attribute(name)?;
-                group_info.values.insert(
-                    name.clone(),
-                    AttributeValue {
-                        raw: raw.to_string(),
-                        encoded: "".to_string(),
-                    },
-                );
+                if let CredentialAttributeValue::Attribute(raw) = raw {
+                    group_info.values.insert(
+                        name.clone(),
+                        AttributeValue {
+                            raw: raw.to_string(),
+                            encoded: "".to_string(),
+                        },
+                    );
+                }
             }
             requested_proof
                 .revealed_attr_groups
