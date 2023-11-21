@@ -83,7 +83,7 @@ export class W3CCredential extends AnoncredsObject {
   }
 
   public static fromJson(json: JsonObject) {
-    return new W3CCredential(anoncreds.credentialFromJson({ json: JSON.stringify(json) }).handle)
+    return new W3CCredential(anoncreds.w3cCredentialFromJson({ json: JSON.stringify(json) }).handle)
   }
 
   public process(options: ProcessW3CCredentialOptions) {
