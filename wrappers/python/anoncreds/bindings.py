@@ -1024,10 +1024,10 @@ def create_w3c_credential(
         cred_request,
         names_list,
         raw_values_list,
+        encode_str(encoding),
         pointer(revocation_config)
         if revocation_config
         else POINTER(RevocationConfig)(),
-        encode_str(encoding),
         byref(cred),
     )
     return cred

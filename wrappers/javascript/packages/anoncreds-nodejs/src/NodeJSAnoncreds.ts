@@ -721,8 +721,8 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialRequest,
       attributeNames as unknown as Buffer,
       attributeRawValues as unknown as Buffer,
-      revocationConfiguration?.ref().address() ?? 0,
       encoding,
+      revocationConfiguration?.ref().address() ?? 0,
       credentialPtr
     )
     this.handleError()
