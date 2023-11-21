@@ -34,6 +34,7 @@ mod pres_req;
 mod presentation;
 mod revocation;
 mod schema;
+mod w3c;
 
 #[no_mangle]
 pub extern "C" fn anoncreds_set_default_logger() -> ErrorCode {

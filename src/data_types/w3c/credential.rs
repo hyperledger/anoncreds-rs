@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::string::ToString;
 use zeroize::Zeroize;
@@ -190,11 +191,54 @@ pub struct CredentialStatus {
     pub id: RevocationRegistryDefinitionId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CredentialStatusType {
-    #[serde(rename = "AnonCredsCredentialStatusList2023")]
     AnonCredsCredentialStatusList2023,
     Other(String),
+}
+
+impl ToString for CredentialStatusType {
+    fn to_string(&self) -> String {
+        match self {
+            CredentialStatusType::AnonCredsCredentialStatusList2023 => {
+                "AnonCredsCredentialStatusList2023".to_string()
+            }
+            CredentialStatusType::Other(other) => other.to_string(),
+        }
+    }
+}
+
+impl From<&str> for CredentialStatusType {
+    fn from(value: &str) -> Self {
+        match value {
+            "AnonCredsCredentialStatusList2023" => {
+                CredentialStatusType::AnonCredsCredentialStatusList2023
+            }
+            other => CredentialStatusType::Other(other.to_string()),
+        }
+    }
+}
+
+impl Serialize for CredentialStatusType {
+    fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        Value::String(self.to_string()).serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for CredentialStatusType {
+    fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Value::deserialize(deserializer)
+            .map_err(de::Error::custom)?
+            .as_str()
+            .map(CredentialStatusType::from)
+            .ok_or_else(|| de::Error::custom("Cannot parse credential status type"))
+    }
 }
 
 impl Default for CredentialStatusType {

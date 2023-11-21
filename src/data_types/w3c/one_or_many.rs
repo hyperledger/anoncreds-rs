@@ -4,8 +4,8 @@ use crate::error::Result;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum OneOrMany<T> {
-    One(T),
     Many(Vec<T>),
+    One(T),
 }
 
 impl<T> Default for OneOrMany<T> {

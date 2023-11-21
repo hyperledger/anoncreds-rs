@@ -5,12 +5,12 @@ use std::{
     fs::create_dir,
 };
 
-use anoncreds::credential_conversion::{credential_from_w3c, credential_to_w3c};
 use anoncreds::data_types::w3c::credential::W3CCredential;
 use anoncreds::data_types::w3c::presentation::W3CPresentation;
 use anoncreds::types::{
     MakeCredentialAttributes, RevocationRegistryDefinition, RevocationStatusList,
 };
+use anoncreds::w3c::credential_conversion::{credential_from_w3c, credential_to_w3c};
 use anoncreds::{
     data_types::{
         cred_def::{CredentialDefinition, CredentialDefinitionId},
@@ -26,7 +26,7 @@ use anoncreds::{
         CredentialDefinitionConfig, CredentialRequest, CredentialRevocationConfig,
         MakeCredentialValues, PresentCredentials, PresentationRequest, RegistryType, SignatureType,
     },
-    verifier,
+    verifier, w3c,
 };
 
 #[derive(Debug)]
@@ -144,7 +144,7 @@ impl<'a> Mock<'a> {
                     overrides[i],
                 )
                 .map_err(|e| TestError(e.to_string())),
-                Presentations::W3C(presentation) => verifier::verify_w3c_presentation(
+                Presentations::W3C(presentation) => w3c::verifier::verify_presentation(
                     presentation,
                     &reqs[i],
                     &schemas,
@@ -387,7 +387,7 @@ impl<'a> Mock<'a> {
             }
         }
 
-        let issue_cred = issuer::create_w3c_credential(
+        let issue_cred = w3c::issuer::create_credential(
             cred_def,
             &issuer_wallet.cred_defs[cred_def_id].private,
             offer,
@@ -482,7 +482,7 @@ impl<'a> Mock<'a> {
                         *rev_idx,
                     );
                     // prover processes it
-                    prover::process_w3c_credential(
+                    w3c::prover::process_credential(
                         &mut recv_cred,
                         &cred_req_data.1,
                         &self.prover_wallets[prover_id].link_secret,
@@ -670,7 +670,7 @@ impl<'a> Mock<'a> {
             }
             PresentationFormat::W3C => {
                 let present = self.prepare_present_w3c_credential(prover_id, prover_values);
-                let presentation = prover::create_w3c_presentation(
+                let presentation = w3c::prover::create_presentation(
                     req,
                     present,
                     &self.prover_wallets[prover_id].link_secret,

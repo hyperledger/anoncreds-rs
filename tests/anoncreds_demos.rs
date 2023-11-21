@@ -1,4 +1,3 @@
-use anoncreds::credential_conversion::{credential_from_w3c, credential_to_w3c};
 use anoncreds::data_types::cred_def::CredentialDefinitionId;
 use anoncreds::data_types::pres_request::PredicateTypes;
 use anoncreds::data_types::rev_reg_def::RevocationRegistryDefinitionId;
@@ -7,11 +6,12 @@ use anoncreds::data_types::w3c::credential::CredentialAttributeValue;
 use anoncreds::data_types::w3c::credential_proof::CredentialProof;
 use anoncreds::data_types::w3c::presentation_proof::{PredicateAttribute, PredicateAttributeType};
 use anoncreds::data_types::w3c::uri::URI;
-use anoncreds::issuer;
 use anoncreds::prover;
 use anoncreds::tails::TailsFileWriter;
 use anoncreds::types::{CredentialRevocationConfig, MakeCredentialAttributes, PresentCredentials};
 use anoncreds::verifier;
+use anoncreds::w3c::credential_conversion::{credential_from_w3c, credential_to_w3c};
+use anoncreds::{issuer, w3c};
 use serde_json::json;
 use std::collections::{BTreeSet, HashMap};
 
@@ -2929,7 +2929,7 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
     let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
     cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
 
-    let presentation = prover::create_w3c_presentation(
+    let presentation = w3c::prover::create_presentation(
         &pres_request,
         present,
         &prover_wallet.link_secret,
@@ -2964,7 +2964,7 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
             .unwrap()
     );
 
-    let valid = verifier::verify_w3c_presentation(
+    let valid = w3c::verifier::verify_presentation(
         &presentation,
         &pres_request,
         &schemas,
@@ -3013,7 +3013,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation() 
 
     // Issuer creates a credential
     let cred_values = raw_credential_values("GVT");
-    let issue_cred = issuer::create_w3c_credential(
+    let issue_cred = w3c::issuer::create_credential(
         &gvt_cred_def,
         &gvt_cred_def_priv,
         &cred_offer,
@@ -3026,7 +3026,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation() 
 
     // Prover receives the credential and processes it
     let mut w3c_credential = issue_cred;
-    prover::process_w3c_credential(
+    w3c::prover::process_credential(
         &mut w3c_credential,
         &cred_request_metadata,
         &prover_wallet.link_secret,
@@ -3073,7 +3073,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation() 
     let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
     cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
 
-    let presentation = prover::create_w3c_presentation(
+    let presentation = w3c::prover::create_presentation(
         &pres_request,
         present,
         &prover_wallet.link_secret,
@@ -3108,7 +3108,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation() 
             .unwrap()
     );
 
-    let valid = verifier::verify_w3c_presentation(
+    let valid = w3c::verifier::verify_presentation(
         &presentation,
         &pres_request,
         &schemas,
@@ -3158,7 +3158,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_convert_into_legacy_and_present
 
     // Issuer creates a credential
     let cred_values = fixtures::raw_credential_values("GVT");
-    let issue_cred = issuer::create_w3c_credential(
+    let issue_cred = w3c::issuer::create_credential(
         &gvt_cred_def,
         &gvt_cred_def_priv,
         &cred_offer,
@@ -3171,7 +3171,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_convert_into_legacy_and_present
 
     // Prover receives the credential and processes it
     let mut w3c_credential = issue_cred;
-    prover::process_w3c_credential(
+    w3c::prover::process_credential(
         &mut w3c_credential,
         &cred_request_metadata,
         &prover_wallet.link_secret,
@@ -3363,7 +3363,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
 
     // Issuer creates a credential
     let cred_values = raw_credential_values("EMP");
-    let issue_cred = issuer::create_w3c_credential(
+    let issue_cred = w3c::issuer::create_credential(
         &emp_cred_def,
         &emp_cred_def_priv,
         &cred_offer,
@@ -3376,7 +3376,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
 
     // Prover receives the credential and processes it
     let mut w3c_emp_cred = issue_cred;
-    prover::process_w3c_credential(
+    w3c::prover::process_credential(
         &mut w3c_emp_cred,
         &cred_request_metadata,
         &prover_wallet.link_secret,
@@ -3438,7 +3438,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
     cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
     cred_defs.insert(emp_cred_def_id, emp_cred_def.try_clone().unwrap());
 
-    let presentation = prover::create_w3c_presentation(
+    let presentation = w3c::prover::create_presentation(
         &pres_request,
         present,
         &prover_wallet.link_secret,
@@ -3488,7 +3488,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
             .unwrap()
     );
 
-    let valid = verifier::verify_w3c_presentation(
+    let valid = w3c::verifier::verify_presentation(
         &presentation,
         &pres_request,
         &schemas,
@@ -3535,7 +3535,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_
 
     // Issuer creates a credential
     let cred_values = raw_credential_values("GVT");
-    let issue_cred = issuer::create_w3c_credential(
+    let issue_cred = w3c::issuer::create_credential(
         &gvt_cred_def,
         &gvt_cred_def_priv,
         &cred_offer,
@@ -3548,7 +3548,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_
 
     // Prover receives the credential and processes it
     let mut w3c_cred = issue_cred;
-    prover::process_w3c_credential(
+    w3c::prover::process_credential(
         &mut w3c_cred,
         &cred_request_metadata,
         &prover_wallet.link_secret,
@@ -3613,7 +3613,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_
     let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
     cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
 
-    let presentation = prover::create_w3c_presentation(
+    let presentation = w3c::prover::create_presentation(
         &pres_request,
         present,
         &prover_wallet.link_secret,
@@ -3648,7 +3648,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_
             .unwrap()
     );
 
-    let valid = verifier::verify_w3c_presentation(
+    let valid = w3c::verifier::verify_presentation(
         &presentation,
         &pres_request,
         &schemas,
@@ -3703,7 +3703,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation_fo
     gvt_cred_values.add("Height", "175");
     gvt_cred_values.add("Age", "28");
 
-    let issue_cred = issuer::create_w3c_credential(
+    let issue_cred = w3c::issuer::create_credential(
         &gvt_cred_def,
         &gvt_cred_def_priv,
         &cred_offer,
@@ -3716,7 +3716,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation_fo
 
     // Prover receives the credential and processes it
     let mut w3c_credential = issue_cred;
-    prover::process_w3c_credential(
+    w3c::prover::process_credential(
         &mut w3c_credential,
         &cred_request_metadata,
         &prover_wallet.link_secret,
@@ -3767,7 +3767,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation_fo
     let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
     cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
 
-    let presentation = prover::create_w3c_presentation(
+    let presentation = w3c::prover::create_presentation(
         &pres_request,
         present,
         &prover_wallet.link_secret,
@@ -3824,7 +3824,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation_fo
             .unwrap()
     );
 
-    let valid = verifier::verify_w3c_presentation(
+    let valid = w3c::verifier::verify_presentation(
         &presentation,
         &pres_request,
         &schemas,

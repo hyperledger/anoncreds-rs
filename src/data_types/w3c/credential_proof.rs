@@ -4,7 +4,6 @@ use anoncreds_clsignatures::{
     CredentialSignature as CLCredentialSignature, RevocationRegistry, SignatureCorrectnessProof,
     Witness,
 };
-use serde_json::Value;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,7 +38,7 @@ impl CredentialSignatureProof {
     }
 }
 
-pub type NonAnonCredsDataIntegrityProof = Value;
+pub type NonAnonCredsDataIntegrityProof = serde_json::Value;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CredentialSignatureType {

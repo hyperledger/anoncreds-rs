@@ -1,3 +1,5 @@
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::Value;
 use std::collections::HashMap;
 
 #[cfg(feature = "zeroize")]
@@ -177,11 +179,19 @@ pub struct AttributeValues {
     pub encoded: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CredentialValuesEncoding {
-    #[serde(rename = "auto")]
     Auto,
     Other(String),
+}
+
+impl ToString for CredentialValuesEncoding {
+    fn to_string(&self) -> String {
+        match self {
+            CredentialValuesEncoding::Auto => "auto".to_string(),
+            CredentialValuesEncoding::Other(other) => other.to_string(),
+        }
+    }
 }
 
 impl From<&str> for CredentialValuesEncoding {
@@ -190,6 +200,28 @@ impl From<&str> for CredentialValuesEncoding {
             "auto" => CredentialValuesEncoding::Auto,
             other => CredentialValuesEncoding::Other(other.to_string()),
         }
+    }
+}
+
+impl Serialize for CredentialValuesEncoding {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        Value::String(self.to_string()).serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for CredentialValuesEncoding {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Value::deserialize(deserializer)
+            .map_err(de::Error::custom)?
+            .as_str()
+            .map(CredentialValuesEncoding::from)
+            .ok_or_else(|| de::Error::custom("Cannot parse credential value encoding"))
     }
 }
 

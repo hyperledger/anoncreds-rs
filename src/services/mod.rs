@@ -1,7 +1,7 @@
-pub mod credential_conversion;
 pub(crate) mod helpers;
 pub mod issuer;
 pub mod prover;
 pub mod tails;
 pub mod types;
 pub mod verifier;
+pub mod w3c;

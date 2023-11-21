@@ -8,11 +8,10 @@ use crate::data_types::rev_reg_def::RevocationRegistryDefinition;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::rev_status_list::RevocationStatusList;
 use crate::data_types::schema::{Schema, SchemaId};
-use crate::data_types::w3c::presentation::W3CPresentation;
 use crate::error::Result;
-use crate::services::prover::{create_presentation, create_w3c_presentation};
+use crate::services::prover::create_presentation;
 use crate::services::types::PresentCredentials;
-use crate::services::verifier::{verify_presentation, verify_w3c_presentation};
+use crate::services::verifier::verify_presentation;
 
 use crate::ffi::object::AnyAnoncredsObject;
 use ffi_support::FfiStr;
@@ -20,9 +19,6 @@ use std::collections::HashMap;
 
 impl_anoncreds_object!(Presentation, "Presentation");
 impl_anoncreds_object_from_json!(Presentation, anoncreds_presentation_from_json);
-
-impl_anoncreds_object!(W3CPresentation, "W3CPresentation");
-impl_anoncreds_object_from_json!(W3CPresentation, anoncreds_w3c_presentation_from_json);
 
 #[derive(Debug)]
 #[repr(C)]
@@ -58,7 +54,7 @@ pub struct FfiCredentialProve<'a> {
     reveal: i8,
 }
 
-struct CredentialEntry {
+pub(crate) struct CredentialEntry {
     credential: AnoncredsObject,
     timestamp: Option<u64>,
     rev_state: Option<AnoncredsObject>,
@@ -92,56 +88,6 @@ pub extern "C" fn anoncreds_create_presentation(
             pres_req.load()?.cast_ref()?,
             present_creds,
             self_attested,
-            &link_secret,
-            &schemas,
-            &cred_defs,
-        )?;
-
-        let presentation = ObjectHandle::create(presentation)?;
-        unsafe { *presentation_p = presentation };
-        Ok(())
-    })
-}
-
-/// Create W3C Presentation according to the specification.
-///
-/// # Params
-/// pres_req:               object handle pointing to presentation request
-/// credentials:            credentials (in W3C form) to use for presentation preparation
-/// credentials_prove:      attributes and predicates to prove per credential
-/// link_secret:            holder link secret
-/// schemas:                list of credential schemas
-/// schema_ids:             list of schemas ids
-/// cred_defs:              list of credential definitions
-/// cred_def_ids:           list of credential definitions ids
-/// presentation_p:         reference that will contain created presentation (in W3C form) instance pointer.
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_create_presentation(
-    pres_req: ObjectHandle,
-    credentials: FfiList<FfiCredentialEntry>,
-    credentials_prove: FfiList<FfiCredentialProve>,
-    link_secret: FfiStr,
-    schemas: FfiList<ObjectHandle>,
-    schema_ids: FfiStrList,
-    cred_defs: FfiList<ObjectHandle>,
-    cred_def_ids: FfiStrList,
-    presentation_p: *mut ObjectHandle,
-) -> ErrorCode {
-    catch_error(|| {
-        check_useful_c_ptr!(presentation_p);
-
-        let link_secret = _link_secret(link_secret)?;
-        let cred_defs = _prepare_cred_defs(cred_defs, cred_def_ids)?;
-        let schemas = _prepare_schemas(schemas, schema_ids)?;
-        let credentials = _credentials(credentials)?;
-        let present_creds = _present_credentials(&credentials, credentials_prove)?;
-
-        let presentation = create_w3c_presentation(
-            pres_req.load()?.cast_ref()?,
-            present_creds,
             &link_secret,
             &schemas,
             &cred_defs,
@@ -233,60 +179,7 @@ pub extern "C" fn anoncreds_verify_presentation(
     })
 }
 
-/// Verity W3C styled Presentation
-///
-/// # Params
-/// presentation:                   object handle pointing to presentation
-/// pres_req:                       object handle pointing to presentation request
-/// schemas:                        list of credential schemas
-/// schema_ids:                     list of schemas ids
-/// cred_defs:                      list of credential definitions
-/// cred_def_ids:                   list of credential definitions ids
-/// rev_reg_defs:                   list of revocation definitions
-/// rev_reg_def_ids:                list of revocation definitions ids
-/// rev_status_list:                revocation status list
-/// nonrevoked_interval_override:   not-revoked interval
-/// result_p:                       reference that will contain presentation verification result.
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_verify_presentation(
-    presentation: ObjectHandle,
-    pres_req: ObjectHandle,
-    schemas: FfiList<ObjectHandle>,
-    schema_ids: FfiStrList,
-    cred_defs: FfiList<ObjectHandle>,
-    cred_def_ids: FfiStrList,
-    rev_reg_defs: FfiList<ObjectHandle>,
-    rev_reg_def_ids: FfiStrList,
-    rev_status_list: FfiList<ObjectHandle>,
-    nonrevoked_interval_override: FfiList<FfiNonrevokedIntervalOverride>,
-    result_p: *mut i8,
-) -> ErrorCode {
-    catch_error(|| {
-        let cred_defs = _prepare_cred_defs(cred_defs, cred_def_ids)?;
-        let schemas = _prepare_schemas(schemas, schema_ids)?;
-        let rev_reg_defs = _rev_reg_defs(rev_reg_defs, rev_reg_def_ids)?;
-        let rev_status_lists = _rev_status_list(rev_status_list)?;
-        let map_nonrevoked_interval_override =
-            _nonrevoke_interval_override(nonrevoked_interval_override)?;
-
-        let verify = verify_w3c_presentation(
-            presentation.load()?.cast_ref()?,
-            pres_req.load()?.cast_ref()?,
-            &schemas,
-            &cred_defs,
-            rev_reg_defs.as_ref(),
-            rev_status_lists,
-            Some(&map_nonrevoked_interval_override),
-        )?;
-        unsafe { *result_p = i8::from(verify) };
-        Ok(())
-    })
-}
-
-fn _link_secret(link_secret: FfiStr) -> Result<LinkSecret> {
+pub(crate) fn _link_secret(link_secret: FfiStr) -> Result<LinkSecret> {
     let link_secret = link_secret
         .as_opt_str()
         .ok_or_else(|| err_msg!("Missing link secret"))?;
@@ -294,7 +187,7 @@ fn _link_secret(link_secret: FfiStr) -> Result<LinkSecret> {
     Ok(link_secret)
 }
 
-fn _prepare_cred_defs(
+pub(crate) fn _prepare_cred_defs(
     cred_defs: FfiList<ObjectHandle>,
     cred_def_ids: FfiStrList,
 ) -> Result<HashMap<CredentialDefinitionId, CredentialDefinition>> {
@@ -320,7 +213,7 @@ fn _prepare_cred_defs(
     Ok(cred_defs)
 }
 
-fn _prepare_schemas(
+pub(crate) fn _prepare_schemas(
     schemas: FfiList<ObjectHandle>,
     schema_ids: FfiStrList,
 ) -> Result<HashMap<SchemaId, Schema>> {
@@ -344,7 +237,7 @@ fn _prepare_schemas(
     Ok(schemas)
 }
 
-fn _rev_reg_defs(
+pub(crate) fn _rev_reg_defs(
     rev_reg_defs: FfiList<ObjectHandle>,
     rev_reg_def_ids: FfiStrList,
 ) -> Result<Option<HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>> {
@@ -378,7 +271,7 @@ fn _rev_reg_defs(
     Ok(rev_reg_defs)
 }
 
-fn _rev_status_list(
+pub(crate) fn _rev_status_list(
     rev_status_list: FfiList<ObjectHandle>,
 ) -> Result<Option<Vec<RevocationStatusList>>> {
     let rev_status_list: AnoncredsObjectList =
@@ -392,7 +285,7 @@ fn _rev_status_list(
     Ok(rev_status_lists)
 }
 
-fn _nonrevoke_interval_override(
+pub(crate) fn _nonrevoke_interval_override(
     nonrevoked_interval_override: FfiList<FfiNonrevokedIntervalOverride>,
 ) -> Result<HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>> {
     let override_entries = {
@@ -415,7 +308,7 @@ fn _nonrevoke_interval_override(
     Ok(map_nonrevoked_interval_override)
 }
 
-fn _self_attested(
+pub(crate) fn _self_attested(
     self_attest_names: FfiStrList,
     self_attest_values: FfiStrList,
 ) -> Result<Option<HashMap<String, String>>> {
@@ -449,7 +342,9 @@ fn _self_attested(
     Ok(self_attested)
 }
 
-fn _credentials(credentials: FfiList<FfiCredentialEntry>) -> Result<Vec<CredentialEntry>> {
+pub(crate) fn _credentials(
+    credentials: FfiList<FfiCredentialEntry>,
+) -> Result<Vec<CredentialEntry>> {
     let credentials = credentials.as_slice();
     let credentials = credentials.iter().try_fold(
         Vec::with_capacity(credentials.len()),
@@ -461,7 +356,7 @@ fn _credentials(credentials: FfiList<FfiCredentialEntry>) -> Result<Vec<Credenti
     Ok(credentials)
 }
 
-fn _present_credentials<'a, T: AnyAnoncredsObject + 'static>(
+pub(crate) fn _present_credentials<'a, T: AnyAnoncredsObject + 'static>(
     credentials: &'a [CredentialEntry],
     credentials_prove: FfiList<'a, FfiCredentialProve<'a>>,
 ) -> Result<PresentCredentials<'a, T>> {

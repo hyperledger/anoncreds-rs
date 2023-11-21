@@ -15,7 +15,7 @@ use crate::Error;
 /// # Example
 ///
 /// ```rust
-/// use anoncreds::credential_conversion;
+/// use anoncreds::w3c;
 /// use anoncreds::issuer;
 /// use anoncreds::prover;
 /// use anoncreds::types::MakeCredentialValues;
@@ -84,7 +84,7 @@ use crate::Error;
 ///                            None,
 ///                            ).expect("Unable to process the credential");
 ///
-/// let _w3c_credential = credential_conversion::credential_to_w3c(&credential, &cred_def)
+/// let _w3c_credential = w3c::credential_conversion::credential_to_w3c(&credential, &cred_def)
 ///                         .expect("Unable to convert credential to w3c form");
 ///
 /// ```
@@ -137,7 +137,7 @@ pub fn credential_to_w3c(
 /// # Example
 ///
 /// ```rust
-/// use anoncreds::credential_conversion;
+/// use anoncreds::w3c;
 /// use anoncreds::issuer;
 /// use anoncreds::prover;
 /// use anoncreds::types::{MakeCredentialAttributes, MakeCredentialValues};
@@ -191,7 +191,7 @@ pub fn credential_to_w3c(
 /// credential_values.add("age", "28");
 ///
 /// let mut credential =
-///     issuer::create_w3c_credential(&cred_def,
+///     w3c::issuer::create_credential(&cred_def,
 ///                                   &cred_def_priv,
 ///                                   &credential_offer,
 ///                                   &credential_request,
@@ -200,14 +200,14 @@ pub fn credential_to_w3c(
 ///                                   None,
 ///                                   ).expect("Unable to create credential");
 ///
-/// prover::process_w3c_credential(&mut credential,
+/// w3c::prover::process_credential(&mut credential,
 ///                                &credential_request_metadata,
 ///                                &link_secret,
 ///                                &cred_def,
 ///                                None,
 ///                                ).expect("Unable to process the credential");
 ///
-/// let _w3c_credential = credential_conversion::credential_from_w3c(&credential)
+/// let _w3c_credential = w3c::credential_conversion::credential_from_w3c(&credential)
 ///                         .expect("Unable to convert credential to w3c form");
 ///
 /// ```
