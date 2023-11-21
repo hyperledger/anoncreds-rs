@@ -2,8 +2,9 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import java.util.*
 
 plugins {
-    kotlin("multiplatform") version "1.8.21"
-    kotlin("plugin.serialization") version "1.8.21"
+    kotlin("multiplatform") version "1.9.20"
+    kotlin("plugin.serialization") version "1.9.0"
+//    id("com.android.library") version "7.4.0" apply false
     id("maven-publish")
 }
 
@@ -15,7 +16,7 @@ repositories {
 ext["githubUsername"] = null
 ext["githubToken"] = null
 ext["anoncredsVersion"] = "0.1.0-dev.18"
-ext["wrapperVersion"] = "4"
+ext["wrapperVersion"] = "5"
 
 val secretPropsFile = project.rootProject.file("local.properties")
 if(secretPropsFile.exists()) {
@@ -68,6 +69,19 @@ private enum class PlatformType {
 
 kotlin {
 
+//    android {
+//        compilations.all {
+//            compileOptions {
+//                sourceCompatibility JavaVersion.VERSION_1_8
+//                        targetCompatibility JavaVersion.VERSION_1_8
+//            }
+//
+//            kotlinOptions {
+//                jvmTarget = "1.8"
+//            }
+//        }
+//    }
+
     fun addLibs(libDirectory: String, target: KotlinNativeTarget) {
         target.compilations.getByName("main") {
             val anoncreds_rs by cinterops.creating {
@@ -108,25 +122,25 @@ kotlin {
         addLibs(libDirectory, this)
     }
 
-    androidNativeArm64(){
-        val libDirectory = "${projectDir}/../../target/aarch64-linux-android/release"
-        addLibs(libDirectory, this)
-    }
-
-    androidNativeX64(){
-        val libDirectory = "${projectDir}/../../target/i686-linux-android/release"
-        addLibs(libDirectory, this)
-    }
-
-    androidNativeX86(){
-        val libDirectory = "${projectDir}/../../target/x86_64-linux-android/release"
-        addLibs(libDirectory, this)
-    }
-
-    androidNativeArm32(){
-        val libDirectory = "${projectDir}/../../target/armv7-linux-androideabi/release"
-        addLibs(libDirectory, this)
-    }
+//    androidNativeArm64(){
+//        val libDirectory = "${projectDir}/../../target/aarch64-linux-android/release"
+//        addLibs(libDirectory, this)
+//    }
+//
+//    androidNativeX64(){
+//        val libDirectory = "${projectDir}/../../target/i686-linux-android/release"
+//        addLibs(libDirectory, this)
+//    }
+//
+//    androidNativeX86(){
+//        val libDirectory = "${projectDir}/../../target/x86_64-linux-android/release"
+//        addLibs(libDirectory, this)
+//    }
+//
+//    androidNativeArm32(){
+//        val libDirectory = "${projectDir}/../../target/armv7-linux-androideabi/release"
+//        addLibs(libDirectory, this)
+//    }
     
     sourceSets {
         val commonMain by getting {
@@ -134,6 +148,21 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
             }
         }
+//        val androidMain by getting
         val commonTest by getting
+
+        all {
+            languageSettings.optIn("kotlin.RequiresOptIn")
+            languageSettings.optIn("kotlinx.cinterop.ExperimentalForeignApi")
+//            languageSettings.useExperimentalAnnotation("kotlin.RequiresOptIn")
+        }
     }
 }
+
+//android {
+//    namespace = "org.hyperledger.anoncreds-rs-kotlin"
+//    compileSdk = 33
+//    defaultConfig {
+//        minSdk = 24
+//    }
+//}

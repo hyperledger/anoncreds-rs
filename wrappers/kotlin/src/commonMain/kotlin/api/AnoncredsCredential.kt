@@ -90,7 +90,7 @@ private constructor(
         credentialRequestMetadata: AnoncredsCredentialRequestMetadata,
         linkSecret: String,
         credentialDefinition: AnoncredsCredentialDefinition,
-        revocationRegistryDefinition: RevocationRegistryDefinition
+        revocationRegistryDefinition: RevocationRegistryDefinition? = null
     ){
         memScoped{
             val handlePointer = alloc<ObjectHandleVar>()
@@ -100,7 +100,7 @@ private constructor(
                 credentialRequestMetadata.handle,
                 linkSecret,
                 credentialDefinition.handle,
-                revocationRegistryDefinition.handle,
+                revocationRegistryDefinition?.handle ?: 0u,
                 handlePointer.ptr
             )
 

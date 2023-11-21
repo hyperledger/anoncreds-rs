@@ -31,8 +31,8 @@ private constructor(
                     revocationStatusList.handle,
                     revocationRegistryIndex,
                     tailsPath,
-                    0, // Undefined since we are creating not updating
-                    0, // ^^^^^^^
+                    0u, // Undefined since we are creating not updating
+                    0u, // ^^^^^^^
                     handlePointer.ptr
                 )
 

@@ -1,5 +1,3 @@
-@file:OptIn(UnsafeNumber::class)
-
 package anoncreds.api
 
 import anoncreds.Anoncreds
