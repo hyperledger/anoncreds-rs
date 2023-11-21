@@ -1,11 +1,12 @@
 use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
-use crate::utils::base64;
+use crate::utils::encoded_object::EncodedObject;
 use anoncreds_clsignatures::{
     CredentialSignature as CLCredentialSignature, RevocationRegistry, SignatureCorrectnessProof,
     Witness,
 };
 use serde_json::Value;
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum CredentialProof {
@@ -24,14 +25,14 @@ pub struct CredentialSignatureProof {
 impl CredentialSignatureProof {
     pub fn new(signature: CredentialSignature) -> Self {
         CredentialSignatureProof {
-            type_: CredentialSignatureType::CLSignature2023,
+            type_: CredentialSignatureType::AnonCredsProof2023,
             signature: signature.encode(),
         }
     }
 
     pub fn get_credential_signature(&self) -> crate::Result<CredentialSignature> {
         match self.type_ {
-            CredentialSignatureType::CLSignature2023 => {
+            CredentialSignatureType::AnonCredsProof2023 => {
                 CredentialSignature::decode(&self.signature)
             }
         }
@@ -42,13 +43,13 @@ pub type NonAnonCredsDataIntegrityProof = Value;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CredentialSignatureType {
-    #[serde(rename = "CLSignature2023")]
-    CLSignature2023,
+    #[serde(rename = "AnonCredsProof2023")]
+    AnonCredsProof2023,
 }
 
 impl Default for CredentialSignatureType {
     fn default() -> Self {
-        CredentialSignatureType::CLSignature2023
+        CredentialSignatureType::AnonCredsProof2023
     }
 }
 
@@ -107,12 +108,6 @@ impl CredentialSignature {
             witness,
         }
     }
-
-    pub fn encode(&self) -> String {
-        base64::encode_json(&self)
-    }
-
-    pub fn decode(string: &str) -> crate::Result<CredentialSignature> {
-        base64::decode_json(string)
-    }
 }
+
+impl EncodedObject for CredentialSignature {}

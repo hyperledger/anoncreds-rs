@@ -36,6 +36,7 @@ use crate::data_types::w3c::presentation_proof::{
     CredentialAttributesMapping, CredentialPresentationProof, CredentialPresentationProofValue,
     PredicateAttribute, PresentationProof, PresentationProofValue,
 };
+use crate::utils::encoded_object::EncodedObject;
 use anoncreds_clsignatures::{
     CredentialSignature as CLCredentialSignature, NonCredentialSchema, Proof, ProofBuilder,
     SignatureCorrectnessProof,
@@ -668,9 +669,9 @@ pub fn create_w3c_presentation(
             .encode(&credential.credential_schema.encoding)?;
         let proof = credential.get_credential_signature_proof()?;
         let signature = proof.get_credential_signature()?;
-        let schema_id = &credential.credential_schema.schema;
-        let cred_def_id = &credential.credential_schema.definition;
-        let rev_reg_id = credential.credential_schema.revocation_registry.as_ref();
+        let schema_id = credential.schema_id();
+        let cred_def_id = credential.cred_def_id();
+        let rev_reg_id = credential.get_rev_reg_id();
 
         proof_builder.add_sub_proof(
             &credential_values,

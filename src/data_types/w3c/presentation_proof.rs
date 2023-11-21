@@ -1,5 +1,5 @@
 use crate::data_types::pres_request::{PredicateInfo, PredicateTypes};
-use crate::utils::base64;
+use crate::utils::encoded_object::EncodedObject;
 use anoncreds_clsignatures::{AggregatedProof, SubProof};
 use std::collections::HashSet;
 
@@ -28,15 +28,9 @@ impl CredentialPresentationProofValue {
     pub fn new(sub_proof: SubProof) -> CredentialPresentationProofValue {
         CredentialPresentationProofValue { sub_proof }
     }
-
-    pub fn encode(&self) -> String {
-        base64::encode_json(&self)
-    }
-
-    pub fn decode(string: &str) -> crate::Result<CredentialPresentationProofValue> {
-        base64::decode_json(string)
-    }
 }
+
+impl EncodedObject for CredentialPresentationProofValue {}
 
 impl CredentialPresentationProof {
     pub fn new(
@@ -99,15 +93,9 @@ impl PresentationProofValue {
             aggregated: aggregated_proof,
         }
     }
-
-    pub fn encode(&self) -> String {
-        base64::encode_json(&self)
-    }
-
-    pub fn decode(string: &str) -> crate::Result<PresentationProofValue> {
-        base64::decode_json(string)
-    }
 }
+
+impl EncodedObject for PresentationProofValue {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PresentationProofType {
@@ -137,8 +125,8 @@ pub struct CredentialAttributesMapping {
 pub struct PredicateAttribute {
     #[serde(rename = "type")]
     pub type_: PredicateAttributeType,
-    pub p_type: PredicateTypes,
-    pub p_value: i32,
+    pub predicate: PredicateTypes,
+    pub value: i32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -157,8 +145,8 @@ impl From<PredicateInfo> for PredicateAttribute {
     fn from(info: PredicateInfo) -> Self {
         PredicateAttribute {
             type_: PredicateAttributeType::AnonCredsPredicate,
-            p_type: info.p_type,
-            p_value: info.p_value,
+            predicate: info.p_type,
+            value: info.p_value,
         }
     }
 }

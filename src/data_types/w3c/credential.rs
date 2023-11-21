@@ -185,9 +185,31 @@ impl CredentialAttributes {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialStatus {
-    pub id: URI,
     #[serde(rename = "type")]
-    pub type_: String,
+    pub type_: CredentialStatusType,
+    pub id: RevocationRegistryDefinitionId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CredentialStatusType {
+    #[serde(rename = "AnonCredsCredentialStatusList2023")]
+    AnonCredsCredentialStatusList2023,
+    Other(String),
+}
+
+impl Default for CredentialStatusType {
+    fn default() -> Self {
+        CredentialStatusType::AnonCredsCredentialStatusList2023
+    }
+}
+
+impl CredentialStatus {
+    pub fn new(id: RevocationRegistryDefinitionId) -> CredentialStatus {
+        CredentialStatus {
+            type_: CredentialStatusType::AnonCredsCredentialStatusList2023,
+            id,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -197,8 +219,6 @@ pub struct CredentialSchema {
     pub type_: CredentialSchemaType,
     pub definition: CredentialDefinitionId,
     pub schema: SchemaId,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub revocation_registry: Option<RevocationRegistryDefinitionId>,
     #[serde(default)]
     pub encoding: CredentialValuesEncoding,
 }
@@ -207,14 +227,12 @@ impl CredentialSchema {
     pub fn new(
         schema: SchemaId,
         definition: CredentialDefinitionId,
-        revocation_registry: Option<RevocationRegistryDefinitionId>,
         encoding: CredentialValuesEncoding,
     ) -> CredentialSchema {
         CredentialSchema {
             type_: CredentialSchemaType::AnonCredsDefinition,
             definition,
             schema,
-            revocation_registry,
             encoding,
         }
     }
@@ -253,6 +271,10 @@ impl W3CCredential {
 
     pub fn set_credential_schema(&mut self, credential_schema: CredentialSchema) {
         self.credential_schema = credential_schema
+    }
+
+    pub fn set_credential_status(&mut self, credential_status: CredentialStatus) {
+        self.credential_status = Some(credential_status)
     }
 
     pub fn set_attributes(&mut self, attributes: CredentialAttributes) {
@@ -320,5 +342,26 @@ impl W3CCredential {
             ));
         }
         Ok(())
+    }
+
+    pub fn schema_id(&self) -> &SchemaId {
+        &self.credential_schema.schema
+    }
+
+    pub fn cred_def_id(&self) -> &CredentialDefinitionId {
+        &self.credential_schema.definition
+    }
+
+    pub fn get_rev_reg_id(&self) -> Option<&RevocationRegistryDefinitionId> {
+        if let Some(credential_status) = self.credential_status.as_ref() {
+            match credential_status.type_ {
+                CredentialStatusType::AnonCredsCredentialStatusList2023 => {
+                    Some(&credential_status.id)
+                }
+                CredentialStatusType::Other(_) => None,
+            }
+        } else {
+            None
+        }
     }
 }

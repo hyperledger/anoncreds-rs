@@ -192,12 +192,9 @@ pub fn verify_w3c_presentation(
     for verifiable_credential in presentation.verifiable_credential.iter() {
         let credential_proof = verifiable_credential.get_presentation_proof()?;
         let proof_data = credential_proof.get_proof_value()?;
-        let schema_id = &verifiable_credential.credential_schema.schema;
-        let cred_def_id = &verifiable_credential.credential_schema.definition;
-        let rev_reg_id = verifiable_credential
-            .credential_schema
-            .revocation_registry
-            .as_ref();
+        let schema_id = &verifiable_credential.schema_id();
+        let cred_def_id = &verifiable_credential.cred_def_id();
+        let rev_reg_id = verifiable_credential.get_rev_reg_id();
 
         let mut revealed_attribute: HashSet<String> =
             credential_proof.mapping.revealed_attributes.clone();
@@ -825,13 +822,12 @@ fn collect_received_attrs_and_predicates_from_w3c_presentation(
 
     for verifiable_credential in proof.verifiable_credential.iter() {
         let presentation_proof = verifiable_credential.get_presentation_proof()?;
+        let rev_reg_id = verifiable_credential.get_rev_reg_id().cloned();
+
         let identifier: Identifier = Identifier {
-            schema_id: verifiable_credential.credential_schema.schema.clone(),
-            cred_def_id: verifiable_credential.credential_schema.definition.clone(),
-            rev_reg_id: verifiable_credential
-                .credential_schema
-                .revocation_registry
-                .clone(),
+            schema_id: verifiable_credential.schema_id().clone(),
+            cred_def_id: verifiable_credential.cred_def_id().clone(),
+            rev_reg_id,
             timestamp: None,
         };
         for revealed_attribute in &presentation_proof.mapping.revealed_attributes {

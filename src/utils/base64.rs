@@ -11,7 +11,7 @@ pub fn encode<T: AsRef<[u8]>>(val: T) -> String {
 
 pub fn encode_json<T: Serialize>(val: T) -> String {
     let json = json!(val).to_string();
-    encode(&json)
+    encode(json)
 }
 
 pub fn decode<T: AsRef<[u8]>>(val: T) -> Result<Vec<u8>, Error> {

@@ -1,6 +1,8 @@
 use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::credential::CredentialValuesEncoding;
-use crate::data_types::w3c::credential::{CredentialAttributes, CredentialSchema, W3CCredential};
+use crate::data_types::w3c::credential::{
+    CredentialAttributes, CredentialSchema, CredentialStatus, W3CCredential,
+};
 use crate::data_types::w3c::credential_proof::{
     CredentialProof, CredentialSignature, CredentialSignatureProof,
 };
@@ -114,9 +116,11 @@ pub fn credential_to_w3c(
     w3c_credential.set_credential_schema(CredentialSchema::new(
         credential.schema_id,
         credential.cred_def_id,
-        credential.rev_reg_id,
         CredentialValuesEncoding::Auto,
     ));
+    if let Some(rev_reg_id) = credential.rev_reg_id {
+        w3c_credential.set_credential_status(CredentialStatus::new(rev_reg_id))
+    }
     w3c_credential.set_attributes(attributes);
     w3c_credential.add_proof(CredentialProof::AnonCredsSignatureProof(proof));
 
@@ -215,9 +219,9 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
 
     w3c_credential.validate()?;
 
-    let schema_id = w3c_credential.credential_schema.schema.clone();
-    let cred_def_id = w3c_credential.credential_schema.definition.clone();
-    let rev_reg_id = w3c_credential.credential_schema.revocation_registry.clone();
+    let schema_id = w3c_credential.schema_id().clone();
+    let cred_def_id = w3c_credential.cred_def_id().clone();
+    let rev_reg_id = w3c_credential.get_rev_reg_id().cloned();
     let proof = w3c_credential.get_credential_signature_proof()?;
     let credential_signature = proof.get_credential_signature()?;
     let values = w3c_credential
@@ -253,6 +257,7 @@ mod tests {
         AttributeNames, CredentialDefinitionConfig, CredentialValues, MakeCredentialValues,
         SignatureType,
     };
+    use crate::utils::encoded_object::EncodedObject;
     use crate::{issuer, ErrorKind};
     use anoncreds_clsignatures::{
         CredentialSignature as CLCredentialSignature,
@@ -350,7 +355,6 @@ mod tests {
         credential.set_credential_schema(CredentialSchema::new(
             _schema_id(),
             _cred_def_id(),
-            None,
             CredentialValuesEncoding::Auto,
         ));
         credential.set_attributes(CredentialAttributes::from(&_cred_values()));
@@ -387,7 +391,10 @@ mod tests {
             legacy_credential.cred_def_id
         );
         assert_eq!(
-            w3c_credential.credential_schema.revocation_registry,
+            w3c_credential
+                .credential_status
+                .clone()
+                .map(|status| status.id),
             legacy_credential.rev_reg_id
         );
         assert_eq!(
@@ -419,7 +426,10 @@ mod tests {
         );
         assert_eq!(
             legacy_credential.rev_reg_id,
-            w3c_credential.credential_schema.revocation_registry
+            w3c_credential
+                .credential_status
+                .clone()
+                .map(|status| status.id)
         );
         assert_eq!(legacy_credential.values, _cred_values());
         assert_eq!(legacy_credential.signature, _signature_data().signature);

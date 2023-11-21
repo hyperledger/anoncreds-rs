@@ -532,12 +532,10 @@ pub extern "C" fn anoncreds_w3c_credential_get_attribute(
         let cred = handle.load()?;
         let cred = cred.cast_ref::<W3CCredential>()?;
         let val = match name.as_opt_str().unwrap_or_default() {
-            "schema_id" => rust_string_to_c(cred.credential_schema.schema.clone()),
-            "cred_def_id" => rust_string_to_c(cred.credential_schema.definition.to_string()),
+            "schema_id" => rust_string_to_c(cred.schema_id().clone()),
+            "cred_def_id" => rust_string_to_c(cred.cred_def_id().to_string()),
             "rev_reg_id" => cred
-                .credential_schema
-                .revocation_registry
-                .as_ref()
+                .get_rev_reg_id()
                 .map_or(ptr::null_mut(), |s| rust_string_to_c(s.to_string())),
             "rev_reg_index" => cred
                 .get_credential_signature_proof()?

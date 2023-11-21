@@ -2952,8 +2952,8 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
     assert_eq!(
         CredentialAttributeValue::Predicate(vec![PredicateAttribute {
             type_: PredicateAttributeType::AnonCredsPredicate,
-            p_type: PredicateTypes::GE,
-            p_value: 18,
+            predicate: PredicateTypes::GE,
+            value: 18,
         }]),
         presentation.verifiable_credential[0]
             .credential_subject
@@ -3096,8 +3096,8 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation() 
     assert_eq!(
         CredentialAttributeValue::Predicate(vec![PredicateAttribute {
             type_: PredicateAttributeType::AnonCredsPredicate,
-            p_type: PredicateTypes::GE,
-            p_value: 18,
+            predicate: PredicateTypes::GE,
+            value: 18,
         }]),
         presentation.verifiable_credential[0]
             .credential_subject
@@ -3636,8 +3636,8 @@ fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_
     assert_eq!(
         CredentialAttributeValue::Predicate(vec![PredicateAttribute {
             type_: PredicateAttributeType::AnonCredsPredicate,
-            p_type: PredicateTypes::GE,
-            p_value: 18,
+            predicate: PredicateTypes::GE,
+            value: 18,
         }]),
         presentation.verifiable_credential[0]
             .credential_subject
@@ -3812,8 +3812,8 @@ fn anoncreds_demo_works_for_issue_w3c_credential_and_present_w3c_presentation_fo
     assert_eq!(
         CredentialAttributeValue::Predicate(vec![PredicateAttribute {
             type_: PredicateAttributeType::AnonCredsPredicate,
-            p_type: PredicateTypes::GE,
-            p_value: 18,
+            predicate: PredicateTypes::GE,
+            value: 18,
         }]),
         presentation.verifiable_credential[0]
             .credential_subject

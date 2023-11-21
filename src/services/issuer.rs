@@ -4,7 +4,9 @@ use crate::data_types::credential::CredentialValuesEncoding;
 use crate::data_types::issuer_id::IssuerId;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
-use crate::data_types::w3c::credential::{CredentialAttributes, CredentialSchema, W3CCredential};
+use crate::data_types::w3c::credential::{
+    CredentialAttributes, CredentialSchema, CredentialStatus, W3CCredential,
+};
 use crate::data_types::w3c::credential_proof::{
     CredentialProof, CredentialSignature, CredentialSignatureProof,
 };
@@ -858,9 +860,11 @@ pub fn create_w3c_credential(
     credential.set_credential_schema(CredentialSchema::new(
         cred_offer.schema_id.clone(),
         cred_offer.cred_def_id.clone(),
-        rev_reg_id,
         encoding,
     ));
+    if let Some(rev_reg_id) = rev_reg_id {
+        credential.set_credential_status(CredentialStatus::new(rev_reg_id));
+    }
     credential.set_attributes(raw_credential_values);
     credential.add_proof(CredentialProof::AnonCredsSignatureProof(proof));
 
