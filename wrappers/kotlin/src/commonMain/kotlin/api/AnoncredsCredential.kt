@@ -115,10 +115,11 @@ private constructor(
     private enum class CredentialAttributes(val attribute: String) {
         SchemaID("schema_id"),
         CredDefId("cred_def_id"),
-        RevRegId("reg_rev_id"),
+        RevRegId("rev_reg_id"),
         RevRegIndex("rev_reg_index")
     }
-    private fun getAttribute(attribute: CredentialAttributes): String {
+
+    private fun getAttribute(attribute: CredentialAttributes): String? {
         memScoped{
             val pointer = alloc<FfiStrVar>()
 
@@ -130,23 +131,23 @@ private constructor(
 
             Anoncreds.assertNoError(errorCode)
 
-            return pointer.value!!.toKString()
+            return pointer.value?.toKString()
         }
     }
 
-    fun getSchemaId(): String {
+    fun getSchemaId(): String? {
         return getAttribute(CredentialAttributes.SchemaID)
     }
 
-    fun getCredentialDefinitionId(): String {
+    fun getCredentialDefinitionId(): String? {
         return getAttribute(CredentialAttributes.CredDefId)
     }
 
-    fun getRevocationRegistryId(): String {
+    fun getRevocationRegistryId(): String? {
         return getAttribute(CredentialAttributes.RevRegId)
     }
 
-    fun getRevocationRegistryIndex(): Long {
-        return getAttribute(CredentialAttributes.RevRegIndex).toLong()
+    fun getRevocationRegistryIndex(): Long? {
+        return getAttribute(CredentialAttributes.RevRegIndex)?.toLong()
     }
 }

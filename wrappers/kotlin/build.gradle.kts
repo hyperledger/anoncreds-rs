@@ -16,7 +16,7 @@ repositories {
 ext["githubUsername"] = null
 ext["githubToken"] = null
 ext["anoncredsVersion"] = "0.1.0-dev.18"
-ext["wrapperVersion"] = "5"
+ext["wrapperVersion"] = "7"
 
 val secretPropsFile = project.rootProject.file("local.properties")
 if(secretPropsFile.exists()) {
