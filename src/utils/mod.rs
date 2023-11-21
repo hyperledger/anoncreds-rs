@@ -13,5 +13,7 @@ pub mod hash;
 
 pub mod query;
 
+pub mod msg_pack;
+
 #[macro_use]
 pub mod macros;

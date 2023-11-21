@@ -3,6 +3,7 @@ use crate::utils::encoded_object::EncodedObject;
 use crate::Result;
 use anoncreds_clsignatures::{AggregatedProof, SubProof};
 use std::collections::HashSet;
+use crate::data_types::w3c::encoded_object::EncodedObject;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -37,13 +38,15 @@ impl CredentialPresentationProof {
         proof_value: CredentialPresentationProofValue,
         mapping: CredentialAttributesMapping,
         timestamp: Option<u64>,
-    ) -> CredentialPresentationProof {
-        CredentialPresentationProof {
-            type_: PresentationProofType::AnonCredsPresentationProof2023,
-            mapping,
-            timestamp,
-            proof_value: proof_value.encode(),
-        }
+    ) -> Result<CredentialPresentationProof> {
+        Ok(
+            CredentialPresentationProof {
+                type_: PresentationProofType::AnonCredsPresentationProof2023,
+                mapping,
+                timestamp,
+                proof_value: proof_value.encode()?,
+            }
+        )
     }
 
     pub fn get_proof_value(&self) -> Result<CredentialPresentationProofValue> {
@@ -70,12 +73,14 @@ pub struct PresentationProofValue {
 }
 
 impl PresentationProof {
-    pub fn new(proof_value: PresentationProofValue, nonce: String) -> PresentationProof {
-        PresentationProof {
-            type_: PresentationProofType::AnonCredsPresentationProof2023,
-            challenge: nonce,
-            proof_value: proof_value.encode(),
-        }
+    pub fn new(proof_value: PresentationProofValue, nonce: String) -> Result<PresentationProof> {
+        Ok(
+            PresentationProof {
+                type_: PresentationProofType::AnonCredsPresentationProof2023,
+                challenge: nonce,
+                proof_value: proof_value.encode()?,
+            }
+        )
     }
 
     pub fn get_proof_value(&self) -> Result<PresentationProofValue> {

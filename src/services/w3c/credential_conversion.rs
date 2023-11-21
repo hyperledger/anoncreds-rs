@@ -106,7 +106,7 @@ pub fn credential_to_w3c(
         credential.rev_reg,
         credential.witness,
     );
-    let proof = CredentialSignatureProof::new(signature);
+    let proof = CredentialSignatureProof::new(signature)?;
     let attributes = CredentialAttributes::from(&credential.values);
 
     let mut w3c_credential = W3CCredential::new();
@@ -258,10 +258,8 @@ mod tests {
     };
     use crate::utils::encoded_object::EncodedObject;
     use crate::{issuer, ErrorKind};
-    use anoncreds_clsignatures::{
-        CredentialSignature as CLCredentialSignature,
-        SignatureCorrectnessProof as CLSignatureCorrectnessProof,
-    };
+    use anoncreds_clsignatures::{CredentialSignature as CLCredentialSignature, SignatureCorrectnessProof as CLSignatureCorrectnessProof};
+    use crate::data_types::w3c::encoded_object::EncodedObject;
 
     const ISSUER_ID: &str = "mock:uri";
     const SCHEMA_ID: &str = "mock:uri";
@@ -296,7 +294,7 @@ mod tests {
                 support_revocation: true,
             },
         )
-        .unwrap();
+            .unwrap();
         cred_def
     }
 
@@ -369,7 +367,7 @@ mod tests {
                 .expect("unable to convert credential to w3c form");
         let legacy_credential = credential_from_w3c(&w3c_credential)
             .expect("unable to convert credential to legacy form");
-        assert_eq!(json!(original_legacy_credential), json!(legacy_credential),)
+        assert_eq!(json!(original_legacy_credential), json!(legacy_credential), )
     }
 
     #[test]
@@ -405,7 +403,7 @@ mod tests {
         let proof = w3c_credential
             .get_credential_signature_proof()
             .expect("credential signature proof is not set");
-        assert_eq!(proof.signature, _signature_data().encode());
+        assert_eq!(proof.signature, _signature_data().encode().unwrap());
     }
 
     #[test]

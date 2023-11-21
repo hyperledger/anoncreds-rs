@@ -7,3 +7,4 @@ pub mod one_or_many;
 pub mod presentation;
 pub mod presentation_proof;
 pub mod uri;
+pub mod encoded_object;
