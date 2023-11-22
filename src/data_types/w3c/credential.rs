@@ -396,7 +396,7 @@ impl W3CCredential {
         &self.credential_schema.definition
     }
 
-    pub fn get_rev_reg_id(&self) -> Option<&RevocationRegistryDefinitionId> {
+    pub fn rev_reg_id(&self) -> Option<&RevocationRegistryDefinitionId> {
         if let Some(credential_status) = self.credential_status.as_ref() {
             match credential_status.type_ {
                 CredentialStatusType::AnonCredsCredentialStatusList2023 => {

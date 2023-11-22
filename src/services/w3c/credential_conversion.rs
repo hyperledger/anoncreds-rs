@@ -222,7 +222,7 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
 
     let schema_id = w3c_credential.schema_id().clone();
     let cred_def_id = w3c_credential.cred_def_id().clone();
-    let rev_reg_id = w3c_credential.get_rev_reg_id().cloned();
+    let rev_reg_id = w3c_credential.rev_reg_id().cloned();
     let proof = w3c_credential.get_credential_signature_proof()?;
     let credential_signature = proof.get_credential_signature()?;
     let values = w3c_credential

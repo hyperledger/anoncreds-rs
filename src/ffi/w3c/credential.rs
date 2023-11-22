@@ -360,7 +360,7 @@ pub extern "C" fn anoncreds_w3c_credential_get_attribute(
             "schema_id" => rust_string_to_c(cred.schema_id().clone()),
             "cred_def_id" => rust_string_to_c(cred.cred_def_id().to_string()),
             "rev_reg_id" => cred
-                .get_rev_reg_id()
+                .rev_reg_id()
                 .map_or(ptr::null_mut(), |s| rust_string_to_c(s.to_string())),
             "rev_reg_index" => cred
                 .get_credential_signature_proof()?

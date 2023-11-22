@@ -170,7 +170,7 @@ pub fn create_presentation(
         let signature = proof.get_credential_signature()?;
         let schema_id = credential.schema_id();
         let cred_def_id = credential.cred_def_id();
-        let rev_reg_id = credential.get_rev_reg_id();
+        let rev_reg_id = credential.rev_reg_id();
 
         proof_builder.add_sub_proof(
             &credential_values,

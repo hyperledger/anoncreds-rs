@@ -83,7 +83,7 @@ pub fn verify_presentation(
         let proof_data = credential_proof.get_proof_value()?;
         let schema_id = &verifiable_credential.schema_id();
         let cred_def_id = &verifiable_credential.cred_def_id();
-        let rev_reg_id = verifiable_credential.get_rev_reg_id();
+        let rev_reg_id = verifiable_credential.rev_reg_id();
 
         let mut revealed_attribute: HashSet<String> =
             credential_proof.mapping.revealed_attributes.clone();
@@ -122,7 +122,7 @@ fn collect_received_attrs_and_predicates(
 
     for verifiable_credential in proof.verifiable_credential.iter() {
         let presentation_proof = verifiable_credential.get_presentation_proof()?;
-        let rev_reg_id = verifiable_credential.get_rev_reg_id().cloned();
+        let rev_reg_id = verifiable_credential.rev_reg_id().cloned();
 
         let identifier: Identifier = Identifier {
             schema_id: verifiable_credential.schema_id().clone(),

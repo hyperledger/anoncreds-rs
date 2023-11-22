@@ -624,7 +624,7 @@ impl<'a> Mock<'a> {
                 .get(cred.credential_schema.definition.to_string().as_str())
                 .unwrap();
             {
-                let (rev_state, timestamp) = if let Some(id) = cred.get_rev_reg_id() {
+                let (rev_state, timestamp) = if let Some(id) = cred.rev_reg_id() {
                     self.prover_wallets[prover_id].rev_states.get(id).unwrap()
                 } else {
                     &(None, None)
