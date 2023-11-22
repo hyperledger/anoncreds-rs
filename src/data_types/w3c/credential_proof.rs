@@ -5,7 +5,6 @@ use anoncreds_clsignatures::{
     SignatureCorrectnessProofBytesProxy, Witness, WitnessBytesProxy,
 };
 use serde::Serialize;
-use serde_json::Value;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
