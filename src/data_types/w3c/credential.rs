@@ -36,6 +36,7 @@ use crate::Result;
 pub struct W3CCredential {
     #[serde(rename = "@context")]
     pub context: Contexts,
+    #[serde(alias = "@type")]
     #[serde(rename = "type")]
     pub type_: Types,
     pub issuer: IssuerId,
@@ -43,6 +44,7 @@ pub struct W3CCredential {
     pub credential_schema: CredentialSchema,
     pub credential_subject: CredentialSubject,
     pub proof: OneOrMany<CredentialProof>,
+    #[serde(alias = "@id")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<URI>,
     #[serde(skip_serializing_if = "Option::is_none")]

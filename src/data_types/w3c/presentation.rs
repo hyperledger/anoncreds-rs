@@ -19,6 +19,7 @@ use crate::Result;
 pub struct W3CPresentation {
     #[serde(rename = "@context")]
     pub context: Contexts,
+    #[serde(alias = "@type")]
     #[serde(rename = "type")]
     pub type_: Types,
     pub verifiable_credential: Vec<W3CCredential>,
