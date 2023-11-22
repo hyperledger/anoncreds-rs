@@ -7,7 +7,7 @@ pub mod base58;
 pub mod base64;
 
 #[cfg(feature = "w3c")]
-pub mod encoded_object;
+pub mod encoder;
 
 pub mod hash;
 

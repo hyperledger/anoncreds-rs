@@ -258,8 +258,10 @@ mod tests {
     };
     use crate::utils::encoded_object::EncodedObject;
     use crate::{issuer, ErrorKind};
-    use anoncreds_clsignatures::{CredentialSignature as CLCredentialSignature, SignatureCorrectnessProof as CLSignatureCorrectnessProof};
-    use crate::data_types::w3c::encoded_object::EncodedObject;
+    use anoncreds_clsignatures::{
+        CredentialSignature as CLCredentialSignature,
+        SignatureCorrectnessProof as CLSignatureCorrectnessProof,
+    };
 
     const ISSUER_ID: &str = "mock:uri";
     const SCHEMA_ID: &str = "mock:uri";
@@ -294,7 +296,7 @@ mod tests {
                 support_revocation: true,
             },
         )
-            .unwrap();
+        .unwrap();
         cred_def
     }
 
@@ -367,7 +369,7 @@ mod tests {
                 .expect("unable to convert credential to w3c form");
         let legacy_credential = credential_from_w3c(&w3c_credential)
             .expect("unable to convert credential to legacy form");
-        assert_eq!(json!(original_legacy_credential), json!(legacy_credential), )
+        assert_eq!(json!(original_legacy_credential), json!(legacy_credential),)
     }
 
     #[test]

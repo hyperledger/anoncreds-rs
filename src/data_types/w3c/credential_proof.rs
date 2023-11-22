@@ -1,14 +1,11 @@
 use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
-use crate::utils::encoded_object::EncodedObject;
-use crate::Result;
 use anoncreds_clsignatures::{
-    CredentialSignature as CLCredentialSignature, RevocationRegistry, SignatureCorrectnessProof,
-    Witness,
+    CredentialSignature as CLCredentialSignature, CredentialSignatureBytesProxy,
+    RevocationRegistry, RevocationRegistryBytesProxy, SignatureCorrectnessProof,
+    SignatureCorrectnessProofBytesProxy, Witness, WitnessBytesProxy,
 };
 use serde::Serialize;
 use serde_json::Value;
-use crate::data_types::w3c::encoded_object::EncodedObject;
-use crate::Result;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,12 +25,10 @@ pub struct CredentialSignatureProof {
 
 impl CredentialSignatureProof {
     pub fn new(signature: CredentialSignature) -> Result<Self> {
-        Ok(
-            CredentialSignatureProof {
-                type_: CredentialSignatureType::AnonCredsProof2023,
-                signature: signature.encode()?,
-            }
-        )
+        Ok(CredentialSignatureProof {
+            type_: CredentialSignatureType::AnonCredsProof2023,
+            signature: signature.encode()?,
+        })
     }
 
     pub fn get_credential_signature(&self) -> Result<CredentialSignature> {

@@ -4,8 +4,8 @@ use std::hash::{Hash, Hasher};
 
 use crate::cl::{new_nonce, Nonce as CryptoNonce};
 use crate::error::ConversionError;
-use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{Error, SeqAccess};
+use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
 pub struct Nonce {
@@ -55,8 +55,9 @@ impl Nonce {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, ConversionError> {
-        let native = CryptoNonce::from_bytes(bytes)
-            .map_err(|err| ConversionError::from_msg(format!("Error converting nonce from bytes: {err}")))?;
+        let native = CryptoNonce::from_bytes(bytes).map_err(|err| {
+            ConversionError::from_msg(format!("Error converting nonce from bytes: {err}"))
+        })?;
         Self::from_native(native)
     }
 
@@ -150,7 +151,7 @@ impl Serialize for Nonce {
     where
         S: Serializer,
     {
-        serializer.serialize_bytes(&self.native.to_bytes().unwrap_or_default())
+        serializer.serialize_str(&self.strval)
     }
 }
 
@@ -196,7 +197,10 @@ impl<'a> Deserialize<'a> for Nonce {
                 Nonce::from_dec(value).map_err(E::custom)
             }
 
-            fn visit_seq<E>(self, mut seq: E) -> Result<Self::Value, E::Error> where E: SeqAccess<'a> {
+            fn visit_seq<E>(self, mut seq: E) -> Result<Self::Value, E::Error>
+            where
+                E: SeqAccess<'a>,
+            {
                 let mut vec = Vec::new();
 
                 while let Ok(Some(Value::Number(elem))) = seq.next_element() {
