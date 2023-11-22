@@ -140,7 +140,8 @@ pub fn credential_to_w3c(
 /// use anoncreds::w3c;
 /// use anoncreds::issuer;
 /// use anoncreds::prover;
-/// use anoncreds::types::{MakeCredentialAttributes, MakeCredentialValues};
+/// use anoncreds::w3c::types::MakeCredentialAttributes;
+/// use anoncreds::types::MakeCredentialValues;
 ///
 /// use anoncreds::types::CredentialDefinitionConfig;
 /// use anoncreds::types::SignatureType;

@@ -20,7 +20,7 @@ use crate::ffi::object::ObjectHandle;
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_create_credential_request(
+pub extern "C" fn anoncreds_create_w3c_credential_request(
     entropy: FfiStr,
     prover_did: FfiStr,
     cred_def: ObjectHandle,

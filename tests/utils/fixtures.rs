@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anoncreds::types::MakeCredentialAttributes;
+use anoncreds::w3c::types::MakeCredentialAttributes;
 use anoncreds::{
     data_types::{
         cred_def::{CredentialDefinition, CredentialDefinitionId},

@@ -8,9 +8,10 @@ use anoncreds::data_types::w3c::presentation_proof::{PredicateAttribute, Predica
 use anoncreds::data_types::w3c::uri::URI;
 use anoncreds::prover;
 use anoncreds::tails::TailsFileWriter;
-use anoncreds::types::{CredentialRevocationConfig, MakeCredentialAttributes, PresentCredentials};
+use anoncreds::types::{CredentialRevocationConfig, PresentCredentials};
 use anoncreds::verifier;
 use anoncreds::w3c::credential_conversion::{credential_from_w3c, credential_to_w3c};
+use anoncreds::w3c::types::MakeCredentialAttributes;
 use anoncreds::{issuer, w3c};
 use serde_json::json;
 use std::collections::{BTreeSet, HashMap};

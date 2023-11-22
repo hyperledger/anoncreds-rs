@@ -23,7 +23,7 @@ use crate::types::{
 /// ```rust
 /// use anoncreds::{issuer, w3c};
 /// use anoncreds::prover;
-/// use anoncreds::types::MakeCredentialAttributes;
+/// use anoncreds::w3c::types::MakeCredentialAttributes;
 ///
 /// use anoncreds::types::CredentialDefinitionConfig;
 /// use anoncreds::types::SignatureType;

@@ -15,7 +15,7 @@ use ffi_support::FfiStr;
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_create_credential_offer(
+pub extern "C" fn anoncreds_create_w3c_credential_offer(
     schema_id: FfiStr,
     cred_def_id: FfiStr,
     key_proof: ObjectHandle,

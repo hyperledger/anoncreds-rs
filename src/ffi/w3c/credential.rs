@@ -13,10 +13,11 @@ use crate::ffi::credential::{FfiCredRevInfo, _link_secret, _revocation_config};
 use crate::ffi::error::{catch_error, ErrorCode};
 use crate::ffi::object::{AnoncredsObject, ObjectHandle};
 use crate::ffi::util::FfiStrList;
-use crate::types::{Credential, MakeCredentialAttributes};
+use crate::types::Credential;
 use crate::w3c::credential_conversion::{credential_from_w3c, credential_to_w3c};
 use crate::w3c::issuer::create_credential;
 use crate::w3c::prover::process_credential;
+use crate::w3c::types::MakeCredentialAttributes;
 
 impl_anoncreds_object!(W3CCredential, "W3CCredential");
 impl_anoncreds_object_from_json!(W3CCredential, anoncreds_w3c_credential_from_json);
@@ -220,7 +221,7 @@ pub extern "C" fn anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_set_credential_id(
+pub extern "C" fn anoncreds_w3c_credential_set_id(
     cred: ObjectHandle,
     id: FfiStr,
     cred_p: *mut ObjectHandle,
@@ -251,7 +252,7 @@ pub extern "C" fn anoncreds_w3c_set_credential_id(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_credential_w3c_subject_id(
+pub extern "C" fn anoncreds_w3c_credential_set_subject_id(
     cred: ObjectHandle,
     id: FfiStr,
     cred_p: *mut ObjectHandle,

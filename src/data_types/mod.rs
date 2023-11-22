@@ -40,5 +40,6 @@ pub mod macros;
 /// Identifier wrapper for the issuer
 pub mod issuer_id;
 
+#[cfg(feature = "w3c")]
 /// W3C Credential standard definitions
 pub mod w3c;

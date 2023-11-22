@@ -7,10 +7,9 @@ use std::{
 
 use anoncreds::data_types::w3c::credential::W3CCredential;
 use anoncreds::data_types::w3c::presentation::W3CPresentation;
-use anoncreds::types::{
-    MakeCredentialAttributes, RevocationRegistryDefinition, RevocationStatusList,
-};
+use anoncreds::types::{RevocationRegistryDefinition, RevocationStatusList};
 use anoncreds::w3c::credential_conversion::{credential_from_w3c, credential_to_w3c};
+use anoncreds::w3c::types::MakeCredentialAttributes;
 use anoncreds::{
     data_types::{
         cred_def::{CredentialDefinition, CredentialDefinitionId},
