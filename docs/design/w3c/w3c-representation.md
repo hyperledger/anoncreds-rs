@@ -60,7 +60,6 @@ verifiable credential and presentation described in the [document]().
     * Basic approach used in Aries attachments: [BaseURL safe 64 encoding of object serialized as JSON string](https://github.com/hyperledger/aries-rfcs/tree/main/concepts/0017-attachments#base64url)?
     * Compact encoding implemented in Python PoC: Using the fact that most fields of credential signature and proof are big numbers rather that strings.
         * For example: the length of encoded credential signature string is about 2.5 times less than in the basic approach
-        * Find an [example data](./encoding.md#example) to see the difference
     * **Answer**:
         * Start from basic Aries encoding.
         * Experiment with other algorithms (CBOR, Message Pack, Protobuf, Custom) as a next step.
