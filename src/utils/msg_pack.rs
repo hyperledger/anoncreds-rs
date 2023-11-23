@@ -4,7 +4,8 @@ use serde::Serialize;
 use crate::Result;
 
 pub fn encode<T: Serialize>(val: T) -> Result<Vec<u8>> {
-    rmp_serde::to_vec(&val).map_err(|_| err_msg!("unable to encode message using message pack"))
+    rmp_serde::to_vec_named(&val)
+        .map_err(|_| err_msg!("unable to encode message using message pack"))
 }
 
 pub fn decode<T: DeserializeOwned>(val: &[u8]) -> Result<T> {

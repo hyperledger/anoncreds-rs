@@ -256,6 +256,7 @@ mod tests {
         AttributeNames, CredentialDefinitionConfig, CredentialValues, MakeCredentialValues,
         SignatureType,
     };
+    use crate::utils::encoded_object::EncodedObject;
     use crate::{issuer, ErrorKind};
     use anoncreds_clsignatures::{
         CredentialSignature as CLCredentialSignature,
