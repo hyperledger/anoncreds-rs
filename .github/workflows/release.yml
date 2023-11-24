@@ -63,8 +63,63 @@ jobs:
           file: uniffi/output-frameworks/anoncreds-swift/libanoncreds.xcframework.zip
           asset_name: "libanoncreds.xcframework.zip"
           
+
+  build-kmp:
+    name: "Build KMP"
+    runs-on: macos-latest
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          token: ${{ secrets.ATALA_GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: "Install Java ${{ env.JAVA_VERSION }}"
+        uses: actions/setup-java@v3
+        with:
+          java-version: "${{ env.JAVA_VERSION }}"
+          distribution: zulu
+
+      - name: Install Homebrew
+        run: >
+          /bin/bash -c "$(curl -fsSL
+          https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+      - name: "Install autoconf, automake, libtool"
+        run: |
+          brew install autoconf automake libtool
+
+      - name: "Install Mac ToolChain"
+        run: |
+          brew tap messense/macos-cross-toolchains
+
+      - name: "Install Linux GNU for x86_64"
+        run: |
+          brew install x86_64-unknown-linux-gnu
+
+      - name: "Install Linux GNU for aarch64"
+        run: |
+          brew install aarch64-unknown-linux-gnu
+
+      - name: "Install Rust"
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+      - name: "Install Rust Targets"
+        run: |
+          rustup target add armv7-linux-androideabi & rustup target add i686-linux-android & rustup target add aarch64-linux-android & rustup target add x86_64-linux-android & rustup target add aarch64-apple-darwin & rustup target add x86_64-apple-darwin & rustup target add aarch64-unknown-linux-gnu & rustup target add x86_64-unknown-linux-gnu
+
+      - name: "Install Rust Cargo NDK"
+        run: |
+          cargo install cargo-ndk
+
+      - name: "Publish to GitHub Maven"
+        run: |
+          ./gradlew :anoncreds-kmp:publishAllPublicationsToGitHubPackagesRepository
+
   build-release:
-    needs: build-swift-package
+    needs: [build-swift-package, build-kmp]
     name: Build Library
 
     strategy:
@@ -153,4 +208,3 @@ jobs:
           tag: ${{github.event.inputs.tag}}
           file: library-${{ matrix.architecture }}.tar.gz
           asset_name: "library-${{ matrix.architecture }}-${{ github.sha }}.tar.gz"
-          

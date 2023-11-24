@@ -1,0 +1,19 @@
+[package]
+name = "uniffi-kmm"
+version = "0.1.0"
+authors = ['Ahmed Moussa <ahmed.moussa@iohk.io>']
+edition = "2021"
+description = 'FFI wrapper'
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.66"
+askama = { version = "0.11.1", default-features = false, features = ["config"] }
+camino = "1.1.1"
+heck = "0.4"
+include_dir = "0.7.3"
+paste = "1.0"
+serde = "1"
+toml = "0.5"
+uniffi_bindgen = "0.23.0"

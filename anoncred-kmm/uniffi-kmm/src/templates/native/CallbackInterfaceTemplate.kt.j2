@@ -1,0 +1,6 @@
+import kotlinx.cinterop.staticCFunction
+
+actual fun {{ foreign_callback_name }}.toForeignCallback() : ForeignCallback =
+    staticCFunction{ handle: Handle, method: Int, args: RustBuffer, outBuf: RustBufferPointer?->
+        {{ foreign_callback_name }}.invoke(handle,method,args, requireNotNull( outBuf))
+    }

@@ -1,0 +1,104 @@
+{% import "helpers.j2" as helpers %}
+
+interface {{ type_name }} {
+    {% for meth in cbi.methods() -%}
+    fun {{ meth.name()|fn_name }}({% call helpers::arg_list_decl(meth) %})
+    {%- match meth.return_type() -%}
+    {%- when Some with (return_type) %}: {{ return_type|type_name -}}
+    {%- else -%}
+    {%- endmatch %}
+    {% endfor %}
+}
+
+object {{ foreign_callback_name }} {
+    @Suppress("TooGenericExceptionCaught")
+    fun invoke(handle: Handle, method: Int, args: RustBuffer, outBuf: RustBufferPointer): Int {
+        val cb = {{ ffi_converter_name }}.lift(handle)
+        return when (method) {
+            IDX_CALLBACK_FREE -> {
+                {{ ffi_converter_name }}.drop(handle)
+                0
+            }
+            {% for meth in cbi.methods() -%}
+            {% let method_name = format!("invoke_{}", meth.name())|fn_name -%}
+            {{ loop.index }} -> {
+                try {
+                    {%- match meth.throws_type() %}
+                    {%- when Some(error_type) %}
+                    try {
+                        val buffer = this.{{ method_name }}(cb, args)
+                        outBuf.setValue(buffer)
+                        1
+                    } catch (e: {{ error_type|type_name }}) {
+                        val buffer = {{ error_type|ffi_converter_name }}.lowerIntoRustBuffer(e)
+                        outBuf.setValue(buffer)
+                        -2
+                    }
+                    {%- else %}
+                    val buffer = this.{{ method_name }}(cb, args)
+                    // Success
+                    outBuf.setValue(buffer)
+                    1
+                    {%- endmatch %}
+                } catch (e: Throwable) {
+                    try {
+                        outBuf.setValue({{ Type::String.borrow()|ffi_converter_name }}.lower(e.toString()))
+                    } catch (e: Throwable) {
+                    }
+                    -1
+                }
+            }
+            {% endfor %}
+            else -> {
+                try {
+                    outBuf.setValue({{ Type::String.borrow()|ffi_converter_name }}.lower("Invalid Callback index"))
+                } catch (e: Throwable) {
+                }
+                -1
+            }
+        }
+    }
+
+    {% for meth in cbi.methods() -%}
+    {% let method_name = format!("invoke_{}", meth.name())|fn_name %}
+    private fun {{ method_name }}(kotlinCallbackInterface: {{ type_name }}, args: RustBuffer): RustBuffer =
+        try {
+        {#- Unpacking args from the RustBuffer #}
+            {%- if meth.arguments().len() != 0 -%}
+            {#- Calling the concrete callback object #}
+            val buf = checkNotNull(args.toBuffer()) { "No Buffer in RustBuffer; this is a Uniffi bug" }
+            kotlinCallbackInterface.{{ meth.name()|fn_name }}(
+                    {% for arg in meth.arguments() -%}
+                    {{ arg|read_fn }}(buf)
+                    {%- if !loop.last %}, {% endif %}
+                    {% endfor -%}
+                )
+            {% else %}
+            kotlinCallbackInterface.{{ meth.name()|fn_name }}()
+            {% endif -%}
+
+        {#- Packing up the return value into a RustBuffer #}
+                {%- match meth.return_type() -%}
+                {%- when Some with (return_type) -%}
+                .let {
+                    {{ return_type|ffi_converter_name }}.lowerIntoRustBuffer(it)
+                }
+                {%- else -%}
+                .let { emptyRustBuffer() }
+                {% endmatch -%}
+        } finally {
+            args.free()
+        }
+
+    {% endfor %}
+}
+
+object {{ ffi_converter_name }}: FfiConverterCallbackInterface<{{ type_name }}>() {
+    override fun register(lib: UniFFILib) {
+        rustCall() { status ->
+            lib.{{ cbi.ffi_init_callback().name() }}({{ foreign_callback_name }}.toForeignCallback(), status)
+        }
+    }
+}
+
+expect fun {{ foreign_callback_name }}.toForeignCallback() : ForeignCallback

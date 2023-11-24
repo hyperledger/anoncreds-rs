@@ -1,0 +1,34 @@
+{% import "helpers.j2" as helpers %}
+
+import com.sun.jna.Library
+import com.sun.jna.Native
+
+@Synchronized
+private fun findLibraryName(): String {
+    val componentName = "{{ ci.namespace() }}"
+    val libOverride = System.getProperty("uniffi.component.$componentName.libraryOverride")
+    if (libOverride != null) {
+        return libOverride
+    }
+    return "{{ config.cdylib_name() }}"
+}
+
+actual object UniFFILib : Library {
+    init {
+        Native.register(UniFFILib::class.java, findLibraryName())
+        {% let initialization_fns = self.initialization_fns() %}
+        {%- if !initialization_fns.is_empty() -%}
+        {% for fn in initialization_fns -%}
+        {{ fn }}(this)
+        {% endfor -%}
+        {% endif %}
+    }
+
+    {% for func in ci.iter_ffi_function_definitions() -%}
+    @JvmName("{{ func.name() }}")
+    actual external fun {{ func.name() }}(
+    {%- call helpers::arg_list_ffi_decl(func) %}
+    ){%- match func.return_type() -%}{%- when Some with (type_) %}: {{ type_.borrow()|ffi_type_name }}{% when None %}: Unit{% endmatch %}
+
+    {% endfor %}
+}
