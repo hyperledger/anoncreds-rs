@@ -9,3 +9,15 @@ uniffi/targets
 uniffi/wrappers
 libanoncreds.xcframework.zip
 .swiftpm
+
+.gradle
+.idea
+.DS_STORE
+anoncred-wrapper-rust/build/generated
+**/build/*
+uniffi-kmm/Cargo.lock
+uniffi-kmm/target
+local.properties
+anoncred-kmm/anoncred-wrapper-rust/src/*
+**/.DS_Store
+anoncred-kmm/anoncred-kmm/anoncred-wrapper-rust/src/*

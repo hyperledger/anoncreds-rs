@@ -1,0 +1,16 @@
+---
+name: 'Pull Request - Linter'
+
+env:
+  ATALA_GITHUB_TOKEN: ${{ secrets.ATALA_GITHUB_TOKEN }}
+
+on: [pull_request]
+
+jobs:
+  lint_pr:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.ATALA_GITHUB_TOKEN }}

@@ -1,0 +1,45 @@
+[package]
+name = "anoncreds_wrapper"
+version = "0.1.0"
+authors = ['Ahmed Moussa <ahmed.moussa@iohk.io>']
+edition = "2021"
+description = 'FFI wrapper for Anoncreds'
+
+[lib]
+name = "anoncreds_wrapper"
+path = "src/lib.rs"
+crate-type = ['cdylib', 'staticlib']
+
+[dependencies.anoncreds_core]
+path = '../../'
+package = "anoncreds"
+features = ["vendored"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+uniffi = "0.23.0"
+uniffi_macros = "0.23.0"
+once_cell = "1.12"
+thiserror = "1.0"
+lazy_static = "1.3"
+futures = { version = "0.3.17", features = ["thread-pool"] }
+num_cpus = "1.8.0"
+async-trait = '0.1'
+serde = { version = "1.0", features = ["derive"] }
+serde_json = '1.0'
+ursa = { version = "0.3.7", default-features = false, features = ["cl_native", "serde"] }
+swift-bridge = "0.1.51"
+openssl = "0.10.45"
+amcl = "0.2"
+
+[dev-dependencies.tokio]
+version = '1.9'
+features = ['rt', 'macros']
+
+[build-dependencies]
+uniffi = { version = "0.23.0", features=["build"] }
+uniffi_bindgen = "0.23.0"
+camino = "1.1.1"
+swift-bridge-build = "0.1.51"
+uniffi-kmm = { path = "../uniffi-kmm" }

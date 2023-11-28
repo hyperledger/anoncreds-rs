@@ -359,4 +359,4 @@ interface Verifier {
 
 };
 
-namespace anoncreds {};
+namespace anoncreds_wrapper {};
