@@ -245,11 +245,11 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
     use crate::data_types::cred_def::CredentialDefinitionId;
     use crate::data_types::issuer_id::IssuerId;
-    use crate::data_types::schema::SchemaId;
+    use crate::data_types::schema::{Schema, SchemaId};
     use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_CREDENTIAL_TYPES};
     use crate::data_types::w3c::one_or_many::OneOrMany;
     use crate::types::{
@@ -267,15 +267,19 @@ mod tests {
     const SCHEMA_ID: &str = "mock:uri";
     const CRED_DEF_ID: &str = "mock:uri";
 
-    fn _issuer_id() -> IssuerId {
+    pub fn issuer_id() -> IssuerId {
         IssuerId::new_unchecked(ISSUER_ID)
     }
 
-    fn _schema_id() -> SchemaId {
+    pub fn schema_id() -> SchemaId {
         SchemaId::new_unchecked(SCHEMA_ID)
     }
 
-    fn _cred_def_id() -> CredentialDefinitionId {
+    fn _schema() -> Schema {
+        issuer::create_schema("schema:name", "1.0", issuer_id(), _attributes()).unwrap()
+    }
+
+    pub fn cred_def_id() -> CredentialDefinitionId {
         CredentialDefinitionId::new_unchecked(CRED_DEF_ID)
     }
 
@@ -283,13 +287,12 @@ mod tests {
         AttributeNames::from(vec!["name".to_owned(), "age".to_owned()])
     }
 
-    fn _credential_definition() -> CredentialDefinition {
-        let schema =
-            issuer::create_schema("schema:name", "1.0", _issuer_id(), _attributes()).unwrap();
+    pub fn _credential_definition() -> CredentialDefinition {
+        let schema = _schema();
         let (cred_def, _, _) = issuer::create_credential_definition(
-            _schema_id(),
+            schema_id(),
             &schema,
-            _issuer_id(),
+            issuer_id(),
             "default",
             SignatureType::CL,
             CredentialDefinitionConfig {
@@ -328,8 +331,8 @@ mod tests {
 
     fn _legacy_credential() -> Credential {
         Credential {
-            schema_id: _schema_id(),
-            cred_def_id: _cred_def_id(),
+            schema_id: schema_id(),
+            cred_def_id: cred_def_id(),
             rev_reg_id: None,
             values: _cred_values(),
             signature: _cl_credential_signature(),
@@ -348,12 +351,12 @@ mod tests {
         }
     }
 
-    fn _w3c_credential() -> W3CCredential {
+    pub fn w3c_credential() -> W3CCredential {
         let mut credential = W3CCredential::new();
-        credential.set_issuer(_issuer_id());
+        credential.set_issuer(issuer_id());
         credential.set_credential_schema(CredentialSchema::new(
-            _schema_id(),
-            _cred_def_id(),
+            schema_id(),
+            cred_def_id(),
             CredentialValuesEncoding::Auto,
         ));
         credential.set_attributes(CredentialAttributes::from(&_cred_values()));
@@ -410,7 +413,7 @@ mod tests {
 
     #[test]
     fn test_credential_from_w3c_form() {
-        let w3c_credential = _w3c_credential();
+        let w3c_credential = w3c_credential();
         let legacy_credential = credential_from_w3c(&w3c_credential)
             .expect("unable to convert credential from w3c form");
         assert_eq!(
@@ -439,7 +442,7 @@ mod tests {
 
     #[test]
     fn test_credential_from_w3c_form_when_no_signature_proof() {
-        let mut w3c_credential = _w3c_credential();
+        let mut w3c_credential = w3c_credential();
         w3c_credential.proof = OneOrMany::default();
         let err = credential_from_w3c(&w3c_credential).unwrap_err();
         assert_eq!(ErrorKind::Input, err.kind());

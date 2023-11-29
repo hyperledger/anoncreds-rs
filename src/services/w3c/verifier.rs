@@ -31,7 +31,7 @@ pub fn verify_presentation(
         &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
 ) -> Result<bool> {
-    trace!("verify_w3c_presentation >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
+    trace!("verify >>> verify_w3c_presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
 
     let presentation_request = pres_req.value();
@@ -378,4 +378,392 @@ fn _check_encoded_attributes(
         })
         .collect::<Result<Vec<()>>>()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data_types::credential::CredentialValuesEncoding;
+    use crate::data_types::nonce::Nonce;
+    use crate::data_types::pres_request::PredicateTypes;
+    use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_PRESENTATION_TYPES};
+    use crate::data_types::w3c::credential::{CredentialAttributes, CredentialSchema};
+    use crate::data_types::w3c::credential_proof::CredentialProof;
+    use crate::data_types::w3c::presentation_proof::{
+        PredicateAttribute, PredicateAttributeType, PresentationProof, PresentationProofType,
+    };
+    use crate::types::{
+        AttributeNames, CredentialDefinitionConfig, CredentialValues, MakeCredentialValues,
+        SignatureType,
+    };
+    use crate::w3c::credential_conversion::tests::{cred_def_id, issuer_id, schema_id};
+    use crate::{issuer, ErrorKind};
+
+    fn _attributes() -> AttributeNames {
+        AttributeNames::from(vec![
+            "name".to_owned(),
+            "age".to_owned(),
+            "height".to_owned(),
+        ])
+    }
+    fn schema() -> Schema {
+        issuer::create_schema("schema:name", "1.0", issuer_id(), _attributes()).unwrap()
+    }
+    fn credential_definition() -> CredentialDefinition {
+        let schema = schema();
+        let (cred_def, _, _) = issuer::create_credential_definition(
+            schema_id(),
+            &schema,
+            issuer_id(),
+            "default",
+            SignatureType::CL,
+            CredentialDefinitionConfig {
+                support_revocation: true,
+            },
+        )
+        .unwrap();
+        cred_def
+    }
+
+    fn _cred_values() -> CredentialValues {
+        let mut make = MakeCredentialValues::default();
+        make.add_raw("name", "Alice").unwrap();
+        make.add_raw("height", "2m").unwrap();
+        make.into()
+    }
+    fn _w3_presentation() -> W3CPresentation {
+        let mut credential = W3CCredential::new();
+        credential.set_issuer(issuer_id());
+        credential.set_credential_schema(CredentialSchema::new(
+            schema_id(),
+            cred_def_id(),
+            CredentialValuesEncoding::Auto,
+        ));
+
+        credential.set_attributes(CredentialAttributes::from(&_cred_values()));
+        credential.add_proof(CredentialProof::AnonCredsCredentialPresentationProof(
+            CredentialPresentationProof {
+                type_: PresentationProofType::AnonCredsPresentationProof2023,
+                proof_value: "".to_string(),
+                timestamp: None,
+            },
+        ));
+
+        credential.credential_subject.attributes.0.insert(
+            "age".to_string(),
+            CredentialAttributeValue::Predicate(vec![PredicateAttribute {
+                type_: PredicateAttributeType::AnonCredsPredicate,
+                predicate: PredicateTypes::GE,
+                value: 18,
+            }]),
+        );
+
+        W3CPresentation {
+            context: ANONCREDS_CONTEXTS.clone(),
+            type_: ANONCREDS_PRESENTATION_TYPES.clone(),
+            verifiable_credential: vec![credential],
+            proof: PresentationProof {
+                type_: PresentationProofType::AnonCredsPresentationProof2023,
+                challenge: _presentation_request().nonce.to_string(),
+                proof_value: "".to_string(),
+            },
+        }
+    }
+    fn _presentation_request() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            nonce: Nonce::new().unwrap(),
+            name: "Presentation request".to_string(),
+            version: "1.0".to_string(),
+            requested_attributes: HashMap::from([(
+                "attr1_referent".to_string(),
+                AttributeInfo {
+                    name: Some("name".to_string()),
+                    names: None,
+                    restrictions: None,
+                    non_revoked: None,
+                },
+            )]),
+            requested_predicates: HashMap::from([(
+                "predicate1_referent".to_string(),
+                PredicateInfo {
+                    name: "age".to_string(),
+                    p_type: PredicateTypes::GE,
+                    p_value: 18,
+                    restrictions: None,
+                    non_revoked: None,
+                },
+            )]),
+            non_revoked: Some(NonRevokedInterval::new(Some(10), Some(200))),
+        }
+    }
+
+    fn _presentation_request_with_only_names() -> PresentationRequestPayload {
+        let mut req = _presentation_request();
+        req.requested_attributes = HashMap::from([(
+            "attr1_referent".to_string(),
+            AttributeInfo {
+                name: None,
+                names: Some(vec!["name".to_string(), "height".to_string()]),
+                restrictions: None,
+                non_revoked: None,
+            },
+        )]);
+        req.requested_predicates = HashMap::new();
+
+        req
+    }
+
+    fn _presentation_request_with_only_predicate() -> PresentationRequestPayload {
+        let mut req = _presentation_request();
+        req.requested_attributes = HashMap::new();
+        req.requested_predicates = HashMap::from([(
+            "predicate1_referent".to_string(),
+            PredicateInfo {
+                name: "age".to_string(),
+                p_type: PredicateTypes::GE,
+                p_value: 18,
+                restrictions: None,
+                non_revoked: None,
+            },
+        )]);
+
+        req
+    }
+
+    fn _presentation_request_with_restrictions() -> PresentationRequestPayload {
+        let mut req = _presentation_request();
+        req.requested_attributes
+            .get_mut("attr1_referent")
+            .unwrap()
+            .restrictions = Some(Query::Eq("schema_id".to_string(), schema_id().to_string()));
+
+        req
+    }
+
+    fn _inputs() -> (
+        HashMap<SchemaId, Schema>,
+        HashMap<CredentialDefinitionId, CredentialDefinition>,
+        PresentationRequestPayload,
+        W3CPresentation,
+    ) {
+        let mut schemas = HashMap::new();
+        schemas.insert(schema_id(), schema());
+
+        let mut cred_defs = HashMap::new();
+        cred_defs.insert(cred_def_id(), credential_definition());
+
+        let presentation_req = _presentation_request();
+        let presentation = _w3_presentation();
+
+        (schemas, cred_defs, presentation_req, presentation)
+    }
+    fn _credential_proofs(presentation: &W3CPresentation) -> Vec<&CredentialPresentationProof> {
+        presentation
+            .verifiable_credential
+            .iter()
+            .map(|verifiable_credential| verifiable_credential.get_presentation_proof())
+            .collect::<Result<Vec<&CredentialPresentationProof>>>()
+            .unwrap()
+    }
+
+    #[test]
+    fn test_check_request_data_works() {
+        let (schemas, cred_defs, presentation_req, presentation) = _inputs();
+        let credential_proofs = _credential_proofs(&presentation);
+
+        check_request_data(
+            &presentation_req,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &credential_proofs,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_check_request_data_works_with_only_requested_names() {
+        let (schemas, cred_defs, _, presentation) = _inputs();
+        let credential_proofs = _credential_proofs(&presentation);
+
+        check_request_data(
+            &_presentation_request_with_only_names(),
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &credential_proofs,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_check_request_data_works_with_only_requested_predicate() {
+        let (schemas, cred_defs, _, presentation) = _inputs();
+        let credential_proofs = _credential_proofs(&presentation);
+
+        check_request_data(
+            &_presentation_request_with_only_names(),
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &credential_proofs,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_check_request_data_works_without_revealed_attributes() {
+        let (schemas, cred_defs, _, mut presentation) = _inputs();
+
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes = CredentialAttributes(HashMap::new());
+        let credential_proofs = _credential_proofs(&presentation);
+
+        check_request_data(
+            &_presentation_request_with_only_names(),
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &credential_proofs,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_check_request_data_works_with_restrictions() {
+        let (schemas, cred_defs, _, presentation) = _inputs();
+        let credential_proofs = _credential_proofs(&presentation);
+
+        check_request_data(
+            &_presentation_request_with_restrictions(),
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &credential_proofs,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_check_request_data_fails_with_unable_to_get_credential_proof_index() {
+        let (schemas, cred_defs, presentation_req, presentation) = _inputs();
+        let mut credential_proofs = _credential_proofs(&presentation);
+
+        credential_proofs.pop();
+
+        let err = check_request_data(
+            &presentation_req,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &credential_proofs,
+        )
+        .unwrap_err();
+
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
+
+    #[test]
+    fn test_check_request_data_fails_with_presentation_does_not_contain_attribute() {
+        let (schemas, cred_defs, presentation_req, mut presentation) = _inputs();
+
+        presentation.verifiable_credential.pop();
+
+        let credential_proofs = _credential_proofs(&presentation);
+
+
+        let err = check_request_data(
+            &presentation_req,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &credential_proofs,
+        )
+        .unwrap_err();
+
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
+
+    #[test]
+    fn test_check_request_data_fails_without_predicate_attribute() {
+        let (schemas, cred_defs, presentation_req, mut presentation) = _inputs();
+
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes
+            .0
+            .remove("age");
+
+        let credential_proofs = _credential_proofs(&presentation);
+
+        let err = check_request_data(
+            &presentation_req,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &credential_proofs,
+        )
+        .unwrap_err();
+
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
+
+    #[test]
+    fn test_check_request_data_fails_with_presentation_does_not_contain_predicate_attribute() {
+        let (schemas, cred_defs, presentation_req, mut presentation) = _inputs();
+
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes
+            .0
+            .remove("age");
+
+        let credential_proofs = _credential_proofs(&presentation);
+
+        let err = check_request_data(
+            &presentation_req,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &credential_proofs,
+        )
+        .unwrap_err();
+
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
+
+    #[test]
+    fn test_check_request_data_fails_with_requested_restriction_validation() {
+        let (schemas, cred_defs, mut presentation_req, presentation) = _inputs();
+
+        presentation_req
+            .requested_attributes
+            .get_mut("attr1_referent")
+            .unwrap()
+            .restrictions = Some(Query::Eq("schema_id".to_string(), "invalid".to_string()));
+
+        let credential_proofs = _credential_proofs(&presentation);
+
+        let err = check_request_data(
+            &presentation_req,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &credential_proofs,
+        )
+        .unwrap_err();
+
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
 }
