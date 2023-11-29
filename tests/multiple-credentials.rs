@@ -1,3 +1,4 @@
+use rstest::rstest;
 use std::collections::HashMap;
 
 use anoncreds::{
@@ -10,7 +11,10 @@ use anoncreds::{
     verifier,
 };
 
-use crate::utils::{CredentialFormat, PresentationFormat};
+use crate::utils::{
+    CredentialFormat, CredentialToPresent, PresentAttribute, PresentAttributeForm,
+    PresentationFormat,
+};
 use serde_json::json;
 use std::sync::Once;
 
@@ -18,6 +22,7 @@ mod utils;
 
 pub static ISSUER_ID: &str = "mock:issuer_id/path&q=bar";
 pub static PROVER_ID: &str = "mock:prover_id/path&q=bar";
+pub static VERIFIER_ID: &str = "mock:verifer_id/path&q=bar";
 pub static REV_IDX_1: u32 = 9;
 pub static REV_IDX_2: u32 = 9;
 pub static MAX_CRED_NUM: u32 = 10;
@@ -203,42 +208,24 @@ fn test_requests_generate<'a>() -> Vec<ReqInput<'a>> {
     vec![r0, r1, r2, r3, r4]
 }
 
-#[test]
-fn anoncreds_with_multiple_legacy_credentials_per_legacy_presentation() {
-    _anoncreds_with_multiple_credentials_per_request(
-        CredentialFormat::Legacy,
-        PresentationFormat::Legacy,
-    )
-}
-
-#[test]
-fn anoncreds_with_multiple_legacy_credentials_per_w3c_presentation() {
-    _anoncreds_with_multiple_credentials_per_request(
-        CredentialFormat::Legacy,
-        PresentationFormat::W3C,
-    )
-}
-
-#[test]
-fn anoncreds_with_multiple_w3c_credentials_per_w3c_presentation() {
-    _anoncreds_with_multiple_credentials_per_request(CredentialFormat::W3C, PresentationFormat::W3C)
-}
-
-#[test]
-fn anoncreds_with_multiple_w3c_credentials_per_legacy_presentation() {
-    _anoncreds_with_multiple_credentials_per_request(
-        CredentialFormat::W3C,
-        PresentationFormat::Legacy,
-    )
-}
-
-fn _anoncreds_with_multiple_credentials_per_request(
-    credential_format: CredentialFormat,
-    presentation_format: PresentationFormat,
+#[rstest]
+#[case(CredentialFormat::Legacy, PresentationFormat::Legacy)]
+#[case(CredentialFormat::Legacy, PresentationFormat::W3C)]
+#[case(CredentialFormat::W3C, PresentationFormat::W3C)]
+#[case(CredentialFormat::W3C, PresentationFormat::Legacy)]
+fn anoncreds_with_multiple_credentials_per_request(
+    #[case] credential_format: CredentialFormat,
+    #[case] presentation_format: PresentationFormat,
 ) {
     init_logger();
 
-    let mut mock = utils::Mock::new(&[ISSUER_ID], &[PROVER_ID], TF_PATH, MAX_CRED_NUM);
+    let mut mock = utils::Mock::new(
+        &[ISSUER_ID],
+        &[PROVER_ID],
+        &[VERIFIER_ID],
+        TF_PATH,
+        MAX_CRED_NUM,
+    );
 
     let issuer1_creds = create_issuer_data();
 
@@ -296,16 +283,37 @@ fn _anoncreds_with_multiple_credentials_per_request(
     mock.prover_creates_revocation_states(PROVER_ID, time_after_credential);
 
     // 4. Prover create presentations
-    let prover_values: utils::ProverValues = HashMap::from([
-        (
-            CRED_DEF_ID_1,
-            (
-                vec!["attr1_referent", "attr2_referent", "attr4_referent"],
-                vec!["predicate1_referent"],
-            ),
-        ),
-        (CRED_DEF_ID_2, (vec!["attr5_referent"], vec![])),
-    ]);
+    let present_credentials = vec![
+        CredentialToPresent {
+            id: CRED_DEF_ID_1.to_string(),
+            attributes: vec![
+                PresentAttribute {
+                    referent: "attr1_referent".to_string(),
+                    form: PresentAttributeForm::RevealedAttribute,
+                },
+                PresentAttribute {
+                    referent: "attr2_referent".to_string(),
+                    form: PresentAttributeForm::RevealedAttribute,
+                },
+                PresentAttribute {
+                    referent: "attr4_referent".to_string(),
+                    form: PresentAttributeForm::RevealedAttribute,
+                },
+                PresentAttribute {
+                    referent: "predicate1_referent".to_string(),
+                    form: PresentAttributeForm::Predicate,
+                },
+            ],
+        },
+        CredentialToPresent {
+            id: CRED_DEF_ID_2.to_string(),
+            attributes: vec![PresentAttribute {
+                referent: "attr5_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            }],
+        },
+    ];
+
     let self_attested = match presentation_format {
         PresentationFormat::Legacy => {
             HashMap::from([("attr3_referent".to_string(), "8-800-300".to_string())])
@@ -317,8 +325,8 @@ fn _anoncreds_with_multiple_credentials_per_request(
     for req in &reqs {
         let p = mock.prover_creates_presentation(
             PROVER_ID,
-            prover_values.clone(),
-            self_attested.clone(),
+            &present_credentials,
+            Some(self_attested.clone()),
             req,
             presentation_format.clone(),
         );
@@ -329,8 +337,12 @@ fn _anoncreds_with_multiple_credentials_per_request(
     //
     // Without override fails
     let overrides = vec![None; 5];
-    let results =
-        mock.verifer_verifies_presentations_for_requests(&presentations, &reqs, &overrides);
+    let results = mock.verifer_verifies_presentations_for_requests(
+        VERIFIER_ID,
+        &presentations,
+        &reqs,
+        &overrides,
+    );
     assert!(results[0].is_ok());
     assert!(results[4].is_ok());
     assert!(results[1].is_err());
@@ -347,8 +359,12 @@ fn _anoncreds_with_multiple_credentials_per_request(
         Some(&override_rev1),
         None,
     ];
-    let results =
-        mock.verifer_verifies_presentations_for_requests(&presentations, &reqs, &overrides);
+    let results = mock.verifer_verifies_presentations_for_requests(
+        VERIFIER_ID,
+        &presentations,
+        &reqs,
+        &overrides,
+    );
     assert!(results[1].is_ok());
     assert!(results[2].is_ok());
     assert!(results[3].is_ok());

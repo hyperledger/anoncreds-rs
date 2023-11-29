@@ -44,6 +44,9 @@ zeroize = { version = "1.5.7", optional = true, features = ["zeroize_derive"] }
 base64 = { version = "0.21.5", optional = true }
 chrono = { version = "0.4.31", optional = true, features = ["serde"] }
 
+[dev-dependencies]
+rstest = "0.18.2"
+
 [profile.release]
 lto = true
 codegen-units = 1
