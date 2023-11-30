@@ -385,7 +385,7 @@ mod tests {
     use super::*;
     use crate::data_types::nonce::Nonce;
     use crate::data_types::pres_request::PredicateTypes;
-    use crate::data_types::w3c::credential::CredentialAttributes;
+    use crate::data_types::w3c::credential::{CredentialAttributes, CredentialStatus};
     use crate::data_types::w3c::credential_proof::CredentialProof;
     use crate::data_types::w3c::presentation_proof::{PredicateAttribute, PresentationProofType};
     use crate::w3c::credential_conversion::tests::{
@@ -393,6 +393,8 @@ mod tests {
     };
     use crate::ErrorKind;
     use rstest::*;
+
+    const PROOF_TIMESTAMP: u64 = 50;
 
     fn _credential_attributes() -> CredentialAttributes {
         CredentialAttributes(HashMap::from([
@@ -415,6 +417,18 @@ mod tests {
         ]))
     }
 
+    fn _revocation_id() -> RevocationRegistryDefinitionId {
+        RevocationRegistryDefinitionId::new_unchecked("mock:uri")
+    }
+
+    fn _non_revoke_override_interval(
+        from: u64,
+        to: u64,
+    ) -> HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>> {
+        let non_revoke_override = HashMap::from([(_revocation_id(), HashMap::from([(from, to)]))]);
+
+        non_revoke_override
+    }
     fn _credential() -> W3CCredential {
         let mut credential = W3CCredential::new();
         credential.set_issuer(issuer_id());
@@ -424,7 +438,7 @@ mod tests {
             CredentialPresentationProof {
                 type_: PresentationProofType::AnonCredsPresentationProof2023,
                 proof_value: "bla".to_string(),
-                timestamp: None,
+                timestamp: Some(PROOF_TIMESTAMP),
             },
         ));
         credential
@@ -520,12 +534,7 @@ mod tests {
         PresentationRequestPayload {
             requested_attributes: HashMap::from([(
                 "attr1_referent".to_string(),
-                AttributeInfo {
-                    name: None,
-                    names: Some(vec!["name".to_string(), "height".to_string()]),
-                    restrictions: None,
-                    non_revoked: None,
-                },
+                _attributes_group(),
             )]),
             .._base_presentation_request()
         }
@@ -588,6 +597,104 @@ mod tests {
     }
 
     #[fixture]
+    fn _presentation_request_with_missing_attribute() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_attributes: HashMap::from([(
+                "attr1_referent".to_string(),
+                AttributeInfo {
+                    name: Some("missing".to_string()),
+                    .._attribute()
+                },
+            )]),
+            .._presentation_request_with_single_attribute()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_missing_attribute_group() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_attributes: HashMap::from([(
+                "attr1_referent".to_string(),
+                AttributeInfo {
+                    names: Some(vec![
+                        "name".to_string(),
+                        "height".to_string(),
+                        "missing".to_string(),
+                    ]),
+                    .._attribute()
+                },
+            )]),
+            .._presentation_request_with_single_attribute()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_missing_predicate() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_predicates: HashMap::from([(
+                "predicate1_referent".to_string(),
+                PredicateInfo {
+                    name: "missing".to_string(),
+                    .._predicate()
+                },
+            )]),
+            .._presentation_request_with_predicate()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_invalid_predicate_restrictions() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_predicates: HashMap::from([(
+                "predicate1_referent".to_string(),
+                PredicateInfo {
+                    restrictions: Some(Query::Eq("schema_id".to_string(), "invalid".to_string())),
+                    .._predicate()
+                },
+            )]),
+            .._presentation_request_with_predicate()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_invalid_attribute_restrictions() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_attributes: HashMap::from([(
+                "attr1_referent".to_string(),
+                AttributeInfo {
+                    restrictions: Some(Query::Eq("schema_id".to_string(), "invalid".to_string())),
+                    .._attribute()
+                },
+            )]),
+            .._presentation_request_with_single_attribute()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_different_predicate() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_predicates: HashMap::from([(
+                "predicate1_referent".to_string(),
+                PredicateInfo {
+                    p_type: PredicateTypes::LE,
+                    .._predicate()
+                },
+            )]),
+            .._base_presentation_request()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_non_revoke_interval() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            non_revoked: Some(NonRevokedInterval {
+                from: Some(PROOF_TIMESTAMP - 1),
+                to: Some(u64::MAX),
+            }),
+            .._base_presentation_request()
+        }
+    }
+    #[fixture]
     fn schemas() -> HashMap<SchemaId, Schema> {
         HashMap::from([(schema_id(), schema())])
     }
@@ -638,6 +745,31 @@ mod tests {
     }
 
     #[rstest]
+    #[case(_presentation_request_with_missing_attribute())]
+    #[case(_presentation_request_with_missing_predicate())]
+    #[case(_presentation_request_with_missing_attribute_group())]
+    #[case(_presentation_request_with_invalid_predicate_restrictions())]
+    #[case(_presentation_request_with_invalid_attribute_restrictions())]
+    #[case(_presentation_request_with_different_predicate())]
+    fn test_check_request_data_works_for_negative_cases(
+        schemas: HashMap<SchemaId, Schema>,
+        cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
+        presentation: W3CPresentation,
+        #[case] presentation_request: PresentationRequestPayload,
+    ) {
+        let err = check_request_data(
+            &presentation_request,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &presentation.credential_proofs(),
+        )
+        .unwrap_err();
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
+
+    #[rstest]
     fn test_check_request_data_works_for_unrevealed_attributes(
         schemas: HashMap<SchemaId, Schema>,
         cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
@@ -680,24 +812,14 @@ mod tests {
     }
 
     #[rstest]
-    fn test_check_request_data_fails_for_missing_requested_attribute(
-        schemas: HashMap<SchemaId, Schema>,
+    fn test_check_request_data_fails_for_empty_schema(
         cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
         presentation: W3CPresentation,
     ) {
-        let presentation_request = PresentationRequestPayload {
-            requested_attributes: HashMap::from([(
-                "attr1_referent".to_string(),
-                AttributeInfo {
-                    name: Some("missing".to_string()),
-                    .._attribute()
-                },
-            )]),
-            .._presentation_request_with_single_attribute()
-        };
+        let schemas = HashMap::new();
 
         let err = check_request_data(
-            &presentation_request,
+            &_presentation_request_with_attribute_restrictions(),
             &presentation,
             &schemas,
             &cred_defs,
@@ -709,24 +831,14 @@ mod tests {
     }
 
     #[rstest]
-    fn test_check_request_data_fails_for_missing_requested_predicate(
+    fn test_check_request_data_fails_for_empty_cred_defs(
         schemas: HashMap<SchemaId, Schema>,
-        cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
         presentation: W3CPresentation,
     ) {
-        let presentation_request = PresentationRequestPayload {
-            requested_predicates: HashMap::from([(
-                "predicate1_referent".to_string(),
-                PredicateInfo {
-                    name: "missing".to_string(),
-                    .._predicate()
-                },
-            )]),
-            .._presentation_request_with_predicate()
-        };
+        let cred_defs = HashMap::new();
 
         let err = check_request_data(
-            &presentation_request,
+            &_presentation_request_with_attribute_restrictions(),
             &presentation,
             &schemas,
             &cred_defs,
@@ -738,57 +850,52 @@ mod tests {
     }
 
     #[rstest]
-    fn test_check_request_data_fails_for_failed_predicate_restrictions(
+    #[case(_presentation_request_with_non_revoke_interval())]
+    fn test_check_request_data_works_with_valid_non_revoke_override_interval(
         schemas: HashMap<SchemaId, Schema>,
         cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
-        presentation: W3CPresentation,
+        mut presentation: W3CPresentation,
+        #[case] presentation_request: PresentationRequestPayload,
     ) {
-        let presentation_request = PresentationRequestPayload {
-            requested_predicates: HashMap::from([(
-                "predicate1_referent".to_string(),
-                PredicateInfo {
-                    restrictions: Some(Query::Eq("schema_id".to_string(), "invalid".to_string())),
-                    .._predicate()
-                },
-            )]),
-            .._presentation_request_with_predicate()
-        };
+        presentation.verifiable_credential[0]
+            .set_credential_status(CredentialStatus::new(_revocation_id()));
 
-        let err = check_request_data(
+        let interval = presentation_request.non_revoked.as_ref().unwrap();
+        let from = interval.from.unwrap();
+        let to = PROOF_TIMESTAMP - 1;
+
+        check_request_data(
             &presentation_request,
             &presentation,
             &schemas,
             &cred_defs,
-            None,
+            Some(&_non_revoke_override_interval(from, to)),
             &presentation.credential_proofs(),
         )
-        .unwrap_err();
-        assert_eq!(ErrorKind::Input, err.kind());
+        .unwrap();
     }
 
     #[rstest]
-    fn test_check_request_data_fails_for_failed_attribute_restrictions(
+    #[case(_presentation_request_with_non_revoke_interval())]
+    fn test_check_request_data_fails_with_invalid_non_revoke_override_interval(
         schemas: HashMap<SchemaId, Schema>,
         cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
-        presentation: W3CPresentation,
+        mut presentation: W3CPresentation,
+        #[case] presentation_request: PresentationRequestPayload,
     ) {
-        let presentation_request = PresentationRequestPayload {
-            requested_attributes: HashMap::from([(
-                "attr1_referent".to_string(),
-                AttributeInfo {
-                    restrictions: Some(Query::Eq("schema_id".to_string(), "invalid".to_string())),
-                    .._attribute()
-                },
-            )]),
-            .._presentation_request_with_single_attribute()
-        };
+        presentation.verifiable_credential[0]
+            .set_credential_status(CredentialStatus::new(_revocation_id()));
+
+        let interval = presentation_request.non_revoked.as_ref().unwrap();
+        let from = interval.from.unwrap();
+        let to = PROOF_TIMESTAMP * 2;
 
         let err = check_request_data(
             &presentation_request,
             &presentation,
             &schemas,
             &cred_defs,
-            None,
+            Some(&_non_revoke_override_interval(from, to)),
             &presentation.credential_proofs(),
         )
         .unwrap_err();
