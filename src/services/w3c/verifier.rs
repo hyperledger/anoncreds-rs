@@ -394,6 +394,8 @@ mod tests {
     use crate::ErrorKind;
     use rstest::*;
 
+    const PROOF_TIMESTAMP_FROM: u64 = 40;
+    const PROOF_TIMESTAMP_TO: u64 = 50;
     const PROOF_TIMESTAMP: u64 = 50;
 
     fn _credential_attributes() -> CredentialAttributes {
@@ -422,13 +424,15 @@ mod tests {
     }
 
     fn _non_revoke_override_interval(
-        from: u64,
-        to: u64,
+        timestamp: u64,
+        change: u64,
     ) -> HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>> {
-        let non_revoke_override = HashMap::from([(_revocation_id(), HashMap::from([(from, to)]))]);
+        let non_revoke_override =
+            HashMap::from([(_revocation_id(), HashMap::from([(timestamp, change)]))]);
 
         non_revoke_override
     }
+
     fn _credential() -> W3CCredential {
         let mut credential = W3CCredential::new();
         credential.set_issuer(issuer_id());
@@ -441,6 +445,7 @@ mod tests {
                 timestamp: Some(PROOF_TIMESTAMP),
             },
         ));
+        credential.set_credential_status(CredentialStatus::new(_revocation_id()));
         credential
     }
 
@@ -688,12 +693,24 @@ mod tests {
     fn _presentation_request_with_non_revoke_interval() -> PresentationRequestPayload {
         PresentationRequestPayload {
             non_revoked: Some(NonRevokedInterval {
-                from: Some(PROOF_TIMESTAMP - 1),
-                to: Some(u64::MAX),
+                from: Some(PROOF_TIMESTAMP_FROM),
+                to: Some(PROOF_TIMESTAMP_TO),
             }),
-            .._base_presentation_request()
+            .._presentation_request_with_single_attribute()
         }
     }
+
+    #[fixture]
+    fn _presentation_request_with_invalid_non_revoke_interval() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            non_revoked: Some(NonRevokedInterval {
+                from: Some(PROOF_TIMESTAMP_TO + 1),
+                to: Some(PROOF_TIMESTAMP_TO + 10),
+            }),
+            .._presentation_request_with_single_attribute()
+        }
+    }
+
     #[fixture]
     fn schemas() -> HashMap<SchemaId, Schema> {
         HashMap::from([(schema_id(), schema())])
@@ -727,6 +744,7 @@ mod tests {
     #[case(_presentation_request_with_predicate())]
     #[case(_presentation_request_with_attribute_restrictions())]
     #[case(_presentation_request_with_case_insensitive_attribute_and_predicate())]
+    #[case(_presentation_request_with_non_revoke_interval())]
     fn test_check_request_data_works_for_positive_cases(
         schemas: HashMap<SchemaId, Schema>,
         cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
@@ -751,6 +769,7 @@ mod tests {
     #[case(_presentation_request_with_invalid_predicate_restrictions())]
     #[case(_presentation_request_with_invalid_attribute_restrictions())]
     #[case(_presentation_request_with_different_predicate())]
+    #[case(_presentation_request_with_invalid_non_revoke_interval())]
     fn test_check_request_data_works_for_negative_cases(
         schemas: HashMap<SchemaId, Schema>,
         cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
@@ -851,25 +870,21 @@ mod tests {
 
     #[rstest]
     #[case(_presentation_request_with_non_revoke_interval())]
-    fn test_check_request_data_works_with_valid_non_revoke_override_interval(
+    fn test_check_request_data_works_for_valid_non_revoke_interval_override(
         schemas: HashMap<SchemaId, Schema>,
         cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
-        mut presentation: W3CPresentation,
+        presentation: W3CPresentation,
         #[case] presentation_request: PresentationRequestPayload,
     ) {
-        presentation.verifiable_credential[0]
-            .set_credential_status(CredentialStatus::new(_revocation_id()));
-
-        let interval = presentation_request.non_revoked.as_ref().unwrap();
-        let from = interval.from.unwrap();
-        let to = PROOF_TIMESTAMP - 1;
+        let interval_override =
+            _non_revoke_override_interval(PROOF_TIMESTAMP_FROM, PROOF_TIMESTAMP_FROM + 1);
 
         check_request_data(
             &presentation_request,
             &presentation,
             &schemas,
             &cred_defs,
-            Some(&_non_revoke_override_interval(from, to)),
+            Some(&interval_override),
             &presentation.credential_proofs(),
         )
         .unwrap();
@@ -877,25 +892,21 @@ mod tests {
 
     #[rstest]
     #[case(_presentation_request_with_non_revoke_interval())]
-    fn test_check_request_data_fails_with_invalid_non_revoke_override_interval(
+    fn test_check_request_data_fails_for_invalid_non_revoke_interval_override(
         schemas: HashMap<SchemaId, Schema>,
         cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
-        mut presentation: W3CPresentation,
+        presentation: W3CPresentation,
         #[case] presentation_request: PresentationRequestPayload,
     ) {
-        presentation.verifiable_credential[0]
-            .set_credential_status(CredentialStatus::new(_revocation_id()));
-
-        let interval = presentation_request.non_revoked.as_ref().unwrap();
-        let from = interval.from.unwrap();
-        let to = PROOF_TIMESTAMP * 2;
+        let interval_override =
+            _non_revoke_override_interval(PROOF_TIMESTAMP_FROM, PROOF_TIMESTAMP + 1);
 
         let err = check_request_data(
             &presentation_request,
             &presentation,
             &schemas,
             &cred_defs,
-            Some(&_non_revoke_override_interval(from, to)),
+            Some(&interval_override),
             &presentation.credential_proofs(),
         )
         .unwrap_err();
