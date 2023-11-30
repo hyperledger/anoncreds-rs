@@ -263,9 +263,9 @@ pub(super) mod tests {
         SignatureCorrectnessProof as CLSignatureCorrectnessProof,
     };
 
-    const ISSUER_ID: &str = "mock:uri";
-    const SCHEMA_ID: &str = "mock:uri";
-    const CRED_DEF_ID: &str = "mock:uri";
+    pub const ISSUER_ID: &str = "mock:uri";
+    pub const SCHEMA_ID: &str = "mock:uri";
+    pub const CRED_DEF_ID: &str = "mock:uri";
 
     pub fn issuer_id() -> IssuerId {
         IssuerId::new_unchecked(ISSUER_ID)
@@ -275,7 +275,7 @@ pub(super) mod tests {
         SchemaId::new_unchecked(SCHEMA_ID)
     }
 
-    fn _schema() -> Schema {
+    pub fn schema() -> Schema {
         issuer::create_schema("schema:name", "1.0", issuer_id(), _attributes()).unwrap()
     }
 
@@ -283,12 +283,16 @@ pub(super) mod tests {
         CredentialDefinitionId::new_unchecked(CRED_DEF_ID)
     }
 
-    fn _attributes() -> AttributeNames {
-        AttributeNames::from(vec!["name".to_owned(), "age".to_owned()])
+    pub fn _attributes() -> AttributeNames {
+        AttributeNames::from(vec![
+            "name".to_owned(),
+            "height".to_owned(),
+            "age".to_owned(),
+        ])
     }
 
-    pub fn _credential_definition() -> CredentialDefinition {
-        let schema = _schema();
+    pub fn credential_definition() -> CredentialDefinition {
+        let schema = schema();
         let (cred_def, _, _) = issuer::create_credential_definition(
             schema_id(),
             &schema,
@@ -303,9 +307,15 @@ pub(super) mod tests {
         cred_def
     }
 
-    fn _cred_values() -> CredentialValues {
+    pub fn cred_schema() -> CredentialSchema {
+        CredentialSchema::new(schema_id(), cred_def_id(), CredentialValuesEncoding::Auto)
+    }
+
+    pub fn cred_values() -> CredentialValues {
         let mut make = MakeCredentialValues::default();
         make.add_raw("name", "Alice").unwrap();
+        make.add_raw("height", "178").unwrap();
+        make.add_raw("age", "20").unwrap();
         make.into()
     }
 
@@ -334,7 +344,7 @@ pub(super) mod tests {
             schema_id: schema_id(),
             cred_def_id: cred_def_id(),
             rev_reg_id: None,
-            values: _cred_values(),
+            values: cred_values(),
             signature: _cl_credential_signature(),
             signature_correctness_proof: _cl_credential_signature_correctness_proof(),
             rev_reg: None,
@@ -354,12 +364,8 @@ pub(super) mod tests {
     pub fn w3c_credential() -> W3CCredential {
         let mut credential = W3CCredential::new();
         credential.set_issuer(issuer_id());
-        credential.set_credential_schema(CredentialSchema::new(
-            schema_id(),
-            cred_def_id(),
-            CredentialValuesEncoding::Auto,
-        ));
-        credential.set_attributes(CredentialAttributes::from(&_cred_values()));
+        credential.set_credential_schema(cred_schema());
+        credential.set_attributes(CredentialAttributes::from(&cred_values()));
         credential.add_anoncreds_signature_proof(CredentialSignatureProof::new(_signature_data()));
         credential
     }
@@ -368,7 +374,7 @@ pub(super) mod tests {
     fn test_convert_credential_to_and_from_w3c() {
         let original_legacy_credential = _legacy_credential();
         let w3c_credential =
-            credential_to_w3c(&original_legacy_credential, &_credential_definition())
+            credential_to_w3c(&original_legacy_credential, &credential_definition())
                 .expect("unable to convert credential to w3c form");
         let legacy_credential = credential_from_w3c(&w3c_credential)
             .expect("unable to convert credential to legacy form");
@@ -378,7 +384,7 @@ pub(super) mod tests {
     #[test]
     fn test_credential_to_w3c_form() {
         let legacy_credential = _legacy_credential();
-        let w3c_credential = credential_to_w3c(&legacy_credential, &_credential_definition())
+        let w3c_credential = credential_to_w3c(&legacy_credential, &credential_definition())
             .expect("unable to convert credential to w3c form");
         assert_eq!(w3c_credential.context, ANONCREDS_CONTEXTS.clone());
         assert_eq!(w3c_credential.type_, ANONCREDS_CREDENTIAL_TYPES.clone());
@@ -431,7 +437,7 @@ pub(super) mod tests {
                 .clone()
                 .map(|status| status.id)
         );
-        assert_eq!(legacy_credential.values, _cred_values());
+        assert_eq!(legacy_credential.values, cred_values());
         assert_eq!(legacy_credential.signature, _signature_data().signature);
         assert_eq!(
             legacy_credential.signature_correctness_proof,
