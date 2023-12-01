@@ -3,9 +3,7 @@ use crate::data_types::credential::CredentialValuesEncoding;
 use crate::data_types::w3c::credential::{
     CredentialAttributes, CredentialSchema, CredentialStatus, W3CCredential,
 };
-use crate::data_types::w3c::credential_proof::{
-    CredentialProof, CredentialSignature, CredentialSignatureProof,
-};
+use crate::data_types::w3c::credential_proof::{CredentialSignature, CredentialSignatureProof};
 use crate::types::Credential;
 use crate::utils::validation::Validatable;
 use crate::Error;
@@ -122,7 +120,7 @@ pub fn credential_to_w3c(
         w3c_credential.set_credential_status(CredentialStatus::new(rev_reg_id))
     }
     w3c_credential.set_attributes(attributes);
-    w3c_credential.add_proof(CredentialProof::AnonCredsSignatureProof(proof));
+    w3c_credential.add_anoncreds_signature_proof(proof);
 
     trace!(
         "w3c_process_credential <<< w3c_credential {:?}",
@@ -220,9 +218,9 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
 
     w3c_credential.validate()?;
 
-    let schema_id = w3c_credential.schema_id().clone();
-    let cred_def_id = w3c_credential.cred_def_id().clone();
-    let rev_reg_id = w3c_credential.rev_reg_id().cloned();
+    let schema_id = w3c_credential.get_schema_id().clone();
+    let cred_def_id = w3c_credential.get_cred_def_id().clone();
+    let rev_reg_id = w3c_credential.get_rev_reg_id().cloned();
     let proof = w3c_credential.get_credential_signature_proof()?;
     let credential_signature = proof.get_credential_signature()?;
     let values = w3c_credential
@@ -359,9 +357,7 @@ mod tests {
             CredentialValuesEncoding::Auto,
         ));
         credential.set_attributes(CredentialAttributes::from(&_cred_values()));
-        credential.add_proof(CredentialProof::AnonCredsSignatureProof(
-            CredentialSignatureProof::new(_signature_data()),
-        ));
+        credential.add_anoncreds_signature_proof(CredentialSignatureProof::new(_signature_data()));
         credential
     }
 

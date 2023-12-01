@@ -2,7 +2,6 @@ use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
 use crate::data_types::pres_request::PresentationRequestPayload;
 use crate::data_types::schema::{Schema, SchemaId};
 use crate::data_types::w3c::credential::{CredentialSubject, W3CCredential};
-use crate::data_types::w3c::one_or_many::OneOrMany;
 use crate::data_types::w3c::presentation::W3CPresentation;
 use crate::error::Result;
 use crate::types::{
@@ -11,14 +10,12 @@ use crate::types::{
 };
 use crate::utils::validation::Validatable;
 
-use crate::data_types::w3c::credential_proof::{
-    CredentialProof, CredentialSignature, CredentialSignatureProof,
-};
+use crate::data_types::w3c::credential_proof::{CredentialSignature, CredentialSignatureProof};
 use crate::data_types::w3c::presentation_proof::{
     CredentialAttributesMapping, CredentialPresentationProof, CredentialPresentationProofValue,
     PredicateAttribute, PresentationProof, PresentationProofValue,
 };
-use crate::prover::{CLProofBuilder, _process_credential};
+use crate::prover::{CLCredentialProver, CLProofBuilder};
 use std::collections::HashMap;
 
 /// Process an incoming credential in W3C form as received from the issuer.
@@ -112,12 +109,11 @@ pub fn process_credential(
     let proof = w3c_credential.get_mut_credential_signature_proof()?;
     let mut signature = proof.get_credential_signature()?;
 
-    _process_credential(
+    CLCredentialProver::init(link_secret)?.process_credential(
         &mut signature.signature,
         &signature.signature_correctness_proof,
         &cred_values,
         cred_request_metadata,
-        link_secret,
         cred_def,
         rev_reg_def,
         signature.rev_reg.as_ref(),
@@ -169,9 +165,9 @@ pub fn create_presentation(
             .encode(&credential.credential_schema.encoding)?;
         let proof = credential.get_credential_signature_proof()?;
         let signature = proof.get_credential_signature()?;
-        let schema_id = credential.schema_id();
-        let cred_def_id = credential.cred_def_id();
-        let rev_reg_id = credential.rev_reg_id();
+        let schema_id = credential.get_schema_id();
+        let cred_def_id = credential.get_cred_def_id();
+        let rev_reg_id = credential.get_rev_reg_id();
 
         proof_builder.add_sub_proof(
             &credential_values,
@@ -200,12 +196,12 @@ pub fn create_presentation(
         let credential_subject = build_credential_subject(pres_req, present)?;
         let proof_value = CredentialPresentationProofValue::new(sub_proof);
         let proof = CredentialPresentationProof::new(proof_value, mapping, present.timestamp);
-        let verifiable_credential = W3CCredential {
-            credential_subject,
-            proof: OneOrMany::One(CredentialProof::AnonCredsCredentialPresentationProof(proof)),
-            ..present.cred.to_owned()
-        };
-        presentation.add_verifiable_credential(verifiable_credential);
+
+        let mut credential = present.cred.to_owned();
+        credential.set_anoncreds_presentation_proof(proof);
+        credential.set_attributes(credential_subject.attributes);
+
+        presentation.add_verifiable_credential(credential);
     }
 
     trace!(

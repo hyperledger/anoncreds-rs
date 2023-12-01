@@ -714,9 +714,7 @@ pub fn create_credential(
             );
 
     let (credential_signature, signature_correctness_proof, rev_reg_id, rev_reg, witness) =
-        _create_credential(
-            cred_def,
-            cred_def_private,
+        CLCredentialIssuer::init(cred_def, cred_def_private)?.create_credential(
             cred_offer,
             cred_request,
             &cred_values,
@@ -742,66 +740,102 @@ pub fn create_credential(
     Ok(credential)
 }
 
-#[allow(clippy::too_many_arguments)]
-#[allow(clippy::type_complexity)]
-pub(crate) fn _create_credential(
-    cred_def: &CredentialDefinition,
-    cred_def_private: &CredentialDefinitionPrivate,
-    cred_offer: &CredentialOffer,
-    cred_request: &CredentialRequest,
-    cred_values: &CredentialValues,
-    revocation_config: Option<CredentialRevocationConfig>,
-) -> Result<(
-    anoncreds_clsignatures::CredentialSignature,
-    SignatureCorrectnessProof,
-    Option<RevocationRegistryDefinitionId>,
-    Option<CryptoRevocationRegistry>,
-    Option<Witness>,
-)> {
-    let cred_public_key: anoncreds_clsignatures::CredentialPublicKey =
-        cred_def.get_public_key().map_err(err_map!(
+pub(crate) struct CLCredentialIssuer<'a> {
+    cred_def: &'a CredentialDefinition,
+    cred_def_private: &'a CredentialDefinitionPrivate,
+}
+
+impl<'a> CLCredentialIssuer<'a> {
+    pub(crate) fn init(
+        cred_def: &'a CredentialDefinition,
+        cred_def_private: &'a CredentialDefinitionPrivate,
+    ) -> Result<CLCredentialIssuer<'a>> {
+        Ok(CLCredentialIssuer {
+            cred_def,
+            cred_def_private,
+        })
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn create_credential(
+        &self,
+        cred_offer: &CredentialOffer,
+        cred_request: &CredentialRequest,
+        cred_values: &CredentialValues,
+        revocation_config: Option<CredentialRevocationConfig>,
+    ) -> Result<(
+        anoncreds_clsignatures::CredentialSignature,
+        SignatureCorrectnessProof,
+        Option<RevocationRegistryDefinitionId>,
+        Option<CryptoRevocationRegistry>,
+        Option<Witness>,
+    )> {
+        let cred_public_key = self.cred_def.get_public_key().map_err(err_map!(
             Unexpected,
             "Error fetching public key from credential definition"
         ))?;
 
-    let cred_values = build_credential_values(cred_values, None)?;
+        let cred_values = build_credential_values(cred_values, None)?;
 
-    if let Some(rev_config) = revocation_config {
-        let rev_reg_def: &RevocationRegistryDefinitionValue = &rev_config.reg_def.value;
-        let rev_reg: Option<CryptoRevocationRegistry> = rev_config.status_list.into();
-        let mut rev_reg = rev_reg.ok_or_else(|| {
-            err_msg!(
-                Unexpected,
-                "RevocationStatusList should have accumulator value"
-            )
-        })?;
-
-        let status = rev_config
-            .status_list
-            .get(rev_config.registry_idx as usize)
-            .ok_or_else(|| {
+        if let Some(rev_config) = revocation_config {
+            let rev_reg_def: &RevocationRegistryDefinitionValue = &rev_config.reg_def.value;
+            let rev_reg: Option<CryptoRevocationRegistry> = rev_config.status_list.into();
+            let mut rev_reg = rev_reg.ok_or_else(|| {
                 err_msg!(
-                    "Revocation status list does not have the index {}",
-                    rev_config.registry_idx
+                    Unexpected,
+                    "RevocationStatusList should have accumulator value"
                 )
             })?;
 
-        // This will be a temporary solution for the `issuance_on_demand` vs
-        // `issuance_by_default` state. Right now, we pass in the revcation status list and
-        // we check in this list whether the provided idx (revocation_config.registry_idx)
-        // is inside the revocation status list. If it is not in there we hit an edge case,
-        // which should not be possible within the happy flow.
-        //
-        // If the index is inside the revocation status list we check whether it is set to
-        // `true` or `false` within the bitvec.
-        // When it is set to `true`, or 1, we invert the value. This means that we use
-        // `issuance_on_demand`.
-        // When it is set to `false`, or 0, we invert the value. This means that we use
-        // `issuance_by_default`.
-        let issuance_by_default = !status;
+            let status = rev_config
+                .status_list
+                .get(rev_config.registry_idx as usize)
+                .ok_or_else(|| {
+                    err_msg!(
+                        "Revocation status list does not have the index {}",
+                        rev_config.registry_idx
+                    )
+                })?;
 
-        let (credential_signature, signature_correctness_proof, witness, _opt_delta) =
-            Issuer::sign_credential_with_revoc(
+            // This will be a temporary solution for the `issuance_on_demand` vs
+            // `issuance_by_default` state. Right now, we pass in the revcation status list and
+            // we check in this list whether the provided idx (revocation_config.registry_idx)
+            // is inside the revocation status list. If it is not in there we hit an edge case,
+            // which should not be possible within the happy flow.
+            //
+            // If the index is inside the revocation status list we check whether it is set to
+            // `true` or `false` within the bitvec.
+            // When it is set to `true`, or 1, we invert the value. This means that we use
+            // `issuance_on_demand`.
+            // When it is set to `false`, or 0, we invert the value. This means that we use
+            // `issuance_by_default`.
+            let issuance_by_default = !status;
+
+            let (credential_signature, signature_correctness_proof, witness, _opt_delta) =
+                Issuer::sign_credential_with_revoc(
+                    &cred_request.entropy()?,
+                    &cred_request.blinded_ms,
+                    &cred_request.blinded_ms_correctness_proof,
+                    cred_offer.nonce.as_native(),
+                    cred_request.nonce.as_native(),
+                    &cred_values,
+                    &cred_public_key,
+                    &self.cred_def_private.value,
+                    rev_config.registry_idx,
+                    rev_reg_def.max_cred_num,
+                    issuance_by_default,
+                    &mut rev_reg,
+                    &rev_config.reg_def_private.value,
+                )?;
+            Ok((
+                credential_signature,
+                signature_correctness_proof,
+                rev_config.status_list.id(),
+                Some(rev_reg),
+                Some(witness),
+            ))
+        } else {
+            let (signature, correctness_proof) = Issuer::sign_credential(
                 &cred_request.entropy()?,
                 &cred_request.blinded_ms,
                 &cred_request.blinded_ms_correctness_proof,
@@ -809,32 +843,10 @@ pub(crate) fn _create_credential(
                 cred_request.nonce.as_native(),
                 &cred_values,
                 &cred_public_key,
-                &cred_def_private.value,
-                rev_config.registry_idx,
-                rev_reg_def.max_cred_num,
-                issuance_by_default,
-                &mut rev_reg,
-                &rev_config.reg_def_private.value,
+                &self.cred_def_private.value,
             )?;
-        Ok((
-            credential_signature,
-            signature_correctness_proof,
-            rev_config.status_list.id(),
-            Some(rev_reg),
-            Some(witness),
-        ))
-    } else {
-        let (signature, correctness_proof) = Issuer::sign_credential(
-            &cred_request.entropy()?,
-            &cred_request.blinded_ms,
-            &cred_request.blinded_ms_correctness_proof,
-            cred_offer.nonce.as_native(),
-            cred_request.nonce.as_native(),
-            &cred_values,
-            &cred_public_key,
-            &cred_def_private.value,
-        )?;
-        Ok((signature, correctness_proof, None, None, None))
+            Ok((signature, correctness_proof, None, None, None))
+        }
     }
 }
 

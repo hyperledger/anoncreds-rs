@@ -3345,9 +3345,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_
           X16dUEMGlv50aqzpqh4Qktb3rk-BuQy72IFLOqV0G_zS245-kronKb78cPN25DGlcTwLtj
           PAYuNzVBAh4vGHSrQyHUdBBPM"
     });
-    issue_cred.add_proof(CredentialProof::NonAnonCredsDataIntegrityProof(
-        rsa_signature,
-    ));
+    issue_cred.add_non_anoncreds_integrity_proof(rsa_signature);
     issue_cred.set_subject_id(URI::from("did:example:ebfeb1f712ebc6f1c276e12ec21"));
     issue_cred.add_context(URI::from("https://www.w3.org/2018/credentials/examples/v1"));
     issue_cred.add_type("AlumniCredential".to_string());

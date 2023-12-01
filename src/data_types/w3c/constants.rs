@@ -6,7 +6,7 @@ use crate::data_types::w3c::uri::URI;
 
 // Contexts
 pub const W3C_CONTEXT: &str = "https://www.w3.org/2018/credentials/v1";
-pub const W3C_ANONCREDS_CONTEXT: &str = "https://github.io/anoncreds-w3c/context.json"; // FIXME: Change address
+pub const W3C_ANONCREDS_CONTEXT: &str = "https://raw.githubusercontent.com/hyperledger/anoncreds-spec/main/data/anoncreds-w3c-context.json";
 
 // Types
 pub const W3C_CREDENTIAL_TYPE: &str = "VerifiableCredential";

@@ -252,52 +252,15 @@ pub fn process_credential(
     trace!("process_credential >>> credential: {:?}, cred_request_metadata: {:?}, link_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
             credential, cred_request_metadata, secret!(&link_secret), cred_def, rev_reg_def);
 
-    _process_credential(
+    CLCredentialProver::init(link_secret)?.process_credential(
         &mut credential.signature,
         &credential.signature_correctness_proof,
         &credential.values,
         cred_request_metadata,
-        link_secret,
         cred_def,
         rev_reg_def,
         credential.rev_reg.as_ref(),
         credential.witness.as_ref(),
-    )?;
-
-    trace!("process_credential <<< ");
-
-    Ok(())
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn _process_credential(
-    signature: &mut CLCredentialSignature,
-    signature_correctness_proof: &SignatureCorrectnessProof,
-    credential_values: &CredentialValues,
-    cred_request_metadata: &CredentialRequestMetadata,
-    link_secret: &LinkSecret,
-    cred_def: &CredentialDefinition,
-    rev_reg_def: Option<&RevocationRegistryDefinition>,
-    rev_reg: Option<&RevocationRegistry>,
-    witness: Option<&Witness>,
-) -> Result<()> {
-    let credential_pub_key = CredentialPublicKey::build_from_parts(
-        &cred_def.value.primary,
-        cred_def.value.revocation.as_ref(),
-    )?;
-    let credential_values = build_credential_values(credential_values, Some(link_secret))?;
-    let rev_pub_key = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
-
-    Prover::process_credential_signature(
-        signature,
-        &credential_values,
-        signature_correctness_proof,
-        &cred_request_metadata.link_secret_blinding_data,
-        &credential_pub_key,
-        cred_request_metadata.nonce.as_native(),
-        rev_pub_key,
-        rev_reg,
-        witness,
     )?;
 
     trace!("process_credential <<< ");
@@ -800,6 +763,53 @@ fn update_requested_proof(
     trace!("_update_requested_proof <<<");
 
     Ok(())
+}
+
+pub(crate) struct CLCredentialProver<'a> {
+    link_secret: &'a LinkSecret,
+}
+
+impl<'a> CLCredentialProver<'a> {
+    pub(crate) fn init(link_secret: &'a LinkSecret) -> Result<CLCredentialProver<'a>> {
+        Ok(CLCredentialProver { link_secret })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn process_credential(
+        &self,
+        signature: &mut CLCredentialSignature,
+        signature_correctness_proof: &SignatureCorrectnessProof,
+        credential_values: &CredentialValues,
+        cred_request_metadata: &CredentialRequestMetadata,
+        cred_def: &CredentialDefinition,
+        rev_reg_def: Option<&RevocationRegistryDefinition>,
+        rev_reg: Option<&RevocationRegistry>,
+        witness: Option<&Witness>,
+    ) -> Result<()> {
+        let credential_pub_key = CredentialPublicKey::build_from_parts(
+            &cred_def.value.primary,
+            cred_def.value.revocation.as_ref(),
+        )?;
+        let credential_values = build_credential_values(credential_values, Some(self.link_secret))?;
+        let rev_pub_key = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
+
+        Prover::process_credential_signature(
+            signature,
+            &credential_values,
+            signature_correctness_proof,
+            &cred_request_metadata.link_secret_blinding_data,
+            &credential_pub_key,
+            cred_request_metadata.nonce.as_native(),
+            rev_pub_key,
+            rev_reg,
+            witness,
+        )?;
+
+        trace!("process_credential <<< ");
+
+        Ok(())
+    }
 }
 
 pub(crate) struct CLProofBuilder<'a> {

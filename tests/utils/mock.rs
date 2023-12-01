@@ -1160,6 +1160,6 @@ impl RevocableCredential for Credential {
 
 impl RevocableCredential for W3CCredential {
     fn rev_reg_id(&self) -> Option<&RevocationRegistryDefinitionId> {
-        self.rev_reg_id()
+        self.get_rev_reg_id()
     }
 }

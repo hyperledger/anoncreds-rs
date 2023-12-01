@@ -1,5 +1,6 @@
 use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
 use crate::utils::encoded_object::EncodedObject;
+use crate::Result;
 use anoncreds_clsignatures::{
     CredentialSignature as CLCredentialSignature, RevocationRegistry, SignatureCorrectnessProof,
     Witness,
@@ -14,7 +15,7 @@ pub enum CredentialProof {
     NonAnonCredsDataIntegrityProof(NonAnonCredsDataIntegrityProof),
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialSignatureProof {
     #[serde(rename = "type")]
     pub type_: CredentialSignatureType,
@@ -29,7 +30,7 @@ impl CredentialSignatureProof {
         }
     }
 
-    pub fn get_credential_signature(&self) -> crate::Result<CredentialSignature> {
+    pub fn get_credential_signature(&self) -> Result<CredentialSignature> {
         match self.type_ {
             CredentialSignatureType::AnonCredsProof2023 => {
                 CredentialSignature::decode(&self.signature)
@@ -53,7 +54,7 @@ impl Default for CredentialSignatureType {
 }
 
 impl CredentialProof {
-    pub fn get_credential_signature_proof(&self) -> crate::Result<&CredentialSignatureProof> {
+    pub fn get_credential_signature_proof(&self) -> Result<&CredentialSignatureProof> {
         match self {
             CredentialProof::AnonCredsSignatureProof(ref signature) => Ok(signature),
             _ => Err(err_msg!(
@@ -64,7 +65,7 @@ impl CredentialProof {
 
     pub(crate) fn get_mut_credential_signature_proof(
         &mut self,
-    ) -> crate::Result<&mut CredentialSignatureProof> {
+    ) -> Result<&mut CredentialSignatureProof> {
         match self {
             CredentialProof::AnonCredsSignatureProof(ref mut signature) => Ok(signature),
             _ => Err(err_msg!(
@@ -73,7 +74,7 @@ impl CredentialProof {
         }
     }
 
-    pub fn get_presentation_proof(&self) -> crate::Result<&CredentialPresentationProof> {
+    pub fn get_presentation_proof(&self) -> Result<&CredentialPresentationProof> {
         match self {
             CredentialProof::AnonCredsCredentialPresentationProof(ref proof) => Ok(proof),
             _ => Err(err_msg!(

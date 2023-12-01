@@ -81,9 +81,9 @@ pub fn verify_presentation(
     for verifiable_credential in presentation.verifiable_credential.iter() {
         let credential_proof = verifiable_credential.get_presentation_proof()?;
         let proof_data = credential_proof.get_proof_value()?;
-        let schema_id = &verifiable_credential.schema_id();
-        let cred_def_id = &verifiable_credential.cred_def_id();
-        let rev_reg_id = verifiable_credential.rev_reg_id();
+        let schema_id = &verifiable_credential.get_schema_id();
+        let cred_def_id = &verifiable_credential.get_cred_def_id();
+        let rev_reg_id = verifiable_credential.get_rev_reg_id();
 
         let mut revealed_attribute: HashSet<String> =
             credential_proof.mapping.revealed_attributes.clone();
@@ -104,7 +104,6 @@ pub fn verify_presentation(
     let valid = proof_verifier.verify(&proof)?;
 
     trace!("verify_w3c_presentation <<< valid: {:?}", valid);
-
     Ok(valid)
 }
 
@@ -124,9 +123,9 @@ fn collect_received_attrs_and_predicates(
         let presentation_proof = verifiable_credential.get_presentation_proof()?;
 
         let identifier: Identifier = Identifier {
-            schema_id: verifiable_credential.schema_id().to_owned(),
-            cred_def_id: verifiable_credential.cred_def_id().to_owned(),
-            rev_reg_id: verifiable_credential.rev_reg_id().cloned(),
+            schema_id: verifiable_credential.get_schema_id().to_owned(),
+            cred_def_id: verifiable_credential.get_cred_def_id().to_owned(),
+            rev_reg_id: verifiable_credential.get_rev_reg_id().cloned(),
             timestamp: None,
         };
         for revealed_attribute in &presentation_proof.mapping.revealed_attributes {

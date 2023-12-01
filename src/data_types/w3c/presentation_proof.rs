@@ -1,5 +1,6 @@
 use crate::data_types::pres_request::{PredicateInfo, PredicateTypes};
 use crate::utils::encoded_object::EncodedObject;
+use crate::Result;
 use anoncreds_clsignatures::{AggregatedProof, SubProof};
 use std::collections::HashSet;
 
@@ -46,7 +47,7 @@ impl CredentialPresentationProof {
         }
     }
 
-    pub fn get_proof_value(&self) -> crate::Result<CredentialPresentationProofValue> {
+    pub fn get_proof_value(&self) -> Result<CredentialPresentationProofValue> {
         match self.type_ {
             PresentationProofType::AnonCredsPresentationProof2023 => {
                 CredentialPresentationProofValue::decode(&self.proof_value)
@@ -78,7 +79,7 @@ impl PresentationProof {
         }
     }
 
-    pub fn get_proof_value(&self) -> crate::Result<PresentationProofValue> {
+    pub fn get_proof_value(&self) -> Result<PresentationProofValue> {
         match self.type_ {
             PresentationProofType::AnonCredsPresentationProof2023 => {
                 PresentationProofValue::decode(&self.proof_value)

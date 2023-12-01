@@ -6,7 +6,9 @@ use std::string::ToString;
 use zeroize::Zeroize;
 
 use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_CREDENTIAL_TYPES};
-use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignatureProof};
+use crate::data_types::w3c::credential_proof::{
+    CredentialProof, CredentialSignatureProof, NonAnonCredsDataIntegrityProof,
+};
 use crate::data_types::w3c::presentation_proof::{CredentialPresentationProof, PredicateAttribute};
 use crate::data_types::{
     cred_def::CredentialDefinitionId,
@@ -348,6 +350,18 @@ impl W3CCredential {
         }
     }
 
+    pub fn add_anoncreds_signature_proof(&mut self, proof: CredentialSignatureProof) {
+        self.add_proof(CredentialProof::AnonCredsSignatureProof(proof));
+    }
+
+    pub fn add_non_anoncreds_integrity_proof(&mut self, proof: NonAnonCredsDataIntegrityProof) {
+        self.add_proof(CredentialProof::NonAnonCredsDataIntegrityProof(proof));
+    }
+
+    pub fn set_anoncreds_presentation_proof(&mut self, proof: CredentialPresentationProof) {
+        self.proof = OneOrMany::One(CredentialProof::AnonCredsCredentialPresentationProof(proof));
+    }
+
     pub fn get_credential_signature_proof(&self) -> Result<&CredentialSignatureProof> {
         self.proof
             .get_value(&|proof: &CredentialProof| proof.get_credential_signature_proof())
@@ -390,15 +404,15 @@ impl W3CCredential {
         Ok(())
     }
 
-    pub fn schema_id(&self) -> &SchemaId {
+    pub fn get_schema_id(&self) -> &SchemaId {
         &self.credential_schema.schema
     }
 
-    pub fn cred_def_id(&self) -> &CredentialDefinitionId {
+    pub fn get_cred_def_id(&self) -> &CredentialDefinitionId {
         &self.credential_schema.definition
     }
 
-    pub fn rev_reg_id(&self) -> Option<&RevocationRegistryDefinitionId> {
+    pub fn get_rev_reg_id(&self) -> Option<&RevocationRegistryDefinitionId> {
         if let Some(credential_status) = self.credential_status.as_ref() {
             match credential_status.type_ {
                 CredentialStatusType::AnonCredsCredentialStatusList2023 => {
