@@ -646,7 +646,7 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates(
                 "name":"name"
             },
             "attr2_referent":{
-                "name":"sex"
+                "name":"missing attribute"
             },
             "attr3_referent":{
                 "names": ["name", "height"]

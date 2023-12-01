@@ -194,7 +194,7 @@ pub fn create_presentation(
     for (present, sub_proof) in credentials.0.iter().zip(cl_proof.proofs) {
         let credential_subject = build_credential_subject(pres_req, present)?;
         let proof_value = CredentialPresentationProofValue::new(sub_proof);
-        let proof = CredentialPresentationProof::new(proof_value, mapping, present.timestamp);
+        let proof = CredentialPresentationProof::new(proof_value, present.timestamp);
 
         let mut credential = present.cred.to_owned();
         credential.set_anoncreds_presentation_proof(proof);

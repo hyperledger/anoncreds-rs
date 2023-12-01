@@ -139,12 +139,12 @@ fn check_credential_non_revoked_interval(
     >,
     proof: &CredentialPresentationProof,
 ) -> Result<()> {
-    if credential.rev_reg_id().is_none() {
+    if credential.get_rev_reg_id().is_none() {
         return Ok(());
     }
 
     let non_revoked_interval = get_requested_non_revoked_interval(
-        credential.rev_reg_id(),
+        credential.get_rev_reg_id(),
         nonrevoke_interval,
         presentation_request.non_revoked.as_ref(),
         nonrevoke_interval_override,
