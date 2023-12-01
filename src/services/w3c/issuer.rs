@@ -117,20 +117,20 @@ pub fn create_credential(
         rev_reg,
         witness,
     );
-    let proof = CredentialSignatureProof::new(signature);
-
     let mut credential = W3CCredential::new();
-    credential.set_issuer(cred_def.issuer_id.clone());
+    credential.set_issuer(cred_def.issuer_id.to_owned());
     credential.set_credential_schema(CredentialSchema::new(
-        cred_offer.schema_id.clone(),
-        cred_offer.cred_def_id.clone(),
+        cred_offer.schema_id.to_owned(),
+        cred_offer.cred_def_id.to_owned(),
         encoding,
     ));
     if let Some(rev_reg_id) = rev_reg_id {
         credential.set_credential_status(CredentialStatus::new(rev_reg_id));
     }
     credential.set_attributes(raw_credential_values);
-    credential.add_proof(CredentialProof::AnonCredsSignatureProof(proof));
+    credential.add_proof(CredentialProof::AnonCredsSignatureProof(
+        CredentialSignatureProof::new(signature),
+    ));
 
     trace!(
         "create_w3c_credential <<< credential {:?}",

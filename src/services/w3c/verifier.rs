@@ -122,27 +122,24 @@ fn collect_received_attrs_and_predicates(
 
     for verifiable_credential in proof.verifiable_credential.iter() {
         let presentation_proof = verifiable_credential.get_presentation_proof()?;
-        let rev_reg_id = verifiable_credential.rev_reg_id().cloned();
 
         let identifier: Identifier = Identifier {
-            schema_id: verifiable_credential.schema_id().clone(),
-            cred_def_id: verifiable_credential.cred_def_id().clone(),
-            rev_reg_id,
+            schema_id: verifiable_credential.schema_id().to_owned(),
+            cred_def_id: verifiable_credential.cred_def_id().to_owned(),
+            rev_reg_id: verifiable_credential.rev_reg_id().cloned(),
             timestamp: None,
         };
         for revealed_attribute in &presentation_proof.mapping.revealed_attributes {
-            revealed.insert(revealed_attribute.to_string(), identifier.clone());
+            revealed.insert(revealed_attribute.to_string(), identifier.to_owned());
         }
         for revealed_attribute_group in &presentation_proof.mapping.revealed_attribute_groups {
-            revealed.insert(revealed_attribute_group.to_string(), identifier.clone());
+            revealed.insert(revealed_attribute_group.to_string(), identifier.to_owned());
         }
-
         for unrevealed_attribute in &presentation_proof.mapping.unrevealed_attributes {
-            unrevealed.insert(unrevealed_attribute.to_string(), identifier.clone());
+            unrevealed.insert(unrevealed_attribute.to_string(), identifier.to_owned());
         }
-
         for predicate in &presentation_proof.mapping.predicates {
-            predicates.insert(predicate.to_string(), identifier.clone());
+            predicates.insert(predicate.to_string(), identifier.to_owned());
         }
     }
 
@@ -162,20 +159,22 @@ fn build_requested_proof(
             let requested_attribute = presentation_request
                 .requested_attributes
                 .get(referent)
-                .cloned()
-                .ok_or_else(|| err_msg!("Requested Attribute {} not found in request", referent))?;
+                .ok_or_else(|| {
+                    err_msg!("Requested Attribute {} not found in ProofFrquest", referent)
+                })?;
 
             let name = requested_attribute
                 .name
+                .as_ref()
                 .ok_or_else(|| err_msg!("Requested Attribute expected to have a name attribute"))?;
 
-            let (_, raw) = credential.get_attribute(&name)?;
-            if let CredentialAttributeValue::Attribute(raw) = raw {
+            let (_, value) = credential.get_case_insensitive_attribute(name)?;
+            if let CredentialAttributeValue::Attribute(value) = value {
                 requested_proof.revealed_attrs.insert(
-                    referent.clone(),
+                    referent.to_owned(),
                     RevealedAttributeInfo {
                         sub_proof_index,
-                        raw: raw.to_string(),
+                        raw: value.to_string(),
                         encoded: "".to_string(), // encoded value not needed
                     },
                 );
@@ -185,9 +184,10 @@ fn build_requested_proof(
             let requested_attribute = presentation_request
                 .requested_attributes
                 .get(referent)
-                .cloned()
-                .ok_or_else(|| err_msg!("Requested Attribute {} not found in request", referent))?;
-            let names = requested_attribute.names.ok_or_else(|| {
+                .ok_or_else(|| {
+                    err_msg!("Requested Attribute {} not found in ProofRequest", referent)
+                })?;
+            let names = requested_attribute.names.as_ref().ok_or_else(|| {
                 err_msg!("Requested Attribute expected to have a names attribute")
             })?;
             let mut group_info = RevealedAttributeGroupInfo {
@@ -195,12 +195,12 @@ fn build_requested_proof(
                 values: HashMap::new(),
             };
             for name in names.iter() {
-                let (_, raw) = credential.get_attribute(name)?;
-                if let CredentialAttributeValue::Attribute(raw) = raw {
+                let (_, value) = credential.get_case_insensitive_attribute(name)?;
+                if let CredentialAttributeValue::Attribute(value) = value {
                     group_info.values.insert(
                         name.clone(),
                         AttributeValue {
-                            raw: raw.to_string(),
+                            raw: value.to_string(),
                             encoded: "".to_string(),
                         },
                     );

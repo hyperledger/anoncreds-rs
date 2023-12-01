@@ -11,13 +11,14 @@ use crate::types::{
 };
 use crate::utils::validation::Validatable;
 
-use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignature};
+use crate::data_types::w3c::credential_proof::{
+    CredentialProof, CredentialSignature, CredentialSignatureProof,
+};
 use crate::data_types::w3c::presentation_proof::{
     CredentialAttributesMapping, CredentialPresentationProof, CredentialPresentationProofValue,
     PredicateAttribute, PresentationProof, PresentationProofValue,
 };
 use crate::prover::{CLProofBuilder, _process_credential};
-use crate::utils::encoded_object::EncodedObject;
 use std::collections::HashMap;
 
 /// Process an incoming credential in W3C form as received from the issuer.
@@ -123,13 +124,13 @@ pub fn process_credential(
         signature.witness.as_ref(),
     )?;
 
-    proof.signature = CredentialSignature::new(
+    let signature = CredentialSignature::new(
         signature.signature,
         signature.signature_correctness_proof,
         signature.rev_reg,
         signature.witness,
-    )
-    .encode();
+    );
+    *proof = CredentialSignatureProof::new(signature);
 
     trace!("process_w3c_credential <<< ");
 
@@ -224,7 +225,7 @@ fn build_mapping<'p>(
     for (referent, reveal) in credential.requested_attributes.iter() {
         let requested_attribute = pres_req.requested_attributes.get(referent).ok_or_else(|| {
             err_msg!(
-                "Attribute with referent \"{}\" not found in ProofRequests",
+                "Attribute with referent \"{}\" not found in ProofRequest",
                 referent
             )
         })?;
@@ -249,19 +250,19 @@ fn build_mapping<'p>(
 }
 
 fn build_credential_subject<'p>(
-    pres_req_val: &PresentationRequestPayload,
+    pres_req: &PresentationRequestPayload,
     credentials: &PresentCredential<'p, W3CCredential>,
 ) -> Result<CredentialSubject> {
     let mut credential_subject = CredentialSubject::default();
 
     for (referent, reveal) in credentials.requested_attributes.iter() {
-        let requested_attribute = pres_req_val
+        let requested_attribute = pres_req
             .requested_attributes
             .get(referent)
-            .ok_or_else(|| err_msg!("attribute {} not found request", referent))?;
+            .ok_or_else(|| err_msg!("Attribute {} not found in ProofRequest", referent))?;
 
         if let Some(ref name) = requested_attribute.name {
-            let (attribute, value) = credentials.cred.get_attribute(name)?;
+            let (attribute, value) = credentials.cred.get_case_insensitive_attribute(name)?;
             if *reveal {
                 credential_subject
                     .attributes
@@ -270,7 +271,7 @@ fn build_credential_subject<'p>(
         }
         if let Some(ref names) = requested_attribute.names {
             for name in names {
-                let (attribute, value) = credentials.cred.get_attribute(name)?;
+                let (attribute, value) = credentials.cred.get_case_insensitive_attribute(name)?;
                 credential_subject
                     .attributes
                     .add_attribute(attribute, value);
@@ -279,12 +280,14 @@ fn build_credential_subject<'p>(
     }
 
     for referent in credentials.requested_predicates.iter() {
-        let predicate_info = pres_req_val
+        let predicate_info = pres_req
             .requested_predicates
             .get(referent)
-            .ok_or_else(|| err_msg!("predicate {} not found request", referent))?
-            .clone();
-        let (attribute, _) = credentials.cred.get_attribute(&predicate_info.name)?;
+            .ok_or_else(|| err_msg!("Predicate {} not found in ProofRequest", referent))?
+            .to_owned();
+        let (attribute, _) = credentials
+            .cred
+            .get_case_insensitive_attribute(&predicate_info.name)?;
         let predicate = PredicateAttribute::from(predicate_info);
         credential_subject
             .attributes
