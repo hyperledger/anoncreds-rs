@@ -40,7 +40,7 @@ pub fn verify_presentation(
     let credential_proofs = presentation
         .verifiable_credential
         .iter()
-        .map(|verifiable_credential| verifiable_credential.get_presentation_proof())
+        .map(W3CCredential::get_presentation_proof)
         .collect::<Result<Vec<&CredentialPresentationProof>>>()?;
 
     // These values are from the prover and cannot be trusted
@@ -57,7 +57,7 @@ pub fn verify_presentation(
 
     let proof_data = presentation.proof.get_proof_value()?;
     let mut proof = Proof {
-        proofs: Vec::new(),
+        proofs: Vec::with_capacity(presentation.verifiable_credential.len()),
         aggregated_proof: proof_data.aggregated,
     };
 
@@ -139,22 +139,20 @@ fn check_credential_non_revoked_interval(
     >,
     proof: &CredentialPresentationProof,
 ) -> Result<()> {
-    if credential.get_rev_reg_id().is_none() {
-        return Ok(());
-    }
+    if let Some(rev_reg_id) = credential.get_rev_reg_id() {
+        let non_revoked_interval = get_requested_non_revoked_interval(
+            Some(rev_reg_id),
+            nonrevoke_interval,
+            presentation_request.non_revoked.as_ref(),
+            nonrevoke_interval_override,
+        );
 
-    let non_revoked_interval = get_requested_non_revoked_interval(
-        credential.get_rev_reg_id(),
-        nonrevoke_interval,
-        presentation_request.non_revoked.as_ref(),
-        nonrevoke_interval_override,
-    );
-
-    if let Some(non_revoked_interval) = non_revoked_interval {
-        let timestamp = proof
-            .timestamp
-            .ok_or_else(|| err_msg!("Credential timestamp not found for revocation check"))?;
-        non_revoked_interval.is_valid(timestamp)?;
+        if let Some(non_revoked_interval) = non_revoked_interval {
+            let timestamp = proof
+                .timestamp
+                .ok_or_else(|| err_msg!("Credential timestamp not found for revocation check"))?;
+            non_revoked_interval.is_valid(timestamp)?;
+        }
     }
     Ok(())
 }
@@ -197,7 +195,6 @@ fn check_requested_attribute<'a>(
     >,
     credential_proofs: &[&CredentialPresentationProof],
 ) -> Result<&'a W3CCredential> {
-    let mut found_credential: Option<&'a W3CCredential> = None;
     for (index, credential) in presentation.verifiable_credential.iter().enumerate() {
         let proof = credential_proofs
             .get(index)
@@ -216,14 +213,8 @@ fn check_requested_attribute<'a>(
             .is_ok();
 
         if valid_credential {
-            found_credential = Some(credential);
-            break;
+            return Ok(credential);
         }
-    }
-
-    if let Some(found_credential) = found_credential {
-        // credential for attribute is found in revealed data
-        return Ok(found_credential);
     }
 
     // else consider attribute as unrevealed and try to find credential which schema includes requested attribute
@@ -240,7 +231,7 @@ fn check_requested_attribute<'a>(
                 )
             })?;
 
-        let valid_credential = schema.has_attribute(attribute)
+        let valid_credential = schema.has_case_insensitive_attribute(attribute)
             && check_credential_conditions(
                 credential,
                 presentation_request,
@@ -254,14 +245,8 @@ fn check_requested_attribute<'a>(
             .is_ok();
 
         if valid_credential {
-            found_credential = Some(credential);
-            break;
+            return Ok(credential);
         }
-    }
-
-    if let Some(found_credential) = found_credential {
-        // credential for attribute is found in revealed data
-        return Ok(found_credential);
     }
 
     Err(err_msg!(

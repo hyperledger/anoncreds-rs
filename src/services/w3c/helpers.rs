@@ -21,32 +21,30 @@ impl W3CCredential {
     }
 
     pub(crate) fn has_attribute(&self, requested_attribute: &str) -> bool {
-        for (attribute, value) in self.credential_subject.attributes.0.iter() {
-            if attr_common_view(attribute) == attr_common_view(requested_attribute) {
-                if let CredentialAttributeValue::Attribute(_) = value {
-                    return true;
-                }
+        let (_, value) = match self.get_case_insensitive_attribute(requested_attribute) {
+            Ok(value) => value,
+            _ => {
+                return false;
             }
-        }
-        false
+        };
+        matches!(value, CredentialAttributeValue::Attribute(_))
     }
 
     pub(crate) fn has_predicate(&self, predicate: &PredicateInfo) -> bool {
-        let predicate_attribute = attr_common_view(&predicate.name);
-        for (attribute, value) in self.credential_subject.attributes.0.iter() {
-            if attr_common_view(attribute) == predicate_attribute {
-                if let CredentialAttributeValue::Predicate(predicates) = value {
-                    let found = predicates.iter().find(|shared_predicate| {
-                        shared_predicate.predicate == predicate.p_type
-                            && shared_predicate.value == predicate.p_value
-                    });
-                    if found.is_some() {
-                        return true;
-                    }
-                }
+        let (_, value) = match self.get_case_insensitive_attribute(&predicate.name) {
+            Ok(value) => value,
+            Err(_) => return false,
+        };
+
+        match value {
+            CredentialAttributeValue::Predicate(ref predicates) => {
+                predicates.iter().any(|shared_predicate| {
+                    shared_predicate.predicate == predicate.p_type
+                        && shared_predicate.value == predicate.p_value
+                })
             }
+            _ => false,
         }
-        false
     }
 
     pub(crate) fn attributes(&self) -> Vec<AttributeInfo> {
@@ -92,13 +90,12 @@ impl W3CCredential {
 }
 
 impl Schema {
-    pub(crate) fn has_attribute(&self, requested_attribute: &str) -> bool {
-        for attribute in self.attr_names.0.iter() {
-            if attr_common_view(attribute) == attr_common_view(requested_attribute) {
-                return true;
-            }
-        }
-        false
+    pub(crate) fn has_case_insensitive_attribute(&self, requested_attribute: &str) -> bool {
+        let requested_attribute = attr_common_view(requested_attribute);
+        self.attr_names
+            .0
+            .iter()
+            .any(|attribute| attr_common_view(attribute) == requested_attribute)
     }
 
     pub(crate) fn get_attributes(&self) -> HashMap<String, String> {

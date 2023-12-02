@@ -1,6 +1,5 @@
 use anoncreds::data_types::pres_request::PredicateTypes;
 use anoncreds::data_types::w3c::credential::CredentialAttributeValue;
-use anoncreds::data_types::w3c::credential_proof::CredentialProof;
 use anoncreds::data_types::w3c::presentation_proof::{PredicateAttribute, PredicateAttributeType};
 use anoncreds::data_types::w3c::uri::URI;
 use anoncreds::verifier;
