@@ -357,7 +357,9 @@ mod tests {
             CredentialValuesEncoding::Auto,
         ));
         credential.set_attributes(CredentialAttributes::from(&_cred_values()));
-        credential.add_anoncreds_signature_proof(CredentialSignatureProof::new(_signature_data()));
+        credential.add_anoncreds_signature_proof(
+            CredentialSignatureProof::new(_signature_data()).unwrap(),
+        );
         credential
     }
 

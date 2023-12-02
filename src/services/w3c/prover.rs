@@ -126,7 +126,7 @@ pub fn process_credential(
         signature.rev_reg,
         signature.witness,
     );
-    *proof = CredentialSignatureProof::new(signature);
+    *proof = CredentialSignatureProof::new(signature)?;
 
     trace!("process_w3c_credential <<< ");
 
@@ -184,7 +184,7 @@ pub fn create_presentation(
 
     let presentation_proof_value = PresentationProofValue::new(cl_proof.aggregated_proof);
     let presentation_proof =
-        PresentationProof::new(presentation_proof_value, pres_req.nonce.to_string());
+        PresentationProof::new(presentation_proof_value, pres_req.nonce.to_string())?;
 
     let mut presentation = W3CPresentation::new();
     presentation.set_proof(presentation_proof);
@@ -195,7 +195,7 @@ pub fn create_presentation(
         let mapping = build_mapping(pres_req, present)?;
         let credential_subject = build_credential_subject(pres_req, present)?;
         let proof_value = CredentialPresentationProofValue::new(sub_proof);
-        let proof = CredentialPresentationProof::new(proof_value, mapping, present.timestamp);
+        let proof = CredentialPresentationProof::new(proof_value, mapping, present.timestamp)?;
 
         let mut credential = present.cred.to_owned();
         credential.set_anoncreds_presentation_proof(proof);

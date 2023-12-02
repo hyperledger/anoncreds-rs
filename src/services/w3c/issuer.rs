@@ -113,7 +113,7 @@ pub fn create_credential(
         rev_reg,
         witness,
     );
-    let proof = CredentialSignatureProof::new(signature);
+    let proof = CredentialSignatureProof::new(signature)?;
     let credential_schema = CredentialSchema::new(
         cred_offer.schema_id.to_owned(),
         cred_offer.cred_def_id.to_owned(),
