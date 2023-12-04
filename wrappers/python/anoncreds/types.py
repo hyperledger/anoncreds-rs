@@ -103,6 +103,27 @@ class CredentialOffer(bindings.AnoncredsObject):
         )
 
 
+class W3CCredentialOffer(bindings.AnoncredsObject):
+    @classmethod
+    def create(
+        cls,
+        schema_id: str,
+        cred_def_id: str,
+        key_proof: Union[str, KeyCorrectnessProof],
+    ) -> "W3CCredentialOffer":
+        if not isinstance(key_proof, bindings.AnoncredsObject):
+            key_proof = KeyCorrectnessProof.load(key_proof)
+        return W3CCredentialOffer(
+            bindings.create_w3c_credential_offer(schema_id, cred_def_id, key_proof.handle)
+        )
+
+    @classmethod
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "W3CCredentialOffer":
+        return W3CCredentialOffer(
+            bindings._object_from_json("anoncreds_credential_offer_from_json", value)
+        )
+
+
 class CredentialRequest(bindings.AnoncredsObject):
     @classmethod
     def create(
@@ -133,6 +154,41 @@ class CredentialRequest(bindings.AnoncredsObject):
     @classmethod
     def load(cls, value: Union[dict, str, bytes, memoryview]) -> "CredentialRequest":
         return CredentialRequest(
+            bindings._object_from_json("anoncreds_credential_request_from_json", value)
+        )
+
+
+
+class W3CCredentialRequest(bindings.AnoncredsObject):
+    @classmethod
+    def create(
+        cls,
+        entropy: Optional[str],
+        prover_did: Optional[str],
+        cred_def: Union[str, CredentialDefinition],
+        link_secret: str,
+        link_secret_id: str,
+        cred_offer: Union[str, W3CCredentialOffer],
+    ) -> Tuple["W3CCredentialRequest", "CredentialRequestMetadata"]:
+        if not isinstance(cred_def, bindings.AnoncredsObject):
+            cred_def = CredentialDefinition.load(cred_def)
+        if not isinstance(cred_offer, bindings.AnoncredsObject):
+            cred_offer = W3CCredentialOffer.load(cred_offer)
+        cred_def_handle, cred_def_metadata = bindings.create_w3c_credential_request(
+            entropy,
+            prover_did,
+            cred_def.handle,
+            link_secret,
+            link_secret_id,
+            cred_offer.handle,
+        )
+        return W3CCredentialRequest(cred_def_handle), CredentialRequestMetadata(
+            cred_def_metadata
+        )
+
+    @classmethod
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "W3CCredentialRequest":
+        return W3CCredentialRequest(
             bindings._object_from_json("anoncreds_credential_request_from_json", value)
         )
 
@@ -373,8 +429,8 @@ class W3CCredential(bindings.AnoncredsObject):
         cls,
         cred_def: Union[str, CredentialDefinition],
         cred_def_private: Union[str, CredentialDefinitionPrivate],
-        cred_offer: Union[str, CredentialOffer],
-        cred_request: Union[str, CredentialRequest],
+        cred_offer: Union[str, W3CCredentialOffer],
+        cred_request: Union[str, W3CCredentialRequest],
         attr_raw_values: Mapping[str, str],
         revocation_config: Optional["CredentialRevocationConfig"] = None,
         encoding: Optional[str] = None,
@@ -384,9 +440,9 @@ class W3CCredential(bindings.AnoncredsObject):
         if not isinstance(cred_def_private, bindings.AnoncredsObject):
             cred_def_private = CredentialDefinitionPrivate.load(cred_def_private)
         if not isinstance(cred_offer, bindings.AnoncredsObject):
-            cred_offer = CredentialOffer.load(cred_offer)
+            cred_offer = W3CCredentialOffer.load(cred_offer)
         if not isinstance(cred_request, bindings.AnoncredsObject):
-            cred_request = CredentialRequest.load(cred_request)
+            cred_request = W3CCredentialRequest.load(cred_request)
         cred = bindings.create_w3c_credential(
             cred_def.handle,
             cred_def_private.handle,

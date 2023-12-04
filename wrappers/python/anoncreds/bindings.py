@@ -709,6 +709,20 @@ def create_credential_offer(
     return cred_offer
 
 
+def create_w3c_credential_offer(
+    schema_id: str, cred_def_id: str, key_proof: ObjectHandle
+) -> ObjectHandle:
+    cred_offer = ObjectHandle()
+    do_call(
+        "anoncreds_create_w3c_credential_offer",
+        encode_str(schema_id),
+        encode_str(cred_def_id),
+        key_proof,
+        byref(cred_offer),
+    )
+    return cred_offer
+
+
 def create_credential_request(
     entropy: Optional[str],
     prover_did: Optional[str],
@@ -720,6 +734,29 @@ def create_credential_request(
     cred_req, cred_req_metadata = ObjectHandle(), ObjectHandle()
     do_call(
         "anoncreds_create_credential_request",
+        encode_str(entropy),
+        encode_str(prover_did),
+        cred_def,
+        encode_str(link_secret),
+        encode_str(link_secret_id),
+        cred_offer,
+        byref(cred_req),
+        byref(cred_req_metadata),
+    )
+    return (cred_req, cred_req_metadata)
+
+
+def create_w3c_credential_request(
+    entropy: Optional[str],
+    prover_did: Optional[str],
+    cred_def: ObjectHandle,
+    link_secret: str,
+    link_secret_id: str,
+    cred_offer: ObjectHandle,
+) -> Tuple[ObjectHandle, ObjectHandle]:
+    cred_req, cred_req_metadata = ObjectHandle(), ObjectHandle()
+    do_call(
+        "anoncreds_create_w3c_credential_request",
         encode_str(entropy),
         encode_str(prover_did),
         cred_def,

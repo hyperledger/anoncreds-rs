@@ -4,8 +4,8 @@ from anoncreds import (
     Credential,
     W3CCredential,
     CredentialDefinition,
-    CredentialOffer,
-    CredentialRequest,
+    W3CCredentialOffer,
+    W3CCredentialRequest,
     CredentialRevocationConfig,
     CredentialRevocationState,
     PresentationRequest,
@@ -50,9 +50,9 @@ revocation_status_list = RevocationStatusList.create(
 link_secret = create_link_secret()
 link_secret_id = "default"
 
-cred_offer = CredentialOffer.create(schema_id, cred_def_id, cred_def_correctness)
+cred_offer = W3CCredentialOffer.create(schema_id, cred_def_id, cred_def_correctness)
 
-cred_request, cred_request_metadata = CredentialRequest.create(
+cred_request, cred_request_metadata = W3CCredentialRequest.create(
     entropy, None, cred_def_pub, link_secret, link_secret_id, cred_offer
 )
 
