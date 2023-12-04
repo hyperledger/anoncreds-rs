@@ -21,6 +21,8 @@ from .types import (
     RevocationStatusList,
     RevocationRegistryDefinition,
     RevocationRegistryDefinitionPrivate,
+    W3CCredentialOffer,
+    W3CCredentialRequest,
     W3CCredential,
     W3CPresentation,
 )
