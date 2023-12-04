@@ -9,9 +9,9 @@ use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
 use crate::data_types::nonce::Nonce;
-use crate::data_types::pres_request::PresentationRequestPayload;
-use crate::data_types::pres_request::{AttributeInfo, NonRevokedInterval, PredicateInfo};
-use crate::data_types::presentation::{Identifier, RequestedProof, RevealedAttributeInfo};
+use crate::data_types::pres_request::{AttributeInfo, NonRevokedInterval};
+use crate::data_types::pres_request::{PredicateTypes, PredicateValue, PresentationRequestPayload};
+use crate::data_types::presentation::{Identifier, RequestedProof};
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
 use crate::data_types::schema::SchemaId;
@@ -97,9 +97,7 @@ pub fn verify_presentation(
         rev_status_lists.as_ref(),
     )?;
 
-    for sub_proof_index in 0..presentation.identifiers.len() {
-        let identifier = presentation.identifiers[sub_proof_index].clone();
-
+    for (sub_proof_index, identifier) in presentation.identifiers.iter().enumerate() {
         let attributes = presentation
             .requested_proof
             .get_attribute_referents(sub_proof_index as u32);
@@ -853,8 +851,8 @@ impl<'a> CLProofVerifier<'a> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn add_sub_proof(
         &mut self,
-        attributes: &[AttributeInfo],
-        predicates: &[PredicateInfo],
+        attributes: &[String],
+        predicates: &HashMap<String, (PredicateTypes, PredicateValue)>,
         schema_id: &SchemaId,
         cred_def_id: &CredentialDefinitionId,
         rev_reg_def_id: Option<&RevocationRegistryDefinitionId>,

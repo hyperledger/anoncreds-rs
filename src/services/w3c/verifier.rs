@@ -1,7 +1,7 @@
 use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::pres_request::PresentationRequestPayload;
-use crate::data_types::pres_request::{AttributeInfo, NonRevokedInterval, PredicateInfo};
+use crate::data_types::pres_request::{NonRevokedInterval, PredicateInfo};
 use crate::data_types::presentation::Identifier;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
@@ -9,13 +9,15 @@ use crate::data_types::schema::SchemaId;
 use crate::data_types::w3c::credential::CredentialAttributeValue;
 use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::presentation::W3CPresentation;
-use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
+use crate::data_types::w3c::presentation_proof::{
+    CredentialPresentationProof, CredentialPresentationProofValue,
+};
 use crate::error::Result;
-use crate::services::helpers::get_requested_non_revoked_interval;
+use crate::services::helpers::{encode_credential_attribute, get_requested_non_revoked_interval};
 use crate::types::{PresentationRequest, RevocationRegistryDefinition, RevocationStatusList};
 use crate::utils::query::Query;
-use crate::verifier::CLProofVerifier;
 use crate::verifier::{gather_filter_info, process_operator};
+use crate::verifier::{verify_revealed_attribute_value, CLProofVerifier};
 use anoncreds_clsignatures::Proof;
 use std::collections::HashMap;
 
@@ -73,18 +75,20 @@ pub fn verify_presentation(
         let credential_proof = credential_proofs
             .get(index)
             .ok_or_else(|| err_msg!("Unable to get credential proof for index {}", index))?;
+
         let proof_data = credential_proof.get_proof_value()?;
         let schema_id = &verifiable_credential.get_schema_id();
         let cred_def_id = &verifiable_credential.get_cred_def_id();
         let rev_reg_id = verifiable_credential.get_rev_reg_id();
 
-        _check_encoded_attributes(verifiable_credential, &proof_data)?;
+        let attributes = verifiable_credential.attributes();
+        let predicates = verifiable_credential.predicates();
+        let attribute_names: Vec<String> = attributes.keys().cloned().collect();
 
-        let attributes: Vec<AttributeInfo> = verifiable_credential.attributes();
-        let predicates: Vec<PredicateInfo> = verifiable_credential.predicates();
+        verify_revealed_attribute_values(&attributes, &proof_data)?;
 
         proof_verifier.add_sub_proof(
-            &attributes,
+            &attribute_names,
             &predicates,
             schema_id,
             cred_def_id,
@@ -346,15 +350,15 @@ fn check_request_data(
             credential_proofs,
         )?;
     }
+
     Ok(())
 }
 
-fn _check_encoded_attributes(
-    credential: &W3CCredential,
+fn verify_revealed_attribute_values(
+    attributes: &HashMap<String, String>,
     credential_proof: &CredentialPresentationProofValue,
 ) -> Result<()> {
-    credential
-        .get_attributes()
+    attributes
         .iter()
         .map(|(name, value)| {
             encode_credential_attribute(value).and_then(|encoded| {
@@ -369,7 +373,7 @@ fn _check_encoded_attributes(
 mod tests {
     use super::*;
     use crate::data_types::nonce::Nonce;
-    use crate::data_types::pres_request::PredicateTypes;
+    use crate::data_types::pres_request::{AttributeInfo, PredicateTypes};
     use crate::data_types::w3c::credential::{CredentialAttributes, CredentialStatus};
     use crate::data_types::w3c::credential_proof::CredentialProof;
     use crate::data_types::w3c::presentation_proof::{PredicateAttribute, PresentationProofType};
