@@ -11,7 +11,7 @@ use crate::data_types::issuer_id::IssuerId;
 use crate::data_types::nonce::Nonce;
 use crate::data_types::pres_request::AttributeInfo;
 use crate::data_types::pres_request::PresentationRequestPayload;
-use crate::data_types::presentation::{Identifier, RequestedProof, RevealedAttributeInfo};
+use crate::data_types::presentation::{Identifier, RequestedProof};
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
 use crate::data_types::schema::SchemaId;
@@ -22,7 +22,7 @@ use crate::services::helpers::{build_credential_schema, get_non_revoked_interval
 use crate::utils::query::Query;
 use crate::utils::validation::LEGACY_DID_IDENTIFIER;
 
-use anoncreds_clsignatures::{NonCredentialSchema, Proof, ProofVerifier};
+use anoncreds_clsignatures::{NonCredentialSchema, Proof, ProofVerifier, SubProof};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -252,10 +252,32 @@ fn verify_revealed_attribute_values(
                     attr_referent,
                 )
             })?;
-        verify_revealed_attribute_value(attr_name.as_str(), proof, attr_info)?;
+        let sub_proof = proof
+            .proof
+            .proofs
+            .get(attr_info.sub_proof_index as usize)
+            .ok_or_else(|| {
+                err_msg!(
+                    ProofRejected,
+                    "CryptoProof not found by index \"{}\"",
+                    attr_info.sub_proof_index,
+                )
+            })?;
+        verify_revealed_attribute_value(attr_name.as_str(), sub_proof, &attr_info.encoded)?;
     }
 
     for (attr_referent, attr_infos) in &proof.requested_proof.revealed_attr_groups {
+        let sub_proof = proof
+            .proof
+            .proofs
+            .get(attr_infos.sub_proof_index as usize)
+            .ok_or_else(|| {
+                err_msg!(
+                    ProofRejected,
+                    "CryptoProof not found by index \"{}\"",
+                    attr_infos.sub_proof_index,
+                )
+            })?;
         let attr_names = pres_req
             .requested_attributes
             .get(attr_referent)
@@ -286,15 +308,7 @@ fn verify_revealed_attribute_values(
             let attr_info = &attr_infos.values.get(attr_name).ok_or_else(|| {
                 err_msg!("Proof Revealed Attr Group does not match Proof Request Attribute Group",)
             })?;
-            verify_revealed_attribute_value(
-                attr_name,
-                proof,
-                &RevealedAttributeInfo {
-                    sub_proof_index: attr_infos.sub_proof_index,
-                    raw: attr_info.raw.clone(),
-                    encoded: attr_info.encoded.clone(),
-                },
-            )?;
+            verify_revealed_attribute_value(attr_name, sub_proof, &attr_info.encoded)?;
         }
     }
     Ok(())
@@ -306,26 +320,14 @@ fn normalize_encoded_attr(attr: &str) -> String {
         .unwrap_or_else(|_| attr.to_owned())
 }
 
-fn verify_revealed_attribute_value(
+pub(crate) fn verify_revealed_attribute_value(
     attr_name: &str,
-    proof: &Presentation,
-    attr_info: &RevealedAttributeInfo,
+    sub_proof: &SubProof,
+    encoded: &str,
 ) -> Result<()> {
-    let reveal_attr_encoded = normalize_encoded_attr(&attr_info.encoded);
+    let reveal_attr_encoded = normalize_encoded_attr(encoded);
 
-    let sub_proof_index = attr_info.sub_proof_index as usize;
-
-    let crypto_proof_encoded = proof
-        .proof
-        .proofs
-        .get(sub_proof_index)
-        .ok_or_else(|| {
-            err_msg!(
-                ProofRejected,
-                "CryptoProof not found by index \"{}\"",
-                sub_proof_index,
-            )
-        })?
+    let crypto_proof_encoded = sub_proof
         .revealed_attrs()?
         .iter()
         .find(|(key, _)| attr_common_view(attr_name) == attr_common_view(key))

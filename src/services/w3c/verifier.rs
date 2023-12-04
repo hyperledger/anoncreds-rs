@@ -11,10 +11,13 @@ use crate::data_types::schema::SchemaId;
 use crate::data_types::w3c::presentation::W3CPresentation;
 use crate::error::Result;
 
-use crate::data_types::w3c::credential::CredentialAttributeValue;
+use crate::data_types::w3c::credential::{CredentialAttributeValue, W3CCredential};
+use crate::data_types::w3c::presentation_proof::CredentialPresentationProofValue;
+use crate::services::helpers::encode_credential_attribute;
 use crate::types::{PresentationRequest, RevocationRegistryDefinition, RevocationStatusList};
 use crate::verifier::{
-    compare_attr_from_proof_and_request, verify_requested_restrictions, CLProofVerifier,
+    compare_attr_from_proof_and_request, verify_requested_restrictions,
+    verify_revealed_attribute_value, CLProofVerifier,
 };
 use anoncreds_clsignatures::Proof;
 use std::collections::{HashMap, HashSet};
@@ -84,6 +87,8 @@ pub fn verify_presentation(
         let schema_id = &verifiable_credential.get_schema_id();
         let cred_def_id = &verifiable_credential.get_cred_def_id();
         let rev_reg_id = verifiable_credential.get_rev_reg_id();
+
+        _check_encoded_attributes(verifiable_credential, &proof_data)?;
 
         let mut revealed_attribute: HashSet<String> =
             credential_proof.mapping.revealed_attributes.clone();
@@ -221,4 +226,20 @@ fn build_requested_proof(
         }
     }
     Ok(requested_proof)
+}
+
+fn _check_encoded_attributes(
+    credential: &W3CCredential,
+    credential_proof: &CredentialPresentationProofValue,
+) -> Result<()> {
+    credential
+        .attributes()
+        .iter()
+        .map(|(name, value)| {
+            encode_credential_attribute(value).and_then(|encoded| {
+                verify_revealed_attribute_value(name, &credential_proof.sub_proof, &encoded)
+            })
+        })
+        .collect::<Result<Vec<()>>>()?;
+    Ok(())
 }
