@@ -1,10 +1,6 @@
 ## Design for W3C representation of AnonCreds credentials and presentation
 
-Currently `anoncreds-rs` library only provides support for legacy Indy styled AnonCreds credentials matching to
-the [specification](https://hyperledger.github.io/anoncreds-spec/).
-
-This design document proposes extending of `anoncreds-rs` library to add support for AnonCreds W3C representation of
-verifiable credential and presentation described in the [document]().
+This design document describes how W3C formatted Verifiable Credentials and Presentations are supported in `anoncreds-rs` library. 
 
 ### Goals and ideas
 
@@ -31,119 +27,6 @@ verifiable credential and presentation described in the [document]().
 * Presentations: Verify validity of presentations including non-AnonCreds Data Integrity proof signatures
 * Presentations: Support different formats (for example DIF) of Presentation Request
 
-### Question impacting the approach
-
-* Q1: Do we need conversion for intermediate messages to make them W3C compliant: Credential Offer, Credential Request?
-    * Q1.1: (Depends on answer for Q1) If no conversion: Do we want Credential Offer indicates what form of credential
-      will be issued as the process execution result?
-    * **Answer**: No conversion for Credential Offer, Credential Request objects. Existing types will be used.
-* Q2: Do we want duplicate methods (like `sign` and `sign_w3c`) or only use single conversion method (
-  like `credential.to_w3c`) doing extra step?
-    * There are 6 methods in total. 4 of them we have to duplicate any way. Whether we want to
-      duplicate `create_offer`, `create_request` methods if we do not change their format.
-    * **Answer:**
-        * All methods will be duplicated
-        * According to the Q1 answer `w3c_create_offer`, `w3c_create_request` methods will be returning the same object as original methods
-* Q3: Are we still tied to legacy styled presentation request?
-    * Can we make interface completely independent of Presentation Request? So any form can be handled on top level and
-      specific data passed to AnonCreds-rs.
-    * **Answer**: API methods will keep using an existing AnonCreds Presentation Request format
-* Q4: Do we want to provide general interfaces doing signing and verification of Non-AnonCreds Data Integrity proof signature?
-    * Accept sign/verify callbacks into convert/create functions:
-        * Issue with setting multiple signatures
-        * Much easier just to expose methods to add signature proof itself
-    * Provide methods to put ready data into a credential
-    * **Answer:** No.
-        * Third party libraries must be used for doing signing and verification of Non-AnonCreds Data Integrity proof signature
-        * AnonCreds-rs only will only provide helper methods for setting attributes which can be needed for different Non-AnonCreds Data Integrity proof
-* Q5: Signature/Proof encoding: Which approach to use for encoding?
-    * Basic approach used in Aries attachments: [BaseURL safe 64 encoding of object serialized as JSON string](https://github.com/hyperledger/aries-rfcs/tree/main/concepts/0017-attachments#base64url)?
-    * Compact encoding implemented in Python PoC: Using the fact that most fields of credential signature and proof are big numbers rather that strings.
-        * For example: the length of encoded credential signature string is about 2.5 times less than in the basic approach
-    * **Answer**:
-        * Start from basic Aries encoding.
-        * Experiment with other algorithms (CBOR, Message Pack, Protobuf, Custom) as a next step.
-* Q6: W3C data model allows attributes to be represented not only as key/value string pairs but also as
-  objects and arrays.
-    * If we want to support more complex representations for the W3C AnonCreds credential attributes and their
-      presentations, we need to design following things:
-        * how encoding will work for such attributes
-        * how selective disclosure will work on top level attribute itself
-            ```
-              "credentialSubject": {
-                "address": {
-                    "type": "Address",
-                    "city": "Foo",
-                    "street": "Main str."
-                }
-              }
-            ```
-    * **Answer**:
-        * Only key/value string pairs will be supported for the current phase
-* Q7: Should we care about back way conversion of credential issued in W3C form?
-    * Assume that we issued W3C which cannot convert back into legacy form
-    * For example supporting different attributes types can be used in credentialSubject (support nested objects, array,
-      other features)
-        * Need to decide on object encoding algorithm
-    * **Answer**: Yes. Within the current design/effort credentials must be convertible back and forth
-* Q8: Should we include Holder DID into credential subject as [`id` attribute](https://www.w3.org/TR/vc-data-model/#identifiers)?
-    * This enables credential subject [validation](https://www.w3.org/TR/vc-data-model/#credential-subject-0)
-    * We can add if for newly issued credentials but cannot set during the conversion of previously issued credentials.
-    * **Answer**:
-        * Up to Issuer, Optionally Issuer may include DID into credential subject
-        * anoncreds-rs will provide a helper function to set `id`
-* Q9: Predicates representation in credential subject
-    * Derive an attribute and put it into `credentialSubject` like it demonstrated
-      in the [specification](https://www.w3.org/TR/vc-data-model/#presentations-using-derived-credentials)
-        * Example:
-            * For Predicate: `{"name": "birthdate", "p_type": "<", "value":"20041012"}`
-            * Derived attribute: `{"birthdate": "birthdate less 20041012"}`
-        * During the `proofValue` crypto verification we can parse the phrase and restore predicate attributes
-    * Put predicate as object into `credentialSubject`
-        ```
-          "credentialSubject": {
-            ...
-            "birthdate": {
-              "type": "Predicate",
-              "p_type": "<", 
-              "value": "20041012"
-            }
-            ...
-          }
-        ```
-    * **Answer**: Need more discussion
-* Q10: Should we remove `mapping` completely or move under encoded `proofValue`?
-    * Why `mapping` is bad: we make presentation tied to legacy styled Presentation Request
-    * Mapping is something old-fashioned synthetic required for doing validation (not signature verification) that proof matches to
-      the request itself on the verifier side
-    * For doing crypto `proofValue` verification we only need the names of revealed attributes and predicated (with
-      type)
-    * `revealed attributes` and `predicates` can be validated as we include them into `credentialSubject` but `unrevealed` attributes cannot.
-    * **Answer**: Drop `mapping` - see at the bottom of the document an example on how the validation of verifier's side still can be done
-* Q11: Revocation signature/proof: Should it be put into the same value of two independent signatures/proofs must be put into credential/presentation?
-    * **Answer**: For the current implementation it's good just to put everything inside encoded proof value
-      * For future: Prepare a section example describing how non revocation can be extracted into a separate proof  
-* Q12: For conversion of legacy credentials into W3C Credentials form we need to set `issuer_id` attribute. But legacy
-  credentials do not contain this field explicitly. `AnonCreds-rs` is designed to be ledger/DID method agnostic, so it
-  does not analyze/handle the values of id fields.
-    * How should we get issuer DID for putting into credential?
-        * Require `CredentialDefinition` to be passed as parameter
-        * Parse if `legacy` cred def id form is used
-    * **Answer**: Require passing credential definition as parameter 
-* Q13: Issuance data: W3C specification requires setting of `issuanceDate` property to express the date and time when a credential becomes valid.
-    * What datetime should we use? current / random of the day / start of the day
-    * **Answer**: It's ok just to use the current time  
-
-### Proposed implementation path for first iteration
-
-1. Credential conversion APIs
-2. Credential helper methods for non-AnonCreds integrity proof handling (set_integrity_proof, etc?)
-    * Generation and verification of non-AnonCreds Data Integrity proof signature are done by third party libraries using `anoncreds-rs`
-    * `anoncreds-rs` only provides methods to put ready data into a credential
-3. Flow duplication APIs: All methods
-4. No adoption of Credential Offer and Credential Request objects for W3C standard
-5. Keep API stick to existing Presentation Request format
-
 ### Public API
 
 #### Credential/Presentation Conversion methods
@@ -165,6 +48,7 @@ Methods purpose - have to forms of credentials (probably even duplicate in walle
 ///
 /// # Params
 /// cred:       object handle pointing to credential in legacy form to convert
+/// cred_def:   object handle pointing to the credential definition
 /// cred_p:     reference that will contain converted credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -172,6 +56,7 @@ Methods purpose - have to forms of credentials (probably even duplicate in walle
 #[no_mangle]
 pub extern "C" fn anoncreds_credential_to_w3c(
     cred: ObjectHandle,
+    cred_def: ObjectHandle,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
@@ -267,66 +152,22 @@ pub extern "C" fn anoncreds_w3c_credential_set_subject_id(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_id(
+pub extern "C" fn anoncreds_w3c_credential_set_id(
     cred: ObjectHandle,
     id: FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 ```
 
-#### Optional: Presentation Conversion methods
-
-Presentation conversion methods are only required if we decide not to implement duplication flow methods even for
-presentation exchange.   
-In this case, library will provide APIs to create/verify legacy formatted presentation and APIs to convert it into/from
-W3C form to support different Verifiers.
-
-```rust
-/// Convert legacy styled AnonCreds presentation into W3C AnonCreds presentation form
-///     The conversion process described at the specification: ---
-///
-/// # Params
-/// cred -      object handle pointing to legacy styled AnonCreds presentation to convert
-/// cred_p -    reference that will contain converted presentation (in W3C form) instance pointer
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_presentation_to_w3c(
-    cred: ObjectHandle,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
-
-/// Convert W3C styled AnonCreds presentation into legacy styled AnonCreds presentation
-///     The conversion process described at the specification: ---
-///
-/// # Params
-/// cred -      object handle pointing to W3C styled AnonCreds presentation to convert
-/// cred_p -    reference that will contain converted presentation (in legacy form) instance pointer
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_presentation_from_w3c(
-    cred: ObjectHandle,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
-```
-
-#### Optional: Methods duplication
+#### Flow methods duplication
 
 The idea for this approach to duplicate all issuance/presentation related methods for w3c standard.
 So the credentials and presentations themselves are generated using new flow methods.
-
 
 > Note, that we still need to implement credential conversion methods to support the case of using existing/issued
 > credentials for doing the w3c presentation.
 > Firstly, old credentials should be converted into a W3C form, and the next new presentation creation method can be
 > used.
-
-In fact, there are 6 main flow methods in total.
-4 of them we have to duplicate: `create_credential`, `process_credential`, `create_presentation`, `verify_presentation`.
-Whether we want to duplicate `create_offer`, `create_request` methods if we do not change their format?
 
 The reasons for adding duplication methods:
 
@@ -343,8 +184,6 @@ The reasons for adding duplication methods:
 - easier deprecation of legacy styled credentials and APIs
 - presentation conversion methods are not needed anymore in this case
     - only credential conversion method to do migration for previously issued credentials
-
-> We can do only part of the work: add duplication methods for presentation but leave old methods for credentials
 
 ```rust
 /// Create Credential Offer according to the AnonCreds specification
@@ -444,7 +283,7 @@ pub extern "C" fn anoncreds_process_w3c_credential(
 /// Get value of requested credential attribute as string
 ///
 /// # Params
-/// cred_def:              object handle pointing to the credential (in W3 form)  
+/// handle:                object handle pointing to the credential (in W3 form)
 /// name:                  name of attribute to retrieve
 /// result_p:              reference that will contain value of request credential attribute
 ///
@@ -789,14 +628,14 @@ Example of an AnonCreds W3C credential:
 {
   "@context": [
     "https://www.w3.org/2018/credentials/v1",
-    "https://raw.githubusercontent.com/DSRCorporation/anoncreds-rs/design/w3c-support/docs/design/w3c/context.json"
+    "https://raw.githubusercontent.com/hyperledger/anoncreds-spec/main/data/anoncreds-w3c-context.json"
   ],
   "type": [
     "VerifiableCredential",
     "AnonCredsCredential"
   ],
   "issuer": "did:sov:3avoBCqDMFHFaKUHug9s8W",
-  "issuanceDate": "2023-10-26T01:17:32Z",
+  "issuanceDate": "2023-11-15T10:00:00.036203Z",
   "credentialSchema": {
     "type": "AnonCredsDefinition",
     "definition": "did:sov:3avoBCqDMFHFaKUHug9s8W:3:CL:13:default",
@@ -809,7 +648,7 @@ Example of an AnonCreds W3C credential:
   },
   "proof": [
     {
-      "type": "CLSignature2023",
+      "type": "AnonCredsProof2023",
       "signature": "AAAgf9w5.....8Z_x3FqdwRHoWruiF0FlM"
     },
     {
@@ -827,21 +666,21 @@ Example of an AnonCreds W3C presentation:
 
 ```json
 {
-  "@context":[
+  "@context": [
     "https://www.w3.org/2018/credentials/v1",
-    "https://raw.githubusercontent.com/DSRCorporation/anoncreds-spec/w3c-credentials/data/anoncreds-w3c-context.json"
+    "https://raw.githubusercontent.com/hyperledger/anoncreds-spec/main/data/anoncreds-w3c-context.json"
   ],
-  "type":[
+  "type": [
     "VerifiablePresentation",
     "AnonCredsPresentation"
   ],
-  "verifiableCredential":[
+  "verifiableCredential": [
     {
-      "@context":[
+      "@context": [
         "https://www.w3.org/2018/credentials/v1",
-        "https://raw.githubusercontent.com/DSRCorporation/anoncreds-spec/w3c-credentials/data/anoncreds-w3c-context.json"
+        "https://raw.githubusercontent.com/hyperledger/anoncreds-spec/main/data/anoncreds-w3c-context.json"
       ],
-      "type":[
+      "type": [
         "VerifiableCredential",
         "AnonCredsCredential"
       ],
@@ -850,32 +689,28 @@ Example of an AnonCreds W3C presentation:
         "definition": "did:sov:3avoBCqDMFHFaKUHug9s8W:3:CL:13:default",
         "schema": "did:sov:3avoBCqDMFHFaKUHug9s8W:2:basic_person:0.1.0"
       },
-      "credentialSubject":{
-        "firstName":"Alice",
-        "age":{
-          "type":"AnonCredsPredicate",
-          "p_type":">=",
-          "p_value":18
-        }
+      "credentialSubject": {
+        "firstName": "Alice",
+        "age": [
+          {
+            "type": "AnonCredsPredicate",
+            "predicate": ">=",
+            "value": 18
+          }
+        ]
       },
-      "issuanceDate":"2023-11-15T10:59:48.036203Z",
-      "issuer":"issuer:id/path=bar",
-      "proof":{
-        "type":"AnonCredsPresentationProof2023",
-        "mapping":{
-          "predicates":["predicate1_referent"],
-          "revealedAttributeGroups":[],
-          "revealedAttributes":["attr1_referent"],
-          "unrevealedAttributes":[]
-        },
-        "proofValue":"eyJzdWJfcHJvb2Yi...zMTc1NzU0NDAzNDQ0ODUifX1dfX19"
+      "issuanceDate": "2023-11-15T10:59:48.036203Z",
+      "issuer": "did:sov:3avoBCqDMFHFaKUHug9s8W",
+      "proof": {
+        "type": "AnonCredsPresentationProof2023",
+        "proofValue": "eyJzdWJfcHJvb2Yi...zMTc1NzU0NDAzNDQ0ODUifX1dfX19"
       }
     }
   ],
-  "proof":{
-    "type":"AnonCredsPresentationProof2023",
-    "challenge":"413296376279822794586260",
-    "proofValue":"eyJhZ2dyZWdhdGVkIjp7ImNfaGFzaCI6IjEwMT...IsMzAsMTM1LDE4MywxMDcsMTYwXV19fQ=="
+  "proof": {
+    "type": "AnonCredsPresentationProof2023",
+    "challenge": "413296376279822794586260",
+    "proofValue": "eyJhZ2dyZWdhdGVkIjp7ImNfaGFzaCI6IjEwMT...IsMzAsMTM1LDE4MywxMDcsMTYwXV19fQ=="
   }
 }
 ```
