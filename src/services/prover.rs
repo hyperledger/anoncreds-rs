@@ -625,7 +625,7 @@ pub fn create_revocation_state_with_witness(
 ///     prover::create_or_update_revocation_state(&rev_reg_def.value.tails_location,
 ///                                               &rev_reg_def,
 ///                                               &rev_status_list,
-///                                               0,
+///                                               1,
 ///                                               None,
 ///                                               None
 ///                                               ).expect("Unable to create or update the revocation state");

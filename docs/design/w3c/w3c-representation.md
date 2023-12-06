@@ -402,7 +402,6 @@ pub extern "C" fn anoncreds_create_w3c_credential_request(
 /// cred_request:          object handle pointing to the credential request
 /// attr_names:            list of attribute names
 /// attr_raw_values:       list of attribute raw values
-/// encoding:              encoding algorithm to apply for attribute values
 /// revocation:            object handle pointing to the credential revocation info
 /// cred_p:                reference that will contain credential (in W3C form) instance pointer
 ///
@@ -416,7 +415,6 @@ pub extern "C" fn anoncreds_create_w3c_credential(
     cred_request: ObjectHandle,
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
-    encoding: FfiStr,
     revocation: *const FfiCredRevInfo,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
@@ -674,8 +672,7 @@ extartnal_verifier.verify_rsa_integrity_proof_presentation(rsa_integrity_proof_p
       "credentialSchema": {
         "type": "AnonCredsDefinition",
         "definition": "did:sov:3avoBCqDMFHFaKUHug9s8W:3:CL:13:default",
-        "schema": "did:sov:3avoBCqDMFHFaKUHug9s8W:2:basic_person:0.1.0",
-        "encoding": "auto"
+        "schema": "did:sov:3avoBCqDMFHFaKUHug9s8W:2:basic_person:0.1.0"
       },
       "credentialSubject": {
         "first_name": "Alice"
@@ -803,8 +800,7 @@ Example of an AnonCreds W3C credential:
   "credentialSchema": {
     "type": "AnonCredsDefinition",
     "definition": "did:sov:3avoBCqDMFHFaKUHug9s8W:3:CL:13:default",
-    "schema": "did:sov:3avoBCqDMFHFaKUHug9s8W:2:basic_person:0.1.0",
-    "encoding": "auto"
+    "schema": "did:sov:3avoBCqDMFHFaKUHug9s8W:2:basic_person:0.1.0"
   },
   "credentialSubject": {
     "firstName": "Alice",
@@ -852,8 +848,7 @@ Example of an AnonCreds W3C presentation:
       "credentialSchema": {
         "type": "AnonCredsDefinition",
         "definition": "did:sov:3avoBCqDMFHFaKUHug9s8W:3:CL:13:default",
-        "schema": "did:sov:3avoBCqDMFHFaKUHug9s8W:2:basic_person:0.1.0",
-        "encoding": "auto"
+        "schema": "did:sov:3avoBCqDMFHFaKUHug9s8W:2:basic_person:0.1.0"
       },
       "credentialSubject":{
         "firstName":"Alice",
