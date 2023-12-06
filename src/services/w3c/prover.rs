@@ -81,7 +81,6 @@ use std::collections::HashMap;
 ///                               &credential_offer,
 ///                               &credential_request,
 ///                               credential_values.into(),
-///                               None,
 ///                               None
 ///                               ).expect("Unable to create credential");
 ///
@@ -102,10 +101,7 @@ pub fn process_credential(
     trace!("process_w3c_credential >>> credential: {:?}, cred_request_metadata: {:?}, link_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
             w3c_credential, cred_request_metadata, secret!(&link_secret), cred_def, rev_reg_def);
 
-    let cred_values = w3c_credential
-        .credential_subject
-        .attributes
-        .encode(&w3c_credential.credential_schema.encoding)?;
+    let cred_values = w3c_credential.credential_subject.attributes.encode()?;
     let proof = w3c_credential.get_mut_credential_signature_proof()?;
     let mut signature = proof.get_credential_signature()?;
 
@@ -159,10 +155,8 @@ pub fn create_presentation(
             continue;
         }
         let credential = present.cred;
-        let credential_values: CredentialValues = credential
-            .credential_subject
-            .attributes
-            .encode(&credential.credential_schema.encoding)?;
+        let credential_values: CredentialValues =
+            credential.credential_subject.attributes.encode()?;
         let proof = credential.get_credential_signature_proof()?;
         let signature = proof.get_credential_signature()?;
         let schema_id = credential.get_schema_id();

@@ -433,7 +433,6 @@ class W3CCredential(bindings.AnoncredsObject):
         cred_request: Union[str, W3CCredentialRequest],
         attr_raw_values: Mapping[str, str],
         revocation_config: Optional["CredentialRevocationConfig"] = None,
-        encoding: Optional[str] = None,
     ) -> "W3CCredential":
         if not isinstance(cred_def, bindings.AnoncredsObject):
             cred_def = CredentialDefinition.load(cred_def)
@@ -450,7 +449,6 @@ class W3CCredential(bindings.AnoncredsObject):
             cred_request.handle,
             attr_raw_values,
             revocation_config._native if revocation_config else None,
-            encoding,
         )
         return W3CCredential(cred)
 

@@ -402,8 +402,7 @@ describe('bindings', () => {
         revocationStatusList,
         registryIndex: 9
       },
-      attributeRawValues: { 'attr-1': 'test' },
-      encoding: undefined
+      attributeRawValues: { 'attr-1': 'test' }
     })
 
     const credReceived = anoncreds.processW3CCredential({
@@ -700,8 +699,7 @@ describe('bindings', () => {
         revocationStatusList,
         registryIndex: 9
       },
-      attributeRawValues: { name: 'Alex', height: '175', age: '28', sex: 'male' },
-      encoding: undefined
+      attributeRawValues: { name: 'Alex', height: '175', age: '28', sex: 'male' }
     })
 
     const credentialReceived = anoncreds.processW3CCredential({

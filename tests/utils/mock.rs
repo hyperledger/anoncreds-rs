@@ -761,7 +761,6 @@ impl IssuerWallet {
                     &cred_request,
                     CredentialAttributes::from(&cred_values),
                     revocation_config,
-                    None,
                 )
                 .expect("Error creating credential");
                 Credentials::W3C(issue_cred)

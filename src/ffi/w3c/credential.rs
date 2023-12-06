@@ -3,7 +3,6 @@ use std::ptr;
 
 use ffi_support::{rust_string_to_c, FfiStr};
 
-use crate::data_types::credential::CredentialValuesEncoding;
 use crate::data_types::w3c::credential::CredentialAttributes;
 use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::credential_proof::NonAnonCredsDataIntegrityProof;
@@ -31,7 +30,6 @@ impl_anoncreds_object_from_json!(W3CCredential, anoncreds_w3c_credential_from_js
 /// cred_request:          object handle pointing to the credential request
 /// attr_names:            list of attribute names
 /// attr_raw_values:       list of attribute raw values
-/// encoding:              encoding algorithm to apply for attribute values
 /// revocation:            object handle pointing to the credential revocation info
 /// cred_p:                reference that will contain credential (in W3C form) instance pointer
 ///
@@ -45,7 +43,6 @@ pub extern "C" fn anoncreds_create_w3c_credential(
     cred_request: ObjectHandle,
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
-    encoding: FfiStr,
     revocation: *const FfiCredRevInfo,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {
@@ -54,7 +51,6 @@ pub extern "C" fn anoncreds_create_w3c_credential(
 
         let cred_values = _credential_attributes(attr_names, attr_raw_values)?;
         let revocation_config = _revocation_config(revocation)?;
-        let encoding = encoding.as_opt_str().map(CredentialValuesEncoding::from);
 
         let cred = create_credential(
             cred_def.load()?.cast_ref()?,
@@ -66,7 +62,6 @@ pub extern "C" fn anoncreds_create_w3c_credential(
                 .as_ref()
                 .map(TryInto::try_into)
                 .transpose()?,
-            encoding,
         )?;
         let cred = ObjectHandle::create(cred)?;
         unsafe {

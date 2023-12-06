@@ -13,7 +13,6 @@ use crate::data_types::w3c::credential_proof::{
 use crate::data_types::w3c::presentation_proof::{CredentialPresentationProof, PredicateAttribute};
 use crate::data_types::{
     cred_def::CredentialDefinitionId,
-    credential::CredentialValuesEncoding,
     issuer_id::IssuerId,
     rev_reg_def::RevocationRegistryDefinitionId,
     schema::SchemaId,
@@ -162,30 +161,19 @@ impl CredentialAttributes {
         Ok(())
     }
 
-    pub(crate) fn encode(&self, encoding: &CredentialValuesEncoding) -> Result<CredentialValues> {
-        match encoding {
-            CredentialValuesEncoding::Auto => {
-                let mut cred_values = MakeCredentialValues::default();
-                for (attribute, raw_value) in self.0.iter() {
-                    match raw_value {
-                        CredentialAttributeValue::Attribute(raw_value) => {
-                            cred_values.add_raw(attribute, raw_value)?
-                        }
-                        value => {
-                            return Err(err_msg!(
-                                "Encoding is not supported for credential value {:?}",
-                                value
-                            ));
-                        }
-                    }
+    pub(crate) fn encode(&self) -> Result<CredentialValues> {
+        let mut cred_values = MakeCredentialValues::default();
+        for (attribute, raw_value) in self.0.iter() {
+            match raw_value {
+                CredentialAttributeValue::Attribute(raw_value) => {
+                    cred_values.add_raw(attribute, raw_value)?
                 }
-                Ok(cred_values.into())
+                value => {
+                    return Err(err_msg!("Unexpected value {:?}", value));
+                }
             }
-            encoding => Err(err_msg!(
-                "Credential values encoding {:?} is not supported",
-                encoding
-            )),
         }
+        Ok(cred_values.into())
     }
 }
 
@@ -268,21 +256,14 @@ pub struct CredentialSchema {
     pub type_: CredentialSchemaType,
     pub definition: CredentialDefinitionId,
     pub schema: SchemaId,
-    #[serde(default)]
-    pub encoding: CredentialValuesEncoding,
 }
 
 impl CredentialSchema {
-    pub fn new(
-        schema: SchemaId,
-        definition: CredentialDefinitionId,
-        encoding: CredentialValuesEncoding,
-    ) -> CredentialSchema {
+    pub fn new(schema: SchemaId, definition: CredentialDefinitionId) -> CredentialSchema {
         CredentialSchema {
             type_: CredentialSchemaType::AnonCredsDefinition,
             definition,
             schema,
-            encoding,
         }
     }
 }

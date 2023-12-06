@@ -214,7 +214,6 @@ export type NativeBindings = {
       revocationRegistryDefinitionPrivate: number
       revocationStatusList?: number
     }
-    encoding?: string
   }): ReturnObject<Handle>
 
   processW3CCredential(options: {

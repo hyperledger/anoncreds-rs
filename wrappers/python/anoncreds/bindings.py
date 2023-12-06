@@ -1047,7 +1047,6 @@ def create_w3c_credential(
     cred_request: ObjectHandle,
     attr_raw_values: Mapping[str, str],
     revocation_config: Optional[RevocationConfig],
-    encoding: Optional[str],
 ) -> ObjectHandle:
     cred = ObjectHandle()
     attr_keys = list(attr_raw_values.keys())
@@ -1061,7 +1060,6 @@ def create_w3c_credential(
         cred_request,
         names_list,
         raw_values_list,
-        encode_str(encoding),
         pointer(revocation_config)
         if revocation_config
         else POINTER(RevocationConfig)(),

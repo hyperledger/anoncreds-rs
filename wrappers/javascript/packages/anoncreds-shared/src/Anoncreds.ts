@@ -227,7 +227,6 @@ export type Anoncreds = {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     revocationConfiguration?: NativeCredentialRevocationConfig
-    encoding?: string
   }): ObjectHandle
 
   processW3CCredential(options: {

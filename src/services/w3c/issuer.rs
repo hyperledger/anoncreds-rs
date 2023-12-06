@@ -1,5 +1,4 @@
 use crate::data_types::cred_def::CredentialDefinition;
-use crate::data_types::credential::CredentialValuesEncoding;
 use crate::data_types::w3c::credential::{
     CredentialAttributes, CredentialSchema, CredentialStatus, W3CCredential,
 };
@@ -78,7 +77,6 @@ use crate::types::{
 ///                               &credential_request,
 ///                               credential_values.into(),
 ///                               None,
-///                               None,
 ///                               ).expect("Unable to create credential");
 /// ```
 #[allow(clippy::too_many_arguments)]
@@ -89,15 +87,13 @@ pub fn create_credential(
     cred_request: &CredentialRequest,
     raw_credential_values: CredentialAttributes,
     revocation_config: Option<CredentialRevocationConfig>,
-    encoding: Option<CredentialValuesEncoding>,
 ) -> Result<W3CCredential> {
     trace!("create_w3c_credential >>> cred_def: {:?}, cred_def_private: {:?}, cred_offer.nonce: {:?}, cred_request: {:?},\
             cred_values: {:?}, revocation_config: {:?}",
             cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&raw_credential_values), revocation_config,
     );
 
-    let encoding = encoding.unwrap_or_default();
-    let credential_values = raw_credential_values.encode(&encoding)?;
+    let credential_values = raw_credential_values.encode()?;
 
     let (credential_signature, signature_correctness_proof, rev_reg_id, rev_reg, witness) =
         CLCredentialIssuer::new(cred_def, cred_def_private).create_credential(
@@ -117,7 +113,6 @@ pub fn create_credential(
     let credential_schema = CredentialSchema::new(
         cred_offer.schema_id.to_owned(),
         cred_offer.cred_def_id.to_owned(),
-        encoding,
     );
 
     let mut credential = W3CCredential::new();

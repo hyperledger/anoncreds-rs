@@ -218,7 +218,6 @@ export const nativeBindings = {
       FFI_OBJECT_HANDLE,
       StringListStruct,
       StringListStruct,
-      FFI_STRING,
       FFI_OBJECT_HANDLE,
       FFI_OBJECT_HANDLE_PTR
     ]

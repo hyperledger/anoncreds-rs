@@ -68,7 +68,6 @@ issue_cred = W3CCredential.create(
         revocation_status_list,
         rev_idx,
     ),
-    None,
 )
 
 recv_cred = issue_cred.process(

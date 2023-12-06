@@ -839,8 +839,6 @@ jsi::Value createW3CCredential(jsi::Runtime &rt, jsi::Object options) {
       jsiToValue<FfiStrList>(rt, options, "attributeRawValues");
   auto revocation =
       jsiToValue<FfiCredRevInfo>(rt, options, "revocationConfiguration", true);
-  auto encoding =
-      jsiToValue<std::string>(rt, options, "encoding", true);
 
   ObjectHandle out;
 
@@ -848,7 +846,7 @@ jsi::Value createW3CCredential(jsi::Runtime &rt, jsi::Object options) {
       credentialDefinition, credentialDefinitionPrivate, credentialOffer,
       credentialRequest, attributeNames, attributeRawValues,
       revocation.reg_def ? &revocation : 0,
-      encoding.length() ? encoding.c_str() : nullptr, &out);
+      &out);
 
   return createReturnValue(rt, code, &out);
 };

@@ -685,9 +685,8 @@ export class NodeJSAnoncreds implements Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     revocationConfiguration?: NativeCredentialRevocationConfig
-    encoding?: string
   }): ObjectHandle {
-    const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest, encoding } =
+    const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest } =
       serializeArguments(options)
 
     const attributeNames = StringListStruct({
@@ -721,7 +720,6 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialRequest,
       attributeNames as unknown as Buffer,
       attributeRawValues as unknown as Buffer,
-      encoding,
       revocationConfiguration?.ref().address() ?? 0,
       credentialPtr
     )

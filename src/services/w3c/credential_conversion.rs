@@ -1,5 +1,4 @@
 use crate::data_types::cred_def::CredentialDefinition;
-use crate::data_types::credential::CredentialValuesEncoding;
 use crate::data_types::w3c::credential::{
     CredentialAttributes, CredentialSchema, CredentialStatus, W3CCredential,
 };
@@ -114,7 +113,6 @@ pub fn credential_to_w3c(
     w3c_credential.set_credential_schema(CredentialSchema::new(
         credential.schema_id,
         credential.cred_def_id,
-        CredentialValuesEncoding::Auto,
     ));
     if let Some(rev_reg_id) = credential.rev_reg_id {
         w3c_credential.set_credential_status(CredentialStatus::new(rev_reg_id))
@@ -196,7 +194,6 @@ pub fn credential_to_w3c(
 ///                                   &credential_request,
 ///                                   credential_values.into(),
 ///                                   None,
-///                                   None,
 ///                                   ).expect("Unable to create credential");
 ///
 /// w3c::prover::process_credential(&mut credential,
@@ -223,10 +220,7 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
     let rev_reg_id = w3c_credential.get_rev_reg_id().cloned();
     let proof = w3c_credential.get_credential_signature_proof()?;
     let credential_signature = proof.get_credential_signature()?;
-    let values = w3c_credential
-        .credential_subject
-        .attributes
-        .encode(&w3c_credential.credential_schema.encoding)?;
+    let values = w3c_credential.credential_subject.attributes.encode()?;
 
     let credential = Credential {
         schema_id,
@@ -351,11 +345,7 @@ mod tests {
     fn _w3c_credential() -> W3CCredential {
         let mut credential = W3CCredential::new();
         credential.set_issuer(_issuer_id());
-        credential.set_credential_schema(CredentialSchema::new(
-            _schema_id(),
-            _cred_def_id(),
-            CredentialValuesEncoding::Auto,
-        ));
+        credential.set_credential_schema(CredentialSchema::new(_schema_id(), _cred_def_id()));
         credential.set_attributes(CredentialAttributes::from(&_cred_values()));
         credential.add_anoncreds_signature_proof(CredentialSignatureProof::new(_signature_data()));
         credential
@@ -393,10 +383,6 @@ mod tests {
                 .clone()
                 .map(|status| status.id),
             legacy_credential.rev_reg_id
-        );
-        assert_eq!(
-            w3c_credential.credential_schema.encoding,
-            CredentialValuesEncoding::Auto
         );
         assert_eq!(
             w3c_credential.credential_subject.attributes,

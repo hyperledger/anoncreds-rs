@@ -1,5 +1,4 @@
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[cfg(feature = "zeroize")]
@@ -126,20 +125,12 @@ impl From<&CredentialValues> for RawCredentialValues {
 }
 
 impl RawCredentialValues {
-    pub fn encode(&self, encoding: &CredentialValuesEncoding) -> Result<CredentialValues, Error> {
-        match encoding {
-            CredentialValuesEncoding::Auto => {
-                let mut cred_values = MakeCredentialValues::default();
-                for (attribute, raw_value) in self.0.iter() {
-                    cred_values.add_raw(attribute, raw_value)?;
-                }
-                Ok(cred_values.into())
-            }
-            encoding => Err(err_msg!(
-                "Credential values encoding {:?} is not supported",
-                encoding
-            )),
+    pub fn encode(&self) -> Result<CredentialValues, Error> {
+        let mut cred_values = MakeCredentialValues::default();
+        for (attribute, raw_value) in self.0.iter() {
+            cred_values.add_raw(attribute, raw_value)?;
         }
+        Ok(cred_values.into())
     }
 }
 
@@ -177,56 +168,4 @@ impl Zeroize for CredentialValues {
 pub struct AttributeValues {
     pub raw: String,
     pub encoded: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CredentialValuesEncoding {
-    Auto,
-    Other(String),
-}
-
-impl ToString for CredentialValuesEncoding {
-    fn to_string(&self) -> String {
-        match self {
-            CredentialValuesEncoding::Auto => "auto".to_string(),
-            CredentialValuesEncoding::Other(other) => other.to_string(),
-        }
-    }
-}
-
-impl From<&str> for CredentialValuesEncoding {
-    fn from(value: &str) -> Self {
-        match value {
-            "auto" => CredentialValuesEncoding::Auto,
-            other => CredentialValuesEncoding::Other(other.to_string()),
-        }
-    }
-}
-
-impl Serialize for CredentialValuesEncoding {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        Value::String(self.to_string()).serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for CredentialValuesEncoding {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Value::deserialize(deserializer)
-            .map_err(de::Error::custom)?
-            .as_str()
-            .map(CredentialValuesEncoding::from)
-            .ok_or_else(|| de::Error::custom("Cannot parse credential value encoding"))
-    }
-}
-
-impl Default for CredentialValuesEncoding {
-    fn default() -> Self {
-        CredentialValuesEncoding::Auto
-    }
 }
