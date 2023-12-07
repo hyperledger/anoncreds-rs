@@ -252,7 +252,7 @@ pub fn process_credential(
     trace!("process_credential >>> credential: {:?}, cred_request_metadata: {:?}, link_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
             credential, cred_request_metadata, secret!(&link_secret), cred_def, rev_reg_def);
 
-    CLCredentialProver::init(link_secret)?.process_credential(
+    CLCredentialProver::new(link_secret).process_credential(
         &mut credential.signature,
         &credential.signature_correctness_proof,
         &credential.values,
@@ -417,7 +417,7 @@ pub fn create_presentation(
     let mut sub_proof_index = 0;
     let mut identifiers: Vec<Identifier> = Vec::with_capacity(credentials.len());
 
-    let mut proof_builder = CLProofBuilder::init(pres_req_val, schemas, cred_defs)?;
+    let mut proof_builder = CLProofBuilder::new(pres_req_val, schemas, cred_defs)?;
 
     for present in credentials.0 {
         if present.is_empty() {
@@ -770,8 +770,8 @@ pub(crate) struct CLCredentialProver<'a> {
 }
 
 impl<'a> CLCredentialProver<'a> {
-    pub(crate) fn init(link_secret: &'a LinkSecret) -> Result<CLCredentialProver<'a>> {
-        Ok(CLCredentialProver { link_secret })
+    pub(crate) fn new(link_secret: &'a LinkSecret) -> CLCredentialProver<'a> {
+        CLCredentialProver { link_secret }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -821,7 +821,7 @@ pub(crate) struct CLProofBuilder<'a> {
 }
 
 impl<'a> CLProofBuilder<'a> {
-    pub(crate) fn init(
+    pub(crate) fn new(
         presentation_request: &'a PresentationRequestPayload,
         schemas: &'a HashMap<SchemaId, Schema>,
         cred_defs: &'a HashMap<CredentialDefinitionId, CredentialDefinition>,
@@ -862,7 +862,7 @@ impl<'a> CLProofBuilder<'a> {
 
         let (attrs_for_credential, attrs_nonrevoked_interval) = self
             .presentation_request
-            .get_requested_attributes(&present.requested_attributes())?;
+            .get_requested_attributes(&present.revealed_attributes())?;
         let (predicates_for_credential, pred_nonrevoked_interval) = self
             .presentation_request
             .get_requested_predicates(&present.requested_predicates)?;
@@ -935,8 +935,6 @@ impl<'a> CLProofBuilder<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // use crate::data_types::pres_request::PredicateTypes;
 
     macro_rules! hashmap {
         ($( $key: expr => $val: expr ),*) => {

@@ -100,7 +100,7 @@ pub fn create_credential(
     let credential_values = raw_credential_values.encode(&encoding)?;
 
     let (credential_signature, signature_correctness_proof, rev_reg_id, rev_reg, witness) =
-        CLCredentialIssuer::init(cred_def, cred_def_private)?.create_credential(
+        CLCredentialIssuer::new(cred_def, cred_def_private).create_credential(
             cred_offer,
             cred_request,
             &credential_values,

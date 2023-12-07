@@ -18,7 +18,7 @@ impl W3CCredential {
             .ok_or_else(|| err_msg!("Credential attribute {} not found", requested_attribute))
     }
 
-    pub(crate) fn attributes(&self) -> HashMap<String, String> {
+    pub(crate) fn get_attributes(&self) -> HashMap<String, String> {
         let mut attributes: HashMap<String, String> = HashMap::new();
         for (name, attribute) in self.credential_subject.attributes.0.iter() {
             if let CredentialAttributeValue::Attribute(attribute) = attribute {

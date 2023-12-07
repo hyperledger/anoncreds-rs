@@ -9,7 +9,6 @@ use std::collections::HashSet;
 pub struct CredentialPresentationProof {
     #[serde(rename = "type")]
     pub type_: PresentationProofType,
-    /// Uniform Resource Identifier - https://www.w3.org/TR/vc-data-model/#dfn-uri
     // FIXME: Consider either removing or moving under proof_value
     //  In fact, it's only needed to make attributes validation on the verifier side
     //  Revealed attributes and predicates can be restored from credential subject, but not unrevealed attributes

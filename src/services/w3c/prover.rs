@@ -109,7 +109,7 @@ pub fn process_credential(
     let proof = w3c_credential.get_mut_credential_signature_proof()?;
     let mut signature = proof.get_credential_signature()?;
 
-    CLCredentialProver::init(link_secret)?.process_credential(
+    CLCredentialProver::new(link_secret).process_credential(
         &mut signature.signature,
         &signature.signature_correctness_proof,
         &cred_values,
@@ -152,7 +152,7 @@ pub fn create_presentation(
 
     let pres_req = pres_req.value();
 
-    let mut proof_builder = CLProofBuilder::init(pres_req, schemas, cred_defs)?;
+    let mut proof_builder = CLProofBuilder::new(pres_req, schemas, cred_defs)?;
 
     for present in credentials.0.iter() {
         if present.is_empty() {

@@ -89,7 +89,7 @@ pub fn verify_presentation(
         &received_self_attested_attrs,
     )?;
 
-    let mut proof_verifier = CLProofVerifier::init(
+    let mut proof_verifier = CLProofVerifier::new(
         pres_req,
         schemas,
         cred_defs,
@@ -102,10 +102,10 @@ pub fn verify_presentation(
 
         let attributes = presentation
             .requested_proof
-            .attribute_referents(sub_proof_index as u32);
+            .get_attribute_referents(sub_proof_index as u32);
         let predicates = presentation
             .requested_proof
-            .predicate_referents(sub_proof_index as u32);
+            .get_predicate_referents(sub_proof_index as u32);
 
         proof_verifier.add_sub_proof(
             &attributes,
@@ -760,7 +760,7 @@ pub(crate) struct CLProofVerifier<'a> {
 }
 
 impl<'a> CLProofVerifier<'a> {
-    pub(crate) fn init(
+    pub(crate) fn new(
         presentation_request: &'a PresentationRequestPayload,
         schemas: &'a HashMap<SchemaId, Schema>,
         cred_defs: &'a HashMap<CredentialDefinitionId, CredentialDefinition>,

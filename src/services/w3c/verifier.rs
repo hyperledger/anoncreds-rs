@@ -73,7 +73,7 @@ pub fn verify_presentation(
         aggregated_proof: proof_data.aggregated,
     };
 
-    let mut proof_verifier = CLProofVerifier::init(
+    let mut proof_verifier = CLProofVerifier::new(
         pres_req,
         schemas,
         cred_defs,
@@ -233,7 +233,7 @@ fn _check_encoded_attributes(
     credential_proof: &CredentialPresentationProofValue,
 ) -> Result<()> {
     credential
-        .attributes()
+        .get_attributes()
         .iter()
         .map(|(name, value)| {
             encode_credential_attribute(value).and_then(|encoded| {

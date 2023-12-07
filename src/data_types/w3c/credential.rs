@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
+use std::fmt::{Display, Formatter};
 use std::string::ToString;
 use zeroize::Zeroize;
 
@@ -201,13 +202,13 @@ pub enum CredentialStatusType {
     Other(String),
 }
 
-impl ToString for CredentialStatusType {
-    fn to_string(&self) -> String {
+impl Display for CredentialStatusType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             CredentialStatusType::AnonCredsCredentialStatusList2023 => {
-                "AnonCredsCredentialStatusList2023".to_string()
+                f.write_str("AnonCredsCredentialStatusList2023")
             }
-            CredentialStatusType::Other(other) => other.to_string(),
+            CredentialStatusType::Other(other) => f.write_str(other),
         }
     }
 }

@@ -714,7 +714,7 @@ pub fn create_credential(
             );
 
     let (credential_signature, signature_correctness_proof, rev_reg_id, rev_reg, witness) =
-        CLCredentialIssuer::init(cred_def, cred_def_private)?.create_credential(
+        CLCredentialIssuer::new(cred_def, cred_def_private).create_credential(
             cred_offer,
             cred_request,
             &cred_values,
@@ -746,14 +746,14 @@ pub(crate) struct CLCredentialIssuer<'a> {
 }
 
 impl<'a> CLCredentialIssuer<'a> {
-    pub(crate) fn init(
+    pub(crate) fn new(
         cred_def: &'a CredentialDefinition,
         cred_def_private: &'a CredentialDefinitionPrivate,
-    ) -> Result<CLCredentialIssuer<'a>> {
-        Ok(CLCredentialIssuer {
+    ) -> CLCredentialIssuer<'a> {
+        CLCredentialIssuer {
             cred_def,
             cred_def_private,
-        })
+        }
     }
 
     #[allow(clippy::type_complexity)]
