@@ -75,16 +75,22 @@ impl From<MakeCredentialValues> for CredentialValues {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct PresentCredentials<'p>(pub(crate) Vec<PresentCredential<'p>>);
+#[derive(Debug)]
+pub struct PresentCredentials<'p, T>(pub(crate) Vec<PresentCredential<'p, T>>);
 
-impl<'p> PresentCredentials<'p> {
+impl<'p, T> Default for PresentCredentials<'p, T> {
+    fn default() -> Self {
+        PresentCredentials(Vec::new())
+    }
+}
+
+impl<'p, T> PresentCredentials<'p, T> {
     pub fn add_credential(
         &mut self,
-        cred: &'p Credential,
+        cred: &'p T,
         timestamp: Option<u64>,
         rev_state: Option<&'p CredentialRevocationState>,
-    ) -> AddCredential<'_, 'p> {
+    ) -> AddCredential<'_, 'p, T> {
         let idx = self.0.len();
         self.0.push(PresentCredential {
             cred,
@@ -111,7 +117,7 @@ impl<'p> PresentCredentials<'p> {
     }
 }
 
-impl Validatable for PresentCredentials<'_> {
+impl<T> Validatable for PresentCredentials<'_, T> {
     fn validate(&self) -> std::result::Result<(), ValidationError> {
         let mut attr_names = HashSet::new();
         let mut pred_names = HashSet::new();
@@ -141,27 +147,37 @@ impl Validatable for PresentCredentials<'_> {
 }
 
 #[derive(Debug)]
-pub(crate) struct PresentCredential<'p> {
-    pub cred: &'p Credential,
+pub(crate) struct PresentCredential<'p, T> {
+    pub cred: &'p T,
     pub timestamp: Option<u64>,
     pub rev_state: Option<&'p CredentialRevocationState>,
     pub requested_attributes: HashSet<(String, bool)>,
     pub requested_predicates: HashSet<String>,
 }
 
-impl PresentCredential<'_> {
+impl<T> PresentCredential<'_, T> {
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.requested_attributes.is_empty() && self.requested_predicates.is_empty()
     }
+
+    pub(crate) fn revealed_attributes(&self) -> HashSet<String> {
+        let mut referents = HashSet::new();
+        for (referent, revealed) in self.requested_attributes.iter() {
+            if *revealed {
+                referents.insert(referent.to_string());
+            }
+        }
+        referents
+    }
 }
 
 #[derive(Debug)]
-pub struct AddCredential<'a, 'p> {
-    present: &'a mut PresentCredential<'p>,
+pub struct AddCredential<'a, 'p, T> {
+    present: &'a mut PresentCredential<'p, T>,
 }
 
-impl<'a, 'p> AddCredential<'a, 'p> {
+impl<'a, 'p, T> AddCredential<'a, 'p, T> {
     pub fn add_requested_attribute(&mut self, referent: impl Into<String>, revealed: bool) {
         self.present
             .requested_attributes

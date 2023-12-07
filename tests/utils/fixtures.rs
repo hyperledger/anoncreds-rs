@@ -1,5 +1,8 @@
+use serde_json::json;
 use std::collections::HashMap;
 
+use anoncreds::data_types::pres_request::{NonRevokedInterval, PresentationRequestPayload};
+use anoncreds::w3c::types::MakeCredentialAttributes;
 use anoncreds::{
     data_types::{
         cred_def::{CredentialDefinition, CredentialDefinitionId},
@@ -12,6 +15,7 @@ use anoncreds::{
         MakeCredentialValues, PresentCredentials, Presentation, PresentationRequest,
         RevocationRegistryDefinition, RevocationRegistryDefinitionPrivate, RevocationStatusList,
     },
+    verifier,
 };
 
 use super::storage::ProverWallet;
@@ -48,10 +52,13 @@ pub const EMP_REV_REG_TAG: &str = "revregemployeetag";
 pub const EMP_REV_IDX: u32 = 9;
 pub const EMP_REV_MAX_CRED_NUM: u32 = 10;
 
+pub const GVT_CRED: &str = "GVT";
+pub const EMP_CRED: &str = "EMP";
+
 // Create a `GVT` or `EMP` schema
 pub fn create_schema(name: &str) -> (Schema, &str) {
     match name {
-        "GVT" => (
+        GVT_CRED => (
             issuer::create_schema(
                 GVT_SCHEMA_NAME,
                 GVT_SCHEMA_VERSION,
@@ -61,7 +68,7 @@ pub fn create_schema(name: &str) -> (Schema, &str) {
             .expect("error while creating GVT schema"),
             GVT_SCHEMA_ID,
         ),
-        "EMP" => (
+        EMP_CRED => (
             issuer::create_schema(
                 EMP_SCHEMA_NAME,
                 EMP_SCHEMA_VERSION,
@@ -184,51 +191,9 @@ pub fn create_revocation_status_list(
     }
 }
 
-pub fn create_presentation(
-    schemas: &HashMap<SchemaId, Schema>,
-    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
-    pres_request: &PresentationRequest,
-    prover_wallet: &ProverWallet,
-    rev_state_timestamp: Option<u64>,
-    rev_state: Option<&CredentialRevocationState>,
-) -> Presentation {
-    let mut present = PresentCredentials::default();
-    {
-        // Here we add credential with the timestamp of which the rev_state is updated to,
-        // also the rev_reg has to be provided for such a time.
-        // TODO: this timestamp is not verified by the `NonRevokedInterval`?
-        let mut cred1 = present.add_credential(
-            &prover_wallet.credentials[0],
-            rev_state_timestamp,
-            rev_state,
-        );
-        cred1.add_requested_attribute("attr1_referent", true);
-        cred1.add_requested_attribute("attr2_referent", false);
-        cred1.add_requested_attribute("attr4_referent", true);
-        cred1.add_requested_predicate("predicate1_referent");
-    }
-
-    let mut self_attested = HashMap::new();
-    let self_attested_phone = "8-800-300";
-    self_attested.insert(
-        "attr3_referent".to_string(),
-        self_attested_phone.to_string(),
-    );
-
-    prover::create_presentation(
-        pres_request,
-        present,
-        Some(self_attested),
-        &prover_wallet.link_secret,
-        schemas,
-        cred_defs,
-    )
-    .expect("Error creating presentation")
-}
-
 pub fn credential_values(name: &str) -> MakeCredentialValues {
     match name {
-        "GVT" => {
+        GVT_CRED => {
             let mut gvt_cred_values = MakeCredentialValues::default();
             gvt_cred_values
                 .add_raw("sex", "male")
@@ -244,7 +209,7 @@ pub fn credential_values(name: &str) -> MakeCredentialValues {
                 .expect("Error encoding attribute");
             gvt_cred_values
         }
-        "EMP" => {
+        EMP_CRED => {
             let mut emp_cred_values = MakeCredentialValues::default();
             emp_cred_values
                 .add_raw("name", "John")
@@ -255,6 +220,27 @@ pub fn credential_values(name: &str) -> MakeCredentialValues {
             emp_cred_values
                 .add_raw("department", "IT")
                 .expect("Error encoding attribute");
+            emp_cred_values
+        }
+        unsupported => panic!("Unsupported credential values. {unsupported}"),
+    }
+}
+
+pub fn raw_credential_values(name: &str) -> MakeCredentialAttributes {
+    match name {
+        GVT_CRED => {
+            let mut gvt_cred_values = MakeCredentialAttributes::default();
+            gvt_cred_values.add("sex", "male");
+            gvt_cred_values.add("name", "Alex");
+            gvt_cred_values.add("height", "175");
+            gvt_cred_values.add("age", "28");
+            gvt_cred_values
+        }
+        EMP_CRED => {
+            let mut emp_cred_values = MakeCredentialAttributes::default();
+            emp_cred_values.add("name", "John");
+            emp_cred_values.add("role", "Developer");
+            emp_cred_values.add("department", "IT");
             emp_cred_values
         }
         unsupported => panic!("Unsupported credential values. {unsupported}"),

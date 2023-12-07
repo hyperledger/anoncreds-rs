@@ -14,6 +14,7 @@ use crate::services::{
     prover::process_credential,
     types::{Credential, CredentialRevocationConfig, MakeCredentialValues},
 };
+use crate::types::CredentialValues;
 use crate::Error;
 
 #[derive(Debug)]
@@ -25,7 +26,7 @@ pub struct FfiCredRevInfo {
     reg_idx: i64,
 }
 
-struct RevocationConfig {
+pub(crate) struct RevocationConfig {
     reg_def: AnoncredsObject,
     reg_def_private: AnoncredsObject,
     status_list: AnoncredsObject,
@@ -61,6 +62,9 @@ impl<'a> TryFrom<&'a RevocationConfig> for CredentialRevocationConfig<'a> {
     }
 }
 
+impl_anoncreds_object!(Credential, "Credential");
+impl_anoncreds_object_from_json!(Credential, anoncreds_credential_from_json);
+
 #[no_mangle]
 pub extern "C" fn anoncreds_create_credential(
     cred_def: ObjectHandle,
@@ -75,54 +79,16 @@ pub extern "C" fn anoncreds_create_credential(
 ) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(cred_p);
-        if attr_names.is_empty() {
-            return Err(err_msg!("Cannot create credential with no attribute"));
-        }
-        if attr_names.len() != attr_raw_values.len() {
-            return Err(err_msg!(
-                "Mismatch between length of attribute names and raw values"
-            ));
-        }
-        let enc_values = attr_enc_values.as_slice();
-        let mut cred_values = MakeCredentialValues::default();
-        for (attr_idx, (name, raw)) in attr_names
-            .as_slice()
-            .iter()
-            .zip(attr_raw_values.as_slice())
-            .enumerate()
-        {
-            let name = name
-                .as_opt_str()
-                .ok_or_else(|| err_msg!("Missing attribute name"))?
-                .to_string();
-            let raw = raw
-                .as_opt_str()
-                .ok_or_else(|| err_msg!("Missing attribute raw value"))?
-                .to_string();
-            let encoded = if attr_idx < enc_values.len() {
-                enc_values[attr_idx].as_opt_str().map(str::to_string)
-            } else {
-                None
-            };
-            if let Some(encoded) = encoded {
-                cred_values.add_encoded(name, raw, encoded);
-            } else {
-                cred_values.add_raw(name, raw)?;
-            }
-        }
-        let revocation_config = if revocation.is_null() {
-            None
-        } else {
-            let revocation = unsafe { &*revocation };
-            Some(RevocationConfig::try_from(revocation)?)
-        };
+
+        let cred_values = _encoded_credential_values(attr_names, attr_raw_values, attr_enc_values)?;
+        let revocation_config = _revocation_config(revocation)?;
 
         let cred = create_credential(
             cred_def.load()?.cast_ref()?,
             cred_def_private.load()?.cast_ref()?,
             cred_offer.load()?.cast_ref()?,
             cred_request.load()?.cast_ref()?,
-            cred_values.into(),
+            cred_values,
             revocation_config
                 .as_ref()
                 .map(TryInto::try_into)
@@ -171,10 +137,7 @@ pub extern "C" fn anoncreds_process_credential(
     catch_error(|| {
         check_useful_c_ptr!(cred_p);
 
-        let link_secret = link_secret
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing link secret"))?;
-        let link_secret = LinkSecret::try_from(link_secret)?;
+        let link_secret = _link_secret(link_secret)?;
 
         let mut cred = cred
             .load()?
@@ -197,9 +160,6 @@ pub extern "C" fn anoncreds_process_credential(
         Ok(())
     })
 }
-
-impl_anoncreds_object!(Credential, "Credential");
-impl_anoncreds_object_from_json!(Credential, anoncreds_credential_from_json);
 
 #[no_mangle]
 pub extern "C" fn anoncreds_credential_get_attribute(
@@ -227,4 +187,67 @@ pub extern "C" fn anoncreds_credential_get_attribute(
         unsafe { *result_p = val };
         Ok(())
     })
+}
+
+pub(crate) fn _encoded_credential_values(
+    attr_names: FfiStrList,
+    attr_raw_values: FfiStrList,
+    attr_enc_values: FfiStrList,
+) -> Result<CredentialValues> {
+    if attr_names.is_empty() {
+        return Err(err_msg!("Cannot create credential with no attribute"));
+    }
+    if attr_names.len() != attr_raw_values.len() {
+        return Err(err_msg!(
+            "Mismatch between length of attribute names and raw values"
+        ));
+    }
+    let enc_values = attr_enc_values.as_slice();
+    let mut cred_values = MakeCredentialValues::default();
+    for (attr_idx, (name, raw)) in attr_names
+        .as_slice()
+        .iter()
+        .zip(attr_raw_values.as_slice())
+        .enumerate()
+    {
+        let name = name
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing attribute name"))?
+            .to_string();
+        let raw = raw
+            .as_opt_str()
+            .ok_or_else(|| err_msg!("Missing attribute raw value"))?
+            .to_string();
+        let encoded = if attr_idx < enc_values.len() {
+            enc_values[attr_idx].as_opt_str().map(str::to_string)
+        } else {
+            None
+        };
+        if let Some(encoded) = encoded {
+            cred_values.add_encoded(name, raw, encoded);
+        } else {
+            cred_values.add_raw(name, raw)?;
+        }
+    }
+    Ok(cred_values.into())
+}
+
+pub(crate) fn _revocation_config(
+    revocation: *const FfiCredRevInfo,
+) -> Result<Option<RevocationConfig>> {
+    let revocation_config = if revocation.is_null() {
+        None
+    } else {
+        let revocation = unsafe { &*revocation };
+        Some(RevocationConfig::try_from(revocation)?)
+    };
+    Ok(revocation_config)
+}
+
+pub(crate) fn _link_secret(link_secret: FfiStr) -> Result<LinkSecret> {
+    let link_secret = link_secret
+        .as_opt_str()
+        .ok_or_else(|| err_msg!("Missing link secret"))?;
+    let link_secret = LinkSecret::try_from(link_secret)?;
+    Ok(link_secret)
 }

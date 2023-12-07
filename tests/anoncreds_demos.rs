@@ -1,74 +1,69 @@
-use anoncreds::data_types::cred_def::CredentialDefinitionId;
-use anoncreds::data_types::rev_reg_def::RevocationRegistryDefinitionId;
-use anoncreds::data_types::schema::SchemaId;
-use anoncreds::issuer;
-use anoncreds::prover;
-use anoncreds::tails::TailsFileWriter;
-use anoncreds::types::{CredentialRevocationConfig, PresentCredentials};
+use anoncreds::data_types::pres_request::PredicateTypes;
+use anoncreds::data_types::w3c::credential::CredentialAttributeValue;
+use anoncreds::data_types::w3c::credential_proof::CredentialProof;
+use anoncreds::data_types::w3c::presentation_proof::{PredicateAttribute, PredicateAttributeType};
+use anoncreds::data_types::w3c::uri::URI;
 use anoncreds::verifier;
+use rstest::rstest;
 use serde_json::json;
 use std::collections::{BTreeSet, HashMap};
 
 use utils::*;
+
 mod utils;
 
-#[test]
-fn anoncreds_demo_works_for_single_issuer_single_prover() {
-    // Create Prover pseudo wallet and link secret
+#[rstest]
+#[case(CredentialFormat::Legacy, PresentationFormat::Legacy)]
+#[case(CredentialFormat::W3C, PresentationFormat::W3C)]
+fn anoncreds_demo_works_for_single_issuer_single_prover(
+    #[case] credential_format: CredentialFormat,
+    #[case] presentation_format: PresentationFormat,
+) {
+    // Create pseudo ledger and wallets
+    let mut ledger = Ledger::default();
+    let mut issuer_wallet = IssuerWallet::default();
     let mut prover_wallet = ProverWallet::default();
+    let verifier_wallet = VerifierWallet::default();
 
     // Create schema
-    let (gvt_schema, gvt_schema_id) = fixtures::create_schema("GVT");
+    let (gvt_schema, gvt_schema_id) = issuer_wallet.create_schema(&mut ledger, GVT_CRED);
 
     // Create credential definition
-    let ((gvt_cred_def, gvt_cred_def_priv, gvt_cred_key_correctness_proof), gvt_cred_def_id) =
-        fixtures::create_cred_def(&gvt_schema, false);
+    let (gvt_cred_def, gvt_cred_def_id) =
+        issuer_wallet.create_cred_def(&mut ledger, &gvt_schema, false);
 
     // Issuer creates a Credential Offer
-    let cred_offer = issuer::create_credential_offer(
-        gvt_schema_id.try_into().unwrap(),
-        gvt_cred_def_id.try_into().unwrap(),
-        &gvt_cred_key_correctness_proof,
-    )
-    .expect("Error creating credential offer");
+    let cred_offer = issuer_wallet.create_credential_offer(&gvt_schema_id, &gvt_cred_def_id);
 
     // Prover creates a Credential Request
-    let (cred_request, cred_request_metadata) = prover::create_credential_request(
-        Some("entropy"),
-        None,
-        &gvt_cred_def,
-        &prover_wallet.link_secret,
-        "default",
-        &cred_offer,
-    )
-    .expect("Error creating credential request");
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&gvt_cred_def, &cred_offer);
 
     // Issuer creates a credential
-    let cred_values = fixtures::credential_values("GVT");
-    let issue_cred = issuer::create_credential(
-        &gvt_cred_def,
-        &gvt_cred_def_priv,
+    let cred_values = fixtures::credential_values(GVT_CRED);
+    let issue_cred = issuer_wallet.create_credential(
+        &credential_format,
+        &gvt_cred_def_id,
         &cred_offer,
         &cred_request,
         cred_values.into(),
         None,
-    )
-    .expect("Error creating credential");
+        None,
+        None,
+    );
 
     // Prover receives the credential and processes it
     let mut recv_cred = issue_cred;
-    prover::process_credential(
+    prover_wallet.store_credential(
+        GVT_CRED,
         &mut recv_cred,
         &cred_request_metadata,
-        &prover_wallet.link_secret,
         &gvt_cred_def,
         None,
-    )
-    .expect("Error processing credential");
-    prover_wallet.credentials.push(recv_cred);
+    );
 
     // Verifier creates a presentation request
-    let nonce = verifier::generate_nonce().expect("Error generating presentation request nonce");
+    let nonce = verifier_wallet.generate_nonce();
     let pres_request = serde_json::from_value(json!({
         "nonce": nonce,
         "name":"pres_req_1",
@@ -80,8 +75,7 @@ fn anoncreds_demo_works_for_single_issuer_single_prover() {
             "attr2_referent":{
                 "name":"sex"
             },
-            "attr3_referent":{"name":"phone"},
-            "attr4_referent":{
+            "attr3_referent":{
                 "names": ["name", "height"]
             }
         },
@@ -94,197 +88,171 @@ fn anoncreds_demo_works_for_single_issuer_single_prover() {
     // TODO: show deriving the wallet query from the proof request (need to add helper)
 
     // Prover creates presentation
-    let mut present = PresentCredentials::default();
-    {
-        let mut cred1 = present.add_credential(&prover_wallet.credentials[0], None, None);
-        cred1.add_requested_attribute("attr1_referent", true);
-        cred1.add_requested_attribute("attr2_referent", false);
-        cred1.add_requested_attribute("attr4_referent", true);
-        cred1.add_requested_predicate("predicate1_referent");
-    }
+    let schemas = ledger.resolve_schemas(vec![&gvt_schema_id]);
+    let cred_defs = ledger.resolve_cred_defs(vec![&gvt_cred_def_id]);
 
-    let mut self_attested = HashMap::new();
-    let self_attested_phone = "8-800-300";
-    self_attested.insert(
-        "attr3_referent".to_string(),
-        self_attested_phone.to_string(),
-    );
+    // Prover creates presentation
+    let present_credentials = vec![CredentialToPresent {
+        id: GVT_CRED.to_string(),
+        attributes: vec![
+            PresentAttribute {
+                referent: "attr1_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "attr2_referent".to_string(),
+                form: PresentAttributeForm::UnrevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "attr3_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "predicate1_referent".to_string(),
+                form: PresentAttributeForm::Predicate,
+            },
+        ],
+    }];
 
-    let mut schemas = HashMap::new();
-    let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
-    schemas.insert(gvt_schema_id, gvt_schema.clone());
-
-    let mut cred_defs = HashMap::new();
-    let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
-    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
-
-    let presentation = prover::create_presentation(
-        &pres_request,
-        present,
-        Some(self_attested),
-        &prover_wallet.link_secret,
+    let presentation = prover_wallet.create_presentation(
+        &presentation_format,
         &schemas,
         &cred_defs,
-    )
-    .expect("Error creating presentation");
-
-    // Verifier verifies presentation
-    assert_eq!(
-        "Alex",
-        presentation
-            .requested_proof
-            .revealed_attrs
-            .get("attr1_referent")
-            .unwrap()
-            .raw
+        &pres_request,
+        &present_credentials,
+        None,
     );
 
-    assert_eq!(
-        0,
-        presentation
-            .requested_proof
-            .unrevealed_attrs
-            .get("attr2_referent")
-            .unwrap()
-            .sub_proof_index
-    );
-
-    assert_eq!(
-        self_attested_phone,
-        presentation
-            .requested_proof
-            .self_attested_attrs
-            .get("attr3_referent")
-            .unwrap()
-    );
-
-    let revealed_attr_groups = presentation
-        .requested_proof
-        .revealed_attr_groups
-        .get("attr4_referent")
+    let valid = verifier_wallet
+        .verify_presentation(
+            &presentation,
+            &pres_request,
+            &schemas,
+            &cred_defs,
+            None,
+            None,
+            None,
+        )
         .unwrap();
 
-    assert_eq!("Alex", revealed_attr_groups.values.get("name").unwrap().raw);
+    assert!(valid);
 
-    assert_eq!(
-        "175",
-        revealed_attr_groups.values.get("height").unwrap().raw
+    verifier_wallet.check_presentation_attribute(
+        &presentation,
+        PresentedAttribute {
+            referent: "attr1_referent",
+            name: "name",
+            expected: ExpectedAttributeValue::RevealedAttribute("Alex"),
+        },
     );
 
-    let valid = verifier::verify_presentation(
+    verifier_wallet.check_presentation_attribute(
         &presentation,
-        &pres_request,
-        &schemas,
-        &cred_defs,
-        None,
-        None,
-        None,
-    )
-    .expect("Error verifying presentation");
+        PresentedAttribute {
+            referent: "attr2_referent",
+            name: "sex",
+            expected: ExpectedAttributeValue::UnrevealedAttribute(0),
+        },
+    );
 
-    assert!(valid);
+    verifier_wallet.check_presentation_attribute(
+        &presentation,
+        PresentedAttribute {
+            referent: "attr3_referent",
+            name: "name",
+            expected: ExpectedAttributeValue::GroupedAttribute("Alex"),
+        },
+    );
+
+    verifier_wallet.check_presentation_attribute(
+        &presentation,
+        PresentedAttribute {
+            referent: "attr3_referent",
+            name: "height",
+            expected: ExpectedAttributeValue::GroupedAttribute("175"),
+        },
+    );
 }
 
-#[test]
-fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
-    // Create Prover pseudo wallet and link secret
+#[rstest]
+#[case(CredentialFormat::Legacy, PresentationFormat::Legacy)]
+#[case(CredentialFormat::W3C, PresentationFormat::W3C)]
+fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover(
+    #[case] credential_format: CredentialFormat,
+    #[case] presentation_format: PresentationFormat,
+) {
+    // Create pseudo ledger and wallets
+    let mut ledger = Ledger::default();
+    let mut issuer_wallet = IssuerWallet::default();
     let mut prover_wallet = ProverWallet::default();
+    let verifier_wallet = VerifierWallet::default();
 
     // Create schema
-    let (gvt_schema, gvt_schema_id) = fixtures::create_schema("GVT");
+    let (gvt_schema, gvt_schema_id) = issuer_wallet.create_schema(&mut ledger, GVT_CRED);
 
     // Create credential definition
-    let ((gvt_cred_def, gvt_cred_def_priv, gvt_cred_key_correctness_proof), gvt_cred_def_id) =
-        fixtures::create_cred_def(&gvt_schema, true);
+    let (gvt_cred_def, gvt_cred_def_id) =
+        issuer_wallet.create_cred_def(&mut ledger, &gvt_schema, true);
 
-    // Create tails file writer
-    let mut tf = TailsFileWriter::new(None);
-
-    let ((gvt_rev_reg_def, gvt_rev_reg_def_priv), gvt_rev_reg_def_id) =
-        fixtures::create_rev_reg_def(&gvt_cred_def, &mut tf);
-
-    // Issuer creates revocation status list - to be put on the ledger
+    // Create revocation registry
     let time_create_rev_status_list = 12;
-    let gvt_revocation_status_list = fixtures::create_revocation_status_list(
-        &gvt_cred_def,
-        &gvt_rev_reg_def,
-        &gvt_rev_reg_def_priv,
-        Some(time_create_rev_status_list),
-        true,
-    );
+    let (gvt_rev_reg_def_id, gvt_rev_reg_def, gvt_revocation_status_list) = issuer_wallet
+        .create_revocation_registry(
+            &mut ledger,
+            &gvt_cred_def,
+            Some(time_create_rev_status_list),
+            true,
+        );
 
     // Issuer creates a Credential Offer
-    let cred_offer = issuer::create_credential_offer(
-        gvt_schema_id.try_into().unwrap(),
-        gvt_cred_def_id.try_into().unwrap(),
-        &gvt_cred_key_correctness_proof,
-    )
-    .expect("Error creating credential offer");
+    let cred_offer = issuer_wallet.create_credential_offer(&gvt_schema_id, &gvt_cred_def_id);
 
     // Prover creates a Credential Request
-    let (cred_request, cred_request_metadata) = prover::create_credential_request(
-        Some("entropy"),
-        None,
-        &gvt_cred_def,
-        &prover_wallet.link_secret,
-        "default",
-        &cred_offer,
-    )
-    .expect("Error creating credential request");
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&gvt_cred_def, &cred_offer);
 
     // Issuer creates a credential
-    let cred_values = fixtures::credential_values("GVT");
-
-    let gvt_rev_reg_def_id = RevocationRegistryDefinitionId::new_unchecked(gvt_rev_reg_def_id);
+    let cred_values = fixtures::credential_values(GVT_CRED);
 
     // Get the location of the tails_file so it can be read
     let tails_location = gvt_rev_reg_def.value.tails_location.clone();
 
-    let issue_cred = issuer::create_credential(
-        &gvt_cred_def,
-        &gvt_cred_def_priv,
+    let issue_cred = issuer_wallet.create_credential(
+        &credential_format,
+        &gvt_cred_def_id,
         &cred_offer,
         &cred_request,
         cred_values.into(),
-        Some(CredentialRevocationConfig {
-            reg_def: &gvt_rev_reg_def,
-            reg_def_private: &gvt_rev_reg_def_priv,
-            registry_idx: fixtures::GVT_REV_IDX,
-            status_list: &gvt_revocation_status_list,
-        }),
-    )
-    .expect("Error creating credential");
+        Some(&gvt_rev_reg_def_id),
+        Some(&gvt_revocation_status_list),
+        Some(fixtures::GVT_REV_IDX),
+    );
 
     let time_after_creating_cred = time_create_rev_status_list + 1;
-    let issued_rev_status_list = issuer::update_revocation_status_list(
+    let issued_rev_status_list = issuer_wallet.update_revocation_status_list(
         &gvt_cred_def,
-        &gvt_rev_reg_def,
-        &gvt_rev_reg_def_priv,
+        &gvt_rev_reg_def_id,
         &gvt_revocation_status_list,
         Some(BTreeSet::from([fixtures::GVT_REV_IDX])),
         None,
         Some(time_after_creating_cred),
-    )
-    .unwrap();
+    );
 
     // Prover receives the credential and processes it
-    let mut recv_cred = issue_cred;
-    prover::process_credential(
-        &mut recv_cred,
+    let mut rec_cred = issue_cred;
+    prover_wallet.store_credential(
+        GVT_CRED,
+        &mut rec_cred,
         &cred_request_metadata,
-        &prover_wallet.link_secret,
         &gvt_cred_def,
         Some(&gvt_rev_reg_def),
-    )
-    .expect("Error processing credential");
-    prover_wallet.credentials.push(recv_cred);
+    );
 
     // Verifier creates a presentation request
-    let nonce = verifier::generate_nonce().expect("Error generating presentation request nonce");
-
     // There are fields for
     // - global non_revoked - i.e. the PresentationRequest level
     // - local non_revoked - i.e. Each Request Attributes (AttributeInfo) and Request Predicate (PredicateInfo) has a field for NonRevoked.
+    let nonce = verifier_wallet.generate_nonce();
     let pres_request = serde_json::from_value(json!({
         "nonce": nonce,
         "name":"pres_req_1",
@@ -297,8 +265,7 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
             "attr2_referent":{
                 "name":"sex"
             },
-            "attr3_referent":{"name":"phone"},
-            "attr4_referent":{
+            "attr3_referent":{
                 "names": ["name", "height"]
             }
         },
@@ -309,199 +276,233 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover() {
     }))
     .expect("Error creating proof request");
 
-    let rev_state = prover::create_or_update_revocation_state(
+    let rev_state = prover_wallet.create_or_update_revocation_state(
         &tails_location,
         &gvt_rev_reg_def,
         &gvt_revocation_status_list,
         fixtures::GVT_REV_IDX,
         None,
         None,
-    )
-    .unwrap();
+    );
+    prover_wallet.rev_states.insert(
+        gvt_rev_reg_def_id.to_string(),
+        (Some(rev_state.clone()), Some(time_after_creating_cred)),
+    );
 
-    let mut schemas = HashMap::new();
-    let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
-    schemas.insert(gvt_schema_id, gvt_schema.clone());
-
-    let mut cred_defs = HashMap::new();
-    let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
-    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
+    let schemas = ledger.resolve_schemas(vec![&gvt_schema_id]);
+    let cred_defs = ledger.resolve_cred_defs(vec![&gvt_cred_def_id]);
+    let rev_reg_def_map = ledger.resolve_rev_reg_defs(vec![&gvt_rev_reg_def_id]);
 
     let mut rev_status_list = vec![issued_rev_status_list.clone()];
 
     // Prover creates presentation
-    let presentation = fixtures::create_presentation(
+    let present_credentials = vec![CredentialToPresent {
+        id: GVT_CRED.to_string(),
+        attributes: vec![
+            PresentAttribute {
+                referent: "attr1_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "attr2_referent".to_string(),
+                form: PresentAttributeForm::UnrevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "attr3_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "predicate1_referent".to_string(),
+                form: PresentAttributeForm::Predicate,
+            },
+        ],
+    }];
+
+    let presentation = prover_wallet.create_presentation(
+        &presentation_format,
         &schemas,
         &cred_defs,
         &pres_request,
-        &prover_wallet,
-        Some(time_after_creating_cred),
-        Some(&rev_state),
+        &present_credentials,
+        None,
     );
 
-    // Verifier verifies presentation of not Revoked rev_state
-    let rev_reg_def_map = HashMap::from([(gvt_rev_reg_def_id, gvt_rev_reg_def.clone())]);
-    let valid = verifier::verify_presentation(
-        &presentation,
-        &pres_request,
-        &schemas,
-        &cred_defs,
-        Some(&rev_reg_def_map),
-        Some(rev_status_list.clone()),
-        None,
-    )
-    .expect("Error verifying presentation");
+    let valid = verifier_wallet
+        .verify_presentation(
+            &presentation,
+            &pres_request,
+            &schemas,
+            &cred_defs,
+            Some(&rev_reg_def_map),
+            Some(rev_status_list.clone()),
+            None,
+        )
+        .unwrap();
+
     assert!(valid);
 
     //  ===================== Issuer revokes credential ================
     let time_revoke_cred = time_after_creating_cred + 1;
-    let revoked_status_list = issuer::update_revocation_status_list(
+
+    let revoked_status_list = issuer_wallet.update_revocation_status_list(
         &gvt_cred_def,
-        &gvt_rev_reg_def,
-        &gvt_rev_reg_def_priv,
+        &gvt_rev_reg_def_id,
         &issued_rev_status_list,
         None,
         Some(BTreeSet::from([fixtures::GVT_REV_IDX])),
         Some(time_revoke_cred),
-    )
-    .unwrap();
+    );
 
-    // update rev_status_lists
     rev_status_list.push(revoked_status_list.clone());
 
-    let rev_state = prover::create_or_update_revocation_state(
+    let rev_state = prover_wallet.create_or_update_revocation_state(
         &tails_location,
         &gvt_rev_reg_def,
         &revoked_status_list,
         fixtures::GVT_REV_IDX,
         Some(&rev_state),
         Some(&issued_rev_status_list),
-    )
-    .unwrap();
-
-    // Prover creates presentation
-    let presentation = fixtures::create_presentation(
-        &schemas,
-        &cred_defs,
-        &pres_request,
-        &prover_wallet,
-        Some(time_revoke_cred),
-        Some(&rev_state),
+    );
+    prover_wallet.rev_states.insert(
+        gvt_rev_reg_def_id.to_string(),
+        (Some(rev_state), Some(time_revoke_cred)),
     );
 
-    let valid = verifier::verify_presentation(
-        &presentation,
-        &pres_request,
+    // Prover creates presentation
+    let present_credentials = vec![CredentialToPresent {
+        id: GVT_CRED.to_string(),
+        attributes: vec![
+            PresentAttribute {
+                referent: "attr1_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "attr2_referent".to_string(),
+                form: PresentAttributeForm::UnrevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "attr3_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "predicate1_referent".to_string(),
+                form: PresentAttributeForm::Predicate,
+            },
+        ],
+    }];
+
+    let presentation = prover_wallet.create_presentation(
+        &presentation_format,
         &schemas,
         &cred_defs,
-        Some(&rev_reg_def_map),
-        Some(rev_status_list),
+        &pres_request,
+        &present_credentials,
         None,
-    )
-    .expect("Error verifying presentation");
+    );
+
+    let valid = verifier_wallet
+        .verify_presentation(
+            &presentation,
+            &pres_request,
+            &schemas,
+            &cred_defs,
+            Some(&rev_reg_def_map),
+            Some(rev_status_list),
+            None,
+        )
+        .unwrap();
     assert!(!valid);
 }
 
-#[test]
-fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
+#[rstest]
+#[case(CredentialFormat::Legacy, PresentationFormat::Legacy)]
+#[case(CredentialFormat::W3C, PresentationFormat::W3C)]
+fn anoncreds_demo_works_for_multiple_issuer_single_prover(
+    #[case] credential_format: CredentialFormat,
+    #[case] presentation_format: PresentationFormat,
+) {
+    // Create pseudo ledger and wallets
+    let mut ledger = Ledger::default();
+    let mut issuer_1_wallet = IssuerWallet::default();
+    let mut issuer_2_wallet = IssuerWallet::default();
     let mut prover_wallet = ProverWallet::default();
+    let verifier_wallet = VerifierWallet::default();
 
     // Issuer 1 creates Schema - would be published to the ledger
-    let (gvt_schema, gvt_schema_id) = fixtures::create_schema("GVT");
+    let (gvt_schema, gvt_schema_id) = issuer_1_wallet.create_schema(&mut ledger, GVT_CRED);
 
     // Issuer 1 create credential definition
-    let ((gvt_cred_def, gvt_cred_def_priv, gvt_cred_key_correctness_proof), gvt_cred_def_id) =
-        fixtures::create_cred_def(&gvt_schema, false);
+    let (gvt_cred_def, gvt_cred_def_id) =
+        issuer_1_wallet.create_cred_def(&mut ledger, &gvt_schema, false);
 
     // Issuer 2 creates Schema - would be published to the ledger
-    let (emp_schema, emp_schema_id) = fixtures::create_schema("EMP");
+    let (emp_schema, emp_schema_id) = issuer_2_wallet.create_schema(&mut ledger, EMP_CRED);
 
-    // Issuer 1 create credential definition
-    let ((emp_cred_def, emp_cred_def_priv, emp_cred_key_correctness_proof), emp_cred_def_id) =
-        fixtures::create_cred_def(&emp_schema, false);
+    // Issuer 2 create credential definition
+    let (emp_cred_def, emp_cred_def_id) =
+        issuer_2_wallet.create_cred_def(&mut ledger, &emp_schema, false);
 
-    let gvt_cred_offer = issuer::create_credential_offer(
-        gvt_schema_id.try_into().unwrap(),
-        gvt_cred_def_id.try_into().unwrap(),
-        &gvt_cred_key_correctness_proof,
-    )
-    .expect("Unable to create credential offer");
+    // Issuer 1 creates a Credential Offer
+    let cred_offer = issuer_1_wallet.create_credential_offer(&gvt_schema_id, &gvt_cred_def_id);
 
-    let (gvt_cred_request, gvt_cred_request_metadata) = prover::create_credential_request(
-        Some("entropy"),
-        None,
-        &gvt_cred_def,
-        &prover_wallet.link_secret,
-        "default",
-        &gvt_cred_offer,
-    )
-    .expect("Error creating credential request");
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&gvt_cred_def, &cred_offer);
 
     // Issuer creates a credential
-    let gvt_cred_values = fixtures::credential_values("GVT");
+    let cred_values = fixtures::credential_values(GVT_CRED);
+    let issue_cred = issuer_1_wallet.create_credential(
+        &credential_format,
+        &gvt_cred_def_id,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
+        None,
+        None,
+        None,
+    );
 
-    let gvt_issue_cred = issuer::create_credential(
+    // Prover receives the credential and processes it
+    let mut rec_cred = issue_cred;
+    prover_wallet.store_credential(
+        GVT_CRED,
+        &mut rec_cred,
+        &cred_request_metadata,
         &gvt_cred_def,
-        &gvt_cred_def_priv,
-        &gvt_cred_offer,
-        &gvt_cred_request,
-        gvt_cred_values.into(),
         None,
-    )
-    .expect("Error creating credential");
+    );
 
-    let mut gvt_recv_cred = gvt_issue_cred;
-    prover::process_credential(
-        &mut gvt_recv_cred,
-        &gvt_cred_request_metadata,
-        &prover_wallet.link_secret,
-        &gvt_cred_def,
+    // Issuer 2 creates a Credential Offer
+    let cred_offer = issuer_2_wallet.create_credential_offer(&emp_schema_id, &emp_cred_def_id);
+
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&emp_cred_def, &cred_offer);
+
+    // Issuer creates a credential
+    let cred_values = fixtures::credential_values(EMP_CRED);
+    let issue_cred = issuer_2_wallet.create_credential(
+        &credential_format,
+        &emp_cred_def_id,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
         None,
-    )
-    .expect("Error processing credential");
-    prover_wallet.credentials.push(gvt_recv_cred);
-
-    let emp_cred_offer = issuer::create_credential_offer(
-        emp_schema_id.try_into().unwrap(),
-        emp_cred_def_id.try_into().unwrap(),
-        &emp_cred_key_correctness_proof,
-    )
-    .expect("Unable to create credential offer");
-
-    let (emp_cred_request, emp_cred_request_metadata) = prover::create_credential_request(
-        Some("entropy"),
         None,
-        &emp_cred_def,
-        &prover_wallet.link_secret,
-        "default",
-        &emp_cred_offer,
-    )
-    .expect("Error creating credential request");
-
-    let emp_cred_values = fixtures::credential_values("EMP");
-
-    let emp_issue_cred = issuer::create_credential(
-        &emp_cred_def,
-        &emp_cred_def_priv,
-        &emp_cred_offer,
-        &emp_cred_request,
-        emp_cred_values.into(),
         None,
-    )
-    .expect("Error creating credential");
+    );
 
-    let mut emp_recv_cred = emp_issue_cred;
-    prover::process_credential(
-        &mut emp_recv_cred,
-        &emp_cred_request_metadata,
-        &prover_wallet.link_secret,
+    // Prover receives the credential and processes it
+    let mut rec_cred = issue_cred;
+    prover_wallet.store_credential(
+        EMP_CRED,
+        &mut rec_cred,
+        &cred_request_metadata,
         &emp_cred_def,
         None,
-    )
-    .expect("Error processing credential");
-    prover_wallet.credentials.push(emp_recv_cred);
+    );
 
-    let nonce = verifier::generate_nonce().expect("Error generating presentation request nonce");
+    let nonce = verifier_wallet.generate_nonce();
 
     //9. Proof request
     let pres_request = serde_json::from_value(json!({
@@ -529,109 +530,113 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover() {
                 },
         },
     }))
-    .expect("Error creating proof request");
+        .expect("Error creating proof request");
 
-    let mut schemas = HashMap::new();
-    let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
-    let emp_schema_id = SchemaId::new_unchecked(emp_schema_id);
-    schemas.insert(gvt_schema_id, gvt_schema.clone());
-    schemas.insert(emp_schema_id, emp_schema.clone());
+    let schemas = ledger.resolve_schemas(vec![&gvt_schema_id, &emp_schema_id]);
+    let cred_defs = ledger.resolve_cred_defs(vec![&gvt_cred_def_id, &emp_cred_def_id]);
 
-    let mut cred_defs = HashMap::new();
-    let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
-    let emp_cred_def_id = CredentialDefinitionId::new_unchecked(emp_cred_def_id);
-    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
-    cred_defs.insert(emp_cred_def_id, emp_cred_def.try_clone().unwrap());
+    let present_credentials = vec![
+        CredentialToPresent {
+            id: GVT_CRED.to_string(),
+            attributes: vec![
+                PresentAttribute {
+                    referent: "attr1_referent".to_string(),
+                    form: PresentAttributeForm::RevealedAttribute,
+                },
+                PresentAttribute {
+                    referent: "attr3_referent".to_string(),
+                    form: PresentAttributeForm::RevealedAttribute,
+                },
+                PresentAttribute {
+                    referent: "predicate1_referent".to_string(),
+                    form: PresentAttributeForm::Predicate,
+                },
+            ],
+        },
+        CredentialToPresent {
+            id: EMP_CRED.to_string(),
+            attributes: vec![PresentAttribute {
+                referent: "attr2_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            }],
+        },
+    ];
 
-    let mut present = PresentCredentials::default();
-    let mut gvt_cred = present.add_credential(&prover_wallet.credentials[0], None, None);
-    gvt_cred.add_requested_attribute("attr1_referent", true);
-    gvt_cred.add_requested_attribute("attr3_referent", true);
-    gvt_cred.add_requested_predicate("predicate1_referent");
-
-    let mut emp_cred = present.add_credential(&prover_wallet.credentials[1], None, None);
-    emp_cred.add_requested_attribute("attr2_referent", true);
-
-    let presentation = prover::create_presentation(
-        &pres_request,
-        present,
-        None,
-        &prover_wallet.link_secret,
+    let presentation = prover_wallet.create_presentation(
+        &presentation_format,
         &schemas,
         &cred_defs,
-    )
-    .expect("Error creating presentation");
-
-    let valid = verifier::verify_presentation(
-        &presentation,
         &pres_request,
-        &schemas,
-        &cred_defs,
+        &present_credentials,
         None,
-        None,
-        None,
-    )
-    .expect("Error verifying presentation");
+    );
+
+    let valid = verifier_wallet
+        .verify_presentation(
+            &presentation,
+            &pres_request,
+            &schemas,
+            &cred_defs,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
     assert!(valid);
 }
 
-#[test]
-fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
-    // Create Prover pseudo wallet and link secret
+#[rstest]
+#[case(CredentialFormat::Legacy, PresentationFormat::Legacy)]
+#[case(CredentialFormat::W3C, PresentationFormat::W3C)]
+fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates(
+    #[case] credential_format: CredentialFormat,
+    #[case] presentation_format: PresentationFormat,
+) {
+    // Create pseudo ledger and wallets
+    let mut ledger = Ledger::default();
+    let mut issuer_wallet = IssuerWallet::default();
     let mut prover_wallet = ProverWallet::default();
+    let verifier_wallet = VerifierWallet::default();
 
     // Create schema
-    let (gvt_schema, gvt_schema_id) = fixtures::create_schema("GVT");
+    let (gvt_schema, gvt_schema_id) = issuer_wallet.create_schema(&mut ledger, GVT_CRED);
 
     // Create credential definition
-    let ((gvt_cred_def, gvt_cred_def_priv, gvt_cred_key_correctness_proof), gvt_cred_def_id) =
-        fixtures::create_cred_def(&gvt_schema, false);
+    let (gvt_cred_def, gvt_cred_def_id) =
+        issuer_wallet.create_cred_def(&mut ledger, &gvt_schema, false);
 
     // Issuer creates a Credential Offer
-    let cred_offer = issuer::create_credential_offer(
-        gvt_schema_id.try_into().unwrap(),
-        gvt_cred_def_id.try_into().unwrap(),
-        &gvt_cred_key_correctness_proof,
-    )
-    .expect("Error creating credential offer");
+    let cred_offer = issuer_wallet.create_credential_offer(&gvt_schema_id, &gvt_cred_def_id);
 
     // Prover creates a Credential Request
-    let (cred_request, cred_request_metadata) = prover::create_credential_request(
-        Some("entropy"),
-        None,
-        &gvt_cred_def,
-        &prover_wallet.link_secret,
-        "default",
-        &cred_offer,
-    )
-    .expect("Error creating credential request");
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&gvt_cred_def, &cred_offer);
 
     // Issuer creates a credential
-    let cred_values = fixtures::credential_values("GVT");
-    let issue_cred = issuer::create_credential(
-        &gvt_cred_def,
-        &gvt_cred_def_priv,
+    let cred_values = fixtures::credential_values(GVT_CRED);
+    let issue_cred = issuer_wallet.create_credential(
+        &credential_format,
+        &gvt_cred_def_id,
         &cred_offer,
         &cred_request,
         cred_values.into(),
         None,
-    )
-    .expect("Error creating credential");
+        None,
+        None,
+    );
 
     // Prover receives the credential and processes it
     let mut recv_cred = issue_cred;
-    prover::process_credential(
+    prover_wallet.store_credential(
+        GVT_CRED,
         &mut recv_cred,
         &cred_request_metadata,
-        &prover_wallet.link_secret,
         &gvt_cred_def,
         None,
-    )
-    .expect("Error processing credential");
-    prover_wallet.credentials.push(recv_cred);
+    );
 
     // Verifier creates a presentation request
-    let nonce = verifier::generate_nonce().expect("Error generating presentation request nonce");
+    let nonce = verifier_wallet.generate_nonce();
     let pres_request = serde_json::from_value(json!({
         "nonce": nonce,
         "name":"pres_req_1",
@@ -643,8 +648,7 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
             "attr2_referent":{
                 "name":"sex"
             },
-            "attr3_referent":{"name":"phone"},
-            "attr4_referent":{
+            "attr3_referent":{
                 "names": ["name", "height"]
             }
         },
@@ -655,41 +659,39 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
     .expect("Error creating proof request");
 
     // Prover creates presentation
-    let mut present = PresentCredentials::default();
-    {
-        // We do not add `attr2_referent` here
-        let mut cred1 = present.add_credential(&prover_wallet.credentials[0], None, None);
-        cred1.add_requested_attribute("attr1_referent", true);
-        cred1.add_requested_attribute("attr4_referent", true);
-        cred1.add_requested_predicate("predicate1_referent");
-    }
+    // `attr2_referent` is missing
+    let present_credentials = vec![CredentialToPresent {
+        id: GVT_CRED.to_string(),
+        attributes: vec![
+            PresentAttribute {
+                referent: "attr1_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "attr3_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "predicate1_referent".to_string(),
+                form: PresentAttributeForm::Predicate,
+            },
+        ],
+    }];
 
-    let mut self_attested = HashMap::new();
-    let self_attested_phone = "8-800-300";
-    self_attested.insert(
-        "attr3_referent".to_string(),
-        self_attested_phone.to_string(),
-    );
+    let schemas = ledger.resolve_schemas(vec![&gvt_schema_id]);
+    let cred_defs = ledger.resolve_cred_defs(vec![&gvt_cred_def_id]);
 
-    let mut schemas = HashMap::new();
-    let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
-    schemas.insert(gvt_schema_id, gvt_schema.clone());
-
-    let mut cred_defs = HashMap::new();
-    let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
-    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
-
-    let presentation = prover::create_presentation(
-        &pres_request,
-        present,
-        Some(self_attested),
-        &prover_wallet.link_secret,
+    // Prover creates presentation
+    let presentation = prover_wallet.create_presentation(
+        &presentation_format,
         &schemas,
         &cred_defs,
-    )
-    .expect("Error creating presentation");
+        &pres_request,
+        &present_credentials,
+        None,
+    );
 
-    let valid = verifier::verify_presentation(
+    let valid = verifier_wallet.verify_presentation(
         &presentation,
         &pres_request,
         &schemas,
@@ -702,63 +704,58 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates() {
     assert!(valid.is_err())
 }
 
-#[test]
-fn anoncreds_demo_works_for_requested_attribute_in_upper_case() {
-    // Create Prover pseudo wallet and link secret
+#[rstest]
+#[case(CredentialFormat::Legacy, PresentationFormat::Legacy)]
+#[case(CredentialFormat::W3C, PresentationFormat::W3C)]
+fn anoncreds_demo_works_for_requested_attribute_in_upper_case(
+    #[case] credential_format: CredentialFormat,
+    #[case] presentation_format: PresentationFormat,
+) {
+    // Create pseudo ledger and wallets
+    let mut ledger = Ledger::default();
+    let mut issuer_wallet = IssuerWallet::default();
     let mut prover_wallet = ProverWallet::default();
+    let verifier_wallet = VerifierWallet::default();
 
     // Create schema
-    let (gvt_schema, gvt_schema_id) = fixtures::create_schema("GVT");
+    let (gvt_schema, gvt_schema_id) = issuer_wallet.create_schema(&mut ledger, GVT_CRED);
 
     // Create credential definition
-    let ((gvt_cred_def, gvt_cred_def_priv, gvt_cred_key_correctness_proof), gvt_cred_def_id) =
-        fixtures::create_cred_def(&gvt_schema, false);
+    let (gvt_cred_def, gvt_cred_def_id) =
+        issuer_wallet.create_cred_def(&mut ledger, &gvt_schema, false);
 
     // Issuer creates a Credential Offer
-    let cred_offer = issuer::create_credential_offer(
-        gvt_schema_id.try_into().unwrap(),
-        gvt_cred_def_id.try_into().unwrap(),
-        &gvt_cred_key_correctness_proof,
-    )
-    .expect("Error creating credential offer");
+    let cred_offer = issuer_wallet.create_credential_offer(&gvt_schema_id, &gvt_cred_def_id);
 
     // Prover creates a Credential Request
-    let (cred_request, cred_request_metadata) = prover::create_credential_request(
-        Some("entropy"),
-        None,
-        &gvt_cred_def,
-        &prover_wallet.link_secret,
-        "default",
-        &cred_offer,
-    )
-    .expect("Error creating credential request");
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&gvt_cred_def, &cred_offer);
 
     // Issuer creates a credential
-    let cred_values = fixtures::credential_values("GVT");
-    let issue_cred = issuer::create_credential(
-        &gvt_cred_def,
-        &gvt_cred_def_priv,
+    let cred_values = fixtures::credential_values(GVT_CRED);
+    let issue_cred = issuer_wallet.create_credential(
+        &credential_format,
+        &gvt_cred_def_id,
         &cred_offer,
         &cred_request,
         cred_values.into(),
         None,
-    )
-    .expect("Error creating credential");
+        None,
+        None,
+    );
 
     // Prover receives the credential and processes it
     let mut recv_cred = issue_cred;
-    prover::process_credential(
+    prover_wallet.store_credential(
+        GVT_CRED,
         &mut recv_cred,
         &cred_request_metadata,
-        &prover_wallet.link_secret,
         &gvt_cred_def,
         None,
-    )
-    .expect("Error processing credential");
-    prover_wallet.credentials.push(recv_cred);
+    );
 
     // Verifier creates a presentation request
-    let nonce = verifier::generate_nonce().expect("Error generating presentation request nonce");
+    let nonce = verifier_wallet.generate_nonce();
     let pres_request = serde_json::from_value(json!({
         "nonce": nonce,
         "name":"pres_req_1",
@@ -770,209 +767,201 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case() {
             "attr2_referent":{
                 "name":"SEX"
             },
-            "attr3_referent":{"name":"phone"},
-            "attr4_referent":{
+            "attr3_referent":{
                 "names": ["NAME", "HEIGHT"]
             }
         },
         "requested_predicates":{
-            "predicate1_referent":{"name":"age","p_type":">=","p_value":18}
+            "predicate1_referent":{"name":"AGE","p_type":">=","p_value":18}
         }
     }))
     .expect("Error creating proof request");
 
     // Prover creates presentation
-    let mut present = PresentCredentials::default();
-    {
-        let mut cred1 = present.add_credential(&prover_wallet.credentials[0], None, None);
-        cred1.add_requested_attribute("attr1_referent", true);
-        cred1.add_requested_attribute("attr2_referent", false);
-        cred1.add_requested_attribute("attr4_referent", true);
-        cred1.add_requested_predicate("predicate1_referent");
-    }
+    let present_credentials = vec![CredentialToPresent {
+        id: GVT_CRED.to_string(),
+        attributes: vec![
+            PresentAttribute {
+                referent: "attr1_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "attr2_referent".to_string(),
+                form: PresentAttributeForm::UnrevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "attr3_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "predicate1_referent".to_string(),
+                form: PresentAttributeForm::Predicate,
+            },
+        ],
+    }];
 
-    let mut self_attested = HashMap::new();
-    let self_attested_phone = "8-800-300";
-    self_attested.insert(
-        "attr3_referent".to_string(),
-        self_attested_phone.to_string(),
-    );
+    let schemas = ledger.resolve_schemas(vec![&gvt_schema_id]);
+    let cred_defs = ledger.resolve_cred_defs(vec![&gvt_cred_def_id]);
 
-    let mut schemas = HashMap::new();
-    let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
-    schemas.insert(gvt_schema_id, gvt_schema.clone());
-
-    let mut cred_defs = HashMap::new();
-    let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
-    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
-
-    let presentation = prover::create_presentation(
-        &pres_request,
-        present,
-        Some(self_attested),
-        &prover_wallet.link_secret,
+    // Prover creates presentation
+    let presentation = prover_wallet.create_presentation(
+        &presentation_format,
         &schemas,
         &cred_defs,
-    )
-    .expect("Error creating presentation");
-
-    // Verifier verifies presentation
-    assert_eq!(
-        "Alex",
-        presentation
-            .requested_proof
-            .revealed_attrs
-            .get("attr1_referent")
-            .unwrap()
-            .raw
+        &pres_request,
+        &present_credentials,
+        None,
     );
 
-    assert_eq!(
-        0,
-        presentation
-            .requested_proof
-            .unrevealed_attrs
-            .get("attr2_referent")
-            .unwrap()
-            .sub_proof_index
-    );
-
-    assert_eq!(
-        self_attested_phone,
-        presentation
-            .requested_proof
-            .self_attested_attrs
-            .get("attr3_referent")
-            .unwrap()
-    );
-
-    let revealed_attr_groups = presentation
-        .requested_proof
-        .revealed_attr_groups
-        .get("attr4_referent")
+    let valid = verifier_wallet
+        .verify_presentation(
+            &presentation,
+            &pres_request,
+            &schemas,
+            &cred_defs,
+            None,
+            None,
+            None,
+        )
         .unwrap();
 
-    assert_eq!("Alex", revealed_attr_groups.values.get("NAME").unwrap().raw);
+    assert!(valid);
 
-    assert_eq!(
-        "175",
-        revealed_attr_groups.values.get("HEIGHT").unwrap().raw
+    verifier_wallet.check_presentation_attribute(
+        &presentation,
+        PresentedAttribute {
+            referent: "attr1_referent",
+            name: "NAME",
+            expected: ExpectedAttributeValue::RevealedAttribute("Alex"),
+        },
     );
 
-    let valid = verifier::verify_presentation(
+    verifier_wallet.check_presentation_attribute(
         &presentation,
-        &pres_request,
-        &schemas,
-        &cred_defs,
-        None,
-        None,
-        None,
-    )
-    .expect("Error verifying presentation");
+        PresentedAttribute {
+            referent: "attr2_referent",
+            name: "SEX",
+            expected: ExpectedAttributeValue::UnrevealedAttribute(0),
+        },
+    );
 
-    assert!(valid);
+    verifier_wallet.check_presentation_attribute(
+        &presentation,
+        PresentedAttribute {
+            referent: "attr3_referent",
+            name: "NAME",
+            expected: ExpectedAttributeValue::GroupedAttribute("Alex"),
+        },
+    );
+
+    verifier_wallet.check_presentation_attribute(
+        &presentation,
+        PresentedAttribute {
+            referent: "attr3_referent",
+            name: "HEIGHT",
+            expected: ExpectedAttributeValue::GroupedAttribute("175"),
+        },
+    );
+
+    verifier_wallet.check_presentation_attribute(
+        &presentation,
+        PresentedAttribute {
+            referent: "predicate1_referent",
+            name: "AGE",
+            expected: ExpectedAttributeValue::Predicate,
+        },
+    );
 }
 
-#[test]
-fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential() {
+#[rstest]
+#[case(CredentialFormat::Legacy, PresentationFormat::Legacy)]
+#[case(CredentialFormat::W3C, PresentationFormat::W3C)]
+fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential(
+    #[case] credential_format: CredentialFormat,
+    #[case] presentation_format: PresentationFormat,
+) {
+    // Create pseudo ledger and wallets
+    let mut ledger = Ledger::default();
+    let mut issuer_1_wallet = IssuerWallet::default();
+    let mut issuer_2_wallet = IssuerWallet::default();
     let mut prover_wallet = ProverWallet::default();
+    let verifier_wallet = VerifierWallet::default();
 
     // Issuer 1 creates Schema - would be published to the ledger
-    let (gvt_schema, gvt_schema_id) = fixtures::create_schema("GVT");
+    let (gvt_schema, gvt_schema_id) = issuer_1_wallet.create_schema(&mut ledger, GVT_CRED);
 
     // Issuer 1 create credential definition
-    let ((gvt_cred_def, gvt_cred_def_priv, gvt_cred_key_correctness_proof), gvt_cred_def_id) =
-        fixtures::create_cred_def(&gvt_schema, false);
+    let (gvt_cred_def, gvt_cred_def_id) =
+        issuer_1_wallet.create_cred_def(&mut ledger, &gvt_schema, false);
 
     // Issuer 2 creates Schema - would be published to the ledger
-    let (emp_schema, emp_schema_id) = fixtures::create_schema("EMP");
+    let (emp_schema, emp_schema_id) = issuer_2_wallet.create_schema(&mut ledger, EMP_CRED);
 
-    // Issuer 1 create credential definition
-    let ((emp_cred_def, emp_cred_def_priv, emp_cred_key_correctness_proof), emp_cred_def_id) =
-        fixtures::create_cred_def(&emp_schema, false);
+    // Issuer 2 create credential definition
+    let (emp_cred_def, emp_cred_def_id) =
+        issuer_2_wallet.create_cred_def(&mut ledger, &emp_schema, false);
 
-    let gvt_cred_offer = issuer::create_credential_offer(
-        gvt_schema_id.try_into().unwrap(),
-        gvt_cred_def_id.try_into().unwrap(),
-        &gvt_cred_key_correctness_proof,
-    )
-    .expect("Unable to create credential offer");
+    // Issuer 1 creates a Credential Offer
+    let cred_offer = issuer_1_wallet.create_credential_offer(&gvt_schema_id, &gvt_cred_def_id);
 
-    let (gvt_cred_request, gvt_cred_request_metadata) = prover::create_credential_request(
-        Some("entropy"),
-        None,
-        &gvt_cred_def,
-        &prover_wallet.link_secret,
-        "default",
-        &gvt_cred_offer,
-    )
-    .expect("Error creating credential request");
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&gvt_cred_def, &cred_offer);
 
     // Issuer creates a credential
-    let gvt_cred_values = fixtures::credential_values("GVT");
+    let cred_values = fixtures::credential_values(GVT_CRED);
+    let issue_cred = issuer_1_wallet.create_credential(
+        &credential_format,
+        &gvt_cred_def_id,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
+        None,
+        None,
+        None,
+    );
 
-    let gvt_issue_cred = issuer::create_credential(
+    // Prover receives the credential and processes it
+    let mut rec_cred = issue_cred;
+    prover_wallet.store_credential(
+        GVT_CRED,
+        &mut rec_cred,
+        &cred_request_metadata,
         &gvt_cred_def,
-        &gvt_cred_def_priv,
-        &gvt_cred_offer,
-        &gvt_cred_request,
-        gvt_cred_values.into(),
         None,
-    )
-    .expect("Error creating credential");
+    );
 
-    let mut gvt_recv_cred = gvt_issue_cred;
-    prover::process_credential(
-        &mut gvt_recv_cred,
-        &gvt_cred_request_metadata,
-        &prover_wallet.link_secret,
-        &gvt_cred_def,
+    // Issuer 2 creates a Credential Offer
+    let cred_offer = issuer_2_wallet.create_credential_offer(&emp_schema_id, &emp_cred_def_id);
+
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&emp_cred_def, &cred_offer);
+
+    // Issuer creates a credential
+    let cred_values = fixtures::credential_values(EMP_CRED);
+    let issue_cred = issuer_2_wallet.create_credential(
+        &credential_format,
+        &emp_cred_def_id,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
         None,
-    )
-    .expect("Error processing credential");
-    prover_wallet.credentials.push(gvt_recv_cred);
-
-    let emp_cred_offer = issuer::create_credential_offer(
-        emp_schema_id.try_into().unwrap(),
-        emp_cred_def_id.try_into().unwrap(),
-        &emp_cred_key_correctness_proof,
-    )
-    .expect("Unable to create credential offer");
-
-    let (emp_cred_request, emp_cred_request_metadata) = prover::create_credential_request(
-        Some("entropy"),
         None,
-        &emp_cred_def,
-        &prover_wallet.link_secret,
-        "default",
-        &emp_cred_offer,
-    )
-    .expect("Error creating credential request");
-
-    let emp_cred_values = fixtures::credential_values("EMP");
-
-    let emp_issue_cred = issuer::create_credential(
-        &emp_cred_def,
-        &emp_cred_def_priv,
-        &emp_cred_offer,
-        &emp_cred_request,
-        emp_cred_values.into(),
         None,
-    )
-    .expect("Error creating credential");
+    );
 
-    let mut emp_recv_cred = emp_issue_cred;
-    prover::process_credential(
-        &mut emp_recv_cred,
-        &emp_cred_request_metadata,
-        &prover_wallet.link_secret,
+    // Prover receives the credential and processes it
+    let mut rec_cred = issue_cred;
+    prover_wallet.store_credential(
+        EMP_CRED,
+        &mut rec_cred,
+        &cred_request_metadata,
         &emp_cred_def,
         None,
-    )
-    .expect("Error processing credential");
-    prover_wallet.credentials.push(emp_recv_cred);
+    );
 
-    let nonce = verifier::generate_nonce().expect("Error generating presentation request nonce");
+    let nonce = verifier_wallet.generate_nonce();
 
     //9. Proof request
     let pres_request = serde_json::from_value(json!({
@@ -1004,50 +993,64 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential()
                 },
         },
     }))
-    .expect("Error creating proof request");
+        .expect("Error creating proof request");
 
-    let mut schemas = HashMap::new();
-    let gvt_schema_id = SchemaId::new_unchecked(gvt_schema_id);
-    let emp_schema_id = SchemaId::new_unchecked(emp_schema_id);
-    schemas.insert(gvt_schema_id, gvt_schema.clone());
-    schemas.insert(emp_schema_id, emp_schema.clone());
+    let schemas = ledger.resolve_schemas(vec![&gvt_schema_id, &emp_schema_id]);
+    let cred_defs = ledger.resolve_cred_defs(vec![&gvt_cred_def_id, &emp_cred_def_id]);
 
-    let mut cred_defs = HashMap::new();
-    let gvt_cred_def_id = CredentialDefinitionId::new_unchecked(gvt_cred_def_id);
-    let emp_cred_def_id = CredentialDefinitionId::new_unchecked(emp_cred_def_id);
-    cred_defs.insert(gvt_cred_def_id, gvt_cred_def.try_clone().unwrap());
-    cred_defs.insert(emp_cred_def_id, emp_cred_def.try_clone().unwrap());
+    let present_credentials = vec![
+        CredentialToPresent {
+            id: GVT_CRED.to_string(),
+            attributes: vec![
+                PresentAttribute {
+                    referent: "attr1_referent".to_string(),
+                    form: PresentAttributeForm::RevealedAttribute,
+                },
+                PresentAttribute {
+                    referent: "attr4_referent".to_string(),
+                    form: PresentAttributeForm::RevealedAttribute,
+                },
+                PresentAttribute {
+                    referent: "predicate1_referent".to_string(),
+                    form: PresentAttributeForm::Predicate,
+                },
+            ],
+        },
+        CredentialToPresent {
+            id: EMP_CRED.to_string(),
+            attributes: vec![
+                PresentAttribute {
+                    referent: "attr2_referent".to_string(),
+                    form: PresentAttributeForm::RevealedAttribute,
+                },
+                PresentAttribute {
+                    referent: "attr3_referent".to_string(),
+                    form: PresentAttributeForm::RevealedAttribute,
+                },
+            ],
+        },
+    ];
 
-    let mut present = PresentCredentials::default();
-    let mut gvt_cred = present.add_credential(&prover_wallet.credentials[0], None, None);
-    gvt_cred.add_requested_attribute("attr1_referent", true);
-    gvt_cred.add_requested_attribute("attr4_referent", true);
-    gvt_cred.add_requested_predicate("predicate1_referent");
-
-    let mut emp_cred = present.add_credential(&prover_wallet.credentials[1], None, None);
-    emp_cred.add_requested_attribute("attr2_referent", true);
-    emp_cred.add_requested_attribute("attr3_referent", true);
-
-    let presentation = prover::create_presentation(
-        &pres_request,
-        present,
-        None,
-        &prover_wallet.link_secret,
+    let presentation = prover_wallet.create_presentation(
+        &presentation_format,
         &schemas,
         &cred_defs,
-    )
-    .expect("Error creating presentation");
-
-    let valid = verifier::verify_presentation(
-        &presentation,
         &pres_request,
-        &schemas,
-        &cred_defs,
+        &present_credentials,
         None,
-        None,
-        None,
-    )
-    .expect("Error verifying presentation");
+    );
+
+    let valid = verifier_wallet
+        .verify_presentation(
+            &presentation,
+            &pres_request,
+            &schemas,
+            &cred_defs,
+            None,
+            None,
+            None,
+        )
+        .expect("Error verifying presentation");
     assert!(valid);
 }
 
@@ -2621,7 +2624,7 @@ fn anoncreds_works_for_prover_hold_different_credentials_types() {
     let schema_id_1 = identifier_1.schema_id.0;
     let schema_id_2 = identifier_2.schema_id.0;
 
-    let (schema_1, schema_2) = if schema_id_1.contains("gvt") {
+    let (schema_1, schema_2) = if schema_id_1.contains(GVT_CRED) {
         (gvt_schema, xyz_schema)
     } else {
         (xyz_schema, gvt_schema)
@@ -2630,7 +2633,7 @@ fn anoncreds_works_for_prover_hold_different_credentials_types() {
     let cred_def_id_1 = identifier_1.cred_def_id.0;
     let cred_def_id_2 = identifier_2.cred_def_id.0;
 
-    let (cred_def_1, cred_def_2) = if schema_id_1.contains("gvt") {
+    let (cred_def_1, cred_def_2) = if schema_id_1.contains(GVT_CRED) {
         (gvt_cred_def_json, xyz_cred_def_json)
     } else {
         (xyz_cred_def_json, gvt_cred_def_json)
@@ -2823,3 +2826,798 @@ fn anoncreds_works_for_restrictions_as_empty_array() {
     wallet::close_and_delete_wallet(prover_wallet_handle, &prover_wallet_config).unwrap();
 }
 */
+
+#[test]
+fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present_w3c_presentation()
+{
+    // Create pseudo ledger and wallets
+    let mut ledger = Ledger::default();
+    let mut issuer_wallet = IssuerWallet::default();
+    let mut prover_wallet = ProverWallet::default();
+    let verifier_wallet = VerifierWallet::default();
+
+    // Create schema
+    let (gvt_schema, gvt_schema_id) = issuer_wallet.create_schema(&mut ledger, GVT_CRED);
+
+    // Create credential definition
+    let (gvt_cred_def, gvt_cred_def_id) =
+        issuer_wallet.create_cred_def(&mut ledger, &gvt_schema, false);
+
+    // Issuer creates a Credential Offer
+    let cred_offer = issuer_wallet.create_credential_offer(&gvt_schema_id, &gvt_cred_def_id);
+
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&gvt_cred_def, &cred_offer);
+
+    // Issuer creates a credential
+    let cred_values = fixtures::credential_values(GVT_CRED);
+    let issue_cred = issuer_wallet.create_credential(
+        &CredentialFormat::Legacy,
+        &gvt_cred_def_id,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
+        None,
+        None,
+        None,
+    );
+
+    // Prover receives the credential and processes it
+    let mut recv_cred = issue_cred;
+    prover_wallet.store_credential(
+        GVT_CRED,
+        &mut recv_cred,
+        &cred_request_metadata,
+        &gvt_cred_def,
+        None,
+    );
+
+    // Convert legacy credential into W3C form
+    prover_wallet.convert_credential(GVT_CRED, &recv_cred, &gvt_cred_def);
+
+    // Make W3C presentation using converted credential
+
+    // Verifier creates a presentation request
+    let nonce = verifier::generate_nonce().expect("Error generating presentation request nonce");
+    let pres_request = serde_json::from_value(json!({
+        "nonce": nonce,
+        "name":"pres_req_1",
+        "version":"0.1",
+        "requested_attributes":{
+            "attr1_referent":{
+                "name":"name"
+            }
+        },
+        "requested_predicates":{
+            "predicate1_referent":{"name":"age","p_type":">=","p_value":18}
+        }
+    }))
+    .expect("Error creating proof request");
+
+    // Prover creates presentation
+    let present_credentials = vec![CredentialToPresent {
+        id: GVT_CRED.to_string(),
+        attributes: vec![
+            PresentAttribute {
+                referent: "attr1_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "predicate1_referent".to_string(),
+                form: PresentAttributeForm::Predicate,
+            },
+        ],
+    }];
+
+    let schemas = ledger.resolve_schemas(vec![&gvt_schema_id]);
+    let cred_defs = ledger.resolve_cred_defs(vec![&gvt_cred_def_id]);
+
+    // Prover creates presentation
+    let presentation = prover_wallet.create_presentation(
+        &PresentationFormat::W3C,
+        &schemas,
+        &cred_defs,
+        &pres_request,
+        &present_credentials,
+        None,
+    );
+
+    let valid = verifier_wallet
+        .verify_presentation(
+            &presentation,
+            &pres_request,
+            &schemas,
+            &cred_defs,
+            None,
+            None,
+            None,
+        )
+        .expect("Error creating presentation");
+
+    assert!(valid);
+
+    // Verifier verifies presentation
+    let presentation = presentation.w3c();
+    assert_eq!(
+        &CredentialAttributeValue::Attribute("Alex".to_string()),
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes
+            .0
+            .get("name")
+            .unwrap()
+    );
+
+    assert_eq!(
+        CredentialAttributeValue::Predicate(vec![PredicateAttribute {
+            type_: PredicateAttributeType::AnonCredsPredicate,
+            predicate: PredicateTypes::GE,
+            value: 18,
+        }]),
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes
+            .0
+            .get("age")
+            .cloned()
+            .unwrap()
+    );
+}
+
+#[test]
+fn anoncreds_demo_works_for_issue_w3c_credential_convert_into_legacy_and_present_legacy_presentation(
+) {
+    // Create pseudo ledger and wallets
+    let mut ledger = Ledger::default();
+    let mut issuer_wallet = IssuerWallet::default();
+    let mut prover_wallet = ProverWallet::default();
+    let verifier_wallet = VerifierWallet::default();
+
+    // Create schema
+    let (gvt_schema, gvt_schema_id) = issuer_wallet.create_schema(&mut ledger, GVT_CRED);
+
+    // Create credential definition
+    let (gvt_cred_def, gvt_cred_def_id) =
+        issuer_wallet.create_cred_def(&mut ledger, &gvt_schema, false);
+
+    // Issuer creates a Credential Offer
+    let cred_offer = issuer_wallet.create_credential_offer(&gvt_schema_id, &gvt_cred_def_id);
+
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&gvt_cred_def, &cred_offer);
+
+    // Issuer creates a credential
+    let cred_values = fixtures::credential_values(GVT_CRED);
+    let issue_cred = issuer_wallet.create_credential(
+        &CredentialFormat::W3C,
+        &gvt_cred_def_id,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
+        None,
+        None,
+        None,
+    );
+
+    // Prover receives the credential and processes it
+    let mut recv_cred = issue_cred;
+    prover_wallet.store_credential(
+        GVT_CRED,
+        &mut recv_cred,
+        &cred_request_metadata,
+        &gvt_cred_def,
+        None,
+    );
+
+    // Convert W3C credential into legacy form
+    prover_wallet.convert_credential(GVT_CRED, &recv_cred, &gvt_cred_def);
+
+    // Create and Verify legacy presentation using converted credential
+
+    // Verifier creates a presentation request
+    let nonce = verifier_wallet.generate_nonce();
+    let pres_request = serde_json::from_value(json!({
+        "nonce": nonce,
+        "name":"pres_req_1",
+        "version":"0.1",
+        "requested_attributes":{
+            "attr1_referent":{
+                "name":"name"
+            }
+        },
+        "requested_predicates":{
+            "predicate1_referent":{"name":"age","p_type":">=","p_value":18}
+        }
+    }))
+    .expect("Error creating proof request");
+
+    // Prover creates presentation
+    let present_credentials = vec![CredentialToPresent {
+        id: GVT_CRED.to_string(),
+        attributes: vec![
+            PresentAttribute {
+                referent: "attr1_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "predicate1_referent".to_string(),
+                form: PresentAttributeForm::Predicate,
+            },
+        ],
+    }];
+
+    let schemas = ledger.resolve_schemas(vec![&gvt_schema_id]);
+    let cred_defs = ledger.resolve_cred_defs(vec![&gvt_cred_def_id]);
+
+    // Prover creates presentation
+    let presentation = prover_wallet.create_presentation(
+        &PresentationFormat::Legacy,
+        &schemas,
+        &cred_defs,
+        &pres_request,
+        &present_credentials,
+        None,
+    );
+
+    let valid = verifier_wallet
+        .verify_presentation(
+            &presentation,
+            &pres_request,
+            &schemas,
+            &cred_defs,
+            None,
+            None,
+            None,
+        )
+        .expect("Error verifying presentation");
+
+    assert!(valid);
+
+    // Verifier verifies presentation
+    let presentation = presentation.legacy();
+    assert_eq!(
+        "Alex",
+        presentation
+            .requested_proof
+            .revealed_attrs
+            .get("attr1_referent")
+            .unwrap()
+            .raw
+    );
+
+    assert_eq!(
+        0,
+        presentation
+            .requested_proof
+            .predicates
+            .get("predicate1_referent")
+            .unwrap()
+            .sub_proof_index
+    );
+}
+
+#[test]
+fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present_compound_w3c_presentation(
+) {
+    // Create pseudo ledger and wallets
+    let mut ledger = Ledger::default();
+    let mut issuer_1_wallet = IssuerWallet::default();
+    let mut issuer_2_wallet = IssuerWallet::default();
+    let mut prover_wallet = ProverWallet::default();
+    let verifier_wallet = VerifierWallet::default();
+
+    // Issuer 1 creates Schema - would be published to the ledger
+    let (gvt_schema, gvt_schema_id) = issuer_1_wallet.create_schema(&mut ledger, GVT_CRED);
+
+    // Issuer 1 create credential definition
+    let (gvt_cred_def, gvt_cred_def_id) =
+        issuer_1_wallet.create_cred_def(&mut ledger, &gvt_schema, false);
+
+    // Issuer 2 creates Schema - would be published to the ledger
+    let (emp_schema, emp_schema_id) = issuer_2_wallet.create_schema(&mut ledger, EMP_CRED);
+
+    // Issuer 2 create credential definition
+    let (emp_cred_def, emp_cred_def_id) =
+        issuer_2_wallet.create_cred_def(&mut ledger, &emp_schema, false);
+
+    // Issuer 1 creates a Credential Offer
+    let cred_offer = issuer_1_wallet.create_credential_offer(&gvt_schema_id, &gvt_cred_def_id);
+
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&gvt_cred_def, &cred_offer);
+
+    // Issuer creates a credential
+    let cred_values = fixtures::credential_values(GVT_CRED);
+    let issue_cred = issuer_1_wallet.create_credential(
+        &CredentialFormat::Legacy,
+        &gvt_cred_def_id,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
+        None,
+        None,
+        None,
+    );
+
+    // Prover receives the credential and processes it
+    let mut rec_cred = issue_cred;
+    prover_wallet.store_credential(
+        GVT_CRED,
+        &mut rec_cred,
+        &cred_request_metadata,
+        &gvt_cred_def,
+        None,
+    );
+    prover_wallet.convert_credential(GVT_CRED, &rec_cred, &gvt_cred_def);
+
+    // Issuer 2 creates a Credential Offer
+    let cred_offer = issuer_2_wallet.create_credential_offer(&emp_schema_id, &emp_cred_def_id);
+
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&emp_cred_def, &cred_offer);
+
+    // Issuer creates a credential
+    let cred_values = fixtures::credential_values(EMP_CRED);
+    let issue_cred = issuer_2_wallet.create_credential(
+        &CredentialFormat::W3C,
+        &emp_cred_def_id,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
+        None,
+        None,
+        None,
+    );
+
+    // Prover receives the credential and processes it
+    let mut rec_cred = issue_cred;
+    prover_wallet.store_credential(
+        EMP_CRED,
+        &mut rec_cred,
+        &cred_request_metadata,
+        &emp_cred_def,
+        None,
+    );
+    prover_wallet.convert_credential(EMP_CRED, &rec_cred, &emp_cred_def);
+
+    // Crate and Verify W3C presentation using two credentials
+
+    // Verifier creates a presentation request
+    let nonce = verifier_wallet.generate_nonce();
+    let pres_request = serde_json::from_value(json!({
+        "nonce": nonce,
+        "name":"pres_req_1",
+        "version":"0.1",
+        "requested_attributes":{
+            "attr1_referent":{
+                "name":"name"
+            },
+            "attr2_referent":{
+                "name":"sex"
+            },
+            "attr3_referent":{
+                "names": ["department","role"]
+            }
+        }
+    }))
+    .expect("Error creating proof request");
+
+    // Prover creates presentation
+    let present_credentials = vec![
+        CredentialToPresent {
+            id: GVT_CRED.to_string(),
+            attributes: vec![
+                PresentAttribute {
+                    referent: "attr1_referent".to_string(),
+                    form: PresentAttributeForm::RevealedAttribute,
+                },
+                PresentAttribute {
+                    referent: "attr2_referent".to_string(),
+                    form: PresentAttributeForm::RevealedAttribute,
+                },
+            ],
+        },
+        CredentialToPresent {
+            id: EMP_CRED.to_string(),
+            attributes: vec![PresentAttribute {
+                referent: "attr3_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            }],
+        },
+    ];
+
+    let schemas = ledger.resolve_schemas(vec![&gvt_schema_id, &emp_schema_id]);
+    let cred_defs = ledger.resolve_cred_defs(vec![&gvt_cred_def_id, &emp_cred_def_id]);
+
+    let presentation = prover_wallet.create_presentation(
+        &PresentationFormat::W3C,
+        &schemas,
+        &cred_defs,
+        &pres_request,
+        &present_credentials,
+        None,
+    );
+
+    let valid = verifier_wallet
+        .verify_presentation(
+            &presentation,
+            &pres_request,
+            &schemas,
+            &cred_defs,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+    assert!(valid);
+
+    // Verifier verifies presentation
+    let presentation = presentation.w3c();
+    assert_eq!(
+        &CredentialAttributeValue::Attribute("Alex".to_string()),
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes
+            .0
+            .get("name")
+            .unwrap()
+    );
+
+    assert_eq!(
+        &CredentialAttributeValue::Attribute("male".to_string()),
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes
+            .0
+            .get("sex")
+            .unwrap()
+    );
+
+    assert_eq!(
+        &CredentialAttributeValue::Attribute("Developer".to_string()),
+        presentation.verifiable_credential[1]
+            .credential_subject
+            .attributes
+            .0
+            .get("role")
+            .unwrap()
+    );
+
+    assert_eq!(
+        &CredentialAttributeValue::Attribute("IT".to_string()),
+        presentation.verifiable_credential[1]
+            .credential_subject
+            .attributes
+            .0
+            .get("department")
+            .unwrap()
+    );
+}
+
+#[test]
+fn anoncreds_demo_works_for_issue_w3c_credential_add_identity_proof_present_w3c_presentation() {
+    // Create pseudo ledger and wallets
+    let mut ledger = Ledger::default();
+    let mut issuer_wallet = IssuerWallet::default();
+    let mut prover_wallet = ProverWallet::default();
+    let verifier_wallet = VerifierWallet::default();
+
+    // Create schema
+    let (gvt_schema, gvt_schema_id) = issuer_wallet.create_schema(&mut ledger, GVT_CRED);
+
+    // Create credential definition
+    let (gvt_cred_def, gvt_cred_def_id) =
+        issuer_wallet.create_cred_def(&mut ledger, &gvt_schema, false);
+
+    // Issuer creates a Credential Offer
+    let cred_offer = issuer_wallet.create_credential_offer(&gvt_schema_id, &gvt_cred_def_id);
+
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&gvt_cred_def, &cred_offer);
+
+    // Issuer creates a credential
+    let cred_values = fixtures::credential_values(GVT_CRED);
+    let issue_cred = issuer_wallet.create_credential(
+        &CredentialFormat::W3C,
+        &gvt_cred_def_id,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
+        None,
+        None,
+        None,
+    );
+
+    // Add RSA identity proof
+    let mut issue_cred = issue_cred.w3c().clone();
+    let rsa_signature = json!({
+      "type": "RsaSignature2018",
+      "created": "2017-06-18T21:19:10Z",
+      "proofPurpose": "assertionMethod",
+      "verificationMethod": "https://example.edu/issuers/565049#key-1",
+      "jws": "eyJhbGciOiJSUzI1NiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..TCYt5X
+          sITJX1CxPCT8yAV-TVkIEq_PbChOMqsLfRoPsnsgw5WEuts01mq-pQy7UJiN5mgRxD-WUc
+          X16dUEMGlv50aqzpqh4Qktb3rk-BuQy72IFLOqV0G_zS245-kronKb78cPN25DGlcTwLtj
+          PAYuNzVBAh4vGHSrQyHUdBBPM"
+    });
+    issue_cred.add_non_anoncreds_integrity_proof(rsa_signature);
+    issue_cred.set_subject_id(URI::from("did:example:ebfeb1f712ebc6f1c276e12ec21"));
+    issue_cred.add_context(URI::from("https://www.w3.org/2018/credentials/examples/v1"));
+    issue_cred.add_type("AlumniCredential".to_string());
+
+    // Prover receives the credential and processes it
+    let mut recv_cred = Credentials::W3C(issue_cred);
+    prover_wallet.store_credential(
+        GVT_CRED,
+        &mut recv_cred,
+        &cred_request_metadata,
+        &gvt_cred_def,
+        None,
+    );
+
+    // Make W3C presentation using w3c credential
+
+    // Verifier creates a presentation request
+    let nonce = verifier_wallet.generate_nonce();
+    let pres_request = serde_json::from_value(json!({
+        "nonce": nonce,
+        "name":"pres_req_1",
+        "version":"0.1",
+        "requested_attributes":{
+            "attr1_referent":{
+                "name":"name"
+            }
+        },
+        "requested_predicates":{
+            "predicate1_referent":{"name":"age","p_type":">=","p_value":18}
+        }
+    }))
+    .expect("Error creating proof request");
+
+    // Prover creates presentation
+    let present_credentials = vec![CredentialToPresent {
+        id: GVT_CRED.to_string(),
+        attributes: vec![
+            PresentAttribute {
+                referent: "attr1_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "predicate1_referent".to_string(),
+                form: PresentAttributeForm::Predicate,
+            },
+        ],
+    }];
+
+    let schemas = ledger.resolve_schemas(vec![&gvt_schema_id]);
+    let cred_defs = ledger.resolve_cred_defs(vec![&gvt_cred_def_id]);
+
+    // Prover creates presentation
+    let presentation = prover_wallet.create_presentation(
+        &PresentationFormat::W3C,
+        &schemas,
+        &cred_defs,
+        &pres_request,
+        &present_credentials,
+        None,
+    );
+
+    let valid = verifier_wallet
+        .verify_presentation(
+            &presentation,
+            &pres_request,
+            &schemas,
+            &cred_defs,
+            None,
+            None,
+            None,
+        )
+        .expect("Error verifying presentation");
+
+    assert!(valid);
+
+    // Verifier verifies presentation
+    let presentation = presentation.w3c();
+    assert_eq!(
+        &CredentialAttributeValue::Attribute("Alex".to_string()),
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes
+            .0
+            .get("name")
+            .unwrap()
+    );
+
+    assert_eq!(
+        CredentialAttributeValue::Predicate(vec![PredicateAttribute {
+            type_: PredicateAttributeType::AnonCredsPredicate,
+            predicate: PredicateTypes::GE,
+            value: 18,
+        }]),
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes
+            .0
+            .get("age")
+            .cloned()
+            .unwrap()
+    );
+}
+
+#[test]
+fn anoncreds_demo_works_for_single_issuer_single_prover_and_present_self_attested_attribute() {
+    // Create pseudo ledger and wallets
+    let mut ledger = Ledger::default();
+    let mut issuer_wallet = IssuerWallet::default();
+    let mut prover_wallet = ProverWallet::default();
+    let verifier_wallet = VerifierWallet::default();
+
+    // Create schema
+    let (gvt_schema, gvt_schema_id) = issuer_wallet.create_schema(&mut ledger, GVT_CRED);
+
+    // Create credential definition
+    let (gvt_cred_def, gvt_cred_def_id) =
+        issuer_wallet.create_cred_def(&mut ledger, &gvt_schema, false);
+
+    // Issuer creates a Credential Offer
+    let cred_offer = issuer_wallet.create_credential_offer(&gvt_schema_id, &gvt_cred_def_id);
+
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) =
+        prover_wallet.create_credential_request(&gvt_cred_def, &cred_offer);
+
+    // Issuer creates a credential
+    let cred_values = fixtures::credential_values(GVT_CRED);
+    let issue_cred = issuer_wallet.create_credential(
+        &CredentialFormat::Legacy,
+        &gvt_cred_def_id,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
+        None,
+        None,
+        None,
+    );
+
+    // Prover receives the credential and processes it
+    let mut recv_cred = issue_cred;
+    prover_wallet.store_credential(
+        GVT_CRED,
+        &mut recv_cred,
+        &cred_request_metadata,
+        &gvt_cred_def,
+        None,
+    );
+
+    // Verifier creates a presentation request
+    let nonce = verifier_wallet.generate_nonce();
+    let pres_request = serde_json::from_value(json!({
+        "nonce": nonce,
+        "name":"pres_req_1",
+        "version":"0.1",
+        "requested_attributes":{
+            "attr1_referent":{
+                "name":"name"
+            },
+            "attr2_referent":{
+                "name":"sex"
+            },
+            "attr3_referent":{"name":"phone"},
+            "attr3_referent":{
+                "names": ["name", "height"]
+            }
+        },
+        "requested_predicates":{
+            "predicate1_referent":{"name":"age","p_type":">=","p_value":18}
+        }
+    }))
+    .expect("Error creating proof request");
+
+    // TODO: show deriving the wallet query from the proof request (need to add helper)
+
+    // Prover creates presentation
+    let schemas = ledger.resolve_schemas(vec![&gvt_schema_id]);
+    let cred_defs = ledger.resolve_cred_defs(vec![&gvt_cred_def_id]);
+
+    // Prover creates presentation
+    let present_credentials = vec![CredentialToPresent {
+        id: GVT_CRED.to_string(),
+        attributes: vec![
+            PresentAttribute {
+                referent: "attr1_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "attr2_referent".to_string(),
+                form: PresentAttributeForm::UnrevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "attr3_referent".to_string(),
+                form: PresentAttributeForm::RevealedAttribute,
+            },
+            PresentAttribute {
+                referent: "predicate1_referent".to_string(),
+                form: PresentAttributeForm::Predicate,
+            },
+        ],
+    }];
+
+    let mut self_attested = HashMap::new();
+    let self_attested_phone = "8-800-300";
+    self_attested.insert(
+        "attr3_referent".to_string(),
+        self_attested_phone.to_string(),
+    );
+
+    let presentation = prover_wallet.create_presentation(
+        &PresentationFormat::Legacy,
+        &schemas,
+        &cred_defs,
+        &pres_request,
+        &present_credentials,
+        Some(self_attested),
+    );
+
+    let valid = verifier_wallet
+        .verify_presentation(
+            &presentation,
+            &pres_request,
+            &schemas,
+            &cred_defs,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+
+    assert!(valid);
+
+    // Verifier verifies presentation data
+    let presentation = presentation.legacy();
+    assert_eq!(
+        "Alex",
+        presentation
+            .requested_proof
+            .revealed_attrs
+            .get("attr1_referent")
+            .unwrap()
+            .raw
+    );
+
+    assert_eq!(
+        0,
+        presentation
+            .requested_proof
+            .unrevealed_attrs
+            .get("attr2_referent")
+            .unwrap()
+            .sub_proof_index
+    );
+
+    let revealed_attr_groups = presentation
+        .requested_proof
+        .revealed_attr_groups
+        .get("attr3_referent")
+        .unwrap();
+
+    assert_eq!("Alex", revealed_attr_groups.values.get("name").unwrap().raw);
+
+    assert_eq!(
+        "175",
+        revealed_attr_groups.values.get("height").unwrap().raw
+    );
+
+    assert_eq!(
+        self_attested_phone,
+        presentation
+            .requested_proof
+            .self_attested_attrs
+            .get("attr3_referent")
+            .unwrap()
+    );
+}

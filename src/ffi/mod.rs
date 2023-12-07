@@ -35,6 +35,9 @@ mod presentation;
 mod revocation;
 mod schema;
 
+#[cfg(feature = "w3c")]
+mod w3c;
+
 #[no_mangle]
 pub extern "C" fn anoncreds_set_default_logger() -> ErrorCode {
     catch_error(|| {

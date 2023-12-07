@@ -19,11 +19,12 @@ path = "src/lib.rs"
 crate-type = ["staticlib", "rlib", "cdylib"]
 
 [features]
-default = ["ffi", "logger", "zeroize"]
+default = ["ffi", "logger", "zeroize", "w3c"]
 ffi = ["dep:ffi-support"]
 zeroize = ["dep:zeroize"]
 logger = ["dep:env_logger"]
 vendored = ["anoncreds-clsignatures/openssl_vendored"]
+w3c = ["base64", "chrono"]
 
 [dependencies]
 anoncreds-clsignatures = "0.2.4"
@@ -40,6 +41,11 @@ serde_json = { version = "1.0.94", features = ["raw_value"] }
 sha2 = "0.10.6"
 thiserror = "1.0.39"
 zeroize = { version = "1.5.7", optional = true, features = ["zeroize_derive"] }
+base64 = { version = "0.21.5", optional = true }
+chrono = { version = "0.4.31", optional = true, features = ["serde"] }
+
+[dev-dependencies]
+rstest = "0.18.2"
 
 [profile.release]
 lto = true

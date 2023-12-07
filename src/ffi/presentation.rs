@@ -12,6 +12,8 @@ use crate::error::Result;
 use crate::services::prover::create_presentation;
 use crate::services::types::PresentCredentials;
 use crate::services::verifier::verify_presentation;
+
+use crate::ffi::object::AnyAnoncredsObject;
 use ffi_support::FfiStr;
 use std::collections::HashMap;
 
@@ -52,7 +54,7 @@ pub struct FfiCredentialProve<'a> {
     reveal: i8,
 }
 
-struct CredentialEntry {
+pub(crate) struct CredentialEntry {
     credential: AnoncredsObject,
     timestamp: Option<u64>,
     rev_state: Option<AnoncredsObject>,
@@ -75,120 +77,12 @@ pub extern "C" fn anoncreds_create_presentation(
     catch_error(|| {
         check_useful_c_ptr!(presentation_p);
 
-        let link_secret = link_secret
-            .as_opt_str()
-            .ok_or_else(|| err_msg!("Missing link secret"))?;
-        let link_secret = LinkSecret::try_from(link_secret)?;
-
-        if self_attest_names.len() != self_attest_values.len() {
-            return Err(err_msg!(
-                "Inconsistent lengths for self-attested value parameters"
-            ));
-        }
-
-        if schemas.len() != schema_ids.len() {
-            return Err(err_msg!("Inconsistent lengths for schemas and schemas ids"));
-        }
-
-        if cred_defs.len() != cred_def_ids.len() {
-            return Err(err_msg!(
-                "Inconsistent lengths for cred defs and cred def ids"
-            ));
-        }
-
-        let entries = {
-            let credentials = credentials.as_slice();
-            credentials.iter().try_fold(
-                Vec::with_capacity(credentials.len()),
-                |mut r, ffi_entry| {
-                    r.push(ffi_entry.load()?);
-                    Result::Ok(r)
-                },
-            )?
-        };
-
-        let self_attested = if self_attest_names.is_empty() {
-            None
-        } else {
-            let mut self_attested = HashMap::new();
-            for (name, raw) in self_attest_names
-                .as_slice()
-                .iter()
-                .zip(self_attest_values.as_slice())
-            {
-                let name = name
-                    .as_opt_str()
-                    .ok_or_else(|| err_msg!("Missing attribute name"))?
-                    .to_string();
-                let raw = raw
-                    .as_opt_str()
-                    .ok_or_else(|| err_msg!("Missing attribute raw value"))?
-                    .to_string();
-                self_attested.insert(name, raw);
-            }
-            Some(self_attested)
-        };
-
-        let mut present_creds = PresentCredentials::default();
-
-        for (entry_idx, entry) in entries.iter().enumerate() {
-            let mut add_cred = present_creds.add_credential(
-                entry.credential.cast_ref()?,
-                entry.timestamp,
-                entry
-                    .rev_state
-                    .as_ref()
-                    .map(AnoncredsObject::cast_ref)
-                    .transpose()?,
-            );
-
-            for prove in credentials_prove.as_slice() {
-                if prove.entry_idx < 0 {
-                    return Err(err_msg!("Invalid credential index"));
-                }
-                if prove.entry_idx as usize != entry_idx {
-                    continue;
-                }
-
-                let referent = prove
-                    .referent
-                    .as_opt_str()
-                    .ok_or_else(|| err_msg!("Missing referent for credential proof info"))?
-                    .to_string();
-
-                if prove.is_predicate == 0 {
-                    add_cred.add_requested_attribute(referent, prove.reveal != 0);
-                } else {
-                    add_cred.add_requested_predicate(referent);
-                }
-            }
-        }
-
-        let mut schema_identifiers: Vec<SchemaId> = vec![];
-        for schema_id in &schema_ids.to_string_vec()? {
-            let s = SchemaId::new(schema_id.as_str())?;
-            schema_identifiers.push(s);
-        }
-
-        let mut cred_def_identifiers: Vec<CredentialDefinitionId> = vec![];
-        for cred_def_id in &cred_def_ids.to_string_vec()? {
-            let cred_def_id = CredentialDefinitionId::new(cred_def_id.as_str())?;
-            cred_def_identifiers.push(cred_def_id);
-        }
-
-        let schemas = AnoncredsObjectList::load(schemas.as_slice())?;
-        let schemas = schemas
-            .refs_map::<SchemaId, Schema>(&schema_identifiers)?
-            .into_iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
-
-        let cred_defs = AnoncredsObjectList::load(cred_defs.as_slice())?;
-        let cred_defs = cred_defs
-            .refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?
-            .into_iter()
-            .map(|(k, v)| v.try_clone().map(|v| (k.clone(), v)))
-            .collect::<Result<_>>()?;
+        let link_secret = _link_secret(link_secret)?;
+        let self_attested = _self_attested(self_attest_names, self_attest_values)?;
+        let cred_defs = _prepare_cred_defs(cred_defs, cred_def_ids)?;
+        let schemas = _prepare_schemas(schemas, schema_ids)?;
+        let credentials = _credentials(credentials)?;
+        let present_creds = _present_credentials(&credentials, credentials_prove)?;
 
         let presentation = create_presentation(
             pres_req.load()?.cast_ref()?,
@@ -264,106 +158,240 @@ pub extern "C" fn anoncreds_verify_presentation(
     result_p: *mut i8,
 ) -> ErrorCode {
     catch_error(|| {
-        if schemas.len() != schema_ids.len() {
-            return Err(err_msg!("Inconsistent lengths for schemas and schemas ids"));
-        }
-
-        if cred_defs.len() != cred_def_ids.len() {
-            return Err(err_msg!(
-                "Inconsistent lengths for cred defs and cred def ids"
-            ));
-        }
-
-        if rev_reg_defs.len() != rev_reg_def_ids.len() {
-            return Err(err_msg!(
-                "Inconsistent lengths for rev reg defs and rev reg def ids"
-            ));
-        }
-
-        let mut schema_identifiers: Vec<SchemaId> = vec![];
-        for schema_id in schema_ids.as_slice().iter() {
-            let s = SchemaId::new(schema_id.as_str())?;
-            schema_identifiers.push(s);
-        }
-
-        let mut cred_def_identifiers: Vec<CredentialDefinitionId> = vec![];
-        for cred_def_id in cred_def_ids.as_slice().iter() {
-            let cred_def_id = CredentialDefinitionId::new(cred_def_id.as_str())?;
-            cred_def_identifiers.push(cred_def_id);
-        }
-
-        let mut rev_reg_def_identifiers: Vec<RevocationRegistryDefinitionId> = vec![];
-        for rev_reg_def_id in rev_reg_def_ids.as_slice().iter() {
-            let rev_reg_def_id = RevocationRegistryDefinitionId::new(rev_reg_def_id.as_str())?;
-            rev_reg_def_identifiers.push(rev_reg_def_id);
-        }
-
-        let schemas = AnoncredsObjectList::load(schemas.as_slice())?;
-        let schemas = schemas
-            .refs_map::<SchemaId, Schema>(&schema_identifiers)?
-            .into_iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
-
-        let cred_defs = AnoncredsObjectList::load(cred_defs.as_slice())?;
-        let cred_defs = cred_defs
-            .refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?
-            .into_iter()
-            .map(|(k, v)| v.try_clone().map(|v| (k.clone(), v)))
-            .collect::<Result<_>>()?;
-
-        let rev_reg_defs = AnoncredsObjectList::load(rev_reg_defs.as_slice())?;
-        let rev_reg_defs = rev_reg_defs
-            .refs_map::<RevocationRegistryDefinitionId, RevocationRegistryDefinition>(
-                &rev_reg_def_identifiers,
-            )?
-            .into_iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect::<HashMap<_, _>>();
-
-        let rev_reg_defs = if rev_reg_defs.is_empty() {
-            None
-        } else {
-            Some(&rev_reg_defs)
-        };
-
-        let rev_status_list: AnoncredsObjectList =
-            AnoncredsObjectList::load(rev_status_list.as_slice())?;
-        let rev_status_list: Result<Vec<&RevocationStatusList>> = rev_status_list.refs();
-        let rev_status_list = rev_status_list.ok();
-
-        let override_entries = {
-            let override_ffi_entries = nonrevoked_interval_override.as_slice();
-            override_ffi_entries.iter().try_fold(
-                Vec::with_capacity(override_ffi_entries.len()),
-                |mut v, entry| -> Result<Vec<(RevocationRegistryDefinitionId, u64, u64)>> {
-                    v.push(entry.load()?);
-                    Ok(v)
-                },
-            )?
-        };
-        let mut map_nonrevoked_interval_override = HashMap::new();
-        for (id, req_timestamp, override_timestamp) in &override_entries {
-            map_nonrevoked_interval_override
-                .entry(id.clone())
-                .or_insert_with(HashMap::new)
-                .insert(*req_timestamp, *override_timestamp);
-        }
-
-        let rev_status_lists = rev_status_list
-            .as_ref()
-            .map(|v| v.iter().copied().cloned().collect());
+        let cred_defs = _prepare_cred_defs(cred_defs, cred_def_ids)?;
+        let schemas = _prepare_schemas(schemas, schema_ids)?;
+        let rev_reg_defs = _rev_reg_defs(rev_reg_defs, rev_reg_def_ids)?;
+        let rev_status_lists = _rev_status_list(rev_status_list)?;
+        let map_nonrevoked_interval_override =
+            _nonrevoke_interval_override(nonrevoked_interval_override)?;
 
         let verify = verify_presentation(
             presentation.load()?.cast_ref()?,
             pres_req.load()?.cast_ref()?,
             &schemas,
             &cred_defs,
-            rev_reg_defs,
+            rev_reg_defs.as_ref(),
             rev_status_lists,
             Some(&map_nonrevoked_interval_override),
         )?;
         unsafe { *result_p = i8::from(verify) };
         Ok(())
     })
+}
+
+pub(crate) fn _link_secret(link_secret: FfiStr) -> Result<LinkSecret> {
+    let link_secret = link_secret
+        .as_opt_str()
+        .ok_or_else(|| err_msg!("Missing link secret"))?;
+    let link_secret = LinkSecret::try_from(link_secret)?;
+    Ok(link_secret)
+}
+
+pub(crate) fn _prepare_cred_defs(
+    cred_defs: FfiList<ObjectHandle>,
+    cred_def_ids: FfiStrList,
+) -> Result<HashMap<CredentialDefinitionId, CredentialDefinition>> {
+    if cred_defs.len() != cred_def_ids.len() {
+        return Err(err_msg!(
+            "Inconsistent lengths for cred defs and cred def ids"
+        ));
+    }
+
+    let mut cred_def_identifiers: Vec<CredentialDefinitionId> = vec![];
+    for cred_def_id in &cred_def_ids.to_string_vec()? {
+        let cred_def_id = CredentialDefinitionId::new(cred_def_id.as_str())?;
+        cred_def_identifiers.push(cred_def_id);
+    }
+
+    let cred_defs = AnoncredsObjectList::load(cred_defs.as_slice())?;
+    let cred_defs = cred_defs
+        .refs_map::<CredentialDefinitionId, CredentialDefinition>(&cred_def_identifiers)?
+        .into_iter()
+        .map(|(k, v)| v.try_clone().map(|v| (k.clone(), v)))
+        .collect::<Result<_>>()?;
+
+    Ok(cred_defs)
+}
+
+pub(crate) fn _prepare_schemas(
+    schemas: FfiList<ObjectHandle>,
+    schema_ids: FfiStrList,
+) -> Result<HashMap<SchemaId, Schema>> {
+    if schemas.len() != schema_ids.len() {
+        return Err(err_msg!("Inconsistent lengths for schemas and schemas ids"));
+    }
+
+    let mut schema_identifiers: Vec<SchemaId> = vec![];
+    for schema_id in &schema_ids.to_string_vec()? {
+        let s = SchemaId::new(schema_id.as_str())?;
+        schema_identifiers.push(s);
+    }
+
+    let schemas = AnoncredsObjectList::load(schemas.as_slice())?;
+    let schemas = schemas
+        .refs_map::<SchemaId, Schema>(&schema_identifiers)?
+        .into_iter()
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect();
+
+    Ok(schemas)
+}
+
+pub(crate) fn _rev_reg_defs(
+    rev_reg_defs: FfiList<ObjectHandle>,
+    rev_reg_def_ids: FfiStrList,
+) -> Result<Option<HashMap<RevocationRegistryDefinitionId, RevocationRegistryDefinition>>> {
+    if rev_reg_defs.len() != rev_reg_def_ids.len() {
+        return Err(err_msg!(
+            "Inconsistent lengths for rev reg defs and rev reg def ids"
+        ));
+    }
+
+    let mut rev_reg_def_identifiers: Vec<RevocationRegistryDefinitionId> = vec![];
+    for rev_reg_def_id in rev_reg_def_ids.as_slice().iter() {
+        let rev_reg_def_id = RevocationRegistryDefinitionId::new(rev_reg_def_id.as_str())?;
+        rev_reg_def_identifiers.push(rev_reg_def_id);
+    }
+
+    let rev_reg_defs = AnoncredsObjectList::load(rev_reg_defs.as_slice())?;
+    let rev_reg_defs = rev_reg_defs
+        .refs_map::<RevocationRegistryDefinitionId, RevocationRegistryDefinition>(
+            &rev_reg_def_identifiers,
+        )?
+        .into_iter()
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect::<HashMap<_, _>>();
+
+    let rev_reg_defs = if rev_reg_defs.is_empty() {
+        None
+    } else {
+        Some(rev_reg_defs)
+    };
+
+    Ok(rev_reg_defs)
+}
+
+pub(crate) fn _rev_status_list(
+    rev_status_list: FfiList<ObjectHandle>,
+) -> Result<Option<Vec<RevocationStatusList>>> {
+    let rev_status_list: AnoncredsObjectList =
+        AnoncredsObjectList::load(rev_status_list.as_slice())?;
+    let rev_status_list: Result<Vec<&RevocationStatusList>> = rev_status_list.refs();
+    let rev_status_list = rev_status_list.ok();
+
+    let rev_status_lists = rev_status_list
+        .as_ref()
+        .map(|v| v.iter().copied().cloned().collect());
+    Ok(rev_status_lists)
+}
+
+pub(crate) fn _nonrevoke_interval_override(
+    nonrevoked_interval_override: FfiList<FfiNonrevokedIntervalOverride>,
+) -> Result<HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>> {
+    let override_entries = {
+        let override_ffi_entries = nonrevoked_interval_override.as_slice();
+        override_ffi_entries.iter().try_fold(
+            Vec::with_capacity(override_ffi_entries.len()),
+            |mut v, entry| -> Result<Vec<(RevocationRegistryDefinitionId, u64, u64)>> {
+                v.push(entry.load()?);
+                Ok(v)
+            },
+        )?
+    };
+    let mut map_nonrevoked_interval_override = HashMap::new();
+    for (id, req_timestamp, override_timestamp) in &override_entries {
+        map_nonrevoked_interval_override
+            .entry(id.clone())
+            .or_insert_with(HashMap::new)
+            .insert(*req_timestamp, *override_timestamp);
+    }
+    Ok(map_nonrevoked_interval_override)
+}
+
+pub(crate) fn _self_attested(
+    self_attest_names: FfiStrList,
+    self_attest_values: FfiStrList,
+) -> Result<Option<HashMap<String, String>>> {
+    if self_attest_names.len() != self_attest_values.len() {
+        return Err(err_msg!(
+            "Inconsistent lengths for self-attested value parameters"
+        ));
+    }
+
+    let self_attested = if self_attest_names.is_empty() {
+        None
+    } else {
+        let mut self_attested = HashMap::new();
+        for (name, raw) in self_attest_names
+            .as_slice()
+            .iter()
+            .zip(self_attest_values.as_slice())
+        {
+            let name = name
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing attribute name"))?
+                .to_string();
+            let raw = raw
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing attribute raw value"))?
+                .to_string();
+            self_attested.insert(name, raw);
+        }
+        Some(self_attested)
+    };
+    Ok(self_attested)
+}
+
+pub(crate) fn _credentials(
+    credentials: FfiList<FfiCredentialEntry>,
+) -> Result<Vec<CredentialEntry>> {
+    let credentials = credentials.as_slice();
+    let credentials = credentials.iter().try_fold(
+        Vec::with_capacity(credentials.len()),
+        |mut r, ffi_entry| {
+            r.push(ffi_entry.load()?);
+            Result::Ok(r)
+        },
+    )?;
+    Ok(credentials)
+}
+
+pub(crate) fn _present_credentials<'a, T: AnyAnoncredsObject + 'static>(
+    credentials: &'a [CredentialEntry],
+    credentials_prove: FfiList<'a, FfiCredentialProve<'a>>,
+) -> Result<PresentCredentials<'a, T>> {
+    let mut present_creds = PresentCredentials::default();
+    for (entry_idx, entry) in credentials.iter().enumerate() {
+        let mut add_cred = present_creds.add_credential(
+            entry.credential.cast_ref()?,
+            entry.timestamp,
+            entry
+                .rev_state
+                .as_ref()
+                .map(AnoncredsObject::cast_ref)
+                .transpose()?,
+        );
+
+        for prove in credentials_prove.as_slice() {
+            if prove.entry_idx < 0 {
+                return Err(err_msg!("Invalid credential index"));
+            }
+            if prove.entry_idx as usize != entry_idx {
+                continue;
+            }
+
+            let referent = prove
+                .referent
+                .as_opt_str()
+                .ok_or_else(|| err_msg!("Missing referent for credential proof info"))?
+                .to_string();
+
+            if prove.is_predicate == 0 {
+                add_cred.add_requested_attribute(referent, prove.reveal != 0);
+            } else {
+                add_cred.add_requested_predicate(referent);
+            }
+        }
+    }
+    Ok(present_creds)
 }

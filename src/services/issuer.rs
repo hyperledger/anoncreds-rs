@@ -15,6 +15,7 @@ use crate::services::helpers::{
 };
 use crate::types::{CredentialDefinitionConfig, CredentialRevocationConfig};
 use crate::utils::validation::Validatable;
+use anoncreds_clsignatures::{SignatureCorrectnessProof, Witness};
 use bitvec::bitvec;
 use std::collections::BTreeSet;
 
@@ -131,7 +132,7 @@ pub fn create_credential_definition(
         config
     );
 
-    let credential_schema = build_credential_schema(&schema.attr_names.0)?;
+    let credential_schema = build_credential_schema(schema)?;
     let non_credential_schema = build_non_credential_schema()?;
 
     let (credential_public_key, credential_private_key, correctness_proof) =
@@ -712,14 +713,70 @@ pub fn create_credential(
             cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&cred_values), revocation_config,
             );
 
-    let cred_public_key: anoncreds_clsignatures::CredentialPublicKey =
-        cred_def.get_public_key().map_err(err_map!(
+    let (credential_signature, signature_correctness_proof, rev_reg_id, rev_reg, witness) =
+        CLCredentialIssuer::new(cred_def, cred_def_private).create_credential(
+            cred_offer,
+            cred_request,
+            &cred_values,
+            revocation_config,
+        )?;
+
+    let credential = Credential {
+        schema_id: cred_offer.schema_id.clone(),
+        cred_def_id: cred_offer.cred_def_id.clone(),
+        rev_reg_id,
+        values: cred_values,
+        signature: credential_signature,
+        signature_correctness_proof,
+        rev_reg,
+        witness,
+    };
+
+    trace!(
+        "create_credential <<< credential {:?}",
+        secret!(&credential),
+    );
+
+    Ok(credential)
+}
+
+pub(crate) struct CLCredentialIssuer<'a> {
+    cred_def: &'a CredentialDefinition,
+    cred_def_private: &'a CredentialDefinitionPrivate,
+}
+
+impl<'a> CLCredentialIssuer<'a> {
+    pub(crate) fn new(
+        cred_def: &'a CredentialDefinition,
+        cred_def_private: &'a CredentialDefinitionPrivate,
+    ) -> CLCredentialIssuer<'a> {
+        CLCredentialIssuer {
+            cred_def,
+            cred_def_private,
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn create_credential(
+        &self,
+        cred_offer: &CredentialOffer,
+        cred_request: &CredentialRequest,
+        cred_values: &CredentialValues,
+        revocation_config: Option<CredentialRevocationConfig>,
+    ) -> Result<(
+        anoncreds_clsignatures::CredentialSignature,
+        SignatureCorrectnessProof,
+        Option<RevocationRegistryDefinitionId>,
+        Option<CryptoRevocationRegistry>,
+        Option<Witness>,
+    )> {
+        let cred_public_key = self.cred_def.get_public_key().map_err(err_map!(
             Unexpected,
             "Error fetching public key from credential definition"
         ))?;
-    let credential_values = build_credential_values(&cred_values.0, None)?;
 
-    let (credential_signature, signature_correctness_proof, rev_reg_id, rev_reg, witness) =
+        let cred_values = build_credential_values(cred_values, None)?;
+
         if let Some(rev_config) = revocation_config {
             let rev_reg_def: &RevocationRegistryDefinitionValue = &rev_config.reg_def.value;
             let rev_reg: Option<CryptoRevocationRegistry> = rev_config.status_list.into();
@@ -761,22 +818,22 @@ pub fn create_credential(
                     &cred_request.blinded_ms_correctness_proof,
                     cred_offer.nonce.as_native(),
                     cred_request.nonce.as_native(),
-                    &credential_values,
+                    &cred_values,
                     &cred_public_key,
-                    &cred_def_private.value,
+                    &self.cred_def_private.value,
                     rev_config.registry_idx,
                     rev_reg_def.max_cred_num,
                     issuance_by_default,
                     &mut rev_reg,
                     &rev_config.reg_def_private.value,
                 )?;
-            (
+            Ok((
                 credential_signature,
                 signature_correctness_proof,
                 rev_config.status_list.id(),
                 Some(rev_reg),
                 Some(witness),
-            )
+            ))
         } else {
             let (signature, correctness_proof) = Issuer::sign_credential(
                 &cred_request.entropy()?,
@@ -784,30 +841,13 @@ pub fn create_credential(
                 &cred_request.blinded_ms_correctness_proof,
                 cred_offer.nonce.as_native(),
                 cred_request.nonce.as_native(),
-                &credential_values,
+                &cred_values,
                 &cred_public_key,
-                &cred_def_private.value,
+                &self.cred_def_private.value,
             )?;
-            (signature, correctness_proof, None, None, None)
-        };
-
-    let credential = Credential {
-        schema_id: cred_offer.schema_id.clone(),
-        cred_def_id: cred_offer.cred_def_id.clone(),
-        rev_reg_id,
-        values: cred_values,
-        signature: credential_signature,
-        signature_correctness_proof,
-        rev_reg,
-        witness,
-    };
-
-    trace!(
-        "create_credential <<< credential {:?}",
-        secret!(&credential),
-    );
-
-    Ok(credential)
+            Ok((signature, correctness_proof, None, None, None))
+        }
+    }
 }
 
 #[cfg(test)]

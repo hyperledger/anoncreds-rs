@@ -1,3 +1,5 @@
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::Value;
 use std::collections::HashMap;
 
 #[cfg(feature = "zeroize")]
@@ -5,7 +7,9 @@ use zeroize::Zeroize;
 
 use crate::cl::{CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, Witness};
 use crate::error::{ConversionError, ValidationError};
+use crate::types::MakeCredentialValues;
 use crate::utils::validation::Validatable;
+use crate::Error;
 
 use super::rev_reg_def::RevocationRegistryDefinitionId;
 use super::{cred_def::CredentialDefinitionId, schema::SchemaId};
@@ -73,14 +77,71 @@ impl Validatable for Credential {
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct CredentialInfo {
     pub referent: String,
-    pub attrs: ShortCredentialValues,
+    pub attrs: RawCredentialValues,
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
     pub rev_reg_id: Option<RevocationRegistryDefinitionId>,
     pub cred_rev_id: Option<String>,
 }
 
-pub type ShortCredentialValues = HashMap<String, String>;
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+pub struct RawCredentialValues(pub HashMap<String, String>);
+
+#[cfg(feature = "zeroize")]
+impl Drop for RawCredentialValues {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+#[cfg(feature = "zeroize")]
+impl Zeroize for RawCredentialValues {
+    fn zeroize(&mut self) {
+        for attr in self.0.values_mut() {
+            attr.zeroize();
+        }
+    }
+}
+
+impl Validatable for RawCredentialValues {
+    fn validate(&self) -> Result<(), ValidationError> {
+        if self.0.is_empty() {
+            return Err("RawCredentialValues validation failed: empty list has been passed".into());
+        }
+
+        Ok(())
+    }
+}
+
+impl From<&CredentialValues> for RawCredentialValues {
+    fn from(values: &CredentialValues) -> Self {
+        RawCredentialValues(
+            values
+                .0
+                .iter()
+                .map(|(attribute, values)| (attribute.to_owned(), values.raw.to_owned()))
+                .collect(),
+        )
+    }
+}
+
+impl RawCredentialValues {
+    pub fn encode(&self, encoding: &CredentialValuesEncoding) -> Result<CredentialValues, Error> {
+        match encoding {
+            CredentialValuesEncoding::Auto => {
+                let mut cred_values = MakeCredentialValues::default();
+                for (attribute, raw_value) in self.0.iter() {
+                    cred_values.add_raw(attribute, raw_value)?;
+                }
+                Ok(cred_values.into())
+            }
+            encoding => Err(err_msg!(
+                "Credential values encoding {:?} is not supported",
+                encoding
+            )),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub struct CredentialValues(pub HashMap<String, AttributeValues>);
@@ -116,4 +177,56 @@ impl Zeroize for CredentialValues {
 pub struct AttributeValues {
     pub raw: String,
     pub encoded: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CredentialValuesEncoding {
+    Auto,
+    Other(String),
+}
+
+impl ToString for CredentialValuesEncoding {
+    fn to_string(&self) -> String {
+        match self {
+            CredentialValuesEncoding::Auto => "auto".to_string(),
+            CredentialValuesEncoding::Other(other) => other.to_string(),
+        }
+    }
+}
+
+impl From<&str> for CredentialValuesEncoding {
+    fn from(value: &str) -> Self {
+        match value {
+            "auto" => CredentialValuesEncoding::Auto,
+            other => CredentialValuesEncoding::Other(other.to_string()),
+        }
+    }
+}
+
+impl Serialize for CredentialValuesEncoding {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        Value::String(self.to_string()).serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for CredentialValuesEncoding {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Value::deserialize(deserializer)
+            .map_err(de::Error::custom)?
+            .as_str()
+            .map(CredentialValuesEncoding::from)
+            .ok_or_else(|| de::Error::custom("Cannot parse credential value encoding"))
+    }
+}
+
+impl Default for CredentialValuesEncoding {
+    fn default() -> Self {
+        CredentialValuesEncoding::Auto
+    }
 }
