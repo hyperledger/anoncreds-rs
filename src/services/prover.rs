@@ -501,6 +501,7 @@ pub fn create_revocation_state_with_witness(
 /// # Example
 ///
 /// ```rust
+/// use std::collections::BTreeSet;
 /// use anoncreds::prover;
 /// use anoncreds::issuer;
 /// use anoncreds::types::CredentialDefinitionConfig;
@@ -551,8 +552,18 @@ pub fn create_revocation_state_with_witness(
 ///                                           &rev_reg_def,
 ///                                           &rev_reg_def_priv,
 ///                                           true,
-///                                           Some(10)
+///                                           Some(10),
 ///                                           ).expect("Unable to create revocation status list");
+///
+/// let rev_status_list =
+///     issuer::update_revocation_status_list(&cred_def,
+///                                           &rev_reg_def,
+///                                           &rev_reg_def_priv,
+///                                           &rev_status_list,
+///                                           Some(BTreeSet::from([1])),
+///                                           None,
+///                                           None,
+///                                           ).expect("Unable to update revocation status list");
 ///
 /// let rev_state =
 ///     prover::create_or_update_revocation_state(&rev_reg_def.value.tails_location,
