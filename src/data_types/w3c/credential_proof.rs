@@ -1,5 +1,5 @@
+use crate::data_types::w3c::encoded_object::EncodedObject;
 use crate::data_types::w3c::presentation_proof::CredentialPresentationProof;
-use crate::utils::encoded_object::EncodedObject;
 use crate::Result;
 use anoncreds_clsignatures::{
     CredentialSignature as CLCredentialSignature, RevocationRegistry, SignatureCorrectnessProof,

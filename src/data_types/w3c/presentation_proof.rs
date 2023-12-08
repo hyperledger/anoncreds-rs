@@ -1,5 +1,5 @@
 use crate::data_types::pres_request::{PredicateInfo, PredicateTypes};
-use crate::utils::encoded_object::EncodedObject;
+use crate::data_types::w3c::encoded_object::EncodedObject;
 use crate::Result;
 use anoncreds_clsignatures::{AggregatedProof, SubProof};
 use std::collections::HashSet;

@@ -251,12 +251,12 @@ mod tests {
     use crate::data_types::issuer_id::IssuerId;
     use crate::data_types::schema::SchemaId;
     use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_CREDENTIAL_TYPES};
+    use crate::data_types::w3c::encoded_object::EncodedObject;
     use crate::data_types::w3c::one_or_many::OneOrMany;
     use crate::types::{
         AttributeNames, CredentialDefinitionConfig, CredentialValues, MakeCredentialValues,
         SignatureType,
     };
-    use crate::utils::encoded_object::EncodedObject;
     use crate::{issuer, ErrorKind};
     use anoncreds_clsignatures::{
         CredentialSignature as CLCredentialSignature,
