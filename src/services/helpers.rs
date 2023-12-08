@@ -272,7 +272,7 @@ impl PresentationRequestPayload {
 
 impl RequestedProof {
     // get list of revealed attributes per credential
-    pub(crate) fn get_attribute_referents(&self, index: u32) -> HashSet<String> {
+    pub(crate) fn get_attributes_for_credential(&self, index: u32) -> HashSet<String> {
         let mut referents = HashSet::new();
         for (referent, into) in self.revealed_attrs.iter() {
             if into.sub_proof_index == index {
@@ -288,7 +288,7 @@ impl RequestedProof {
     }
 
     // get list of revealed predicates per credential
-    pub(crate) fn get_predicate_referents(&self, index: u32) -> HashSet<String> {
+    pub(crate) fn get_predicates_for_credential(&self, index: u32) -> HashSet<String> {
         let mut referents = HashSet::new();
         for (referent, info) in self.predicates.iter() {
             if info.sub_proof_index == index {

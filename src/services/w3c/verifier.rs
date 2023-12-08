@@ -38,7 +38,8 @@ pub fn verify_presentation(
 
     let presentation_request = pres_req.value();
 
-    // we need to decode proofs in advance as their data needed for restrictions check
+    // we need to decode proofs in advance as their data needed in two places: checking
+    // against the request and proof verification itself
     let credential_proofs = presentation
         .verifiable_credential
         .iter()
@@ -57,13 +58,13 @@ pub fn verify_presentation(
         &credential_proofs,
     )?;
 
-    let proof_data = presentation.proof.get_proof_value()?;
-    let mut proof = Proof {
+    let presentation_proof = presentation.proof.get_proof_value()?;
+    let mut cl_proof = Proof {
         proofs: Vec::with_capacity(presentation.verifiable_credential.len()),
-        aggregated_proof: proof_data.aggregated,
+        aggregated_proof: presentation_proof.aggregated,
     };
 
-    let mut proof_verifier = CLProofVerifier::init(
+    let mut proof_verifier = CLProofVerifier::new(
         presentation_request,
         schemas,
         cred_defs,
@@ -76,16 +77,16 @@ pub fn verify_presentation(
             .get(index)
             .ok_or_else(|| err_msg!("Unable to get credential proof for index {}", index))?;
 
-        let proof_data = credential_proof.get_proof_value()?;
-        let schema_id = &verifiable_credential.get_schema_id();
-        let cred_def_id = &verifiable_credential.get_cred_def_id();
+        let credential_proof_data = credential_proof.get_proof_value()?;
+        let schema_id = verifiable_credential.get_schema_id();
+        let cred_def_id = verifiable_credential.get_cred_def_id();
         let rev_reg_id = verifiable_credential.get_rev_reg_id();
 
-        let attributes = verifiable_credential.attributes();
-        let predicates = verifiable_credential.predicates();
+        let attributes = verifiable_credential.get_attributes();
+        let predicates = verifiable_credential.get_predicates();
         let attribute_names: Vec<String> = attributes.keys().cloned().collect();
 
-        verify_revealed_attribute_values(&attributes, &proof_data)?;
+        verify_revealed_attributes(&attributes, &credential_proof_data)?;
 
         proof_verifier.add_sub_proof(
             &attribute_names,
@@ -96,10 +97,10 @@ pub fn verify_presentation(
             credential_proof.timestamp,
         )?;
 
-        proof.proofs.push(proof_data.sub_proof);
+        cl_proof.proofs.push(credential_proof_data.sub_proof);
     }
 
-    let valid = proof_verifier.verify(&proof)?;
+    let valid = proof_verifier.verify(&cl_proof)?;
 
     trace!("verify_w3c_presentation <<< valid: {:?}", valid);
 
@@ -354,7 +355,7 @@ fn check_request_data(
     Ok(())
 }
 
-fn verify_revealed_attribute_values(
+fn verify_revealed_attributes(
     attributes: &HashMap<String, String>,
     credential_proof: &CredentialPresentationProofValue,
 ) -> Result<()> {

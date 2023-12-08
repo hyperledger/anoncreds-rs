@@ -871,7 +871,7 @@ impl<'a> CLProofBuilder<'a> {
         let credential_schema = build_credential_schema(schema)?;
         let credential_values = build_credential_values(credential_values, Some(link_secret))?;
 
-        let attributes = present.requested_attributes();
+        let attributes = present.get_revealed_attributes();
         let predicates = &present.requested_predicates;
 
         let (attrs_for_credential, attrs_nonrevoked_interval) = self

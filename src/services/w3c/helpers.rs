@@ -47,7 +47,7 @@ impl W3CCredential {
         }
     }
 
-    pub(crate) fn attributes(&self) -> HashMap<String, String> {
+    pub(crate) fn get_attributes(&self) -> HashMap<String, String> {
         let mut attributes: HashMap<String, String> = HashMap::new();
         for (name, attribute) in self.credential_subject.attributes.0.iter() {
             if let CredentialAttributeValue::Attribute(attribute) = attribute {
@@ -57,7 +57,7 @@ impl W3CCredential {
         attributes
     }
 
-    pub(crate) fn predicates(&self) -> HashMap<String, (PredicateTypes, PredicateValue)> {
+    pub(crate) fn get_predicates(&self) -> HashMap<String, (PredicateTypes, PredicateValue)> {
         let mut predicates: HashMap<String, (PredicateTypes, PredicateValue)> = HashMap::new();
         for (name, attribute) in self.credential_subject.attributes.0.iter() {
             if let CredentialAttributeValue::Predicate(predicate_list) = attribute {
@@ -80,15 +80,5 @@ impl Schema {
             .0
             .iter()
             .any(|attribute| attr_common_view(attribute) == requested_attribute)
-    }
-
-    pub(crate) fn get_attributes(&self) -> HashMap<String, String> {
-        let mut attributes: HashMap<String, String> = HashMap::new();
-        for (name, attribute) in self.credential_subject.attributes.0.iter() {
-            if let CredentialAttributeValue::Attribute(attribute) = attribute {
-                attributes.insert(name.to_string(), attribute.to_string());
-            }
-        }
-        attributes
     }
 }

@@ -100,10 +100,10 @@ pub fn verify_presentation(
     for (sub_proof_index, identifier) in presentation.identifiers.iter().enumerate() {
         let attributes = presentation
             .requested_proof
-            .get_attribute_referents(sub_proof_index as u32);
+            .get_attributes_for_credential(sub_proof_index as u32);
         let predicates = presentation
             .requested_proof
-            .get_predicate_referents(sub_proof_index as u32);
+            .get_predicates_for_credential(sub_proof_index as u32);
 
         let (attributes, attrs_nonrevoked_interval) =
             pres_req.get_requested_attributes(&attributes)?;

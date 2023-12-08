@@ -150,9 +150,9 @@ pub fn create_presentation(
     // check for duplicate referents
     credentials.validate()?;
 
-    let pres_req = pres_req.value();
+    let presentation_request = pres_req.value();
 
-    let mut proof_builder = CLProofBuilder::new(pres_req, schemas, cred_defs)?;
+    let mut proof_builder = CLProofBuilder::new(presentation_request, schemas, cred_defs)?;
 
     for present in credentials.0.iter() {
         if present.is_empty() {
@@ -183,8 +183,10 @@ pub fn create_presentation(
     let cl_proof = proof_builder.build()?;
 
     let presentation_proof_value = PresentationProofValue::new(cl_proof.aggregated_proof);
-    let presentation_proof =
-        PresentationProof::new(presentation_proof_value, pres_req.nonce.to_string());
+    let presentation_proof = PresentationProof::new(
+        presentation_proof_value,
+        presentation_request.nonce.to_string(),
+    );
 
     let mut presentation = W3CPresentation::new();
     presentation.set_proof(presentation_proof);
@@ -192,7 +194,7 @@ pub fn create_presentation(
     // cl signatures generates sub proofs and aggregated at once at the end
     // so we need to iterate over credentials again an put sub proofs into their proofs
     for (present, sub_proof) in credentials.0.iter().zip(cl_proof.proofs) {
-        let credential_subject = build_credential_subject(pres_req, present)?;
+        let credential_subject = build_credential_subject(presentation_request, present)?;
         let proof_value = CredentialPresentationProofValue::new(sub_proof);
         let proof = CredentialPresentationProof::new(proof_value, present.timestamp);
 
