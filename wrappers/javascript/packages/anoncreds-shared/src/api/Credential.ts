@@ -132,7 +132,6 @@ export class Credential extends AnoncredsObject {
     }
     return this
   }
-
   public get schemaId() {
     return anoncreds.credentialGetAttribute({ objectHandle: this.handle, name: 'schema_id' })
   }
