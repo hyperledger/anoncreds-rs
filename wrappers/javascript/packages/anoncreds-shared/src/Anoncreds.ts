@@ -205,21 +205,6 @@ export type Anoncreds = {
 
   objectFree(options: { objectHandle: ObjectHandle }): void
 
-  createW3cCredentialOffer(options: {
-    schemaId: string
-    credentialDefinitionId: string
-    keyCorrectnessProof: ObjectHandle
-  }): ObjectHandle
-
-  createW3cCredentialRequest(options: {
-    entropy?: string
-    proverDid?: string
-    credentialDefinition: ObjectHandle
-    linkSecret: string
-    linkSecretId: string
-    credentialOffer: ObjectHandle
-  }): { credentialRequest: ObjectHandle; credentialRequestMetadata: ObjectHandle }
-
   createW3cCredential(options: {
     credentialDefinition: ObjectHandle
     credentialDefinitionPrivate: ObjectHandle
@@ -262,21 +247,7 @@ export type Anoncreds = {
 
   w3cPresentationFromJson(options: { json: string }): ObjectHandle
 
-  w3cCredentialAddNonAnonCredsIntegrityProof(options: { objectHandle: ObjectHandle; proof: string }): ObjectHandle
-
-  w3cCredentialSetId(options: { objectHandle: ObjectHandle; id: string }): ObjectHandle
-
-  w3cCredentialSetSubjectId(options: { objectHandle: ObjectHandle; id: string }): ObjectHandle
-
-  w3cCredentialAddContext(options: { objectHandle: ObjectHandle; context: string }): ObjectHandle
-
-  w3cCredentialAddType(options: { objectHandle: ObjectHandle; type: string }): ObjectHandle
-
   w3cCredentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string
-
-  w3cCredentialOfferFromJson(options: { json: string }): ObjectHandle
-
-  w3cCredentialRequestFromJson(options: { json: string }): ObjectHandle
 
   w3cCredentialFromJson(options: { json: string }): ObjectHandle
 

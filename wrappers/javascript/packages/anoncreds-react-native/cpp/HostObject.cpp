@@ -15,33 +15,23 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   fMap.insert(std::make_tuple("getCurrentError", &anoncreds::getCurrentError));
   fMap.insert(
       std::make_tuple("createCredential", &anoncreds::createCredential));
-  fMap.insert(
-      std::make_tuple("createW3cCredential", &anoncreds::createW3cCredential));
   fMap.insert(std::make_tuple("createCredentialDefinition",
                               &anoncreds::createCredentialDefinition));
   fMap.insert(std::make_tuple("createCredentialOffer",
                               &anoncreds::createCredentialOffer));
-  fMap.insert(std::make_tuple("createW3cCredentialOffer",
-                              &anoncreds::createW3cCredentialOffer));
   fMap.insert(std::make_tuple("createCredentialRequest",
                               &anoncreds::createCredentialRequest));
-  fMap.insert(std::make_tuple("createW3cCredentialRequest",
-                              &anoncreds::createW3cCredentialRequest));
   fMap.insert(
       std::make_tuple("createLinkSecret", &anoncreds::createLinkSecret));
   fMap.insert(std::make_tuple("createOrUpdateRevocationState",
                               &anoncreds::createOrUpdateRevocationState));
   fMap.insert(
       std::make_tuple("createPresentation", &anoncreds::createPresentation));
-  fMap.insert(
-      std::make_tuple("createW3cPresentation", &anoncreds::createW3cPresentation));
   fMap.insert(std::make_tuple("createRevocationRegistryDefinition",
                               &anoncreds::createRevocationRegistryDefinition));
   fMap.insert(std::make_tuple("createSchema", &anoncreds::createSchema));
   fMap.insert(std::make_tuple("credentialGetAttribute",
                               &anoncreds::credentialGetAttribute));
-  fMap.insert(std::make_tuple("w3cCredentialGetAttribute",
-                              &anoncreds::w3cCredentialGetAttribute));
   fMap.insert(std::make_tuple("encodeCredentialAttributes",
                               &anoncreds::encodeCredentialAttributes));
   fMap.insert(std::make_tuple("generateNonce", &anoncreds::generateNonce));
@@ -50,16 +40,12 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   fMap.insert(
       std::make_tuple("processCredential", &anoncreds::processCredential));
   fMap.insert(
-      std::make_tuple("processW3cCredential", &anoncreds::processW3cCredential));
-  fMap.insert(
       std::make_tuple("revocationRegistryDefinitionGetAttribute",
                       &anoncreds::revocationRegistryDefinitionGetAttribute));
   fMap.insert(
       std::make_tuple("setDefaultLogger", &anoncreds::setDefaultLogger));
   fMap.insert(
       std::make_tuple("verifyPresentation", &anoncreds::verifyPresentation));
-  fMap.insert(
-      std::make_tuple("verifyW3cPresentation", &anoncreds::verifyW3cPresentation));
 fMap.insert(std::make_tuple("createRevocationStatusList",
                               &anoncreds::createRevocationStatusList));
   fMap.insert(std::make_tuple("updateRevocationStatusList",
@@ -79,25 +65,17 @@ fMap.insert(std::make_tuple("createRevocationStatusList",
                       &anoncreds::revocationStatusListFromJson));
   fMap.insert(std::make_tuple("presentationFromJson",
                               &anoncreds::presentationFromJson));
-  fMap.insert(std::make_tuple("w3cPresentationFromJson",
-                              &anoncreds::w3cPresentationFromJson));
   fMap.insert(std::make_tuple("presentationRequestFromJson",
                               &anoncreds::presentationRequestFromJson));
   fMap.insert(std::make_tuple("credentialOfferFromJson",
                               &anoncreds::credentialOfferFromJson));
-  fMap.insert(std::make_tuple("w3cCredentialOfferFromJson",
-                              &anoncreds::w3cCredentialOfferFromJson));
   fMap.insert(std::make_tuple("schemaFromJson", &anoncreds::schemaFromJson));
   fMap.insert(std::make_tuple("credentialRequestFromJson",
                               &anoncreds::credentialRequestFromJson));
-  fMap.insert(std::make_tuple("w3cCredentialRequestFromJson",
-                              &anoncreds::w3cCredentialRequestFromJson));
   fMap.insert(std::make_tuple("credentialRequestMetadataFromJson",
                               &anoncreds::credentialRequestMetadataFromJson));
   fMap.insert(
       std::make_tuple("credentialFromJson", &anoncreds::credentialFromJson));
-  fMap.insert(
-      std::make_tuple("w3cCredentialFromJson", &anoncreds::w3cCredentialFromJson));
   fMap.insert(
       std::make_tuple("revocationRegistryDefinitionPrivateFromJson",
                       &anoncreds::revocationRegistryDefinitionPrivateFromJson));
@@ -110,20 +88,19 @@ fMap.insert(std::make_tuple("createRevocationStatusList",
   fMap.insert(std::make_tuple("keyCorrectnessProofFromJson",
                               &anoncreds::keyCorrectnessProofFromJson));
   fMap.insert(
-      std::make_tuple("w3cCredentialAddNonAnonCredsIntegrityProof",
-                      &anoncreds::w3cCredentialAddNonAnonCredsIntegrityProof));
+      std::make_tuple("createW3cCredential", &anoncreds::createW3cCredential));
   fMap.insert(
-      std::make_tuple("w3cCredentialSetId",
-                      &anoncreds::w3cCredentialSetId));
+      std::make_tuple("createW3cPresentation", &anoncreds::createW3cPresentation));
+  fMap.insert(std::make_tuple("w3cCredentialGetAttribute",
+                              &anoncreds::w3cCredentialGetAttribute));
   fMap.insert(
-      std::make_tuple("w3cCredentialSetSubjectId",
-                      &anoncreds::w3cCredentialSetSubjectId));
+      std::make_tuple("processW3cCredential", &anoncreds::processW3cCredential));
   fMap.insert(
-      std::make_tuple("w3cCredentialAddContext",
-                      &anoncreds::w3cCredentialAddContext));
+      std::make_tuple("verifyW3cPresentation", &anoncreds::verifyW3cPresentation));
+  fMap.insert(std::make_tuple("w3cPresentationFromJson",
+                              &anoncreds::w3cPresentationFromJson));
   fMap.insert(
-      std::make_tuple("w3cCredentialAddType",
-                      &anoncreds::w3cCredentialAddType));
+      std::make_tuple("w3cCredentialFromJson", &anoncreds::w3cCredentialFromJson));
   fMap.insert(
       std::make_tuple("credentialToW3c",
                       &anoncreds::credentialToW3c));

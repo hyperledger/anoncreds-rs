@@ -441,33 +441,6 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return new ObjectHandle(handle)
   }
 
-  public createW3cCredentialOffer(options: {
-    schemaId: string
-    credentialDefinitionId: string
-    keyCorrectnessProof: ObjectHandle
-  }): ObjectHandle {
-    const handle = this.handleError(this.anoncreds.createW3cCredentialOffer(serializeArguments(options)))
-    return new ObjectHandle(handle)
-  }
-
-  public createW3cCredentialRequest(options: {
-    entropy?: string
-    proverDid?: string
-    credentialDefinition: ObjectHandle
-    linkSecret: string
-    linkSecretId: string
-    credentialOffer: ObjectHandle
-  }): { credentialRequest: ObjectHandle; credentialRequestMetadata: ObjectHandle } {
-    const { credentialRequest, credentialRequestMetadata } = this.handleError(
-      this.anoncreds.createW3cCredentialRequest(serializeArguments(options))
-    )
-
-    return {
-      credentialRequestMetadata: new ObjectHandle(credentialRequestMetadata),
-      credentialRequest: new ObjectHandle(credentialRequest)
-    }
-  }
-
   public createW3cPresentation(options: {
     presentationRequest: ObjectHandle
     credentials: NativeCredentialEntry[]
@@ -526,48 +499,8 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return new ObjectHandle(handle)
   }
 
-  public w3cCredentialOfferFromJson(options: { json: string }): ObjectHandle {
-    const handle = this.handleError(this.anoncreds.w3cCredentialOfferFromJson(serializeArguments(options)))
-    return new ObjectHandle(handle)
-  }
-
-  public w3cCredentialRequestFromJson(options: { json: string }): ObjectHandle {
-    const handle = this.handleError(this.anoncreds.w3cCredentialRequestFromJson(serializeArguments(options)))
-    return new ObjectHandle(handle)
-  }
-
   public w3cCredentialFromJson(options: { json: string }): ObjectHandle {
     const handle = this.handleError(this.anoncreds.w3cCredentialFromJson(serializeArguments(options)))
-    return new ObjectHandle(handle)
-  }
-
-  public w3cCredentialAddNonAnonCredsIntegrityProof(options: {
-    objectHandle: ObjectHandle
-    proof: string
-  }): ObjectHandle {
-    const handle = this.handleError(
-      this.anoncreds.w3cCredentialAddNonAnonCredsIntegrityProof(serializeArguments(options))
-    )
-    return new ObjectHandle(handle)
-  }
-
-  public w3cCredentialSetId(options: { objectHandle: ObjectHandle; id: string }): ObjectHandle {
-    const handle = this.handleError(this.anoncreds.w3cCredentialSetId(serializeArguments(options)))
-    return new ObjectHandle(handle)
-  }
-
-  public w3cCredentialSetSubjectId(options: { objectHandle: ObjectHandle; id: string }): ObjectHandle {
-    const handle = this.handleError(this.anoncreds.w3cCredentialSetSubjectId(serializeArguments(options)))
-    return new ObjectHandle(handle)
-  }
-
-  public w3cCredentialAddContext(options: { objectHandle: ObjectHandle; context: string }): ObjectHandle {
-    const handle = this.handleError(this.anoncreds.w3cCredentialAddContext(serializeArguments(options)))
-    return new ObjectHandle(handle)
-  }
-
-  public w3cCredentialAddType(options: { objectHandle: ObjectHandle; type: string }): ObjectHandle {
-    const handle = this.handleError(this.anoncreds.w3cCredentialAddType(serializeArguments(options)))
     return new ObjectHandle(handle)
   }
 

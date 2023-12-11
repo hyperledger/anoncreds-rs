@@ -440,6 +440,50 @@ ErrorCode anoncreds_verify_presentation(ObjectHandle presentation,
                                         struct FfiList_FfiNonrevokedIntervalOverride nonrevoked_interval_override,
                                         int8_t *result_p);
 
+ErrorCode anoncreds_process_w3c_credential(ObjectHandle cred,
+                                           ObjectHandle cred_req_metadata,
+                                           FfiStr link_secret,
+                                           ObjectHandle cred_def,
+                                           ObjectHandle rev_reg_def,
+                                           ObjectHandle *cred_p);
+
+ErrorCode anoncreds_credential_to_w3c(ObjectHandle cred,
+                                      ObjectHandle cred_def,
+                                      ObjectHandle *cred_p);
+
+ErrorCode anoncreds_credential_from_w3c(ObjectHandle cred,
+                                        ObjectHandle *cred_p);
+
+ErrorCode anoncreds_create_w3c_presentation(ObjectHandle pres_req,
+                                            struct FfiList_FfiCredentialEntry credentials,
+                                            struct FfiList_FfiCredentialProve credentials_prove,
+                                            FfiStr link_secret,
+                                            struct FfiList_ObjectHandle schemas,
+                                            FfiStrList schema_ids,
+                                            struct FfiList_ObjectHandle cred_defs,
+                                            FfiStrList cred_def_ids,
+                                            ObjectHandle *presentation_p);
+
+ErrorCode anoncreds_verify_w3c_presentation(ObjectHandle presentation,
+                                            ObjectHandle pres_req,
+                                            struct FfiList_ObjectHandle schemas,
+                                            FfiStrList schema_ids,
+                                            struct FfiList_ObjectHandle cred_defs,
+                                            FfiStrList cred_def_ids,
+                                            struct FfiList_ObjectHandle rev_reg_defs,
+                                            FfiStrList rev_reg_def_ids,
+                                            struct FfiList_ObjectHandle rev_status_list,
+                                            struct FfiList_FfiNonrevokedIntervalOverride nonrevoked_interval_override,
+                                            int8_t *result_p);
+
+ErrorCode anoncreds_w3c_credential_from_json(struct ByteBuffer json, ObjectHandle *result_p);
+
+ErrorCode anoncreds_w3c_credential_get_attribute(ObjectHandle handle,
+                                                 FfiStr name,
+                                                 const char **result_p);
+
+ErrorCode anoncreds_w3c_presentation_from_json(struct ByteBuffer json, ObjectHandle *result_p);
+
 char *anoncreds_version(void);
 
 #ifdef __cplusplus

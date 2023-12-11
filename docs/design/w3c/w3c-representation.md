@@ -75,90 +75,6 @@ pub extern "C" fn anoncreds_credential_from_w3c(
 ) -> ErrorCode {}
 ```
 
-#### Credential object helper methods
-
-```rust
-/// Add Non-Anoncreds Data Integrity proof signature to W3C AnonCreds credential
-///
-/// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// proof -     data integrity proof as JSON string
-/// cred_p:     reference that will contain update credential
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(
-    cred: ObjectHandle,
-    proof: FfiStr,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
-
-/// Add context to W3C AnonCreds credential
-///
-/// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// context -   context to add into credential
-/// cred_p:     reference that will contain update credential
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_add_context(
-    cred: ObjectHandle,
-    context: FfiStr,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
-
-/// Add type to W3C AnonCreds credential
-///
-/// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// type -      type to add into credential
-/// cred_p:     reference that will contain update credential
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_add_type(
-    cred: ObjectHandle,
-    type_: FfiStr,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
-
-/// Set subject id to W3C AnonCreds credential
-///
-/// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// id -        subject id to add into credential
-/// cred_p:     reference that will contain update credential
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_set_subject_id(
-    cred: ObjectHandle,
-    id: FfiStr,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
-
-/// Set id to W3C AnonCreds credential
-///
-/// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// id -        id to add into credential
-/// cred_p:     reference that will contain update credential
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_set_id(
-    cred: ObjectHandle,
-    id: FfiStr,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
-```
-
 #### Flow methods duplication
 
 The idea for this approach to duplicate all issuance/presentation related methods for w3c standard.
@@ -186,52 +102,6 @@ The reasons for adding duplication methods:
     - only credential conversion method to do migration for previously issued credentials
 
 ```rust
-/// Create Credential Offer according to the AnonCreds specification
-/// Note that Credential Offer still will be legacy styled (the same as result of anoncreds_create_credential_offer)
-///
-/// # Params
-/// schema_id:              id of schema future credential refers to
-/// cred_def_id:            id of credential definition future credential refers to
-/// key_proof:              object handle pointing to credential definition key correctness proof
-/// cred_offer_p:           reference that will contain created credential offer (in legacy form) instance pointer
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_create_w3c_credential_offer(
-    schema_id: FfiStr,
-    cred_def_id: FfiStr,
-    key_proof: ObjectHandle,
-    cred_offer_p: *mut ObjectHandle,
-) -> ErrorCode {}
-
-/// Create Credential Request according to the AnonCreds specification
-/// Note that Credential Request still will be legacy styled (the same as result of anoncreds_create_credential_request)
-///
-/// # Params
-/// entropy:                entropy string to use for request creation
-/// prover_did:             DID of the credential holder
-/// cred_def:               object handle pointing to credential definition
-/// link_secret:            holder link secret
-/// link_secret_id:         id of holder's link secret
-/// credential_offer:       object handle pointing to credential offer
-/// cred_req_p:             Reference that will contain created credential request (in legacy form) instance pointer.
-/// cred_req_meta_p:        Reference that will contain created credential request metadata (in legacy form) instance pointer.
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_create_w3c_credential_request(
-    entropy: FfiStr,
-    prover_did: FfiStr,
-    cred_def: ObjectHandle,
-    link_secret: FfiStr,
-    link_secret_id: FfiStr,
-    cred_offer: ObjectHandle,
-    cred_req_p: *mut ObjectHandle,
-    cred_req_meta_p: *mut ObjectHandle,
-) -> ErrorCode {}
-
 /// Create Credential in W3C form according to the specification.
 ///
 /// # Params
@@ -419,28 +289,6 @@ Wallet.store_w3c_credential(w3c_credential)
 w3c_presentation_request = Verifier.w3c_create_presentation_request()
 w3c_presentation = Holder.anoncreds_w3c_create_presentation(w3c_presentation_request, w3c_credential)
 Verifier.anoncreds_w3c_verify_presentation(w3c_presentation)
-```
-
-#### Issue W3C Credential, set RSA Identity Proof signature, and present W3C Presentation using RSA Identity Proof
-
-```
-/// Issue W3C credential using new flow methods
-w3c_credential_offer = Issuer.anoncreds_w3c_create_credential_offer(...)
-w3c_credential_request = Holder.anoncreds_w3c_create_credential_request(w3c_credential_offer,...)
-w3c_credential = Issuer.anoncreds_w3c_create_credential(w3c_credential_request,...)
-w3c_credential = Holder.anoncreds_w3c_process_credential(w3c_credential,...)
-
-/// Add RSA Identity Proof signature to credential
-integrity_proof = extartnal_library.create_rsa_integrity_proof(w3c_credential)
-w3c_credential = anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(w3c_credential, integrity_proof)
-
-/// Do wallets need to store both credential forms to handle legacy and DIF presentations requests?  
-Wallet.store_w3c_credential(w3c_credential)
-
-/// Verifiy W3C presenttion using RSA Identity Proof signature
-w3c_presentation_request = Verifier.w3c_create_presentation_request()
-rsa_integrity_proof_presentation = extartnal_library.create_presentation_using_rsa_integrity_proof(w3c_presentation_request, w3c_credential)
-extartnal_verifier.verify_rsa_integrity_proof_presentation(rsa_integrity_proof_presentation)
 ```
 
 ### Presentation validation

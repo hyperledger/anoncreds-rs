@@ -7,9 +7,7 @@ use std::string::ToString;
 use zeroize::Zeroize;
 
 use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_CREDENTIAL_TYPES};
-use crate::data_types::w3c::credential_proof::{
-    CredentialProof, CredentialSignatureProof, NonAnonCredsDataIntegrityProof,
-};
+use crate::data_types::w3c::credential_proof::{CredentialProof, CredentialSignatureProof};
 use crate::data_types::w3c::presentation_proof::{CredentialPresentationProof, PredicateAttribute};
 use crate::data_types::{
     cred_def::CredentialDefinitionId,
@@ -330,18 +328,6 @@ impl W3CCredential {
         self.credential_subject.attributes = attributes
     }
 
-    pub fn set_subject_id(&mut self, id: URI) {
-        self.credential_subject.id = Some(id)
-    }
-
-    pub fn add_context(&mut self, context: URI) {
-        self.context.0.insert(context);
-    }
-
-    pub fn add_type(&mut self, types: String) {
-        self.type_.0.insert(types);
-    }
-
     pub fn add_proof(&mut self, proof: CredentialProof) {
         match self.proof {
             OneOrMany::One(ref existing_proof) => {
@@ -353,10 +339,6 @@ impl W3CCredential {
 
     pub fn add_anoncreds_signature_proof(&mut self, proof: CredentialSignatureProof) {
         self.add_proof(CredentialProof::AnonCredsSignatureProof(proof));
-    }
-
-    pub fn add_non_anoncreds_integrity_proof(&mut self, proof: NonAnonCredsDataIntegrityProof) {
-        self.add_proof(CredentialProof::NonAnonCredsDataIntegrityProof(proof));
     }
 
     pub fn set_anoncreds_presentation_proof(&mut self, proof: CredentialPresentationProof) {

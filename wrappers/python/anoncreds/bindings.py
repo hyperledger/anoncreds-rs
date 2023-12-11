@@ -966,43 +966,6 @@ def create_or_update_revocation_state(
     return updated_rev_state
 
 
-def create_w3c_credential_offer(
-    schema_id: str, cred_def_id: str, key_proof: ObjectHandle
-) -> ObjectHandle:
-    cred_offer = ObjectHandle()
-    do_call(
-        "anoncreds_create_w3c_credential_offer",
-        encode_str(schema_id),
-        encode_str(cred_def_id),
-        key_proof,
-        byref(cred_offer),
-    )
-    return cred_offer
-
-
-def create_w3c_credential_request(
-    entropy: Optional[str],
-    prover_did: Optional[str],
-    cred_def: ObjectHandle,
-    link_secret: str,
-    link_secret_id: str,
-    cred_offer: ObjectHandle,
-) -> Tuple[ObjectHandle, ObjectHandle]:
-    cred_req, cred_req_metadata = ObjectHandle(), ObjectHandle()
-    do_call(
-        "anoncreds_create_w3c_credential_request",
-        encode_str(entropy),
-        encode_str(prover_did),
-        cred_def,
-        encode_str(link_secret),
-        encode_str(link_secret_id),
-        cred_offer,
-        byref(cred_req),
-        byref(cred_req_metadata),
-    )
-    return (cred_req, cred_req_metadata)
-
-
 def create_w3c_credential(
     cred_def: ObjectHandle,
     cred_def_private: ObjectHandle,
@@ -1074,76 +1037,6 @@ def credential_from_w3c(
     do_call(
         "anoncreds_credential_from_w3c",
         cred,
-        byref(result),
-    )
-    return result
-
-
-def w3c_credential_add_non_anoncreds_integrity_proof(
-    cred: ObjectHandle,
-    proof: str,
-) -> ObjectHandle:
-    result = ObjectHandle()
-    do_call(
-        "anoncreds_w3c_credential_add_non_anoncreds_integrity_proof",
-        cred,
-        encode_str(proof),
-        byref(result),
-    )
-    return result
-
-
-def w3c_credential_set_id(
-    cred: ObjectHandle,
-    id: str,
-) -> ObjectHandle:
-    result = ObjectHandle()
-    do_call(
-        "anoncreds_w3c_credential_set_id",
-        cred,
-        encode_str(id),
-        byref(result),
-    )
-    return result
-
-
-def w3c_credential_set_subject_id(
-    cred: ObjectHandle,
-    id: str,
-) -> ObjectHandle:
-    result = ObjectHandle()
-    do_call(
-        "anoncreds_w3c_credential_set_subject_id",
-        cred,
-        encode_str(id),
-        byref(result),
-    )
-    return result
-
-
-def w3c_credential_add_context(
-    cred: ObjectHandle,
-    context: str,
-) -> ObjectHandle:
-    result = ObjectHandle()
-    do_call(
-        "anoncreds_w3c_credential_add_context",
-        cred,
-        encode_str(context),
-        byref(result),
-    )
-    return result
-
-
-def w3c_credential_add_type(
-    cred: ObjectHandle,
-    type_: str,
-) -> ObjectHandle:
-    result = ObjectHandle()
-    do_call(
-        "anoncreds_w3c_credential_add_type",
-        cred,
-        encode_str(type_),
         byref(result),
     )
     return result

@@ -627,57 +627,6 @@ export class NodeJSAnoncreds implements Anoncreds {
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
 
-  public createW3cCredentialOffer(options: {
-    schemaId: string
-    credentialDefinitionId: string
-    keyCorrectnessProof: ObjectHandle
-  }): ObjectHandle {
-    const { schemaId, credentialDefinitionId, keyCorrectnessProof } = serializeArguments(options)
-
-    const ret = allocatePointer()
-    this.nativeAnoncreds.anoncreds_create_w3c_credential_offer(
-      schemaId,
-      credentialDefinitionId,
-      keyCorrectnessProof,
-      ret
-    )
-    this.handleError()
-
-    return new ObjectHandle(handleReturnPointer<number>(ret))
-  }
-
-  public createW3cCredentialRequest(options: {
-    entropy?: string
-    proverDid?: string
-    credentialDefinition: ObjectHandle
-    linkSecret: string
-    linkSecretId: string
-    credentialOffer: ObjectHandle
-  }): { credentialRequest: ObjectHandle; credentialRequestMetadata: ObjectHandle } {
-    const { entropy, proverDid, credentialDefinition, linkSecret, linkSecretId, credentialOffer } =
-      serializeArguments(options)
-
-    const credentialRequestPtr = allocatePointer()
-    const credentialRequestMetadataPtr = allocatePointer()
-
-    this.nativeAnoncreds.anoncreds_create_w3c_credential_request(
-      entropy,
-      proverDid,
-      credentialDefinition,
-      linkSecret,
-      linkSecretId,
-      credentialOffer,
-      credentialRequestPtr,
-      credentialRequestMetadataPtr
-    )
-    this.handleError()
-
-    return {
-      credentialRequest: new ObjectHandle(handleReturnPointer<number>(credentialRequestPtr)),
-      credentialRequestMetadata: new ObjectHandle(handleReturnPointer<number>(credentialRequestMetadataPtr))
-    }
-  }
-
   public createW3cCredential(options: {
     credentialDefinition: ObjectHandle
     credentialDefinitionPrivate: ObjectHandle
@@ -929,78 +878,6 @@ export class NodeJSAnoncreds implements Anoncreds {
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
 
-  public w3cCredentialAddNonAnoncredsIntegrityProof(options: {
-    objectHandle: ObjectHandle
-    proof: string
-  }): ObjectHandle {
-    const { objectHandle, proof } = serializeArguments(options)
-
-    const ret = allocatePointer()
-
-    this.nativeAnoncreds.anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(objectHandle, proof, ret)
-    this.handleError()
-
-    return new ObjectHandle(handleReturnPointer<number>(ret))
-  }
-
-  public w3cCredentialAddNonAnonCredsIntegrityProof(options: {
-    objectHandle: ObjectHandle
-    proof: string
-  }): ObjectHandle {
-    const { objectHandle, proof } = serializeArguments(options)
-
-    const ret = allocatePointer()
-
-    this.nativeAnoncreds.anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(objectHandle, proof, ret)
-    this.handleError()
-
-    return new ObjectHandle(handleReturnPointer<number>(ret))
-  }
-
-  public w3cCredentialSetId(options: { objectHandle: ObjectHandle; id: string }): ObjectHandle {
-    const { objectHandle, id } = serializeArguments(options)
-
-    const ret = allocatePointer()
-
-    this.nativeAnoncreds.anoncreds_w3c_credential_set_id(objectHandle, id, ret)
-    this.handleError()
-
-    return new ObjectHandle(handleReturnPointer<number>(ret))
-  }
-
-  public w3cCredentialSetSubjectId(options: { objectHandle: ObjectHandle; id: string }): ObjectHandle {
-    const { objectHandle, id } = serializeArguments(options)
-
-    const ret = allocatePointer()
-
-    this.nativeAnoncreds.anoncreds_w3c_credential_set_subject_id(objectHandle, id, ret)
-    this.handleError()
-
-    return new ObjectHandle(handleReturnPointer<number>(ret))
-  }
-
-  public w3cCredentialAddContext(options: { objectHandle: ObjectHandle; context: string }): ObjectHandle {
-    const { objectHandle, context } = serializeArguments(options)
-
-    const ret = allocatePointer()
-
-    this.nativeAnoncreds.anoncreds_w3c_credential_add_context(objectHandle, context, ret)
-    this.handleError()
-
-    return new ObjectHandle(handleReturnPointer<number>(ret))
-  }
-
-  public w3cCredentialAddType(options: { objectHandle: ObjectHandle; type: string }): ObjectHandle {
-    const { objectHandle, type } = serializeArguments(options)
-
-    const ret = allocatePointer()
-
-    this.nativeAnoncreds.anoncreds_w3c_credential_add_type(objectHandle, type, ret)
-    this.handleError()
-
-    return new ObjectHandle(handleReturnPointer<number>(ret))
-  }
-
   public version(): string {
     return this.nativeAnoncreds.anoncreds_version()
   }
@@ -1088,14 +965,6 @@ export class NodeJSAnoncreds implements Anoncreds {
 
   public keyCorrectnessProofFromJson(options: { json: string }): ObjectHandle {
     return this.objectFromJson(this.nativeAnoncreds.anoncreds_key_correctness_proof_from_json, options)
-  }
-
-  public w3cCredentialOfferFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(this.nativeAnoncreds.anoncreds_credential_offer_from_json, options)
-  }
-
-  public w3cCredentialRequestFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(this.nativeAnoncreds.anoncreds_credential_request_from_json, options)
   }
 
   public w3cCredentialFromJson(options: { json: string }): ObjectHandle {

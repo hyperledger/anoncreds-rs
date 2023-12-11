@@ -186,21 +186,6 @@ export type NativeBindings = {
 
   keyCorrectnessProofFromJson(options: { json: string }): ReturnObject<Handle>
 
-  createW3cCredentialOffer(options: {
-    schemaId: string
-    credentialDefinitionId: string
-    keyCorrectnessProof: number
-  }): ReturnObject<Handle>
-
-  createW3cCredentialRequest(options: {
-    entropy?: string
-    proverDid?: string
-    credentialDefinition: number
-    linkSecret: string
-    linkSecretId: string
-    credentialOffer: number
-  }): ReturnObject<{ credentialRequest: Handle; credentialRequestMetadata: Handle }>
-
   createW3cCredential(options: {
     credentialDefinition: number
     credentialDefinitionPrivate: number
@@ -226,16 +211,6 @@ export type NativeBindings = {
   }): ReturnObject<Handle>
 
   w3cCredentialGetAttribute(options: { objectHandle: number; name: string }): ReturnObject<string>
-
-  w3cCredentialAddNonAnonCredsIntegrityProof(options: { objectHandle: number; proof: string }): ReturnObject<Handle>
-
-  w3cCredentialSetId(options: { objectHandle: number; id: string }): ReturnObject<Handle>
-
-  w3cCredentialSetSubjectId(options: { objectHandle: number; id: string }): ReturnObject<Handle>
-
-  w3cCredentialAddContext(options: { objectHandle: number; context: string }): ReturnObject<Handle>
-
-  w3cCredentialAddType(options: { objectHandle: number; type: string }): ReturnObject<Handle>
 
   credentialToW3c(options: { objectHandle: number; credentialDefinition: number }): ReturnObject<Handle>
 
@@ -264,10 +239,6 @@ export type NativeBindings = {
     revocationStatusLists?: number[]
     nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
   }): ReturnObject<number>
-
-  w3cCredentialOfferFromJson(options: { json: string }): ReturnObject<Handle>
-
-  w3cCredentialRequestFromJson(options: { json: string }): ReturnObject<Handle>
 
   w3cCredentialFromJson(options: { json: string }): ReturnObject<Handle>
 

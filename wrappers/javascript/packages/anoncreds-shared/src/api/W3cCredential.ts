@@ -9,17 +9,17 @@ import { anoncreds } from '../register'
 import { Credential } from './Credential'
 import { CredentialDefinition } from './CredentialDefinition'
 import { CredentialDefinitionPrivate } from './CredentialDefinitionPrivate'
+import { CredentialOffer } from './CredentialOffer'
+import { CredentialRequest } from './CredentialRequest'
 import { CredentialRequestMetadata } from './CredentialRequestMetadata'
 import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
-import { W3cCredentialOffer } from './W3cCredentialOffer'
-import { W3cCredentialRequest } from './W3cCredentialRequest'
 import { pushToArray } from './utils'
 
 export type CreateW3cCredentialOptions = {
   credentialDefinition: CredentialDefinition | JsonObject
   credentialDefinitionPrivate: CredentialDefinitionPrivate | JsonObject
-  credentialOffer: W3cCredentialOffer | JsonObject
-  credentialRequest: W3cCredentialRequest | JsonObject
+  credentialOffer: CredentialOffer | JsonObject
+  credentialRequest: CredentialRequest | JsonObject
   attributeRawValues: Record<string, string>
   revocationRegistryId?: string
   revocationConfiguration?: CredentialRevocationConfig
@@ -56,14 +56,14 @@ export class W3cCredential extends AnoncredsObject {
           : pushToArray(CredentialDefinitionPrivate.fromJson(options.credentialDefinitionPrivate).handle, objectHandles)
 
       const credentialOffer =
-        options.credentialOffer instanceof W3cCredentialOffer
+        options.credentialOffer instanceof CredentialOffer
           ? options.credentialOffer.handle
-          : pushToArray(W3cCredentialOffer.fromJson(options.credentialOffer).handle, objectHandles)
+          : pushToArray(CredentialOffer.fromJson(options.credentialOffer).handle, objectHandles)
 
       const credentialRequest =
-        options.credentialRequest instanceof W3cCredentialRequest
+        options.credentialRequest instanceof CredentialRequest
           ? options.credentialRequest.handle
-          : pushToArray(W3cCredentialRequest.fromJson(options.credentialRequest).handle, objectHandles)
+          : pushToArray(CredentialRequest.fromJson(options.credentialRequest).handle, objectHandles)
 
       credential = anoncreds.createW3cCredential({
         credentialDefinition,
@@ -177,55 +177,5 @@ export class W3cCredential extends AnoncredsObject {
       })
     }
     return credential
-  }
-
-  public addNonAnonCredsIntegrityProof(proof: JsonObject) {
-    const credential = anoncreds.w3cCredentialAddNonAnonCredsIntegrityProof({
-      objectHandle: this.handle,
-      proof: JSON.stringify(proof)
-    })
-
-    this.handle.clear()
-    this.handle = credential
-  }
-
-  public setId(id: string) {
-    const credential = anoncreds.w3cCredentialSetId({
-      objectHandle: this.handle,
-      id
-    })
-
-    this.handle.clear()
-    this.handle = credential
-  }
-
-  public setSubjectId(id: string) {
-    const credential = anoncreds.w3cCredentialSetSubjectId({
-      objectHandle: this.handle,
-      id
-    })
-
-    this.handle.clear()
-    this.handle = credential
-  }
-
-  public addContext(context: string) {
-    const credential = anoncreds.w3cCredentialAddContext({
-      objectHandle: this.handle,
-      context
-    })
-
-    this.handle.clear()
-    this.handle = credential
-  }
-
-  public addType(type: string) {
-    const credential = anoncreds.w3cCredentialAddType({
-      objectHandle: this.handle,
-      type
-    })
-
-    this.handle.clear()
-    this.handle = credential
   }
 }

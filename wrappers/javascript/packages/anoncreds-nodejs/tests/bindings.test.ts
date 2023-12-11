@@ -374,7 +374,7 @@ describe('bindings', () => {
       timestamp: timeCreateRevStatusList
     })
 
-    const credentialOffer = anoncreds.createW3cCredentialOffer({
+    const credentialOffer = anoncreds.createCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
       keyCorrectnessProof
@@ -383,7 +383,7 @@ describe('bindings', () => {
     const linkSecret = anoncreds.createLinkSecret()
     const linkSecretId = 'link secret id'
 
-    const { credentialRequestMetadata, credentialRequest } = anoncreds.createW3cCredentialRequest({
+    const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
       entropy: ENTROPY,
       credentialDefinition,
       linkSecret,
@@ -672,7 +672,7 @@ describe('bindings', () => {
       timestamp: timeCreateRevStatusList
     })
 
-    const credentialOffer = anoncreds.createW3cCredentialOffer({
+    const credentialOffer = anoncreds.createCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
       keyCorrectnessProof
@@ -681,7 +681,7 @@ describe('bindings', () => {
     const linkSecret = anoncreds.createLinkSecret()
     const linkSecretId = 'link secret id'
 
-    const { credentialRequestMetadata, credentialRequest } = anoncreds.createW3cCredentialRequest({
+    const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
       entropy: ENTROPY,
       credentialDefinition,
       linkSecret,
@@ -944,7 +944,7 @@ describe('bindings', () => {
         tag: 'TAG'
       })
 
-    const credentialOffer = anoncreds.createW3cCredentialOffer({
+    const credentialOffer = anoncreds.createCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
       keyCorrectnessProof
@@ -953,7 +953,7 @@ describe('bindings', () => {
     const linkSecret = anoncreds.createLinkSecret()
     const linkSecretId = 'link secret id'
 
-    const { credentialRequestMetadata, credentialRequest } = anoncreds.createW3cCredentialRequest({
+    const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
       entropy: ENTROPY,
       credentialDefinition,
       linkSecret,
