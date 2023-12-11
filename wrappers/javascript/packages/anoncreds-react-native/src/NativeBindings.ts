@@ -186,13 +186,13 @@ export type NativeBindings = {
 
   keyCorrectnessProofFromJson(options: { json: string }): ReturnObject<Handle>
 
-  createW3CCredentialOffer(options: {
+  createW3cCredentialOffer(options: {
     schemaId: string
     credentialDefinitionId: string
     keyCorrectnessProof: number
   }): ReturnObject<Handle>
 
-  createW3CCredentialRequest(options: {
+  createW3cCredentialRequest(options: {
     entropy?: string
     proverDid?: string
     credentialDefinition: number
@@ -201,7 +201,7 @@ export type NativeBindings = {
     credentialOffer: number
   }): ReturnObject<{ credentialRequest: Handle; credentialRequestMetadata: Handle }>
 
-  createW3CCredential(options: {
+  createW3cCredential(options: {
     credentialDefinition: number
     credentialDefinitionPrivate: number
     credentialOffer: number
@@ -217,7 +217,7 @@ export type NativeBindings = {
     encoding?: string
   }): ReturnObject<Handle>
 
-  processW3CCredential(options: {
+  processW3cCredential(options: {
     credential: number
     credentialRequestMetadata: number
     linkSecret: string
@@ -235,13 +235,13 @@ export type NativeBindings = {
 
   w3cCredentialAddContext(options: { objectHandle: number; context: string }): ReturnObject<Handle>
 
-  w3cCredentialAddType(options: { objectHandle: number; type_: string }): ReturnObject<Handle>
+  w3cCredentialAddType(options: { objectHandle: number; type: string }): ReturnObject<Handle>
 
-  credentialToW3C(options: { objectHandle: number; credentialDefinition: number }): ReturnObject<Handle>
+  credentialToW3c(options: { objectHandle: number; credentialDefinition: number }): ReturnObject<Handle>
 
-  credentialFromW3C(options: { objectHandle: number }): ReturnObject<Handle>
+  credentialFromW3c(options: { objectHandle: number }): ReturnObject<Handle>
 
-  createW3CPresentation(options: {
+  createW3cPresentation(options: {
     presentationRequest: number
     credentials: { credential: number; timestamp?: number; revocationState?: number }[]
     credentialsProve: NativeCredentialProve[]
@@ -252,7 +252,7 @@ export type NativeBindings = {
     credentialDefinitions: number[]
   }): ReturnObject<Handle>
 
-  verifyW3CPresentation(options: {
+  verifyW3cPresentation(options: {
     presentation: number
     presentationRequest: number
     schemas: number[]

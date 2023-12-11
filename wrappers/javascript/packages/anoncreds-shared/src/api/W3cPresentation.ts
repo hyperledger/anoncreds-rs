@@ -11,27 +11,27 @@ import { PresentationRequest } from './PresentationRequest'
 import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
 import { RevocationStatusList } from './RevocationStatusList'
 import { Schema } from './Schema'
-import { W3CCredential } from './W3CCredential'
+import { W3cCredential } from './W3cCredential'
 import { pushToArray } from './utils'
 
 // TODO: Simplify Presentation API (see PresentCredentials object in python wrapper))
 
-export type W3CCredentialEntry = {
-  credential: W3CCredential | JsonObject
+export type W3cCredentialEntry = {
+  credential: W3cCredential | JsonObject
   timestamp?: number
   revocationState?: CredentialRevocationState | JsonObject
 }
 
-export type CreateW3CPresentationOptions = {
+export type CreateW3cPresentationOptions = {
   presentationRequest: PresentationRequest | JsonObject
-  credentials: W3CCredentialEntry[]
+  credentials: W3cCredentialEntry[]
   credentialsProve: CredentialProve[]
   linkSecret: string
   schemas: Record<string, Schema | JsonObject>
   credentialDefinitions: Record<string, CredentialDefinition | JsonObject>
 }
 
-export type VerifyW3CPresentationOptions = {
+export type VerifyW3cPresentationOptions = {
   presentationRequest: PresentationRequest | JsonObject
   schemas: Record<string, Schema | JsonObject>
   credentialDefinitions: Record<string, CredentialDefinition | JsonObject>
@@ -40,8 +40,8 @@ export type VerifyW3CPresentationOptions = {
   nonRevokedIntervalOverrides?: NonRevokedIntervalOverride[]
 }
 
-export class W3CPresentation extends AnoncredsObject {
-  public static create(options: CreateW3CPresentationOptions) {
+export class W3cPresentation extends AnoncredsObject {
+  public static create(options: CreateW3cPresentationOptions) {
     let presentationHandle
     // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
@@ -51,13 +51,13 @@ export class W3CPresentation extends AnoncredsObject {
           ? options.presentationRequest.handle
           : pushToArray(PresentationRequest.fromJson(options.presentationRequest).handle, objectHandles)
 
-      presentationHandle = anoncreds.createW3CPresentation({
+      presentationHandle = anoncreds.createW3cPresentation({
         presentationRequest,
         credentials: options.credentials.map((item) => ({
           credential:
-            item.credential instanceof W3CCredential
+            item.credential instanceof W3cCredential
               ? item.credential.handle
-              : pushToArray(W3CCredential.fromJson(item.credential).handle, objectHandles),
+              : pushToArray(W3cCredential.fromJson(item.credential).handle, objectHandles),
           revocationState:
             item.revocationState instanceof CredentialRevocationState
               ? item.revocationState.handle
@@ -94,14 +94,14 @@ export class W3CPresentation extends AnoncredsObject {
         handle.clear()
       })
     }
-    return new W3CPresentation(presentationHandle)
+    return new W3cPresentation(presentationHandle)
   }
 
   public static fromJson(json: JsonObject) {
-    return new W3CPresentation(anoncreds.w3cPresentationFromJson({ json: JSON.stringify(json) }).handle)
+    return new W3cPresentation(anoncreds.w3cPresentationFromJson({ json: JSON.stringify(json) }).handle)
   }
 
-  public verify(options: VerifyW3CPresentationOptions) {
+  public verify(options: VerifyW3cPresentationOptions) {
     const schemas = Object.values(options.schemas)
     const schemaIds = Object.keys(options.schemas)
 
@@ -124,7 +124,7 @@ export class W3CPresentation extends AnoncredsObject {
           ? options.presentationRequest.handle
           : pushToArray(PresentationRequest.fromJson(options.presentationRequest).handle, objectHandles)
 
-      verified = anoncreds.verifyW3CPresentation({
+      verified = anoncreds.verifyW3cPresentation({
         presentation: this.handle,
         presentationRequest,
         schemas: schemas.map((o) =>

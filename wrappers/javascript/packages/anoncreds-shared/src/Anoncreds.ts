@@ -205,13 +205,13 @@ export type Anoncreds = {
 
   objectFree(options: { objectHandle: ObjectHandle }): void
 
-  createW3CCredentialOffer(options: {
+  createW3cCredentialOffer(options: {
     schemaId: string
     credentialDefinitionId: string
     keyCorrectnessProof: ObjectHandle
   }): ObjectHandle
 
-  createW3CCredentialRequest(options: {
+  createW3cCredentialRequest(options: {
     entropy?: string
     proverDid?: string
     credentialDefinition: ObjectHandle
@@ -220,7 +220,7 @@ export type Anoncreds = {
     credentialOffer: ObjectHandle
   }): { credentialRequest: ObjectHandle; credentialRequestMetadata: ObjectHandle }
 
-  createW3CCredential(options: {
+  createW3cCredential(options: {
     credentialDefinition: ObjectHandle
     credentialDefinitionPrivate: ObjectHandle
     credentialOffer: ObjectHandle
@@ -230,7 +230,7 @@ export type Anoncreds = {
     encoding?: string
   }): ObjectHandle
 
-  processW3CCredential(options: {
+  processW3cCredential(options: {
     credential: ObjectHandle
     credentialRequestMetadata: ObjectHandle
     linkSecret: string
@@ -238,7 +238,7 @@ export type Anoncreds = {
     revocationRegistryDefinition?: ObjectHandle
   }): ObjectHandle
 
-  createW3CPresentation(options: {
+  createW3cPresentation(options: {
     presentationRequest: ObjectHandle
     credentials: NativeCredentialEntry[]
     credentialsProve: NativeCredentialProve[]
@@ -247,7 +247,7 @@ export type Anoncreds = {
     credentialDefinitions: Record<string, ObjectHandle>
   }): ObjectHandle
 
-  verifyW3CPresentation(options: {
+  verifyW3cPresentation(options: {
     presentation: ObjectHandle
     presentationRequest: ObjectHandle
     schemas: ObjectHandle[]
@@ -270,7 +270,7 @@ export type Anoncreds = {
 
   w3cCredentialAddContext(options: { objectHandle: ObjectHandle; context: string }): ObjectHandle
 
-  w3cCredentialAddType(options: { objectHandle: ObjectHandle; type_: string }): ObjectHandle
+  w3cCredentialAddType(options: { objectHandle: ObjectHandle; type: string }): ObjectHandle
 
   w3cCredentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string
 
@@ -280,7 +280,7 @@ export type Anoncreds = {
 
   w3cCredentialFromJson(options: { json: string }): ObjectHandle
 
-  credentialToW3C(options: { objectHandle: ObjectHandle; credentialDefinition: ObjectHandle }): ObjectHandle
+  credentialToW3c(options: { objectHandle: ObjectHandle; credentialDefinition: ObjectHandle }): ObjectHandle
 
-  credentialFromW3C(options: { objectHandle: ObjectHandle }): ObjectHandle
+  credentialFromW3c(options: { objectHandle: ObjectHandle }): ObjectHandle
 }

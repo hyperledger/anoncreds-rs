@@ -12,10 +12,10 @@ import {
   RevocationRegistryDefinition,
   RevocationStatusList,
   Schema,
-  W3CCredential,
-  W3CCredentialOffer,
-  W3CCredentialRequest,
-  W3CPresentation
+  W3cCredential,
+  W3cCredentialOffer,
+  W3cCredentialRequest,
+  W3cPresentation
 } from '@hyperledger/anoncreds-shared'
 
 import { setup } from './utils'
@@ -608,7 +608,7 @@ describe('API W3C', () => {
       timestamp: timeCreateRevStatusList
     })
 
-    const credentialOffer = W3CCredentialOffer.create({
+    const credentialOffer = W3cCredentialOffer.create({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
       keyCorrectnessProof
@@ -617,7 +617,7 @@ describe('API W3C', () => {
     const linkSecret = LinkSecret.create()
     const linkSecretId = 'link secret id'
 
-    const { credentialRequestMetadata, credentialRequest } = W3CCredentialRequest.create({
+    const { credentialRequestMetadata, credentialRequest } = W3cCredentialRequest.create({
       entropy: 'entropy',
       credentialDefinition,
       linkSecret,
@@ -625,7 +625,7 @@ describe('API W3C', () => {
       credentialOffer
     })
 
-    const credential = W3CCredential.create({
+    const credential = W3cCredential.create({
       credentialDefinition,
       credentialDefinitionPrivate,
       credentialOffer,
@@ -643,19 +643,19 @@ describe('API W3C', () => {
     expect('mock:uri').toEqual(legacyCredential.schemaId)
     expect('mock:uri').toEqual(legacyCredential.credentialDefinitionId)
 
-    const legacyCredentialFrom = Credential.fromW3C({ credential })
+    const legacyCredentialFrom = Credential.fromW3c({ credential })
     expect('mock:uri').toEqual(legacyCredentialFrom.schemaId)
     expect('mock:uri').toEqual(legacyCredentialFrom.credentialDefinitionId)
 
-    const w3cCredential = W3CCredential.fromLegacy({ credential: legacyCredential, credentialDefinition })
+    const w3cCredential = W3cCredential.fromLegacy({ credential: legacyCredential, credentialDefinition })
     expect('mock:uri').toEqual(w3cCredential.schemaId)
     expect('mock:uri').toEqual(w3cCredential.credentialDefinitionId)
 
-    const convertedW3CCredential = legacyCredential.toW3C({ credentialDefinition })
-    expect('mock:uri').toEqual(convertedW3CCredential.schemaId)
-    expect('mock:uri').toEqual(convertedW3CCredential.credentialDefinitionId)
+    const convertedW3cCredential = legacyCredential.toW3c({ credentialDefinition })
+    expect('mock:uri').toEqual(convertedW3cCredential.schemaId)
+    expect('mock:uri').toEqual(convertedW3cCredential.credentialDefinitionId)
 
-    convertedW3CCredential.addNonAnonCredsIntegrityProof({
+    convertedW3cCredential.addNonAnonCredsIntegrityProof({
       type: 'Ed25519Signature2020',
       created: '2021-11-13T18:19:39Z',
       verificationMethod: 'did:sov:3avoBCqDMFHFaKUHug9s8W#key-1',
@@ -666,14 +666,14 @@ describe('API W3C', () => {
     const id = 'http://example.com/credentials/3732'
     const subjectId = 'did:example:ebfeb1f712ebc6f1c276e12ec21'
 
-    convertedW3CCredential.setId(id)
-    convertedW3CCredential.setSubjectId(subjectId)
-    convertedW3CCredential.addContext('https://www.w3.org/2018/credentials/examples/v1')
-    convertedW3CCredential.addType('UniversityDegreeCredential')
-    const convertedW3CCredentialJson = convertedW3CCredential.toJson()
+    convertedW3cCredential.setId(id)
+    convertedW3cCredential.setSubjectId(subjectId)
+    convertedW3cCredential.addContext('https://www.w3.org/2018/credentials/examples/v1')
+    convertedW3cCredential.addType('UniversityDegreeCredential')
+    const convertedW3cCredentialJson = convertedW3cCredential.toJson()
 
-    expect(id).toEqual(convertedW3CCredentialJson.id)
-    expect(subjectId).toEqual(convertedW3CCredentialJson.credentialSubject.id)
+    expect(id).toEqual(convertedW3cCredentialJson.id)
+    expect(subjectId).toEqual(convertedW3cCredentialJson.credentialSubject.id)
 
     const credentialReceived = credential.process({
       credentialDefinition,
@@ -691,7 +691,7 @@ describe('API W3C', () => {
       tailsPath
     })
 
-    const presentation = W3CPresentation.create({
+    const presentation = W3cPresentation.create({
       presentationRequest,
       credentials: [
         {
@@ -773,7 +773,7 @@ describe('API W3C', () => {
       tag: 'TAG'
     })
 
-    const credentialOffer = W3CCredentialOffer.create({
+    const credentialOffer = W3cCredentialOffer.create({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
       keyCorrectnessProof
@@ -782,7 +782,7 @@ describe('API W3C', () => {
     const linkSecret = LinkSecret.create()
     const linkSecretId = 'link secret id'
 
-    const { credentialRequestMetadata, credentialRequest } = W3CCredentialRequest.create({
+    const { credentialRequestMetadata, credentialRequest } = W3cCredentialRequest.create({
       entropy: 'entropy',
       credentialDefinition,
       linkSecret,
@@ -790,7 +790,7 @@ describe('API W3C', () => {
       credentialOffer
     })
 
-    const credential = W3CCredential.create({
+    const credential = W3cCredential.create({
       credentialDefinition,
       credentialDefinitionPrivate,
       credentialOffer,
@@ -824,7 +824,7 @@ describe('API W3C', () => {
       }
     })
 
-    const presentation = W3CPresentation.create({
+    const presentation = W3cPresentation.create({
       presentationRequest,
       credentials: [
         {

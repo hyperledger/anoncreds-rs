@@ -374,7 +374,7 @@ describe('bindings', () => {
       timestamp: timeCreateRevStatusList
     })
 
-    const credentialOffer = anoncreds.createW3CCredentialOffer({
+    const credentialOffer = anoncreds.createW3cCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
       keyCorrectnessProof
@@ -383,7 +383,7 @@ describe('bindings', () => {
     const linkSecret = anoncreds.createLinkSecret()
     const linkSecretId = 'link secret id'
 
-    const { credentialRequestMetadata, credentialRequest } = anoncreds.createW3CCredentialRequest({
+    const { credentialRequestMetadata, credentialRequest } = anoncreds.createW3cCredentialRequest({
       entropy: ENTROPY,
       credentialDefinition,
       linkSecret,
@@ -391,7 +391,7 @@ describe('bindings', () => {
       credentialOffer
     })
 
-    const credential = anoncreds.createW3CCredential({
+    const credential = anoncreds.createW3cCredential({
       credentialDefinition,
       credentialDefinitionPrivate,
       credentialOffer,
@@ -406,7 +406,7 @@ describe('bindings', () => {
       encoding: undefined
     })
 
-    const credReceived = anoncreds.processW3CCredential({
+    const credReceived = anoncreds.processW3cCredential({
       credential,
       credentialDefinition,
       credentialRequestMetadata,
@@ -672,7 +672,7 @@ describe('bindings', () => {
       timestamp: timeCreateRevStatusList
     })
 
-    const credentialOffer = anoncreds.createW3CCredentialOffer({
+    const credentialOffer = anoncreds.createW3cCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
       keyCorrectnessProof
@@ -681,7 +681,7 @@ describe('bindings', () => {
     const linkSecret = anoncreds.createLinkSecret()
     const linkSecretId = 'link secret id'
 
-    const { credentialRequestMetadata, credentialRequest } = anoncreds.createW3CCredentialRequest({
+    const { credentialRequestMetadata, credentialRequest } = anoncreds.createW3cCredentialRequest({
       entropy: ENTROPY,
       credentialDefinition,
       linkSecret,
@@ -689,7 +689,7 @@ describe('bindings', () => {
       credentialOffer
     })
 
-    const credential = anoncreds.createW3CCredential({
+    const credential = anoncreds.createW3cCredential({
       credentialDefinition,
       credentialDefinitionPrivate,
       credentialOffer,
@@ -704,7 +704,7 @@ describe('bindings', () => {
       encoding: undefined
     })
 
-    const credentialReceived = anoncreds.processW3CCredential({
+    const credentialReceived = anoncreds.processW3cCredential({
       credential,
       credentialDefinition,
       credentialRequestMetadata,
@@ -726,7 +726,7 @@ describe('bindings', () => {
       tailsPath
     })
 
-    const presentation = anoncreds.createW3CPresentation({
+    const presentation = anoncreds.createW3cPresentation({
       presentationRequest,
       credentials: [
         {
@@ -762,7 +762,7 @@ describe('bindings', () => {
 
     expect(presentation.handle).toStrictEqual(expect.any(Number))
 
-    const verify = anoncreds.verifyW3CPresentation({
+    const verify = anoncreds.verifyW3cPresentation({
       presentation,
       presentationRequest,
       schemas: [schemaObj],
@@ -944,7 +944,7 @@ describe('bindings', () => {
         tag: 'TAG'
       })
 
-    const credentialOffer = anoncreds.createW3CCredentialOffer({
+    const credentialOffer = anoncreds.createW3cCredentialOffer({
       schemaId: 'mock:uri',
       credentialDefinitionId: 'mock:uri',
       keyCorrectnessProof
@@ -953,7 +953,7 @@ describe('bindings', () => {
     const linkSecret = anoncreds.createLinkSecret()
     const linkSecretId = 'link secret id'
 
-    const { credentialRequestMetadata, credentialRequest } = anoncreds.createW3CCredentialRequest({
+    const { credentialRequestMetadata, credentialRequest } = anoncreds.createW3cCredentialRequest({
       entropy: ENTROPY,
       credentialDefinition,
       linkSecret,
@@ -961,7 +961,7 @@ describe('bindings', () => {
       credentialOffer
     })
 
-    const credential = anoncreds.createW3CCredential({
+    const credential = anoncreds.createW3cCredential({
       credentialDefinition,
       credentialDefinitionPrivate,
       credentialOffer,
@@ -969,7 +969,7 @@ describe('bindings', () => {
       attributeRawValues: { name: 'Alex', height: '175', age: '28', sex: 'male' }
     })
 
-    const credReceived = anoncreds.processW3CCredential({
+    const credReceived = anoncreds.processW3cCredential({
       credential,
       credentialDefinition,
       credentialRequestMetadata,
@@ -998,7 +998,7 @@ describe('bindings', () => {
       })
     })
 
-    const presentation = anoncreds.createW3CPresentation({
+    const presentation = anoncreds.createW3cPresentation({
       presentationRequest,
       credentials: [
         {
@@ -1032,7 +1032,7 @@ describe('bindings', () => {
 
     expect(presentation.handle).toStrictEqual(expect.any(Number))
 
-    const verify = anoncreds.verifyW3CPresentation({
+    const verify = anoncreds.verifyW3cPresentation({
       presentation,
       presentationRequest,
       schemas: [schemaObj],

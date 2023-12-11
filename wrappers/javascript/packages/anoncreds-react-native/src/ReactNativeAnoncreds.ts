@@ -393,7 +393,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return new ObjectHandle(handle)
   }
 
-  public createW3CCredential(options: {
+  public createW3cCredential(options: {
     credentialDefinition: ObjectHandle
     credentialDefinitionPrivate: ObjectHandle
     credentialOffer: ObjectHandle
@@ -408,7 +408,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     const credential = this.handleError(
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment, @typescript-eslint/prefer-ts-expect-error
       // @ts-ignore
-      this.anoncreds.createW3CCredential({
+      this.anoncreds.createW3cCredential({
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment, @typescript-eslint/prefer-ts-expect-error
         // @ts-ignore
         ...serializeArguments(options),
@@ -430,27 +430,27 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return new ObjectHandle(credential)
   }
 
-  public processW3CCredential(options: {
+  public processW3cCredential(options: {
     credential: ObjectHandle
     credentialRequestMetadata: ObjectHandle
     linkSecret: string
     credentialDefinition: ObjectHandle
     revocationRegistryDefinition?: ObjectHandle
   }): ObjectHandle {
-    const handle = this.handleError(this.anoncreds.processW3CCredential(serializeArguments(options)))
+    const handle = this.handleError(this.anoncreds.processW3cCredential(serializeArguments(options)))
     return new ObjectHandle(handle)
   }
 
-  public createW3CCredentialOffer(options: {
+  public createW3cCredentialOffer(options: {
     schemaId: string
     credentialDefinitionId: string
     keyCorrectnessProof: ObjectHandle
   }): ObjectHandle {
-    const handle = this.handleError(this.anoncreds.createW3CCredentialOffer(serializeArguments(options)))
+    const handle = this.handleError(this.anoncreds.createW3cCredentialOffer(serializeArguments(options)))
     return new ObjectHandle(handle)
   }
 
-  public createW3CCredentialRequest(options: {
+  public createW3cCredentialRequest(options: {
     entropy?: string
     proverDid?: string
     credentialDefinition: ObjectHandle
@@ -459,7 +459,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     credentialOffer: ObjectHandle
   }): { credentialRequest: ObjectHandle; credentialRequestMetadata: ObjectHandle } {
     const { credentialRequest, credentialRequestMetadata } = this.handleError(
-      this.anoncreds.createW3CCredentialRequest(serializeArguments(options))
+      this.anoncreds.createW3cCredentialRequest(serializeArguments(options))
     )
 
     return {
@@ -468,7 +468,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     }
   }
 
-  public createW3CPresentation(options: {
+  public createW3cPresentation(options: {
     presentationRequest: ObjectHandle
     credentials: NativeCredentialEntry[]
     credentialsProve: NativeCredentialProve[]
@@ -488,7 +488,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     }))
 
     const handle = this.handleError(
-      this.anoncreds.createW3CPresentation({
+      this.anoncreds.createW3cPresentation({
         presentationRequest: options.presentationRequest.handle,
         linkSecret: options.linkSecret,
         credentialsProve: options.credentialsProve,
@@ -502,7 +502,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return new ObjectHandle(handle)
   }
 
-  public verifyW3CPresentation(options: {
+  public verifyW3cPresentation(options: {
     presentation: ObjectHandle
     presentationRequest: ObjectHandle
     schemas: ObjectHandle[]
@@ -514,7 +514,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     revocationStatusLists?: ObjectHandle[]
     nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
   }): boolean {
-    return Boolean(this.handleError(this.anoncreds.verifyW3CPresentation(serializeArguments(options))))
+    return Boolean(this.handleError(this.anoncreds.verifyW3cPresentation(serializeArguments(options))))
   }
 
   public w3cCredentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string {
@@ -566,18 +566,18 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return new ObjectHandle(handle)
   }
 
-  public w3cCredentialAddType(options: { objectHandle: ObjectHandle; type_: string }): ObjectHandle {
+  public w3cCredentialAddType(options: { objectHandle: ObjectHandle; type: string }): ObjectHandle {
     const handle = this.handleError(this.anoncreds.w3cCredentialAddType(serializeArguments(options)))
     return new ObjectHandle(handle)
   }
 
-  public credentialToW3C(options: { objectHandle: ObjectHandle; credentialDefinition: ObjectHandle }): ObjectHandle {
-    const handle = this.handleError(this.anoncreds.credentialToW3C(serializeArguments(options)))
+  public credentialToW3c(options: { objectHandle: ObjectHandle; credentialDefinition: ObjectHandle }): ObjectHandle {
+    const handle = this.handleError(this.anoncreds.credentialToW3c(serializeArguments(options)))
     return new ObjectHandle(handle)
   }
 
-  public credentialFromW3C(options: { objectHandle: ObjectHandle }): ObjectHandle {
-    const handle = this.handleError(this.anoncreds.credentialFromW3C(serializeArguments(options)))
+  public credentialFromW3c(options: { objectHandle: ObjectHandle }): ObjectHandle {
+    const handle = this.handleError(this.anoncreds.credentialFromW3c(serializeArguments(options)))
     return new ObjectHandle(handle)
   }
 }

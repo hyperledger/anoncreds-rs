@@ -16,17 +16,17 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   fMap.insert(
       std::make_tuple("createCredential", &anoncreds::createCredential));
   fMap.insert(
-      std::make_tuple("createW3CCredential", &anoncreds::createW3CCredential));
+      std::make_tuple("createW3cCredential", &anoncreds::createW3cCredential));
   fMap.insert(std::make_tuple("createCredentialDefinition",
                               &anoncreds::createCredentialDefinition));
   fMap.insert(std::make_tuple("createCredentialOffer",
                               &anoncreds::createCredentialOffer));
-  fMap.insert(std::make_tuple("createW3CCredentialOffer",
-                              &anoncreds::createW3CCredentialOffer));
+  fMap.insert(std::make_tuple("createW3cCredentialOffer",
+                              &anoncreds::createW3cCredentialOffer));
   fMap.insert(std::make_tuple("createCredentialRequest",
                               &anoncreds::createCredentialRequest));
-  fMap.insert(std::make_tuple("createW3CCredentialRequest",
-                              &anoncreds::createW3CCredentialRequest));
+  fMap.insert(std::make_tuple("createW3cCredentialRequest",
+                              &anoncreds::createW3cCredentialRequest));
   fMap.insert(
       std::make_tuple("createLinkSecret", &anoncreds::createLinkSecret));
   fMap.insert(std::make_tuple("createOrUpdateRevocationState",
@@ -34,7 +34,7 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   fMap.insert(
       std::make_tuple("createPresentation", &anoncreds::createPresentation));
   fMap.insert(
-      std::make_tuple("createW3CPresentation", &anoncreds::createW3CPresentation));
+      std::make_tuple("createW3cPresentation", &anoncreds::createW3cPresentation));
   fMap.insert(std::make_tuple("createRevocationRegistryDefinition",
                               &anoncreds::createRevocationRegistryDefinition));
   fMap.insert(std::make_tuple("createSchema", &anoncreds::createSchema));
@@ -50,7 +50,7 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   fMap.insert(
       std::make_tuple("processCredential", &anoncreds::processCredential));
   fMap.insert(
-      std::make_tuple("processW3CCredential", &anoncreds::processW3CCredential));
+      std::make_tuple("processW3cCredential", &anoncreds::processW3cCredential));
   fMap.insert(
       std::make_tuple("revocationRegistryDefinitionGetAttribute",
                       &anoncreds::revocationRegistryDefinitionGetAttribute));
@@ -59,7 +59,7 @@ FunctionMap AnoncredsTurboModuleHostObject::functionMapping(jsi::Runtime &rt) {
   fMap.insert(
       std::make_tuple("verifyPresentation", &anoncreds::verifyPresentation));
   fMap.insert(
-      std::make_tuple("verifyW3CPresentation", &anoncreds::verifyW3CPresentation));
+      std::make_tuple("verifyW3cPresentation", &anoncreds::verifyW3cPresentation));
 fMap.insert(std::make_tuple("createRevocationStatusList",
                               &anoncreds::createRevocationStatusList));
   fMap.insert(std::make_tuple("updateRevocationStatusList",
@@ -125,11 +125,11 @@ fMap.insert(std::make_tuple("createRevocationStatusList",
       std::make_tuple("w3cCredentialAddType",
                       &anoncreds::w3cCredentialAddType));
   fMap.insert(
-      std::make_tuple("credentialToW3C",
-                      &anoncreds::credentialToW3C));
+      std::make_tuple("credentialToW3c",
+                      &anoncreds::credentialToW3c));
   fMap.insert(
-      std::make_tuple("credentialFromW3C",
-                      &anoncreds::credentialFromW3C));
+      std::make_tuple("credentialFromW3c",
+                      &anoncreds::credentialFromW3c));
 
   return fMap;
 }

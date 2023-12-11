@@ -12,7 +12,7 @@ import { CredentialOffer } from './CredentialOffer'
 import { CredentialRequest } from './CredentialRequest'
 import { CredentialRequestMetadata } from './CredentialRequestMetadata'
 import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
-import { W3CCredential } from './W3CCredential'
+import { W3cCredential } from './W3cCredential'
 import { pushToArray } from './utils'
 
 export type CreateCredentialOptions = {
@@ -34,12 +34,12 @@ export type ProcessCredentialOptions = {
   revocationRegistryDefinition?: RevocationRegistryDefinition | JsonObject
 }
 
-export type CredentialToW3COptions = {
+export type CredentialToW3cOptions = {
   credentialDefinition: CredentialDefinition | JsonObject
 }
 
-export type CredentialFromW3COptions = {
-  credential: W3CCredential
+export type CredentialFromW3cOptions = {
+  credential: W3cCredential
 }
 
 export class Credential extends AnoncredsObject {
@@ -149,7 +149,7 @@ export class Credential extends AnoncredsObject {
     return index ? Number(index) : undefined
   }
 
-  public toW3C(options: CredentialToW3COptions): W3CCredential {
+  public toW3c(options: CredentialToW3cOptions): W3cCredential {
     let credential
     // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
@@ -159,8 +159,8 @@ export class Credential extends AnoncredsObject {
           ? options.credentialDefinition.handle
           : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
 
-      credential = new W3CCredential(
-        anoncreds.credentialToW3C({
+      credential = new W3cCredential(
+        anoncreds.credentialToW3c({
           objectHandle: this.handle,
           credentialDefinition
         }).handle
@@ -173,7 +173,7 @@ export class Credential extends AnoncredsObject {
     return credential
   }
 
-  public static fromW3C(options: CredentialFromW3COptions) {
-    return new Credential(anoncreds.credentialFromW3C({ objectHandle: options.credential.handle }).handle)
+  public static fromW3c(options: CredentialFromW3cOptions) {
+    return new Credential(anoncreds.credentialFromW3c({ objectHandle: options.credential.handle }).handle)
   }
 }

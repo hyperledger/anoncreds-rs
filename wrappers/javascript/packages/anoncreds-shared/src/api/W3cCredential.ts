@@ -11,15 +11,15 @@ import { CredentialDefinition } from './CredentialDefinition'
 import { CredentialDefinitionPrivate } from './CredentialDefinitionPrivate'
 import { CredentialRequestMetadata } from './CredentialRequestMetadata'
 import { RevocationRegistryDefinition } from './RevocationRegistryDefinition'
-import { W3CCredentialOffer } from './W3CCredentialOffer'
-import { W3CCredentialRequest } from './W3CCredentialRequest'
+import { W3cCredentialOffer } from './W3cCredentialOffer'
+import { W3cCredentialRequest } from './W3cCredentialRequest'
 import { pushToArray } from './utils'
 
-export type CreateW3CCredentialOptions = {
+export type CreateW3cCredentialOptions = {
   credentialDefinition: CredentialDefinition | JsonObject
   credentialDefinitionPrivate: CredentialDefinitionPrivate | JsonObject
-  credentialOffer: W3CCredentialOffer | JsonObject
-  credentialRequest: W3CCredentialRequest | JsonObject
+  credentialOffer: W3cCredentialOffer | JsonObject
+  credentialRequest: W3cCredentialRequest | JsonObject
   attributeRawValues: Record<string, string>
   revocationRegistryId?: string
   revocationConfiguration?: CredentialRevocationConfig
@@ -27,20 +27,20 @@ export type CreateW3CCredentialOptions = {
   encoding?: string
 }
 
-export type ProcessW3CCredentialOptions = {
+export type ProcessW3cCredentialOptions = {
   credentialRequestMetadata: CredentialRequestMetadata | JsonObject
   linkSecret: string
   credentialDefinition: CredentialDefinition | JsonObject
   revocationRegistryDefinition?: RevocationRegistryDefinition | JsonObject
 }
 
-export type W3CCredentialFromLegacyOptions = {
+export type W3cCredentialFromLegacyOptions = {
   credential: Credential
   credentialDefinition: CredentialDefinition | JsonObject
 }
 
-export class W3CCredential extends AnoncredsObject {
-  public static create(options: CreateW3CCredentialOptions) {
+export class W3cCredential extends AnoncredsObject {
+  public static create(options: CreateW3cCredentialOptions) {
     let credential
     // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
@@ -56,16 +56,16 @@ export class W3CCredential extends AnoncredsObject {
           : pushToArray(CredentialDefinitionPrivate.fromJson(options.credentialDefinitionPrivate).handle, objectHandles)
 
       const credentialOffer =
-        options.credentialOffer instanceof W3CCredentialOffer
+        options.credentialOffer instanceof W3cCredentialOffer
           ? options.credentialOffer.handle
-          : pushToArray(W3CCredentialOffer.fromJson(options.credentialOffer).handle, objectHandles)
+          : pushToArray(W3cCredentialOffer.fromJson(options.credentialOffer).handle, objectHandles)
 
       const credentialRequest =
-        options.credentialRequest instanceof W3CCredentialRequest
+        options.credentialRequest instanceof W3cCredentialRequest
           ? options.credentialRequest.handle
-          : pushToArray(W3CCredentialRequest.fromJson(options.credentialRequest).handle, objectHandles)
+          : pushToArray(W3cCredentialRequest.fromJson(options.credentialRequest).handle, objectHandles)
 
-      credential = anoncreds.createW3CCredential({
+      credential = anoncreds.createW3cCredential({
         credentialDefinition,
         credentialDefinitionPrivate,
         credentialOffer,
@@ -79,14 +79,14 @@ export class W3CCredential extends AnoncredsObject {
         handle.clear()
       })
     }
-    return new W3CCredential(credential.handle)
+    return new W3cCredential(credential.handle)
   }
 
   public static fromJson(json: JsonObject) {
-    return new W3CCredential(anoncreds.w3cCredentialFromJson({ json: JSON.stringify(json) }).handle)
+    return new W3cCredential(anoncreds.w3cCredentialFromJson({ json: JSON.stringify(json) }).handle)
   }
 
-  public process(options: ProcessW3CCredentialOptions) {
+  public process(options: ProcessW3cCredentialOptions) {
     let credential
     // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
@@ -111,7 +111,7 @@ export class W3CCredential extends AnoncredsObject {
             )
           : undefined
 
-      credential = anoncreds.processW3CCredential({
+      credential = anoncreds.processW3cCredential({
         credential: this.handle,
         credentialDefinition,
         credentialRequestMetadata,
@@ -149,13 +149,13 @@ export class W3CCredential extends AnoncredsObject {
 
   public toLegacy(): Credential {
     return new Credential(
-      anoncreds.credentialFromW3C({
+      anoncreds.credentialFromW3c({
         objectHandle: this.handle
       }).handle
     )
   }
 
-  public static fromLegacy(options: W3CCredentialFromLegacyOptions): W3CCredential {
+  public static fromLegacy(options: W3cCredentialFromLegacyOptions): W3cCredential {
     let credential
     // Objects created within this method must be freed up
     const objectHandles: ObjectHandle[] = []
@@ -165,8 +165,8 @@ export class W3CCredential extends AnoncredsObject {
           ? options.credentialDefinition.handle
           : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
 
-      credential = new W3CCredential(
-        anoncreds.credentialToW3C({
+      credential = new W3cCredential(
+        anoncreds.credentialToW3c({
           objectHandle: options.credential.handle,
           credentialDefinition
         }).handle
@@ -219,10 +219,10 @@ export class W3CCredential extends AnoncredsObject {
     this.handle = credential
   }
 
-  public addType(type_: string) {
+  public addType(type: string) {
     const credential = anoncreds.w3cCredentialAddType({
       objectHandle: this.handle,
-      type_
+      type
     })
 
     this.handle.clear()

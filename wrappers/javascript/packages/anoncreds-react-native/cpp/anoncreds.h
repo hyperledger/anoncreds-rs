@@ -20,7 +20,7 @@ struct CredentialRequestReturn {
   ObjectHandle credentialRequestMetadata;
 };
 
-struct W3CCredentialRequestReturn {
+struct W3cCredentialRequestReturn {
   ObjectHandle credentialRequest;
   ObjectHandle credentialRequestMetadata;
 };
@@ -74,8 +74,8 @@ jsi::Value w3cPresentationFromJson(jsi::Runtime &rt, jsi::Object options);
 // Proofs
 jsi::Value createPresentation(jsi::Runtime &rt, jsi::Object options);
 jsi::Value verifyPresentation(jsi::Runtime &rt, jsi::Object options);
-jsi::Value createW3CPresentation(jsi::Runtime &rt, jsi::Object options);
-jsi::Value verifyW3CPresentation(jsi::Runtime &rt, jsi::Object options);
+jsi::Value createW3cPresentation(jsi::Runtime &rt, jsi::Object options);
+jsi::Value verifyW3cPresentation(jsi::Runtime &rt, jsi::Object options);
 
 // Credentials
 jsi::Value createCredential(jsi::Runtime &rt, jsi::Object options);
@@ -85,18 +85,18 @@ jsi::Value credentialGetAttribute(jsi::Runtime &rt, jsi::Object options);
 jsi::Value encodeCredentialAttributes(jsi::Runtime &rt, jsi::Object options);
 jsi::Value processCredential(jsi::Runtime &rt, jsi::Object options);
 
-jsi::Value createW3CCredential(jsi::Runtime &rt, jsi::Object options);
-jsi::Value createW3CCredentialOffer(jsi::Runtime &rt, jsi::Object options);
-jsi::Value createW3CCredentialRequest(jsi::Runtime &rt, jsi::Object options);
+jsi::Value createW3cCredential(jsi::Runtime &rt, jsi::Object options);
+jsi::Value createW3cCredentialOffer(jsi::Runtime &rt, jsi::Object options);
+jsi::Value createW3cCredentialRequest(jsi::Runtime &rt, jsi::Object options);
 jsi::Value w3cCredentialGetAttribute(jsi::Runtime &rt, jsi::Object options);
-jsi::Value processW3CCredential(jsi::Runtime &rt, jsi::Object options);
+jsi::Value processW3cCredential(jsi::Runtime &rt, jsi::Object options);
 jsi::Value w3cCredentialAddNonAnonCredsIntegrityProof(jsi::Runtime &rt, jsi::Object options);
 jsi::Value w3cCredentialSetId(jsi::Runtime &rt, jsi::Object options);
 jsi::Value w3cCredentialSetSubjectId(jsi::Runtime &rt, jsi::Object options);
 jsi::Value w3cCredentialAddContext(jsi::Runtime &rt, jsi::Object options);
 jsi::Value w3cCredentialAddType(jsi::Runtime &rt, jsi::Object options);
-jsi::Value credentialToW3C(jsi::Runtime &rt, jsi::Object options);
-jsi::Value credentialFromW3C(jsi::Runtime &rt, jsi::Object options);
+jsi::Value credentialToW3c(jsi::Runtime &rt, jsi::Object options);
+jsi::Value credentialFromW3c(jsi::Runtime &rt, jsi::Object options);
 
 // Revocation
 jsi::Value createOrUpdateRevocationState(jsi::Runtime &rt, jsi::Object options);

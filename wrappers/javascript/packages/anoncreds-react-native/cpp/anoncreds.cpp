@@ -742,7 +742,7 @@ jsi::Value w3cCredentialFromJson(jsi::Runtime &rt, jsi::Object options) {
   return returnValue;
 };
 
-jsi::Value createW3CPresentation(jsi::Runtime &rt, jsi::Object options) {
+jsi::Value createW3cPresentation(jsi::Runtime &rt, jsi::Object options) {
   auto presentationRequest =
       jsiToValue<ObjectHandle>(rt, options, "presentationRequest");
   auto credentials =
@@ -782,7 +782,7 @@ jsi::Value createW3CPresentation(jsi::Runtime &rt, jsi::Object options) {
   return returnValue;
 };
 
-jsi::Value verifyW3CPresentation(jsi::Runtime &rt, jsi::Object options) {
+jsi::Value verifyW3cPresentation(jsi::Runtime &rt, jsi::Object options) {
   auto presentation = jsiToValue<ObjectHandle>(rt, options, "presentation");
   auto presentationRequest =
       jsiToValue<ObjectHandle>(rt, options, "presentationRequest");
@@ -825,7 +825,7 @@ jsi::Value verifyW3CPresentation(jsi::Runtime &rt, jsi::Object options) {
   return returnValue;
 };
 
-jsi::Value createW3CCredential(jsi::Runtime &rt, jsi::Object options) {
+jsi::Value createW3cCredential(jsi::Runtime &rt, jsi::Object options) {
   auto credentialDefinition =
       jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
   auto credentialDefinitionPrivate =
@@ -853,7 +853,7 @@ jsi::Value createW3CCredential(jsi::Runtime &rt, jsi::Object options) {
   return createReturnValue(rt, code, &out);
 };
 
-jsi::Value createW3CCredentialOffer(jsi::Runtime &rt, jsi::Object options) {
+jsi::Value createW3cCredentialOffer(jsi::Runtime &rt, jsi::Object options) {
   auto schemaId = jsiToValue<std::string>(rt, options, "schemaId");
   auto credentialDefinitionId =
       jsiToValue<std::string>(rt, options, "credentialDefinitionId");
@@ -869,7 +869,7 @@ jsi::Value createW3CCredentialOffer(jsi::Runtime &rt, jsi::Object options) {
   return createReturnValue(rt, code, &out);
 };
 
-jsi::Value createW3CCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
+jsi::Value createW3cCredentialRequest(jsi::Runtime &rt, jsi::Object options) {
   auto entropy = jsiToValue<std::string>(rt, options, "entropy", true);
   auto proverDid = jsiToValue<std::string>(rt, options, "proverDid", true);
   auto credentialDefinition =
@@ -902,7 +902,7 @@ jsi::Value w3cCredentialGetAttribute(jsi::Runtime &rt, jsi::Object options) {
   return createReturnValue(rt, code, &out);
 };
 
-jsi::Value processW3CCredential(jsi::Runtime &rt, jsi::Object options) {
+jsi::Value processW3cCredential(jsi::Runtime &rt, jsi::Object options) {
   auto credential = jsiToValue<ObjectHandle>(rt, options, "credential");
   auto credentialRequestMetadata =
       jsiToValue<ObjectHandle>(rt, options, "credentialRequestMetadata");
@@ -971,17 +971,17 @@ jsi::Value w3cCredentialAddContext(jsi::Runtime &rt, jsi::Object options) {
 
 jsi::Value w3cCredentialAddType(jsi::Runtime &rt, jsi::Object options) {
   auto credential = jsiToValue<ObjectHandle>(rt, options, "objectHandle");
-  auto type_ = jsiToValue<std::string>(rt, options, "type_");
+  auto type = jsiToValue<std::string>(rt, options, "type");
 
   ObjectHandle out;
 
   ErrorCode code = anoncreds_w3c_credential_add_type(
-      credential, type_.c_str(), &out);
+      credential, type.c_str(), &out);
 
   return createReturnValue(rt, code, &out);
 };
 
-jsi::Value credentialToW3C(jsi::Runtime &rt, jsi::Object options) {
+jsi::Value credentialToW3c(jsi::Runtime &rt, jsi::Object options) {
   auto credential = jsiToValue<ObjectHandle>(rt, options, "objectHandle");
   auto credentialDefinition =
       jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
@@ -994,7 +994,7 @@ jsi::Value credentialToW3C(jsi::Runtime &rt, jsi::Object options) {
   return createReturnValue(rt, code, &out);
 };
 
-jsi::Value credentialFromW3C(jsi::Runtime &rt, jsi::Object options) {
+jsi::Value credentialFromW3c(jsi::Runtime &rt, jsi::Object options) {
   auto credential = jsiToValue<ObjectHandle>(rt, options, "objectHandle");
 
   ObjectHandle out;
