@@ -103,23 +103,23 @@ class CredentialOffer(bindings.AnoncredsObject):
         )
 
 
-class W3CCredentialOffer(bindings.AnoncredsObject):
+class W3cCredentialOffer(bindings.AnoncredsObject):
     @classmethod
     def create(
         cls,
         schema_id: str,
         cred_def_id: str,
         key_proof: Union[str, KeyCorrectnessProof],
-    ) -> "W3CCredentialOffer":
+    ) -> "W3cCredentialOffer":
         if not isinstance(key_proof, bindings.AnoncredsObject):
             key_proof = KeyCorrectnessProof.load(key_proof)
-        return W3CCredentialOffer(
+        return W3cCredentialOffer(
             bindings.create_w3c_credential_offer(schema_id, cred_def_id, key_proof.handle)
         )
 
     @classmethod
-    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "W3CCredentialOffer":
-        return W3CCredentialOffer(
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "W3cCredentialOffer":
+        return W3cCredentialOffer(
             bindings._object_from_json("anoncreds_credential_offer_from_json", value)
         )
 
@@ -159,7 +159,7 @@ class CredentialRequest(bindings.AnoncredsObject):
 
 
 
-class W3CCredentialRequest(bindings.AnoncredsObject):
+class W3cCredentialRequest(bindings.AnoncredsObject):
     @classmethod
     def create(
         cls,
@@ -168,12 +168,12 @@ class W3CCredentialRequest(bindings.AnoncredsObject):
         cred_def: Union[str, CredentialDefinition],
         link_secret: str,
         link_secret_id: str,
-        cred_offer: Union[str, W3CCredentialOffer],
-    ) -> Tuple["W3CCredentialRequest", "CredentialRequestMetadata"]:
+        cred_offer: Union[str, W3cCredentialOffer],
+    ) -> Tuple["W3cCredentialRequest", "CredentialRequestMetadata"]:
         if not isinstance(cred_def, bindings.AnoncredsObject):
             cred_def = CredentialDefinition.load(cred_def)
         if not isinstance(cred_offer, bindings.AnoncredsObject):
-            cred_offer = W3CCredentialOffer.load(cred_offer)
+            cred_offer = W3cCredentialOffer.load(cred_offer)
         cred_def_handle, cred_def_metadata = bindings.create_w3c_credential_request(
             entropy,
             prover_did,
@@ -182,13 +182,13 @@ class W3CCredentialRequest(bindings.AnoncredsObject):
             link_secret_id,
             cred_offer.handle,
         )
-        return W3CCredentialRequest(cred_def_handle), CredentialRequestMetadata(
+        return W3cCredentialRequest(cred_def_handle), CredentialRequestMetadata(
             cred_def_metadata
         )
 
     @classmethod
-    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "W3CCredentialRequest":
-        return W3CCredentialRequest(
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "W3cCredentialRequest":
+        return W3cCredentialRequest(
             bindings._object_from_json("anoncreds_credential_request_from_json", value)
         )
 
@@ -402,10 +402,10 @@ class Credential(bindings.AnoncredsObject):
     def to_w3c(
         self,
         cred_def: Union[str, CredentialDefinition]
-    ) -> "W3CCredential":
+    ) -> "W3cCredential":
         if not isinstance(cred_def, bindings.AnoncredsObject):
             cred_def = CredentialDefinition.load(cred_def)
-        return W3CCredential(
+        return W3cCredential(
             bindings.credential_to_w3c(
                 self.handle,
                 cred_def.handle,
@@ -413,7 +413,7 @@ class Credential(bindings.AnoncredsObject):
         )
 
     @classmethod
-    def from_w3c(cls, cred: "W3CCredential") -> "Credential":
+    def from_w3c(cls, cred: "W3cCredential") -> "Credential":
         return Credential(
             bindings.credential_from_w3c(
                 cred.handle
@@ -421,7 +421,7 @@ class Credential(bindings.AnoncredsObject):
         )
 
 
-class W3CCredential(bindings.AnoncredsObject):
+class W3cCredential(bindings.AnoncredsObject):
     GET_ATTR = "anoncreds_w3c_credential_get_attribute"
 
     @classmethod
@@ -429,20 +429,20 @@ class W3CCredential(bindings.AnoncredsObject):
         cls,
         cred_def: Union[str, CredentialDefinition],
         cred_def_private: Union[str, CredentialDefinitionPrivate],
-        cred_offer: Union[str, W3CCredentialOffer],
-        cred_request: Union[str, W3CCredentialRequest],
+        cred_offer: Union[str, W3cCredentialOffer],
+        cred_request: Union[str, W3cCredentialRequest],
         attr_raw_values: Mapping[str, str],
         revocation_config: Optional["CredentialRevocationConfig"] = None,
         encoding: Optional[str] = None,
-    ) -> "W3CCredential":
+    ) -> "W3cCredential":
         if not isinstance(cred_def, bindings.AnoncredsObject):
             cred_def = CredentialDefinition.load(cred_def)
         if not isinstance(cred_def_private, bindings.AnoncredsObject):
             cred_def_private = CredentialDefinitionPrivate.load(cred_def_private)
         if not isinstance(cred_offer, bindings.AnoncredsObject):
-            cred_offer = W3CCredentialOffer.load(cred_offer)
+            cred_offer = W3cCredentialOffer.load(cred_offer)
         if not isinstance(cred_request, bindings.AnoncredsObject):
-            cred_request = W3CCredentialRequest.load(cred_request)
+            cred_request = W3cCredentialRequest.load(cred_request)
         cred = bindings.create_w3c_credential(
             cred_def.handle,
             cred_def_private.handle,
@@ -452,7 +452,7 @@ class W3CCredential(bindings.AnoncredsObject):
             revocation_config._native if revocation_config else None,
             encoding,
         )
-        return W3CCredential(cred)
+        return W3cCredential(cred)
 
     def process(
         self,
@@ -460,14 +460,14 @@ class W3CCredential(bindings.AnoncredsObject):
         link_secret: str,
         cred_def: Union[str, CredentialDefinition],
         rev_reg_def: Optional[Union[str, "RevocationRegistryDefinition"]] = None,
-    ) -> "W3CCredential":
+    ) -> "W3cCredential":
         if not isinstance(cred_req_metadata, bindings.AnoncredsObject):
             cred_req_metadata = CredentialRequestMetadata.load(cred_req_metadata)
         if not isinstance(cred_def, bindings.AnoncredsObject):
             cred_def = CredentialDefinition.load(cred_def)
         if rev_reg_def and not isinstance(rev_reg_def, bindings.AnoncredsObject):
             rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
-        return W3CCredential(
+        return W3cCredential(
             bindings.process_w3c_credential(
                 self.handle,
                 cred_req_metadata.handle,
@@ -478,7 +478,7 @@ class W3CCredential(bindings.AnoncredsObject):
         )
 
     @classmethod
-    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "W3CCredential":
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "W3cCredential":
         return Credential(
             bindings._object_from_json("anoncreds_w3c_credential_from_json", value)
         )
@@ -528,13 +528,13 @@ class W3CCredential(bindings.AnoncredsObject):
         return Credential.from_w3c(self)
 
     @classmethod
-    def from_legacy(cls, cred: "Credential", cred_def: Union[str, CredentialDefinition]) -> "W3CCredential":
+    def from_legacy(cls, cred: "Credential", cred_def: Union[str, CredentialDefinition]) -> "W3cCredential":
         return cred.to_w3c(cred_def)
 
     def add_non_anoncreds_integrity_proof(
         self,
         proof: Union[str, dict]
-    ) -> "W3CCredential":
+    ) -> "W3cCredential":
         if isinstance(proof, dict):
             proof = json.dumps(proof)
         self.handle = bindings.w3c_credential_add_non_anoncreds_integrity_proof(
@@ -545,7 +545,7 @@ class W3CCredential(bindings.AnoncredsObject):
     def set_id(
         self,
         id: str
-    ) -> "W3CCredential":
+    ) -> "W3cCredential":
         self.handle = bindings.w3c_credential_set_id(
             self.handle,
             id,
@@ -554,7 +554,7 @@ class W3CCredential(bindings.AnoncredsObject):
     def set_subject_id(
         self,
         id: str
-    ) -> "W3CCredential":
+    ) -> "W3cCredential":
         self.handle = bindings.w3c_credential_set_subject_id(
             self.handle,
             id,
@@ -563,7 +563,7 @@ class W3CCredential(bindings.AnoncredsObject):
     def add_context(
         self,
         context: str
-    ) -> "W3CCredential":
+    ) -> "W3cCredential":
         self.handle = bindings.w3c_credential_add_context(
             self.handle,
             context,
@@ -572,7 +572,7 @@ class W3CCredential(bindings.AnoncredsObject):
     def add_type(
         self,
         type: str
-    ) -> "W3CCredential":
+    ) -> "W3cCredential":
         self.handle = bindings.w3c_credential_add_type(
             self.handle,
             type,
@@ -600,7 +600,7 @@ class PresentCredentials:
 
     def _get_entry(
         self,
-        cred: Union[Credential, W3CCredential],
+        cred: Union[Credential, W3cCredential],
         timestamp: Optional[int] = None,
         rev_state: Union[None, str, "CredentialRevocationState"] = None,
     ):
@@ -616,7 +616,7 @@ class PresentCredentials:
 
     def add_attributes(
         self,
-        cred: Union[Credential, W3CCredential],
+        cred: Union[Credential, W3cCredential],
         *referents: Sequence[str],
         reveal: bool = True,
         timestamp: Optional[int] = None,
@@ -630,7 +630,7 @@ class PresentCredentials:
 
     def add_predicates(
         self,
-        cred: Union[Credential, W3CCredential],
+        cred: Union[Credential, W3cCredential],
         *referents: Sequence[str],
         timestamp: Optional[int] = None,
         rev_state: Union[None, str, "CredentialRevocationState"] = None,
@@ -788,7 +788,7 @@ class Presentation(bindings.AnoncredsObject):
         )
 
 
-class W3CPresentation(bindings.AnoncredsObject):
+class W3cPresentation(bindings.AnoncredsObject):
     @classmethod
     def create(
         cls,
@@ -797,7 +797,7 @@ class W3CPresentation(bindings.AnoncredsObject):
         link_secret: str,
         schemas: Mapping[str, Union[str, Schema]],
         cred_defs: Mapping[str, Union[str, CredentialDefinition]],
-    ) -> "W3CPresentation":
+    ) -> "W3cPresentation":
         if not isinstance(pres_req, bindings.AnoncredsObject):
             pres_req = PresentationRequest.load(pres_req)
         schema_ids = list(schemas.keys())
@@ -834,7 +834,7 @@ class W3CPresentation(bindings.AnoncredsObject):
                     creds_prove.append(
                         bindings.CredentialProve.predicate(entry_idx, reft)
                     )
-        return W3CPresentation(
+        return W3cPresentation(
             bindings.create_w3c_presentation(
                 pres_req.handle,
                 creds,
@@ -848,8 +848,8 @@ class W3CPresentation(bindings.AnoncredsObject):
         )
 
     @classmethod
-    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "W3CPresentation":
-        return W3CPresentation(
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "W3cPresentation":
+        return W3cPresentation(
             bindings._object_from_json("anoncreds_w3c_presentation_from_json", value)
         )
 

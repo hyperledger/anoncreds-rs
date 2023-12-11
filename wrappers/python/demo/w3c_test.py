@@ -2,15 +2,15 @@ from anoncreds import (
     generate_nonce,
     create_link_secret,
     Credential,
-    W3CCredential,
+    W3cCredential,
     CredentialDefinition,
-    W3CCredentialOffer,
-    W3CCredentialRequest,
+    W3cCredentialOffer,
+    W3cCredentialRequest,
     CredentialRevocationConfig,
     CredentialRevocationState,
     PresentationRequest,
     Presentation,
-    W3CPresentation,
+    W3cPresentation,
     PresentCredentials,
     RevocationRegistryDefinition,
     RevocationStatusList,
@@ -50,13 +50,13 @@ revocation_status_list = RevocationStatusList.create(
 link_secret = create_link_secret()
 link_secret_id = "default"
 
-cred_offer = W3CCredentialOffer.create(schema_id, cred_def_id, cred_def_correctness)
+cred_offer = W3cCredentialOffer.create(schema_id, cred_def_id, cred_def_correctness)
 
-cred_request, cred_request_metadata = W3CCredentialRequest.create(
+cred_request, cred_request_metadata = W3cCredentialRequest.create(
     entropy, None, cred_def_pub, link_secret, link_secret_id, cred_offer
 )
 
-issue_cred = W3CCredential.create(
+issue_cred = W3cCredential.create(
     cred_def_pub,
     cred_def_priv,
     cred_offer,
@@ -75,7 +75,7 @@ recv_cred = issue_cred.process(
     cred_request_metadata, link_secret, cred_def_pub, rev_reg_def_pub
 )
 
-print("W3C Credential")
+print("W3c Credential")
 print(recv_cred.to_json())
 
 legacy_cred = recv_cred.to_legacy()
@@ -87,10 +87,10 @@ print("Legacy Credential `from_w3c`")
 print(legacy_cred.to_json())
 
 w3c_cred = legacy_cred.to_w3c(cred_def_pub)
-print("W3C converted Credential `to_w3c`")
+print("W3c converted Credential `to_w3c`")
 print(w3c_cred.to_json())
 
-w3c_cred_restored = W3CCredential.from_legacy(legacy_cred, cred_def_pub)
+w3c_cred_restored = W3cCredential.from_legacy(legacy_cred, cred_def_pub)
 print("W3C restored Credential `from_legacy`")
 print(w3c_cred_restored.to_json())
 
@@ -175,7 +175,7 @@ present.add_predicates(
     rev_state=rev_state,
 )
 
-presentation = W3CPresentation.create(
+presentation = W3cPresentation.create(
     pres_req,
     present,
     link_secret,
@@ -271,7 +271,7 @@ present.add_predicates(
     recv_cred, "predicate1_referent", timestamp=time_revoke_cred, rev_state=rev_state
 )
 
-presentation = W3CPresentation.create(
+presentation = W3cPresentation.create(
     pres_req, present, link_secret, schemas, cred_defs
 )
 

@@ -21,10 +21,10 @@ from .types import (
     RevocationStatusList,
     RevocationRegistryDefinition,
     RevocationRegistryDefinitionPrivate,
-    W3CCredentialOffer,
-    W3CCredentialRequest,
-    W3CCredential,
-    W3CPresentation,
+    W3cCredentialOffer,
+    W3cCredentialRequest,
+    W3cCredential,
+    W3cPresentation,
 )
 
 __all__ = (
@@ -52,6 +52,8 @@ __all__ = (
     "RevocationRegistryDefinition",
     "RevocationRegistryDefinitionPrivate",
     "Schema",
-    "W3CCredential",
-    "W3CPresentation"
+    "W3cCredentialOffer",
+    "W3cCredentialRequest",
+    "W3cCredential",
+    "W3cPresentation"
 )
