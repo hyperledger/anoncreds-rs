@@ -406,11 +406,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     const attributeRawValues = Object.values(options.attributeRawValues)
 
     const credential = this.handleError(
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment, @typescript-eslint/prefer-ts-expect-error
-      // @ts-ignore
       this.anoncreds.createW3cCredential({
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment, @typescript-eslint/prefer-ts-expect-error
-        // @ts-ignore
         ...serializeArguments(options),
         attributeRawValues,
         attributeNames,
