@@ -97,15 +97,21 @@ jobs:
       - name: "Install Linux GNU for x86_64"
         run: |
           rm '/usr/local/bin/2to3'
+          rm '/usr/local/bin/2to3-3.11'
+          rm '/usr/local/bin/2to3-3.12'
           rm '/usr/local/bin/python3'
           rm '/usr/local/bin/python3.11'
-          rm '/usr/local/bin/2to3-3.11'
+          rm '/usr/local/bin/python3.12'
           rm '/usr/local/bin/idle3'
           rm '/usr/local/bin/idle3.11'
+          rm '/usr/local/bin/idle3.12'
           rm '/usr/local/bin/pydoc3'
           rm '/usr/local/bin/pydoc3.11'
+          rm '/usr/local/bin/pydoc3.12'
           rm '/usr/local/bin/python3-config'
           rm '/usr/local/bin/python3.11-config'
+          rm '/usr/local/bin/python3.12-config'
+          rm -r '/usr/local/lib/node_modules'
           brew install --overwrite x86_64-unknown-linux-gnu
 
       - name: "Install Linux GNU for aarch64"

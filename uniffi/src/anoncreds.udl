@@ -298,7 +298,7 @@ interface Prover {
   );
 
   [Throws=AnoncredsError]
-  void process_credential(
+  Credential process_credential(
     Credential credential,
     CredentialRequestMetadata cred_request_metadata,
     LinkSecret link_secret,

@@ -82,7 +82,7 @@ impl Prover {
         link_secret: Arc<LinkSecret>,
         cred_def: Arc<CredentialDefinition>,
         rev_reg_def: Option<Arc<RevocationRegistryDefinition>>,
-    ) -> Result<(), AnoncredsError> {
+    ) -> Result<Arc<Credential>, AnoncredsError> {
         let mut mutable_credential = (*credential)
             .core
             .try_clone()
@@ -94,7 +94,9 @@ impl Prover {
             &(*cred_def).core,
             rev_reg_def.as_ref().map(|def| &(*def).core),
         )
-        .map_err(|err| AnoncredsError::ProcessCredential(format!("Error: {}", err)))
+        .map_err(|err| AnoncredsError::ProcessCredential(format!("Error: {}", err)));
+
+        return Ok(Arc::new(Credential { core: mutable_credential }))
     }
 
     pub fn create_presentation(

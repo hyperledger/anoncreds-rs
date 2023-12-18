@@ -202,10 +202,6 @@ val buildAnonCredWrapperForAndroidArch64 by tasks.register<Exec>("buildAnonCredW
         "STRIP" to STRIP
     )
     this.environment = localEnv
-    println("Show all environment variables")
-    for (entry in this.environment.entries) {
-        println("${entry.key} : ${entry.value}")
-    }
     inputs.files(fileTree(projectDir.resolve("src")))
     outputs.files(fileTree(projectDir.resolve("target").resolve("aarch64-linux-android")))
     commandLine("cargo", "ndk", "build", "--release", "--target", "aarch64-linux-android", "--target-dir", "${projectDir.resolve("target")}")
