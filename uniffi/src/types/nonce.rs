@@ -16,7 +16,7 @@ impl Nonce {
 
     pub fn new_from_value(value_string: String) -> Result<Self, AnoncredsError> {
         let nonce = AnoncredsNonce::try_from(value_string.as_str())
-            .map_err(|_| AnoncredsError::ConversionError)?;
+            .map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         return Ok(Nonce {
             anoncreds_nonce: nonce,
         });
@@ -42,7 +42,7 @@ impl TryFrom<&Nonce> for AnoncredsNonce {
     fn try_from(acr: &Nonce) -> Result<Self, Self::Error> {
         acr.anoncreds_nonce
             .try_clone()
-            .map_err(|_| AnoncredsError::ConversionError)
+            .map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 
@@ -56,7 +56,7 @@ impl TryFrom<&str> for Nonce {
     type Error = AnoncredsError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let nonce = AnoncredsNonce::try_from(value).map_err(|_| AnoncredsError::ConversionError)?;
+        let nonce = AnoncredsNonce::try_from(value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         return Ok(Nonce {
             anoncreds_nonce: nonce,
         });

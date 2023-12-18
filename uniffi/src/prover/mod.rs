@@ -86,7 +86,7 @@ impl Prover {
         let mut mutable_credential = (*credential)
             .core
             .try_clone()
-            .map_err(|_| AnoncredsError::ConversionError)?;
+            .map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         prover::process_credential(
             &mut mutable_credential,
             &cred_request_metadata.into(),

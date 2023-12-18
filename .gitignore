@@ -21,3 +21,4 @@ local.properties
 anoncred-kmm/anoncred-wrapper-rust/src/*
 **/.DS_Store
 anoncred-kmm/anoncred-kmm/anoncred-wrapper-rust/src/*
+uniffi/output-frameworks/anoncreds-jvm/bin/main/anoncreds.kt

@@ -18,7 +18,7 @@ pub struct RevocationRegistryDefinition {
 
 impl RevocationRegistryDefinition {
     pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsRevocationRegistryDefinition = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
+        let core_def: AnoncredsRevocationRegistryDefinition = serde_json::from_str(&json_string).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         return Ok(RevocationRegistryDefinition { core: core_def })
     }
 
@@ -43,7 +43,7 @@ impl RevocationRegistryDefinition {
     }
 
     pub fn get_json(&self) -> Result<String, AnoncredsError> {
-        serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
+        serde_json::to_string(&self.core).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 
@@ -57,8 +57,8 @@ impl TryFrom<&RevocationRegistryDefinition> for AnoncredsRevocationRegistryDefin
     type Error = AnoncredsError;
 
     fn try_from(def: &RevocationRegistryDefinition) -> Result<AnoncredsRevocationRegistryDefinition, Self::Error> {
-        let json_value = serde_json::to_string(&def.core.value).map_err(|_| AnoncredsError::ConversionError)?;
-        return serde_json::from_str(&json_value).map_err(|_| AnoncredsError::ConversionError)
+        let json_value = serde_json::to_string(&def.core.value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
+        return serde_json::from_str(&json_value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 
@@ -68,12 +68,12 @@ pub struct RevocationRegistryDefinitionPrivate {
 
 impl RevocationRegistryDefinitionPrivate {
     pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsRevocationRegistryDefinitionPrivate = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
+        let core_def: AnoncredsRevocationRegistryDefinitionPrivate = serde_json::from_str(&json_string).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         return Ok(RevocationRegistryDefinitionPrivate { core: core_def })
     }
     
     pub fn get_json(&self) -> Result<String, AnoncredsError> {
-        serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
+        serde_json::to_string(&self.core).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 
@@ -87,8 +87,8 @@ impl TryFrom<&RevocationRegistryDefinitionPrivate> for AnoncredsRevocationRegist
     type Error = AnoncredsError;
 
     fn try_from(def: &RevocationRegistryDefinitionPrivate) -> Result<AnoncredsRevocationRegistryDefinitionPrivate, Self::Error> {
-        let json_value = serde_json::to_string(&def.core.value).map_err(|_| AnoncredsError::ConversionError)?;
-        return serde_json::from_str(&json_value).map_err(|_| AnoncredsError::ConversionError)
+        let json_value = serde_json::to_string(&def.core.value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
+        return serde_json::from_str(&json_value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 
@@ -98,7 +98,7 @@ pub struct RevocationRegistryDefinitionValue {
 
 impl RevocationRegistryDefinitionValue {
     pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsRevocationRegistryDefinitionValue = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
+        let core_def: AnoncredsRevocationRegistryDefinitionValue = serde_json::from_str(&json_string).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         return Ok(RevocationRegistryDefinitionValue { core: core_def })
     }
 
@@ -115,7 +115,7 @@ impl RevocationRegistryDefinitionValue {
     }
 
     pub fn get_json(&self) -> Result<String, AnoncredsError> {
-        serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
+        serde_json::to_string(&self.core).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 
@@ -129,8 +129,8 @@ impl TryFrom<&RevocationRegistryDefinitionValue> for AnoncredsRevocationRegistry
     type Error = AnoncredsError;
 
     fn try_from(def: &RevocationRegistryDefinitionValue) -> Result<AnoncredsRevocationRegistryDefinitionValue, Self::Error> {
-        let json_value = serde_json::to_string(&def.core).map_err(|_| AnoncredsError::ConversionError)?;
-        return serde_json::from_str(&json_value).map_err(|_| AnoncredsError::ConversionError)
+        let json_value = serde_json::to_string(&def.core).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
+        return serde_json::from_str(&json_value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 
@@ -140,12 +140,12 @@ pub struct RevocationRegistryDefinitionValuePublicKeys {
 
 impl RevocationRegistryDefinitionValuePublicKeys {
     pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsRevocationRegistryDefinitionValuePublicKeys = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
+        let core_def: AnoncredsRevocationRegistryDefinitionValuePublicKeys = serde_json::from_str(&json_string).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         return Ok(RevocationRegistryDefinitionValuePublicKeys { core: core_def })
     }
 
     pub fn get_json(&self) -> Result<String, AnoncredsError> {
-        serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
+        serde_json::to_string(&self.core).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 
@@ -159,7 +159,7 @@ impl TryFrom<&RevocationRegistryDefinitionValuePublicKeys> for AnoncredsRevocati
     type Error = AnoncredsError;
 
     fn try_from(def: &RevocationRegistryDefinitionValuePublicKeys) -> Result<AnoncredsRevocationRegistryDefinitionValuePublicKeys, Self::Error> {
-        let json_value = serde_json::to_string(&def.core).map_err(|_| AnoncredsError::ConversionError)?;
-        return serde_json::from_str(&json_value).map_err(|_| AnoncredsError::ConversionError)
+        let json_value = serde_json::to_string(&def.core).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
+        return serde_json::from_str(&json_value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }

@@ -11,7 +11,7 @@ pub struct Credential {
 
 impl Credential {
     pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsCredential = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
+        let core_def: AnoncredsCredential = serde_json::from_str(&json_string).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         return Ok(Credential { core: core_def })
     }
 
@@ -48,6 +48,6 @@ impl Credential {
     }
 
     pub fn get_json(&self) -> Result<String, AnoncredsError> {
-        serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
+        serde_json::to_string(&self.core).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }

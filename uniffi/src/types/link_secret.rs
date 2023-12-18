@@ -14,7 +14,7 @@ impl LinkSecret {
 
     pub fn new_from_value(value_string: String) -> Result<Self, AnoncredsError> {
         let core_def = AnoncredsLinkSecret::try_from(value_string.as_str())
-            .map_err(|_| AnoncredsError::ConversionError)?;
+            .map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         return Ok(LinkSecret { secret: core_def });
     }
 
@@ -40,7 +40,7 @@ impl TryFrom<&str> for LinkSecret {
 
     fn try_from(string: &str) -> Result<Self, Self::Error> {
         let acr =
-            AnoncredsLinkSecret::try_from(string).map_err(|_| AnoncredsError::ConversionError)?;
+            AnoncredsLinkSecret::try_from(string).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         return Ok(LinkSecret { secret: acr });
     }
 }
@@ -51,7 +51,7 @@ impl TryFrom<&LinkSecret> for AnoncredsLinkSecret {
     fn try_from(acr: &LinkSecret) -> Result<Self, Self::Error> {
         acr.secret
             .try_clone()
-            .map_err(|_| AnoncredsError::ConversionError)
+            .map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 

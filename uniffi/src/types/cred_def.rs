@@ -21,10 +21,10 @@ impl TryFrom<AnoncredsCredentialDefinitionData> for CredentialDefinitionData {
     type Error = AnoncredsError;
 
     fn try_from(acr: AnoncredsCredentialDefinitionData) -> Result<Self, Self::Error> {
-        let primary = serde_json::to_string(&acr.primary).map_err(|_| AnoncredsError::ConversionError)?;
+        let primary = serde_json::to_string(&acr.primary).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
 
         let revocation = if let Some(rev_key) = &acr.revocation {
-            Some(serde_json::to_string(rev_key).map_err(|_| AnoncredsError::ConversionError)?)
+            Some(serde_json::to_string(rev_key).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?)
         } else {
             None
         };
@@ -41,11 +41,11 @@ impl TryInto<AnoncredsCredentialDefinitionData> for CredentialDefinitionData {
 
     fn try_into(self) -> Result<AnoncredsCredentialDefinitionData, Self::Error> {
         let primary: ursa::cl::CredentialPrimaryPublicKey = serde_json::from_str(&self.primary)
-            .map_err(|_| AnoncredsError::ConversionError)?;
+            .map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
     
         let revocation = match &self.revocation {
             Some(rev_key_str) => Some(serde_json::from_str(rev_key_str)
-                .map_err(|_| AnoncredsError::ConversionError)?),
+                .map_err(|err| AnoncredsError::ConversionError(err.to_string()))?),
             None => None,
         };
     
@@ -62,7 +62,7 @@ pub struct CredentialDefinition {
 
 impl CredentialDefinition {
     pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsCredentialDefinition = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
+        let core_def: AnoncredsCredentialDefinition = serde_json::from_str(&json_string).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         return Ok(CredentialDefinition { core: core_def })
     }
 
@@ -83,7 +83,7 @@ impl CredentialDefinition {
     }
 
     pub fn get_json(&self) -> Result<String, AnoncredsError> {
-        serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
+        serde_json::to_string(&self.core).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 
@@ -95,8 +95,8 @@ impl TryInto<AnoncredsCredentialDefinition> for CredentialDefinition {
         let cloned_signature_type = self.core.signature_type.clone();
         let cloned_get_tag = self.core.tag.clone();
         let cloned_issuer_id = self.core.issuer_id.clone();
-        let json_value = serde_json::to_string(&self.core.value).map_err(|_| AnoncredsError::ConversionError)?;
-        let cloned_value = serde_json::from_str(&json_value).map_err(|_| AnoncredsError::ConversionError)?;
+        let json_value = serde_json::to_string(&self.core.value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
+        let cloned_value = serde_json::from_str(&json_value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
 
         let cloned_def = AnoncredsCredentialDefinition {
             schema_id: cloned_schema_id,
@@ -117,8 +117,8 @@ impl TryFrom<AnoncredsCredentialDefinition> for CredentialDefinition {
         let cloned_signature_type = acr.signature_type.clone();
         let cloned_get_tag = acr.tag.clone();
         let cloned_issuer_id = acr.issuer_id.clone();
-        let json_value = serde_json::to_string(&acr.value).map_err(|_| AnoncredsError::ConversionError)?;
-        let cloned_value = serde_json::from_str(&json_value).map_err(|_| AnoncredsError::ConversionError)?;
+        let json_value = serde_json::to_string(&acr.value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
+        let cloned_value = serde_json::from_str(&json_value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
 
         let cloned_def = AnoncredsCredentialDefinition {
             schema_id: cloned_schema_id,
@@ -139,8 +139,8 @@ impl TryFrom<&CredentialDefinition> for AnoncredsCredentialDefinition {
         let cloned_signature_type = def.core.signature_type.clone();
         let cloned_get_tag = def.core.tag.clone();
         let cloned_issuer_id = def.core.issuer_id.clone();
-        let json_value = serde_json::to_string(&def.core.value).map_err(|_| AnoncredsError::ConversionError)?;
-        let cloned_value = serde_json::from_str(&json_value).map_err(|_| AnoncredsError::ConversionError)?;
+        let json_value = serde_json::to_string(&def.core.value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
+        let cloned_value = serde_json::from_str(&json_value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
 
         return Ok(AnoncredsCredentialDefinition {
             schema_id: cloned_schema_id,
@@ -158,12 +158,12 @@ pub struct CredentialDefinitionPrivate {
 
 impl CredentialDefinitionPrivate {
     pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsCredentialDefinitionPrivate = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
+        let core_def: AnoncredsCredentialDefinitionPrivate = serde_json::from_str(&json_string).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         return Ok(CredentialDefinitionPrivate { core: core_def })
     }
 
     pub fn get_json(&self) -> Result<String, AnoncredsError> {
-        serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
+        serde_json::to_string(&self.core).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 
@@ -177,8 +177,8 @@ impl TryFrom<&CredentialDefinitionPrivate> for AnoncredsCredentialDefinitionPriv
     type Error = AnoncredsError;
     
     fn try_from(def: &CredentialDefinitionPrivate) -> Result<AnoncredsCredentialDefinitionPrivate, Self::Error> {
-        let json_value = serde_json::to_string(&def.core.value).map_err(|_| AnoncredsError::ConversionError)?;
-        return serde_json::from_str(&json_value).map_err(|_| AnoncredsError::ConversionError)
+        let json_value = serde_json::to_string(&def.core.value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
+        return serde_json::from_str(&json_value).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 
@@ -188,12 +188,12 @@ pub struct CredentialKeyCorrectnessProof {
 
 impl CredentialKeyCorrectnessProof {
     pub fn new(json_string: String) -> Result<Self, AnoncredsError> {
-        let core_def: AnoncredsCredentialKeyCorrectnessProof = serde_json::from_str(&json_string).map_err(|_| AnoncredsError::ConversionError)?;
+        let core_def: AnoncredsCredentialKeyCorrectnessProof = serde_json::from_str(&json_string).map_err(|err| AnoncredsError::ConversionError(err.to_string()))?;
         return Ok(CredentialKeyCorrectnessProof { core: core_def })
     }
 
     pub fn get_json(&self) -> Result<String, AnoncredsError> {
-        serde_json::to_string(&self.core).map_err(|_| AnoncredsError::ConversionError)
+        serde_json::to_string(&self.core).map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }
 
@@ -207,6 +207,6 @@ impl TryFrom<&CredentialKeyCorrectnessProof> for AnoncredsCredentialKeyCorrectne
     type Error = AnoncredsError;
 
     fn try_from(def: &CredentialKeyCorrectnessProof) -> Result<AnoncredsCredentialKeyCorrectnessProof, Self::Error> {
-        return def.core.try_clone().map_err(|_| AnoncredsError::ConversionError)
+        return def.core.try_clone().map_err(|err| AnoncredsError::ConversionError(err.to_string()))
     }
 }

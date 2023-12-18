@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, thiserror::Error, Serialize, Deserialize)]
 pub enum AnoncredsError {
-    #[error("Conversion Error")]
-    ConversionError,
+    #[error("Conversion Error: {0}")]
+    ConversionError(String),
     #[error("Something went wrong")]
     SomethingWentWrong,
     #[error("Create Credential Error: {0}")]
