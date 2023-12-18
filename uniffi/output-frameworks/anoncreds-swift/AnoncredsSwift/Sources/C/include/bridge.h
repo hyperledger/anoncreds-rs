@@ -8,6 +8,6 @@
 #ifndef Header_h
 #define Header_h
 
-#include "anoncredsFFI.h"
+#include "anoncreds_wrapperFFI.h"
 
 #endif /* Header_h */

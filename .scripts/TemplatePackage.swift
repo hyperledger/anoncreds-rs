@@ -17,11 +17,11 @@ let package = Package(
     targets: [
         .target(
             name: "AnoncredsSwift",
-            dependencies: ["anoncredsFFI"],
+            dependencies: ["anoncreds_wrapperFFI"],
             path: "uniffi/output-frameworks/anoncreds-swift/AnoncredsSwift/Sources/Swift"
         ),
         .target(
-            name: "anoncredsFFI",
+            name: "anoncreds_wrapperFFI",
             dependencies: ["libanoncreds"],
             path: "uniffi/output-frameworks/anoncreds-swift/AnoncredsSwift/Sources/C"),
         // LOCAL

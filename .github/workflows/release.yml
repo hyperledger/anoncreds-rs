@@ -2,6 +2,7 @@
 name: "Release Libraries"
 
 env:
+  JAVA_VERSION: 11
   RUST_VERSION: "1.73.0"
   CROSS_VERSION: "0.2.4"
 
