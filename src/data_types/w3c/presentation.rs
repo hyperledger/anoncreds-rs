@@ -1,20 +1,19 @@
+use crate::data_types::pres_request::{PredicateInfo, PredicateTypes};
 use serde::{Deserialize, Serialize};
 
-use crate::data_types::w3c::credential::{Contexts, Types};
-use crate::data_types::w3c::presentation_proof::PresentationProof;
+use crate::data_types::w3c::constants::ANONCREDS_PRESENTATION_TYPES;
+use crate::data_types::w3c::context::Contexts;
+use crate::data_types::w3c::credential::Types;
+use crate::data_types::w3c::proof::PresentationProofValue;
+use crate::data_types::w3c::proof::{CryptoSuite, DataIntegrityProof};
 use crate::data_types::w3c::{
-    constants::{
-        ANONCREDS_CONTEXTS, ANONCREDS_PRESENTATION_TYPES, W3C_ANONCREDS_CONTEXT,
-        W3C_ANONCREDS_PRESENTATION_TYPE, W3C_CONTEXT, W3C_PRESENTATION_TYPE,
-    },
-    credential::W3CCredential,
-    uri::URI,
+    constants::W3C_PRESENTATION_TYPE, credential::W3CCredential, VerifiableCredentialSpecVersion,
 };
 use crate::Result;
 
 /// AnonCreds W3C Presentation definition
 /// Note, that this definition is tied to AnonCreds W3C form
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct W3CPresentation {
     #[serde(rename = "@context")]
@@ -23,50 +22,74 @@ pub struct W3CPresentation {
     #[serde(rename = "type")]
     pub type_: Types,
     pub verifiable_credential: Vec<W3CCredential>,
-    pub proof: PresentationProof,
+    pub proof: DataIntegrityProof,
 }
 
 impl W3CPresentation {
-    pub fn new() -> W3CPresentation {
-        W3CPresentation {
-            context: ANONCREDS_CONTEXTS.clone(),
+    pub fn new(
+        verifiable_credential: Vec<W3CCredential>,
+        proof: DataIntegrityProof,
+        version: Option<VerifiableCredentialSpecVersion>,
+    ) -> Self {
+        let version = version.unwrap_or_default();
+        Self {
+            context: Contexts::get(version),
             type_: ANONCREDS_PRESENTATION_TYPES.clone(),
-            verifiable_credential: Vec::new(),
-            proof: PresentationProof::default(),
+            verifiable_credential,
+            proof,
         }
     }
 
-    pub fn add_verifiable_credential(&mut self, verifiable_credential: W3CCredential) {
-        self.verifiable_credential.push(verifiable_credential);
+    pub fn version(&self) -> Result<VerifiableCredentialSpecVersion> {
+        self.context.version()
     }
 
-    pub fn set_proof(&mut self, proof: PresentationProof) {
-        self.proof = proof;
-    }
-
-    pub fn validate(&self) -> Result<()> {
-        if !self.context.0.contains(&URI(W3C_CONTEXT.to_string())) {
-            return Err(err_msg!("Credential does not contain w3c context"));
-        }
-        if !self
-            .context
-            .0
-            .contains(&URI(W3C_ANONCREDS_CONTEXT.to_string()))
-        {
+    pub fn get_presentation_proof(&self) -> Result<PresentationProofValue> {
+        if self.proof.cryptosuite != CryptoSuite::AnonCredsPresVp2023 {
             return Err(err_msg!(
-                "Credential does not contain w3c anoncreds context"
+                "Credential does not contain anoncredspresvc-2023 proof"
             ));
         }
-        if !self.type_.0.contains(W3C_PRESENTATION_TYPE) {
+        self.proof.get_proof_value()
+    }
+
+    pub(crate) fn validate(&self) -> Result<()> {
+        self.context.validate()?;
+        if !self.type_.0.contains(&W3C_PRESENTATION_TYPE.to_string()) {
             return Err(err_msg!(
                 "Credential does not contain w3c presentation type"
             ));
         }
-        if !self.type_.0.contains(W3C_ANONCREDS_PRESENTATION_TYPE) {
-            return Err(err_msg!(
-                "Credential does not contain w3c anoncreds presentation type"
-            ));
-        }
         Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+pub struct PredicateAttribute {
+    #[serde(rename = "type")]
+    pub type_: PredicateAttributeType,
+    pub predicate: PredicateTypes,
+    pub value: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PredicateAttributeType {
+    #[serde(rename = "AnonCredsPredicate")]
+    AnonCredsPredicate,
+}
+
+impl Default for PredicateAttributeType {
+    fn default() -> Self {
+        PredicateAttributeType::AnonCredsPredicate
+    }
+}
+
+impl From<PredicateInfo> for PredicateAttribute {
+    fn from(info: PredicateInfo) -> Self {
+        PredicateAttribute {
+            type_: PredicateAttributeType::AnonCredsPredicate,
+            predicate: info.p_type,
+            value: info.p_value,
+        }
     }
 }

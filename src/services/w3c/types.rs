@@ -1,4 +1,5 @@
-use crate::data_types::w3c::credential::{CredentialAttributeValue, CredentialAttributes};
+use crate::data_types::w3c::credential_attributes::CredentialAttributeValue;
+use crate::data_types::w3c::credential_attributes::CredentialAttributes;
 
 #[derive(Debug, Default)]
 pub struct MakeCredentialAttributes(pub(crate) CredentialAttributes);

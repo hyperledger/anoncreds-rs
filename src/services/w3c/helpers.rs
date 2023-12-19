@@ -1,6 +1,7 @@
 use crate::data_types::pres_request::{PredicateInfo, PredicateTypes, PredicateValue};
 use crate::data_types::schema::Schema;
-use crate::data_types::w3c::credential::{CredentialAttributeValue, W3CCredential};
+use crate::data_types::w3c::credential::W3CCredential;
+use crate::data_types::w3c::credential_attributes::CredentialAttributeValue;
 use crate::error::Result;
 use crate::helpers::attr_common_view;
 use std::collections::HashMap;

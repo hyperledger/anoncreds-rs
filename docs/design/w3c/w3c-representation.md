@@ -49,6 +49,7 @@ Methods purpose - have to forms of credentials (probably even duplicate in walle
 /// # Params
 /// cred:       object handle pointing to credential in legacy form to convert
 /// cred_def:   object handle pointing to the credential definition
+/// version:    version of verifiable credential specification (1.1 or 2.0)
 /// cred_p:     reference that will contain converted credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -57,6 +58,7 @@ Methods purpose - have to forms of credentials (probably even duplicate in walle
 pub extern "C" fn anoncreds_credential_to_w3c(
     cred: ObjectHandle,
     cred_def: ObjectHandle,
+    version: FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
@@ -71,90 +73,6 @@ pub extern "C" fn anoncreds_credential_to_w3c(
 #[no_mangle]
 pub extern "C" fn anoncreds_credential_from_w3c(
     cred: ObjectHandle,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
-```
-
-#### Credential object helper methods
-
-```rust
-/// Add Non-Anoncreds Data Integrity proof signature to W3C AnonCreds credential
-///
-/// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// proof -     data integrity proof as JSON string
-/// cred_p:     reference that will contain update credential
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_add_non_anoncreds_integrity_proof(
-    cred: ObjectHandle,
-    proof: FfiStr,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
-
-/// Add context to W3C AnonCreds credential
-///
-/// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// context -   context to add into credential
-/// cred_p:     reference that will contain update credential
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_add_context(
-    cred: ObjectHandle,
-    context: FfiStr,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
-
-/// Add type to W3C AnonCreds credential
-///
-/// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// type -      type to add into credential
-/// cred_p:     reference that will contain update credential
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_add_type(
-    cred: ObjectHandle,
-    type_: FfiStr,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
-
-/// Set subject id to W3C AnonCreds credential
-///
-/// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// id -        subject id to add into credential
-/// cred_p:     reference that will contain update credential
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_set_subject_id(
-    cred: ObjectHandle,
-    id: FfiStr,
-    cred_p: *mut ObjectHandle,
-) -> ErrorCode {}
-
-/// Set id to W3C AnonCreds credential
-///
-/// # Params
-/// cred -      object handle pointing to W3C AnonCreds credential
-/// id -        id to add into credential
-/// cred_p:     reference that will contain update credential
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_set_id(
-    cred: ObjectHandle,
-    id: FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 ```
@@ -242,6 +160,7 @@ pub extern "C" fn anoncreds_create_w3c_credential_request(
 /// attr_names:            list of attribute names
 /// attr_raw_values:       list of attribute raw values
 /// revocation:            object handle pointing to the credential revocation info
+/// version:               version of verifiable credential specification (1.1 or 2.0)
 /// cred_p:                reference that will contain credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -255,6 +174,7 @@ pub extern "C" fn anoncreds_create_w3c_credential(
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
     revocation: *const FfiCredRevInfo,
+    version: *const FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
@@ -280,12 +200,14 @@ pub extern "C" fn anoncreds_process_w3c_credential(
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
-/// Get value of requested credential attribute as string
+/// Get credential signature information required for proof building and verification
+/// This information is aggregated from `anoncredsvc-2023` and `anoncredspresvc-2023` proofs.
+/// It's needed for Holder and Verifier for public entities resolving
+///     {`schema_id`, `cred_def_id`, `rev_reg_id`, `rev_reg_index`, `timestamp`}
 ///
 /// # Params
 /// handle:                object handle pointing to the credential (in W3 form)
-/// name:                  name of attribute to retrieve
-/// result_p:              reference that will contain value of request credential attribute
+/// result_p:              reference that will contain credential information
 ///
 /// # Returns
 /// Error code
@@ -294,6 +216,12 @@ pub extern "C" fn anoncreds_w3c_credential_get_attribute(
     handle: ObjectHandle,
     name: FfiStr,
     result_p: *mut *const c_char,
+) -> ErrorCode {}
+
+#[no_mangle]
+pub extern "C" fn anoncreds_credential_get_info(
+    handle: ObjectHandle,
+    cred_proof_info_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
 /// Create W3C Presentation according to the specification.

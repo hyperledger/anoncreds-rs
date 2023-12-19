@@ -7,10 +7,12 @@ use std::{
 
 use crate::utils::{fixtures, VerifierWallet};
 use anoncreds::data_types::nonce::Nonce;
-use anoncreds::data_types::w3c::credential::{
-    CredentialAttributeValue, CredentialAttributes, W3CCredential,
+use anoncreds::data_types::w3c::credential::W3CCredential;
+use anoncreds::data_types::w3c::credential_attributes::{
+    CredentialAttributeValue, CredentialAttributes,
 };
 use anoncreds::data_types::w3c::presentation::W3CPresentation;
+use anoncreds::data_types::w3c::VerifiableCredentialSpecVersion;
 use anoncreds::types::{
     CredentialRequestMetadata, CredentialRevocationState, CredentialValues,
     RevocationRegistryDefinition, RevocationStatusList,
@@ -400,6 +402,7 @@ impl<'a> Mock<'a> {
             Some(&rev_reg_id),
             rev_config.as_ref().map(|config| config.status_list),
             rev_config.as_ref().map(|config| config.registry_idx),
+            None,
         );
 
         issue_cred
@@ -562,6 +565,7 @@ impl<'a> Mock<'a> {
             req,
             present_credentials,
             self_attested,
+            None,
         )
     }
 }
@@ -718,6 +722,7 @@ impl IssuerWallet {
         rev_reg_def_id: Option<&str>,
         revocation_status_list: Option<&RevocationStatusList>,
         credential_rev_index: Option<u32>,
+        version: Option<VerifiableCredentialSpecVersion>,
     ) -> Credentials {
         let cred_def_record = &self
             .cred_defs
@@ -761,7 +766,7 @@ impl IssuerWallet {
                     &cred_request,
                     CredentialAttributes::from(&cred_values),
                     revocation_config,
-                    None,
+                    version,
                 )
                 .expect("Error creating credential");
                 Credentials::W3C(issue_cred)
@@ -914,6 +919,7 @@ impl<'a> ProverWallet<'a> {
         pres_request: &PresentationRequest,
         present_credentials: &Vec<CredentialToPresent>,
         self_attested_credentials: Option<HashMap<String, String>>,
+        version: Option<VerifiableCredentialSpecVersion>,
     ) -> Presentations {
         match format {
             PresentationFormat::Legacy => {
@@ -939,6 +945,7 @@ impl<'a> ProverWallet<'a> {
                     &self.link_secret,
                     schemas,
                     cred_defs,
+                    version,
                 )
                 .expect("Error creating presentation");
                 Presentations::W3C(presentation)
@@ -955,7 +962,7 @@ impl<'a> ProverWallet<'a> {
         match credential {
             Credentials::Legacy(legacy_cred) => {
                 // Convert legacy credential into W3C form
-                let w3c_cred = credential_to_w3c(&legacy_cred, cred_def)
+                let w3c_cred = credential_to_w3c(&legacy_cred, cred_def, None)
                     .expect("Error converting legacy credential into W3C form");
 
                 // Store w3c credential in wallet
@@ -1149,17 +1156,19 @@ pub enum ExpectedAttributeValue<'a> {
 }
 
 pub trait RevocableCredential {
-    fn rev_reg_id(&self) -> Option<&RevocationRegistryDefinitionId>;
+    fn rev_reg_id(&self) -> Option<RevocationRegistryDefinitionId>;
 }
 
 impl RevocableCredential for Credential {
-    fn rev_reg_id(&self) -> Option<&RevocationRegistryDefinitionId> {
-        self.rev_reg_id.as_ref()
+    fn rev_reg_id(&self) -> Option<RevocationRegistryDefinitionId> {
+        self.rev_reg_id.clone()
     }
 }
 
 impl RevocableCredential for W3CCredential {
-    fn rev_reg_id(&self) -> Option<&RevocationRegistryDefinitionId> {
-        self.get_rev_reg_id()
+    fn rev_reg_id(&self) -> Option<RevocationRegistryDefinitionId> {
+        self.get_credential_signature_proof()
+            .ok()
+            .and_then(|proof| proof.rev_reg_id.clone())
     }
 }

@@ -6,19 +6,17 @@ use crate::data_types::presentation::Identifier;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
 use crate::data_types::schema::SchemaId;
-use crate::data_types::w3c::credential::CredentialAttributeValue;
 use crate::data_types::w3c::credential::W3CCredential;
+use crate::data_types::w3c::credential_attributes::CredentialAttributeValue;
 use crate::data_types::w3c::presentation::W3CPresentation;
-use crate::data_types::w3c::presentation_proof::{
-    CredentialPresentationProof, CredentialPresentationProofValue,
-};
+use crate::data_types::w3c::proof::CredentialPresentationProofValue;
 use crate::error::Result;
 use crate::services::helpers::{encode_credential_attribute, get_requested_non_revoked_interval};
 use crate::types::{PresentationRequest, RevocationRegistryDefinition, RevocationStatusList};
 use crate::utils::query::Query;
 use crate::verifier::{gather_filter_info, process_operator};
 use crate::verifier::{verify_revealed_attribute_value, CLProofVerifier};
-use anoncreds_clsignatures::Proof;
+use anoncreds_clsignatures::{Proof, SubProof};
 use std::collections::HashMap;
 
 /// Verify an incoming presentation in W3C form
@@ -36,6 +34,8 @@ pub fn verify_presentation(
     trace!("verify >>> verify_w3c_presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
 
+    presentation.validate()?;
+
     let presentation_request = pres_req.value();
 
     // we need to decode proofs in advance as their data needed in two places: checking
@@ -43,8 +43,8 @@ pub fn verify_presentation(
     let credential_proofs = presentation
         .verifiable_credential
         .iter()
-        .map(W3CCredential::get_presentation_proof)
-        .collect::<Result<Vec<&CredentialPresentationProof>>>()?;
+        .map(W3CCredential::get_credential_presentation_proof)
+        .collect::<Result<Vec<CredentialPresentationProofValue>>>()?;
 
     // These values are from the prover and cannot be trusted
     // Check that all requested attributes and predicates included into the presentation
@@ -58,11 +58,7 @@ pub fn verify_presentation(
         &credential_proofs,
     )?;
 
-    let presentation_proof = presentation.proof.get_proof_value()?;
-    let mut cl_proof = Proof {
-        proofs: Vec::with_capacity(presentation.verifiable_credential.len()),
-        aggregated_proof: presentation_proof.aggregated,
-    };
+    let presentation_proof = presentation.get_presentation_proof()?;
 
     let mut proof_verifier = CLProofVerifier::new(
         presentation_request,
@@ -72,34 +68,37 @@ pub fn verify_presentation(
         rev_status_lists.as_ref(),
     )?;
 
-    for (index, verifiable_credential) in presentation.verifiable_credential.iter().enumerate() {
-        let credential_proof = credential_proofs
-            .get(index)
-            .ok_or_else(|| err_msg!("Unable to get credential proof for index {}", index))?;
+    let mut sub_proofs: Vec<SubProof> =
+        Vec::with_capacity(presentation.verifiable_credential.len());
 
-        let credential_proof_data = credential_proof.get_proof_value()?;
-        let schema_id = verifiable_credential.get_schema_id();
-        let cred_def_id = verifiable_credential.get_cred_def_id();
-        let rev_reg_id = verifiable_credential.get_rev_reg_id();
+    let iter = presentation
+        .verifiable_credential
+        .iter()
+        .zip(credential_proofs);
 
+    for (verifiable_credential, credential_proof) in iter {
         let attributes = verifiable_credential.get_attributes();
         let predicates = verifiable_credential.get_predicates();
         let attribute_names: Vec<String> = attributes.keys().cloned().collect();
 
-        verify_revealed_attributes(&attributes, &credential_proof_data)?;
+        verify_revealed_attributes(&attributes, &credential_proof)?;
 
         proof_verifier.add_sub_proof(
             &attribute_names,
             &predicates,
-            schema_id,
-            cred_def_id,
-            rev_reg_id,
+            &credential_proof.schema_id,
+            &credential_proof.cred_def_id,
+            credential_proof.rev_reg_id.as_ref(),
             credential_proof.timestamp,
         )?;
 
-        cl_proof.proofs.push(credential_proof_data.sub_proof);
+        sub_proofs.push(credential_proof.sub_proof);
     }
 
+    let cl_proof = Proof {
+        proofs: sub_proofs,
+        aggregated_proof: presentation_proof.aggregated,
+    };
     let valid = proof_verifier.verify(&cl_proof)?;
 
     trace!("verify_w3c_presentation <<< valid: {:?}", valid);
@@ -112,12 +111,13 @@ fn check_credential_restrictions(
     restrictions: Option<&Query>,
     schemas: &HashMap<SchemaId, Schema>,
     cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
+    proof: &CredentialPresentationProofValue,
 ) -> Result<()> {
     if let Some(restrictions) = restrictions {
         let identifier: Identifier = Identifier {
-            schema_id: credential.get_schema_id().to_owned(),
-            cred_def_id: credential.get_cred_def_id().to_owned(),
-            rev_reg_id: credential.get_rev_reg_id().cloned(),
+            schema_id: proof.schema_id.to_owned(),
+            cred_def_id: proof.cred_def_id.to_owned(),
+            rev_reg_id: proof.rev_reg_id.to_owned(),
             timestamp: None,
         };
         let filter = gather_filter_info(&identifier, schemas, cred_defs)?;
@@ -136,15 +136,14 @@ fn check_credential_restrictions(
 }
 
 fn check_credential_non_revoked_interval(
-    credential: &W3CCredential,
     presentation_request: &PresentationRequestPayload,
     nonrevoke_interval: Option<&NonRevokedInterval>,
     nonrevoke_interval_override: Option<
         &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
-    proof: &CredentialPresentationProof,
+    proof: &CredentialPresentationProofValue,
 ) -> Result<()> {
-    if let Some(rev_reg_id) = credential.get_rev_reg_id() {
+    if let Some(ref rev_reg_id) = proof.rev_reg_id {
         let non_revoked_interval = get_requested_non_revoked_interval(
             Some(rev_reg_id),
             nonrevoke_interval,
@@ -173,11 +172,10 @@ fn check_credential_conditions(
     nonrevoke_interval_override: Option<
         &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
-    proof: &CredentialPresentationProof,
+    proof: &CredentialPresentationProofValue,
 ) -> Result<()> {
-    check_credential_restrictions(credential, restrictions, schemas, cred_defs)?;
+    check_credential_restrictions(credential, restrictions, schemas, cred_defs, proof)?;
     check_credential_non_revoked_interval(
-        credential,
         presentation_request,
         nonrevoke_interval,
         nonrevoke_interval_override,
@@ -198,7 +196,7 @@ fn check_requested_attribute<'a>(
     nonrevoke_interval_override: Option<
         &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
-    credential_proofs: &[&CredentialPresentationProof],
+    credential_proofs: &[CredentialPresentationProofValue],
 ) -> Result<&'a W3CCredential> {
     for (index, credential) in presentation.verifiable_credential.iter().enumerate() {
         let proof = credential_proofs
@@ -228,13 +226,8 @@ fn check_requested_attribute<'a>(
             .get(index)
             .ok_or_else(|| err_msg!("Unable to get credential proof for index {}", index))?;
         let schema = schemas
-            .get(&credential.credential_schema.schema)
-            .ok_or_else(|| {
-                err_msg!(
-                    "Credential schema not found {}",
-                    credential.credential_schema.schema
-                )
-            })?;
+            .get(&proof.schema_id)
+            .ok_or_else(|| err_msg!("Credential schema not found {}", proof.schema_id))?;
 
         let valid_credential = schema.has_case_insensitive_attribute(attribute)
             && check_credential_conditions(
@@ -270,7 +263,7 @@ fn check_requested_predicate<'a>(
     nonrevoke_interval_override: Option<
         &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
-    credential_proofs: &[&CredentialPresentationProof],
+    credential_proofs: &[CredentialPresentationProofValue],
 ) -> Result<&'a W3CCredential> {
     for (index, credential) in presentation.verifiable_credential.iter().enumerate() {
         let proof = credential_proofs
@@ -308,7 +301,7 @@ fn check_request_data(
     nonrevoke_interval_override: Option<
         &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
-    credential_proofs: &[&CredentialPresentationProof],
+    credential_proofs: &[CredentialPresentationProofValue],
 ) -> Result<()> {
     for (_, attribute) in presentation_request.requested_attributes.iter() {
         if let Some(ref name) = attribute.name {
@@ -375,11 +368,11 @@ mod tests {
     use super::*;
     use crate::data_types::nonce::Nonce;
     use crate::data_types::pres_request::{AttributeInfo, PredicateTypes};
-    use crate::data_types::w3c::credential::{CredentialAttributes, CredentialStatus};
-    use crate::data_types::w3c::credential_proof::CredentialProof;
-    use crate::data_types::w3c::presentation_proof::{PredicateAttribute, PresentationProofType};
+    use crate::data_types::w3c::credential_attributes::CredentialAttributes;
+    use crate::data_types::w3c::presentation::PredicateAttribute;
+    use crate::data_types::w3c::proof::DataIntegrityProof;
     use crate::w3c::credential_conversion::tests::{
-        cred_def_id, cred_schema, credential_definition, issuer_id, schema, schema_id,
+        cred_def_id, credential_definition, issuer_id, schema, schema_id,
     };
     use crate::ErrorKind;
     use rstest::*;
@@ -423,27 +416,44 @@ mod tests {
         non_revoke_override
     }
 
+    fn _credential_proof() -> SubProof {
+        serde_json::from_value(json!({
+            "primary_proof": {
+                "eq_proof":{
+                    "a_prime":"93850854506025106167175657367900738564840399460457583396522672546367771557204596986051012396385435450263898123125896474854176367786952154894815573554451004746144139656996044265545613968836176711502602815031392209790095794160045376494471161541029201092195175557986308757797292716881081775201092320235240062158880723682328272460090331253190919323449053508332270184449026105339413097644934519533429034485982687030017670766107427442501537423985935074367321676374406375566791092427955935956566771002472855738585522175250186544831364686282512410608147641314561395934098066750903464501612432084069923446054698174905994358631",
+                    "e":"162083298053730499878539837415798033696428693449892281052193919207514842725975444071338657195491572547562439622393591965427898285748359108",
+                    "m":{
+                        "age":"6461691768834933403326572830814516653957231030793837560544354737855803497655300429843454445497126568685843068983890896122000977852186661939211990733462807944627807336518424313388",
+                        "height":"6461691768834933403326572830814516653957231030793837560544354737855803497655300429843454445497126574195981378365198960707499125538146253636400775219219390979675126287408712407688",
+                        "master_secret":"67940925789970108743024738273926421512152745397724199848594503731042154269417576665420030681245389493783225644817826683796657351721363490290016166310023507132564589104990678182299219306228446316250328302891742457726158298612477188160335451477126201081347058945471957804431939288091328124225198960258432684399",
+                        "sex":"6461691768834933403326575020439114193500962122447442182375470664835531264262887123435773676729731478629261405277091910956944655533226659560277758686479462667297473396368211269136"
+                    },
+                    "m2":"2553030889054034879941219523536672152702359185828546810612564355745759663351165380563310203986319611277915826660660011443138240248924364893067083241825560",
+                    "revealed_attrs":{
+                        "name":"66682250590915135919393234675423675079281389286836524491448775067034910960723"
+                    },
+                    "v":"241132863422049783305938040060597331735278274539541049316128678268379301866997158072011728743321723078574060931449243960464715113938435991871547190135480379265493203441002211218757120311064385792274455797457074741542288420192538286547871288116110058144080647854995527978708188991483561739974917309498779192480418427060775726652318167442183177955447797995160859302520108340826199956754805286213211181508112097818654928169122460464135690611512133363376553662825967455495276836834812520601471833287810311342575033448652033691127511180098524259451386027266077398672694996373787324223860522678035901333613641370426224798680813171225438770578377781015860719028452471648107174226406996348525110692233661632116547069810544117288754524961349911209241835217711929316799411645465546281445291569655422683908113895340361971530636987203042713656548617543163562701947578529101436799250628979720035967402306966520999250819096598649121167"
+                },
+                "ge_proofs":[]
+            }
+        })).unwrap()
+    }
+
     fn _credential() -> W3CCredential {
-        let mut credential = W3CCredential::new();
-        credential.set_issuer(issuer_id());
-        credential.set_credential_schema(cred_schema());
-        credential.set_attributes(_credential_attributes());
-        credential.add_proof(CredentialProof::AnonCredsCredentialPresentationProof(
-            CredentialPresentationProof {
-                type_: PresentationProofType::AnonCredsPresentationProof2023,
-                proof_value: "bla".to_string(),
+        let proof = DataIntegrityProof::new_credential_presentation_proof(
+            CredentialPresentationProofValue {
+                schema_id: schema_id(),
+                cred_def_id: cred_def_id(),
+                rev_reg_id: Some(_revocation_id()),
                 timestamp: Some(PROOF_TIMESTAMP),
+                sub_proof: _credential_proof(),
             },
-        ));
-        credential.set_credential_status(CredentialStatus::new(_revocation_id()));
-        credential
+        );
+        W3CCredential::new(issuer_id(), _credential_attributes(), proof, None)
     }
 
     fn _w3_presentation() -> W3CPresentation {
-        let credential = _credential();
-        let mut presentation = W3CPresentation::new();
-        presentation.add_verifiable_credential(credential);
-        presentation
+        W3CPresentation::new(vec![_credential()], DataIntegrityProof::default(), None)
     }
 
     fn _base_presentation_request() -> PresentationRequestPayload {
@@ -717,11 +727,13 @@ mod tests {
     }
 
     impl W3CPresentation {
-        fn credential_proofs(&self) -> Vec<&CredentialPresentationProof> {
+        fn credential_proofs(&self) -> Vec<CredentialPresentationProofValue> {
             self.verifiable_credential
                 .iter()
-                .map(|verifiable_credential| verifiable_credential.get_presentation_proof())
-                .collect::<Result<Vec<&CredentialPresentationProof>>>()
+                .map(|verifiable_credential| {
+                    verifiable_credential.get_credential_presentation_proof()
+                })
+                .collect::<Result<Vec<CredentialPresentationProofValue>>>()
                 .unwrap()
         }
     }
