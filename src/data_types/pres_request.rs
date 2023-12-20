@@ -185,11 +185,13 @@ pub struct AttributeInfo {
     pub non_revoked: Option<NonRevokedInterval>,
 }
 
+pub type PredicateValue = i32;
+
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct PredicateInfo {
     pub name: String,
     pub p_type: PredicateTypes,
-    pub p_value: i32,
+    pub p_value: PredicateValue,
     pub restrictions: Option<Query>,
     pub non_revoked: Option<NonRevokedInterval>,
 }

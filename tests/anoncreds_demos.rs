@@ -1,8 +1,7 @@
 use anoncreds::data_types::pres_request::PredicateTypes;
-use anoncreds::data_types::w3c::credential::CredentialAttributeValue;
-use anoncreds::data_types::w3c::credential_proof::CredentialProof;
-use anoncreds::data_types::w3c::presentation_proof::{PredicateAttribute, PredicateAttributeType};
-use anoncreds::data_types::w3c::uri::URI;
+use anoncreds::data_types::w3c::credential_attributes::CredentialAttributeValue;
+use anoncreds::data_types::w3c::presentation::{PredicateAttribute, PredicateAttributeType};
+use anoncreds::data_types::w3c::VerifiableCredentialSpecVersion;
 use anoncreds::verifier;
 use rstest::rstest;
 use serde_json::json;
@@ -13,11 +12,21 @@ use utils::*;
 mod utils;
 
 #[rstest]
-#[case(CredentialFormat::Legacy, PresentationFormat::Legacy)]
-#[case(CredentialFormat::W3C, PresentationFormat::W3C)]
+#[case(CredentialFormat::Legacy, PresentationFormat::Legacy, None)]
+#[case(
+    CredentialFormat::W3C,
+    PresentationFormat::W3C,
+    Some(VerifiableCredentialSpecVersion::V1_1)
+)]
+#[case(
+    CredentialFormat::W3C,
+    PresentationFormat::W3C,
+    Some(VerifiableCredentialSpecVersion::V2_0)
+)]
 fn anoncreds_demo_works_for_single_issuer_single_prover(
     #[case] credential_format: CredentialFormat,
     #[case] presentation_format: PresentationFormat,
+    #[case] version: Option<VerifiableCredentialSpecVersion>,
 ) {
     // Create pseudo ledger and wallets
     let mut ledger = Ledger::default();
@@ -50,6 +59,7 @@ fn anoncreds_demo_works_for_single_issuer_single_prover(
         None,
         None,
         None,
+        version.clone(),
     );
 
     // Prover receives the credential and processes it
@@ -121,6 +131,7 @@ fn anoncreds_demo_works_for_single_issuer_single_prover(
         &pres_request,
         &present_credentials,
         None,
+        version,
     );
 
     let valid = verifier_wallet
@@ -226,6 +237,7 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover(
         Some(&gvt_rev_reg_def_id),
         Some(&gvt_revocation_status_list),
         Some(fixtures::GVT_REV_IDX),
+        None,
     );
 
     let time_after_creating_cred = time_create_rev_status_list + 1;
@@ -325,6 +337,7 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover(
         &pres_request,
         &present_credentials,
         None,
+        None,
     );
 
     let valid = verifier_wallet
@@ -398,6 +411,7 @@ fn anoncreds_demo_works_with_revocation_for_single_issuer_single_prover(
         &pres_request,
         &present_credentials,
         None,
+        None,
     );
 
     let valid = verifier_wallet
@@ -460,6 +474,7 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover(
         None,
         None,
         None,
+        None,
     );
 
     // Prover receives the credential and processes it
@@ -487,6 +502,7 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover(
         &cred_offer,
         &cred_request,
         cred_values.into(),
+        None,
         None,
         None,
         None,
@@ -569,6 +585,7 @@ fn anoncreds_demo_works_for_multiple_issuer_single_prover(
         &pres_request,
         &present_credentials,
         None,
+        None,
     );
 
     let valid = verifier_wallet
@@ -623,6 +640,7 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates(
         None,
         None,
         None,
+        None,
     );
 
     // Prover receives the credential and processes it
@@ -646,7 +664,7 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates(
                 "name":"name"
             },
             "attr2_referent":{
-                "name":"sex"
+                "name":"missing attribute"
             },
             "attr3_referent":{
                 "names": ["name", "height"]
@@ -688,6 +706,7 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates(
         &cred_defs,
         &pres_request,
         &present_credentials,
+        None,
         None,
     );
 
@@ -739,6 +758,7 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case(
         &cred_offer,
         &cred_request,
         cred_values.into(),
+        None,
         None,
         None,
         None,
@@ -810,6 +830,7 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case(
         &cred_defs,
         &pres_request,
         &present_credentials,
+        None,
         None,
     );
 
@@ -919,6 +940,7 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential(
         None,
         None,
         None,
+        None,
     );
 
     // Prover receives the credential and processes it
@@ -946,6 +968,7 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential(
         &cred_offer,
         &cred_request,
         cred_values.into(),
+        None,
         None,
         None,
         None,
@@ -1037,6 +1060,7 @@ fn anoncreds_demo_works_for_twice_entry_of_attribute_from_different_credential(
         &cred_defs,
         &pres_request,
         &present_credentials,
+        None,
         None,
     );
 
@@ -2861,6 +2885,7 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
         None,
         None,
         None,
+        None,
     );
 
     // Prover receives the credential and processes it
@@ -2920,6 +2945,7 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
         &cred_defs,
         &pres_request,
         &present_credentials,
+        None,
         None,
     );
 
@@ -2999,6 +3025,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_convert_into_legacy_and_present
         None,
         None,
         None,
+        None,
     );
 
     // Prover receives the credential and processes it
@@ -3058,6 +3085,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_convert_into_legacy_and_present
         &cred_defs,
         &pres_request,
         &present_credentials,
+        None,
         None,
     );
 
@@ -3140,6 +3168,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
         None,
         None,
         None,
+        None,
     );
 
     // Prover receives the credential and processes it
@@ -3168,6 +3197,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
         &cred_offer,
         &cred_request,
         cred_values.into(),
+        None,
         None,
         None,
         None,
@@ -3239,6 +3269,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
         &cred_defs,
         &pres_request,
         &present_credentials,
+        None,
         None,
     );
 
@@ -3331,6 +3362,7 @@ fn anoncreds_demo_works_for_single_issuer_single_prover_and_present_self_atteste
         None,
         None,
         None,
+        None,
     );
 
     // Prover receives the credential and processes it
@@ -3410,6 +3442,7 @@ fn anoncreds_demo_works_for_single_issuer_single_prover_and_present_self_atteste
         &pres_request,
         &present_credentials,
         Some(self_attested),
+        None,
     );
 
     let valid = verifier_wallet

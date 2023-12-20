@@ -1,9 +1,8 @@
 use crate::data_types::cred_def::CredentialDefinition;
-use crate::data_types::credential::CredentialValuesEncoding;
-use crate::data_types::w3c::credential::{
-    CredentialAttributes, CredentialSchema, CredentialStatus, W3CCredential,
-};
-use crate::data_types::w3c::credential_proof::{CredentialSignature, CredentialSignatureProof};
+use crate::data_types::w3c::credential::W3CCredential;
+use crate::data_types::w3c::credential_attributes::CredentialAttributes;
+use crate::data_types::w3c::proof::{CredentialSignatureProof, DataIntegrityProof};
+use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::error::Result;
 use crate::issuer::CLCredentialIssuer;
 
@@ -89,15 +88,15 @@ pub fn create_credential(
     cred_request: &CredentialRequest,
     raw_credential_values: CredentialAttributes,
     revocation_config: Option<CredentialRevocationConfig>,
-    encoding: Option<CredentialValuesEncoding>,
+    version: Option<VerifiableCredentialSpecVersion>,
 ) -> Result<W3CCredential> {
     trace!("create_w3c_credential >>> cred_def: {:?}, cred_def_private: {:?}, cred_offer.nonce: {:?}, cred_request: {:?},\
-            cred_values: {:?}, revocation_config: {:?}",
-            cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&raw_credential_values), revocation_config,
+            cred_values: {:?}, revocation_config: {:?}, version: {:?}",
+            cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&raw_credential_values),
+            revocation_config, version,
     );
 
-    let encoding = encoding.unwrap_or_default();
-    let credential_values = raw_credential_values.encode(&encoding)?;
+    let credential_values = raw_credential_values.encode()?;
 
     let (credential_signature, signature_correctness_proof, rev_reg_id, rev_reg, witness) =
         CLCredentialIssuer::new(cred_def, cred_def_private).create_credential(
@@ -107,27 +106,23 @@ pub fn create_credential(
             revocation_config,
         )?;
 
-    let signature = CredentialSignature::new(
-        credential_signature,
+    let signature = CredentialSignatureProof {
+        schema_id: cred_offer.schema_id.to_owned(),
+        cred_def_id: cred_offer.cred_def_id.to_owned(),
+        rev_reg_id,
+        signature: credential_signature,
         signature_correctness_proof,
         rev_reg,
         witness,
-    );
-    let proof = CredentialSignatureProof::new(signature);
-    let credential_schema = CredentialSchema::new(
-        cred_offer.schema_id.to_owned(),
-        cred_offer.cred_def_id.to_owned(),
-        encoding,
-    );
+    };
 
-    let mut credential = W3CCredential::new();
-    credential.set_issuer(cred_def.issuer_id.to_owned());
-    credential.set_credential_schema(credential_schema);
-    credential.set_attributes(raw_credential_values);
-    credential.add_anoncreds_signature_proof(proof);
-    if let Some(rev_reg_id) = rev_reg_id {
-        credential.set_credential_status(CredentialStatus::new(rev_reg_id))
-    }
+    let proof = DataIntegrityProof::new_credential_proof(signature);
+    let credential = W3CCredential::new(
+        cred_def.issuer_id.to_owned(),
+        raw_credential_values,
+        proof,
+        version,
+    );
 
     trace!(
         "create_w3c_credential <<< credential {:?}",

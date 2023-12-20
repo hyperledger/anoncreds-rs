@@ -49,6 +49,7 @@ Methods purpose - have to forms of credentials (probably even duplicate in walle
 /// # Params
 /// cred:       object handle pointing to credential in legacy form to convert
 /// cred_def:   object handle pointing to the credential definition
+/// version:    version of w3c verifiable credential specification (1.1 or 2.0) to use
 /// cred_p:     reference that will contain converted credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -57,6 +58,7 @@ Methods purpose - have to forms of credentials (probably even duplicate in walle
 pub extern "C" fn anoncreds_credential_to_w3c(
     cred: ObjectHandle,
     cred_def: ObjectHandle,
+    version: FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
@@ -112,6 +114,7 @@ The reasons for adding duplication methods:
 /// attr_names:            list of attribute names
 /// attr_raw_values:       list of attribute raw values
 /// revocation:            object handle pointing to the credential revocation info
+/// version:               version of w3c verifiable credential specification (1.1 or 2.0) to use
 /// cred_p:                reference that will contain credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -125,6 +128,7 @@ pub extern "C" fn anoncreds_create_w3c_credential(
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
     revocation: *const FfiCredRevInfo,
+    version: *const FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
@@ -150,20 +154,21 @@ pub extern "C" fn anoncreds_process_w3c_credential(
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
-/// Get value of requested credential attribute as string
+/// Get credential signature information required for proof building and verification
+/// This information is aggregated from `anoncredsvc-2023` and `anoncredspresvc-2023` proofs.
+/// It's needed for Holder and Verifier for public entities resolving
+///     {`schema_id`, `cred_def_id`, `rev_reg_id`, `rev_reg_index`, `timestamp`}
 ///
 /// # Params
 /// handle:                object handle pointing to the credential (in W3 form)
-/// name:                  name of attribute to retrieve
-/// result_p:              reference that will contain value of request credential attribute
+/// result_p:              reference that will contain credential information
 ///
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_get_attribute(
+pub extern "C" fn anoncreds_w3c_credential_get_integrity_proof_details(
     handle: ObjectHandle,
-    name: FfiStr,
-    result_p: *mut *const c_char,
+    cred_proof_info_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
 /// Create W3C Presentation according to the specification.
@@ -177,6 +182,7 @@ pub extern "C" fn anoncreds_w3c_credential_get_attribute(
 /// schema_ids:             list of schemas ids
 /// cred_defs:              list of credential definitions
 /// cred_def_ids:           list of credential definitions ids
+/// version:                version of w3c verifiable presentation specification (1.1 or 2.0) to use
 /// presentation_p:         reference that will contain created presentation (in W3C form) instance pointer.
 ///
 /// # Returns

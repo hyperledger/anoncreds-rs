@@ -2,6 +2,7 @@ use crate::cl::{
     bn::BigNumber, CredentialSchema, CredentialValues as CLCredentialValues, Issuer,
     NonCredentialSchema, SubProofRequest, Verifier,
 };
+use crate::data_types::pres_request::{PredicateTypes, PredicateValue};
 use crate::data_types::presentation::RequestedProof;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
@@ -9,7 +10,7 @@ use crate::data_types::{
     credential::CredentialValues,
     link_secret::LinkSecret,
     nonce::Nonce,
-    pres_request::{AttributeInfo, NonRevokedInterval, PredicateInfo, PresentationRequestPayload},
+    pres_request::{NonRevokedInterval, PresentationRequestPayload},
 };
 use crate::error::Result;
 use crate::utils::hash::SHA256;
@@ -87,8 +88,8 @@ pub fn encode_credential_attribute(raw_value: &str) -> Result<String> {
 }
 
 pub fn build_sub_proof_request(
-    attrs_for_credential: &[AttributeInfo],
-    predicates_for_credential: &[PredicateInfo],
+    attrs_for_credential: &[String],
+    predicates_for_credential: &HashMap<String, (PredicateTypes, PredicateValue)>,
 ) -> Result<SubProofRequest> {
     trace!(
         "build_sub_proof_request >>> attrs_for_credential: {:?}, predicates_for_credential: {:?}",
@@ -99,33 +100,13 @@ pub fn build_sub_proof_request(
     let mut sub_proof_request_builder = Verifier::new_sub_proof_request_builder()?;
 
     for attr in attrs_for_credential {
-        let names = if let Some(name) = &attr.name {
-            vec![name.clone()]
-        } else if let Some(names) = &attr.names {
-            names.clone()
-        } else {
-            error!(
-                r#"Attr for credential restriction should contain "name" or "names" param. Current attr: {:?}"#,
-                attr
-            );
-            return Err(err_msg!(
-                r#"Attr for credential restriction should contain "name" or "names" param."#,
-            ));
-        };
-
-        for name in names {
-            sub_proof_request_builder.add_revealed_attr(&attr_common_view(&name))?;
-        }
+        sub_proof_request_builder.add_revealed_attr(&attr_common_view(attr))?;
     }
 
-    for predicate in predicates_for_credential {
-        let p_type = format!("{}", predicate.p_type);
+    for (name, (p_type, p_value)) in predicates_for_credential {
+        let p_type = format!("{}", p_type);
 
-        sub_proof_request_builder.add_predicate(
-            &attr_common_view(&predicate.name),
-            &p_type,
-            predicate.p_value,
-        )?;
+        sub_proof_request_builder.add_predicate(&attr_common_view(name), &p_type, *p_value)?;
     }
 
     let res = sub_proof_request_builder.finalize()?;
@@ -137,74 +118,6 @@ pub fn build_sub_proof_request(
 
 pub fn new_nonce() -> Result<Nonce> {
     Nonce::new().map_err(err_map!(Unexpected))
-}
-
-impl PresentationRequestPayload {
-    pub(crate) fn get_requested_attributes(
-        &self,
-        referents: &HashSet<String>,
-    ) -> Result<(Vec<AttributeInfo>, Option<NonRevokedInterval>)> {
-        trace!("get_requested_attributes >>> referents: {:?}", referents);
-        let mut non_revoked_interval: Option<NonRevokedInterval> = None;
-        let mut attributes: Vec<AttributeInfo> = Vec::new();
-
-        for referent in referents {
-            let requested = self
-                .requested_attributes
-                .get(referent)
-                .cloned()
-                .ok_or_else(|| err_msg!("Requested Attribute {} not found in request", referent))?;
-
-            if let Some(int) = &requested.non_revoked {
-                match non_revoked_interval.as_mut() {
-                    Some(ni) => {
-                        ni.compare_and_set(int);
-                    }
-                    None => non_revoked_interval = Some(int.clone()),
-                }
-            }
-            attributes.push(requested);
-        }
-
-        trace!(
-            "get_requested_attributes <<< revealed_attrs_for_credential: {:?}",
-            attributes
-        );
-        Ok((attributes, non_revoked_interval))
-    }
-
-    pub(crate) fn get_requested_predicates(
-        &self,
-        referents: &HashSet<String>,
-    ) -> Result<(Vec<PredicateInfo>, Option<NonRevokedInterval>)> {
-        trace!("get_requested_predicates >>> referents: {:?}", referents);
-        let mut non_revoked_interval: Option<NonRevokedInterval> = None;
-        let mut predicates: Vec<PredicateInfo> = Vec::new();
-
-        for referent in referents {
-            let requested = self
-                .requested_predicates
-                .get(referent)
-                .cloned()
-                .ok_or_else(|| err_msg!("Requested Predicate {} not found in request", referent))?;
-
-            if let Some(int) = &requested.non_revoked {
-                match non_revoked_interval.as_mut() {
-                    Some(ni) => {
-                        ni.compare_and_set(int);
-                    }
-                    None => non_revoked_interval = Some(int.clone()),
-                }
-            }
-            predicates.push(requested);
-        }
-
-        trace!(
-            "get_requested_predicates <<< revealed_predicates_for_credential: {:?}",
-            predicates
-        );
-        Ok((predicates, non_revoked_interval))
-    }
 }
 
 pub fn get_non_revoked_interval(
@@ -249,9 +162,117 @@ pub fn get_non_revoked_interval(
     interval
 }
 
+pub fn get_requested_non_revoked_interval(
+    rev_reg_id: Option<&RevocationRegistryDefinitionId>,
+    local_nonrevoked_interval: Option<&NonRevokedInterval>,
+    global_nonrevoked_interval: Option<&NonRevokedInterval>,
+    nonrevoke_interval_override: Option<
+        &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+    >,
+) -> Option<NonRevokedInterval> {
+    let mut interval: Option<NonRevokedInterval> = local_nonrevoked_interval.cloned();
+
+    if let Some(rev_reg_id) = rev_reg_id {
+        // Global interval is override by the local one,
+        // we only need to update if local is None and Global is Some,
+        // do not need to update if global is more stringent
+        if let (Some(global), None) = (global_nonrevoked_interval, interval.as_mut()) {
+            interval = Some(global.clone());
+        };
+
+        // Override Interval if an earlier `from` value is accepted by the verifier
+        nonrevoke_interval_override.map(|maps| {
+            maps.get(rev_reg_id)
+                .map(|map| interval.as_mut().map(|int| int.update_with_override(map)))
+        });
+    }
+
+    interval
+}
+
+impl PresentationRequestPayload {
+    pub(crate) fn get_requested_attributes(
+        &self,
+        referents: &HashSet<String>,
+    ) -> Result<(Vec<String>, Option<NonRevokedInterval>)> {
+        trace!("get_requested_attributes >>> referents: {:?}", referents);
+        let mut non_revoked_interval: Option<NonRevokedInterval> = None;
+        let mut attributes: Vec<String> = Vec::new();
+
+        for referent in referents {
+            let requested = self
+                .requested_attributes
+                .get(referent)
+                .cloned()
+                .ok_or_else(|| err_msg!("Requested Attribute {} not found in request", referent))?;
+
+            if let Some(int) = &requested.non_revoked {
+                match non_revoked_interval.as_mut() {
+                    Some(ni) => {
+                        ni.compare_and_set(int);
+                    }
+                    None => non_revoked_interval = Some(int.clone()),
+                }
+            }
+            if let Some(name) = requested.name {
+                attributes.push(name);
+            }
+            if let Some(names) = requested.names {
+                names
+                    .iter()
+                    .for_each(|name| attributes.push(name.to_string()))
+            }
+        }
+
+        trace!(
+            "get_requested_attributes <<< revealed_attrs_for_credential: {:?}",
+            attributes
+        );
+        Ok((attributes, non_revoked_interval))
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn get_requested_predicates(
+        &self,
+        referents: &HashSet<String>,
+    ) -> Result<(
+        HashMap<String, (PredicateTypes, PredicateValue)>,
+        Option<NonRevokedInterval>,
+    )> {
+        trace!("get_requested_predicates >>> referents: {:?}", referents);
+        let mut non_revoked_interval: Option<NonRevokedInterval> = None;
+        let mut predicates: HashMap<String, (PredicateTypes, PredicateValue)> =
+            HashMap::with_capacity(self.requested_predicates.len());
+
+        for referent in referents {
+            let requested = self
+                .requested_predicates
+                .get(referent)
+                .cloned()
+                .ok_or_else(|| err_msg!("Requested Predicate {} not found in request", referent))?;
+
+            if let Some(int) = &requested.non_revoked {
+                match non_revoked_interval.as_mut() {
+                    Some(ni) => {
+                        ni.compare_and_set(int);
+                    }
+                    None => non_revoked_interval = Some(int.clone()),
+                }
+            }
+            predicates.insert(requested.name, (requested.p_type, requested.p_value));
+        }
+
+        trace!(
+            "get_requested_predicates <<< revealed_predicates_for_credential: {:?}",
+            predicates
+        );
+        Ok((predicates, non_revoked_interval))
+    }
+}
+
 impl RequestedProof {
     // get list of revealed attributes per credential
-    pub(crate) fn get_attribute_referents(&self, index: u32) -> HashSet<String> {
+    pub(crate) fn get_attributes_for_credential(&self, index: u32) -> HashSet<String> {
         let mut referents = HashSet::new();
         for (referent, into) in self.revealed_attrs.iter() {
             if into.sub_proof_index == index {
@@ -267,7 +288,7 @@ impl RequestedProof {
     }
 
     // get list of revealed predicates per credential
-    pub(crate) fn get_predicate_referents(&self, index: u32) -> HashSet<String> {
+    pub(crate) fn get_predicates_for_credential(&self, index: u32) -> HashSet<String> {
         let mut referents = HashSet::new();
         for (referent, info) in self.predicates.iter() {
             if info.sub_proof_index == index {
