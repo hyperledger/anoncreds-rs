@@ -370,7 +370,7 @@ mod tests {
     use crate::data_types::pres_request::{AttributeInfo, PredicateTypes};
     use crate::data_types::w3c::credential_attributes::CredentialAttributes;
     use crate::data_types::w3c::presentation::PredicateAttribute;
-    use crate::data_types::w3c::proof::DataIntegrityProof;
+    use crate::data_types::w3c::proof::{CryptoSuite, DataIntegrityProof, DataIntegrityProofType};
     use crate::w3c::credential_conversion::tests::{
         cred_def_id, credential_definition, issuer_id, schema, schema_id,
     };
@@ -453,7 +453,13 @@ mod tests {
     }
 
     fn _w3_presentation() -> W3CPresentation {
-        W3CPresentation::new(vec![_credential()], DataIntegrityProof::default(), None)
+        let proof = DataIntegrityProof {
+            type_: DataIntegrityProofType::DataIntegrityProof,
+            cryptosuite: CryptoSuite::AnonCredsPresVp2023,
+            proof_value: "proof".to_string(),
+            challenge: Some("1".to_string()),
+        };
+        W3CPresentation::new(vec![_credential()], proof, None)
     }
 
     fn _base_presentation_request() -> PresentationRequestPayload {
