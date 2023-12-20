@@ -1,5 +1,7 @@
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
-use ffi_support::FfiStr;
+use ffi_support::{rust_string_to_c, FfiStr};
+use std::ffi::c_char;
+use std::ptr;
 
 use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::credential_attributes::CredentialAttributes;
@@ -205,6 +207,36 @@ pub extern "C" fn anoncreds_w3c_credential_get_integrity_proof_details(
         let cred_info = data_integrity_proof.get_credential_proof_details()?;
         let cred_info = ObjectHandle::create(cred_info)?;
         unsafe { *cred_proof_info_p = cred_info };
+        Ok(())
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn anoncreds_w3c_credential_proof_get_attribute(
+    handle: ObjectHandle,
+    name: FfiStr,
+    result_p: *mut *const c_char,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(result_p);
+        let cred = handle.load()?;
+        let cred = cred.cast_ref::<CredentialProofDetails>()?;
+        let val = match name.as_opt_str().unwrap_or_default() {
+            "schema_id" => rust_string_to_c(cred.schema_id.clone()),
+            "cred_def_id" => rust_string_to_c(cred.cred_def_id.to_string()),
+            "rev_reg_id" => cred
+                .rev_reg_id
+                .as_ref()
+                .map_or(ptr::null_mut(), |s| rust_string_to_c(s.to_string())),
+            "rev_reg_index" => cred
+                .rev_reg_index
+                .map_or(ptr::null_mut(), |s| rust_string_to_c(s.to_string())),
+            "timestamp" => cred
+                .timestamp
+                .map_or(ptr::null_mut(), |s| rust_string_to_c(s.to_string())),
+            s => return Err(err_msg!("Unsupported attribute: {}", s)),
+        };
+        unsafe { *result_p = val };
         Ok(())
     })
 }
