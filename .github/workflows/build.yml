@@ -1,7 +1,7 @@
 name: "Anoncreds"
 
 env:
-  RUST_VERSION: "1.70.0"
+  RUST_VERSION: "1.65.0"
   CROSS_VERSION: "0.2.4"
 
 on:
