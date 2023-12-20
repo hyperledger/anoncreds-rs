@@ -116,7 +116,7 @@ pub fn create_credential(
         witness,
     };
 
-    let proof = DataIntegrityProof::new_credential_proof(signature);
+    let proof = DataIntegrityProof::new_credential_proof(signature)?;
     let credential = W3CCredential::new(
         cred_def.issuer_id.to_owned(),
         raw_credential_values,

@@ -119,7 +119,7 @@ pub fn process_credential(
         credential_signature.witness.as_ref(),
     )?;
 
-    *proof = DataIntegrityProof::new_credential_proof(credential_signature);
+    *proof = DataIntegrityProof::new_credential_proof(credential_signature)?;
 
     trace!("process_w3c_credential <<< ");
 
@@ -192,7 +192,7 @@ pub fn create_presentation(
             timestamp: present.timestamp,
             sub_proof,
         };
-        let proof = DataIntegrityProof::new_credential_presentation_proof(proof);
+        let proof = DataIntegrityProof::new_credential_presentation_proof(proof)?;
         let credential = W3CCredential {
             credential_subject,
             proof: OneOrMany::One(CredentialProof::DataIntegrityProof(proof)),
@@ -208,7 +208,7 @@ pub fn create_presentation(
     let proof = DataIntegrityProof::new_presentation_proof(
         presentation_proof,
         presentation_request.nonce.to_string(),
-    );
+    )?;
     let presentation = W3CPresentation::new(verifiable_credentials, proof, version);
 
     trace!(

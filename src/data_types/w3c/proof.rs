@@ -1,8 +1,10 @@
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
-use crate::utils::encoded_object::EncodedObject;
+use crate::utils::base64;
+use crate::utils::msg_pack;
 use crate::Result;
+
 use anoncreds_clsignatures::{
     AggregatedProof, CredentialSignature as CLCredentialSignature, RevocationRegistry,
     SignatureCorrectnessProof, SubProof, Witness,
@@ -37,45 +39,36 @@ pub enum CryptoSuite {
     AnonCredsPresVp2023,
 }
 
-impl Default for DataIntegrityProof {
-    fn default() -> Self {
-        DataIntegrityProof {
-            type_: DataIntegrityProofType::DataIntegrityProof,
-            cryptosuite: CryptoSuite::AnonCredsVc2023,
-            proof_value: "".to_string(),
-            challenge: None,
-        }
-    }
-}
-
 impl DataIntegrityProof {
     pub fn new<V: EncodedObject + Serialize>(
         cryptosuite: CryptoSuite,
         value: V,
         challenge: Option<String>,
-    ) -> Self {
-        DataIntegrityProof {
+    ) -> Result<Self> {
+        Ok(DataIntegrityProof {
             cryptosuite,
-            proof_value: value.encode(),
+            proof_value: value.encode()?,
             challenge,
-            ..DataIntegrityProof::default()
-        }
+            type_: DataIntegrityProofType::DataIntegrityProof,
+        })
     }
 
-    pub(crate) fn new_credential_proof(value: CredentialSignatureProof) -> DataIntegrityProof {
+    pub(crate) fn new_credential_proof(
+        value: CredentialSignatureProof,
+    ) -> Result<DataIntegrityProof> {
         DataIntegrityProof::new(CryptoSuite::AnonCredsVc2023, value, None)
     }
 
     pub(crate) fn new_credential_presentation_proof(
         value: CredentialPresentationProofValue,
-    ) -> DataIntegrityProof {
+    ) -> Result<DataIntegrityProof> {
         DataIntegrityProof::new(CryptoSuite::AnonCredsPresVc2023, value, None)
     }
 
     pub(crate) fn new_presentation_proof(
         value: PresentationProofValue,
         challenge: String,
-    ) -> DataIntegrityProof {
+    ) -> Result<DataIntegrityProof> {
         DataIntegrityProof::new(CryptoSuite::AnonCredsPresVp2023, value, Some(challenge))
     }
 
@@ -196,4 +189,48 @@ pub struct CredentialProofDetails {
     pub rev_reg_id: Option<RevocationRegistryDefinitionId>,
     pub rev_reg_index: Option<u32>,
     pub timestamp: Option<u64>,
+}
+
+pub trait EncodedObject {
+    fn encode(&self) -> Result<String>
+    where
+        Self: Serialize,
+    {
+        let bytes = msg_pack::encode(self)?;
+        let base64_encoded = base64::encode(bytes);
+        Ok(base64_encoded)
+    }
+
+    fn decode(string: &str) -> Result<Self>
+    where
+        Self: DeserializeOwned,
+    {
+        let bytes = base64::decode(string.as_bytes())?;
+        let json = msg_pack::decode(&bytes)?;
+        Ok(json)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
+    struct TestObject {
+        type_: String,
+        value: i32,
+    }
+
+    impl EncodedObject for TestObject {}
+
+    #[test]
+    fn encoded_object_encode_decode_works() {
+        let obj = TestObject {
+            type_: "Test".to_string(),
+            value: 1,
+        };
+        let encoded = obj.encode().unwrap();
+        let decoded = TestObject::decode(&encoded).unwrap();
+        assert_eq!(obj, decoded)
+    }
 }

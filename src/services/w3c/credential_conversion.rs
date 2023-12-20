@@ -110,7 +110,7 @@ pub fn credential_to_w3c(
         rev_reg: credential.rev_reg,
         witness: credential.witness,
     };
-    let proof = DataIntegrityProof::new_credential_proof(signature);
+    let proof = DataIntegrityProof::new_credential_proof(signature)?;
     let w3c_credential = W3CCredential::new(issuer, attributes, proof, version);
 
     trace!("credential_to_w3c <<< w3c_credential {:?}", w3c_credential);
@@ -347,7 +347,7 @@ pub(super) mod tests {
         W3CCredential::new(
             issuer_id(),
             CredentialAttributes::from(&cred_values()),
-            DataIntegrityProof::new_credential_proof(_signature_data()),
+            DataIntegrityProof::new_credential_proof(_signature_data()).unwrap(),
             None,
         )
     }
