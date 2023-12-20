@@ -1,9 +1,8 @@
 use crate::data_types::cred_def::CredentialDefinition;
-use crate::data_types::credential::CredentialValuesEncoding;
-use crate::data_types::w3c::credential::{
-    CredentialAttributes, CredentialSchema, CredentialStatus, W3CCredential,
-};
-use crate::data_types::w3c::credential_proof::{CredentialSignature, CredentialSignatureProof};
+use crate::data_types::w3c::credential::W3CCredential;
+use crate::data_types::w3c::credential_attributes::CredentialAttributes;
+use crate::data_types::w3c::proof::{CredentialSignatureProof, DataIntegrityProof};
+use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::types::Credential;
 use crate::utils::validation::Validatable;
 use crate::Error;
@@ -82,13 +81,14 @@ use crate::Error;
 ///                            None,
 ///                            ).expect("Unable to process the credential");
 ///
-/// let _w3c_credential = w3c::credential_conversion::credential_to_w3c(&credential, &cred_def)
+/// let _w3c_credential = w3c::credential_conversion::credential_to_w3c(&credential, &cred_def, None)
 ///                         .expect("Unable to convert credential to w3c form");
 ///
 /// ```
 pub fn credential_to_w3c(
     credential: &Credential,
     cred_def: &CredentialDefinition,
+    version: Option<VerifiableCredentialSpecVersion>,
 ) -> Result<W3CCredential, Error> {
     trace!(
         "credential_to_w3c >>> credential: {:?}, cred_def: {:?}",
@@ -100,32 +100,20 @@ pub fn credential_to_w3c(
 
     let credential = credential.try_clone()?;
     let issuer = cred_def.issuer_id.clone();
-    let signature = CredentialSignature::new(
-        credential.signature,
-        credential.signature_correctness_proof,
-        credential.rev_reg,
-        credential.witness,
-    );
-    let proof = CredentialSignatureProof::new(signature)?;
     let attributes = CredentialAttributes::from(&credential.values);
+    let signature = CredentialSignatureProof {
+        schema_id: credential.schema_id,
+        cred_def_id: credential.cred_def_id,
+        rev_reg_id: credential.rev_reg_id,
+        signature: credential.signature,
+        signature_correctness_proof: credential.signature_correctness_proof,
+        rev_reg: credential.rev_reg,
+        witness: credential.witness,
+    };
+    let proof = DataIntegrityProof::new_credential_proof(signature);
+    let w3c_credential = W3CCredential::new(issuer, attributes, proof, version);
 
-    let mut w3c_credential = W3CCredential::new();
-    w3c_credential.set_issuer(issuer);
-    w3c_credential.set_credential_schema(CredentialSchema::new(
-        credential.schema_id,
-        credential.cred_def_id,
-        CredentialValuesEncoding::Auto,
-    ));
-    if let Some(rev_reg_id) = credential.rev_reg_id {
-        w3c_credential.set_credential_status(CredentialStatus::new(rev_reg_id))
-    }
-    w3c_credential.set_attributes(attributes);
-    w3c_credential.add_anoncreds_signature_proof(proof);
-
-    trace!(
-        "w3c_process_credential <<< w3c_credential {:?}",
-        w3c_credential
-    );
+    trace!("credential_to_w3c <<< w3c_credential {:?}", w3c_credential);
 
     Ok(w3c_credential)
 }
@@ -218,21 +206,14 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
 
     w3c_credential.validate()?;
 
-    let schema_id = w3c_credential.get_schema_id().clone();
-    let cred_def_id = w3c_credential.get_cred_def_id().clone();
-    let rev_reg_id = w3c_credential.get_rev_reg_id().cloned();
-    let proof = w3c_credential.get_credential_signature_proof()?;
-    let credential_signature = proof.get_credential_signature()?;
-    let values = w3c_credential
-        .credential_subject
-        .attributes
-        .encode(&w3c_credential.credential_schema.encoding)?;
+    let credential_signature = w3c_credential.get_credential_signature_proof()?;
+    let values = w3c_credential.credential_subject.attributes.encode()?;
 
     let credential = Credential {
-        schema_id,
-        cred_def_id,
-        rev_reg_id,
         values,
+        schema_id: credential_signature.schema_id,
+        cred_def_id: credential_signature.cred_def_id,
+        rev_reg_id: credential_signature.rev_reg_id,
         signature: credential_signature.signature,
         signature_correctness_proof: credential_signature.signature_correctness_proof,
         rev_reg: credential_signature.rev_reg,
@@ -245,13 +226,14 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
     use crate::data_types::cred_def::CredentialDefinitionId;
     use crate::data_types::issuer_id::IssuerId;
-    use crate::data_types::schema::SchemaId;
-    use crate::data_types::w3c::constants::{ANONCREDS_CONTEXTS, ANONCREDS_CREDENTIAL_TYPES};
-    use crate::data_types::w3c::encoded_object::EncodedObject;
+    use crate::data_types::schema::{Schema, SchemaId};
+    use crate::data_types::w3c::constants::ANONCREDS_CREDENTIAL_TYPES;
+    use crate::data_types::w3c::constants::{ANONCREDS_VC_1_1_CONTEXTS, ANONCREDS_VC_2_0_CONTEXTS};
+    use crate::data_types::w3c::context::Contexts;
     use crate::data_types::w3c::one_or_many::OneOrMany;
     use crate::types::{
         AttributeNames, CredentialDefinitionConfig, CredentialValues, MakeCredentialValues,
@@ -262,34 +244,42 @@ mod tests {
         CredentialSignature as CLCredentialSignature,
         SignatureCorrectnessProof as CLSignatureCorrectnessProof,
     };
+    use rstest::*;
 
-    const ISSUER_ID: &str = "mock:uri";
-    const SCHEMA_ID: &str = "mock:uri";
-    const CRED_DEF_ID: &str = "mock:uri";
+    pub const ISSUER_ID: &str = "mock:uri";
+    pub const SCHEMA_ID: &str = "mock:uri";
+    pub const CRED_DEF_ID: &str = "mock:uri";
 
-    fn _issuer_id() -> IssuerId {
+    pub fn issuer_id() -> IssuerId {
         IssuerId::new_unchecked(ISSUER_ID)
     }
 
-    fn _schema_id() -> SchemaId {
+    pub fn schema_id() -> SchemaId {
         SchemaId::new_unchecked(SCHEMA_ID)
     }
 
-    fn _cred_def_id() -> CredentialDefinitionId {
+    pub fn schema() -> Schema {
+        issuer::create_schema("schema:name", "1.0", issuer_id(), _attributes()).unwrap()
+    }
+
+    pub fn cred_def_id() -> CredentialDefinitionId {
         CredentialDefinitionId::new_unchecked(CRED_DEF_ID)
     }
 
-    fn _attributes() -> AttributeNames {
-        AttributeNames::from(vec!["name".to_owned(), "age".to_owned()])
+    pub fn _attributes() -> AttributeNames {
+        AttributeNames::from(vec![
+            "name".to_owned(),
+            "height".to_owned(),
+            "age".to_owned(),
+        ])
     }
 
-    fn _credential_definition() -> CredentialDefinition {
-        let schema =
-            issuer::create_schema("schema:name", "1.0", _issuer_id(), _attributes()).unwrap();
+    pub fn credential_definition() -> CredentialDefinition {
+        let schema = schema();
         let (cred_def, _, _) = issuer::create_credential_definition(
-            _schema_id(),
+            schema_id(),
             &schema,
-            _issuer_id(),
+            issuer_id(),
             "default",
             SignatureType::CL,
             CredentialDefinitionConfig {
@@ -300,9 +290,11 @@ mod tests {
         cred_def
     }
 
-    fn _cred_values() -> CredentialValues {
+    pub fn cred_values() -> CredentialValues {
         let mut make = MakeCredentialValues::default();
         make.add_raw("name", "Alice").unwrap();
+        make.add_raw("height", "178").unwrap();
+        make.add_raw("age", "20").unwrap();
         make.into()
     }
 
@@ -328,10 +320,10 @@ mod tests {
 
     fn _legacy_credential() -> Credential {
         Credential {
-            schema_id: _schema_id(),
-            cred_def_id: _cred_def_id(),
+            schema_id: schema_id(),
+            cred_def_id: cred_def_id(),
             rev_reg_id: None,
-            values: _cred_values(),
+            values: cred_values(),
             signature: _cl_credential_signature(),
             signature_correctness_proof: _cl_credential_signature_correctness_proof(),
             rev_reg: None,
@@ -339,8 +331,11 @@ mod tests {
         }
     }
 
-    fn _signature_data() -> CredentialSignature {
-        CredentialSignature {
+    fn _signature_data() -> CredentialSignatureProof {
+        CredentialSignatureProof {
+            schema_id: schema_id(),
+            cred_def_id: cred_def_id(),
+            rev_reg_id: None,
             signature: _cl_credential_signature(),
             signature_correctness_proof: _cl_credential_signature_correctness_proof(),
             rev_reg: None,
@@ -348,100 +343,82 @@ mod tests {
         }
     }
 
-    fn _w3c_credential() -> W3CCredential {
-        let mut credential = W3CCredential::new();
-        credential.set_issuer(_issuer_id());
-        credential.set_credential_schema(CredentialSchema::new(
-            _schema_id(),
-            _cred_def_id(),
-            CredentialValuesEncoding::Auto,
-        ));
-        credential.set_attributes(CredentialAttributes::from(&_cred_values()));
-        credential.add_anoncreds_signature_proof(
-            CredentialSignatureProof::new(_signature_data()).unwrap(),
-        );
-        credential
+    pub fn w3c_credential() -> W3CCredential {
+        W3CCredential::new(
+            issuer_id(),
+            CredentialAttributes::from(&cred_values()),
+            DataIntegrityProof::new_credential_proof(_signature_data()),
+            None,
+        )
     }
 
     #[test]
     fn test_convert_credential_to_and_from_w3c() {
         let original_legacy_credential = _legacy_credential();
         let w3c_credential =
-            credential_to_w3c(&original_legacy_credential, &_credential_definition())
+            credential_to_w3c(&original_legacy_credential, &credential_definition(), None)
                 .expect("unable to convert credential to w3c form");
         let legacy_credential = credential_from_w3c(&w3c_credential)
             .expect("unable to convert credential to legacy form");
         assert_eq!(json!(original_legacy_credential), json!(legacy_credential),)
     }
 
-    #[test]
-    fn test_credential_to_w3c_form() {
+    #[rstest]
+    #[case(VerifiableCredentialSpecVersion::V1_1, ANONCREDS_VC_1_1_CONTEXTS.clone())]
+    #[case(VerifiableCredentialSpecVersion::V2_0, ANONCREDS_VC_2_0_CONTEXTS.clone())]
+    fn test_credential_to_w3c_form(
+        #[case] version: VerifiableCredentialSpecVersion,
+        #[case] expected_context: Contexts,
+    ) {
         let legacy_credential = _legacy_credential();
-        let w3c_credential = credential_to_w3c(&legacy_credential, &_credential_definition())
-            .expect("unable to convert credential to w3c form");
-        assert_eq!(w3c_credential.context, ANONCREDS_CONTEXTS.clone());
+        let w3c_credential =
+            credential_to_w3c(&legacy_credential, &credential_definition(), Some(version))
+                .expect("unable to convert credential to w3c form");
+
+        assert_eq!(w3c_credential.context, expected_context.clone());
         assert_eq!(w3c_credential.type_, ANONCREDS_CREDENTIAL_TYPES.clone());
-        assert_eq!(
-            w3c_credential.credential_schema.schema,
-            legacy_credential.schema_id
-        );
-        assert_eq!(
-            w3c_credential.credential_schema.definition,
-            legacy_credential.cred_def_id
-        );
-        assert_eq!(
-            w3c_credential
-                .credential_status
-                .clone()
-                .map(|status| status.id),
-            legacy_credential.rev_reg_id
-        );
-        assert_eq!(
-            w3c_credential.credential_schema.encoding,
-            CredentialValuesEncoding::Auto
-        );
         assert_eq!(
             w3c_credential.credential_subject.attributes,
             CredentialAttributes::from(&legacy_credential.values)
         );
+
         let proof = w3c_credential
             .get_credential_signature_proof()
             .expect("credential signature proof is not set");
-        assert_eq!(proof.signature, _signature_data().encode().unwrap());
+
+        assert_eq!(proof.schema_id, legacy_credential.schema_id);
+        assert_eq!(proof.cred_def_id, legacy_credential.cred_def_id);
+        assert_eq!(proof.rev_reg_id, legacy_credential.rev_reg_id);
+        assert_eq!(proof.signature, _signature_data().signature);
+        assert_eq!(
+            proof.signature_correctness_proof,
+            _signature_data().signature_correctness_proof
+        );
     }
 
     #[test]
     fn test_credential_from_w3c_form() {
-        let w3c_credential = _w3c_credential();
+        let w3c_credential = w3c_credential();
         let legacy_credential = credential_from_w3c(&w3c_credential)
             .expect("unable to convert credential from w3c form");
+        let proof = w3c_credential
+            .get_credential_signature_proof()
+            .expect("credential signature proof is not set");
+        assert_eq!(proof.schema_id, legacy_credential.schema_id);
+        assert_eq!(proof.cred_def_id, legacy_credential.cred_def_id);
+        assert_eq!(proof.rev_reg_id, legacy_credential.rev_reg_id);
+        assert_eq!(cred_values(), legacy_credential.values);
+        assert_eq!(proof.signature, legacy_credential.signature);
         assert_eq!(
-            legacy_credential.schema_id,
-            w3c_credential.credential_schema.schema
+            proof.signature_correctness_proof,
+            legacy_credential.signature_correctness_proof
         );
-        assert_eq!(
-            legacy_credential.cred_def_id,
-            w3c_credential.credential_schema.definition
-        );
-        assert_eq!(
-            legacy_credential.rev_reg_id,
-            w3c_credential
-                .credential_status
-                .clone()
-                .map(|status| status.id)
-        );
-        assert_eq!(legacy_credential.values, _cred_values());
-        assert_eq!(legacy_credential.signature, _signature_data().signature);
-        assert_eq!(
-            legacy_credential.signature_correctness_proof,
-            _signature_data().signature_correctness_proof
-        );
-        assert_eq!(legacy_credential.rev_reg, _signature_data().rev_reg);
+        assert_eq!(proof.rev_reg, legacy_credential.rev_reg);
     }
 
     #[test]
     fn test_credential_from_w3c_form_when_no_signature_proof() {
-        let mut w3c_credential = _w3c_credential();
+        let mut w3c_credential = w3c_credential();
         w3c_credential.proof = OneOrMany::default();
         let err = credential_from_w3c(&w3c_credential).unwrap_err();
         assert_eq!(ErrorKind::Input, err.kind());

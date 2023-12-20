@@ -1,26 +1,23 @@
 use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::pres_request::PresentationRequestPayload;
-use crate::data_types::presentation::{
-    AttributeValue, Identifier, RequestedProof, RevealedAttributeGroupInfo, RevealedAttributeInfo,
-    SubProofReferent,
-};
+use crate::data_types::pres_request::{NonRevokedInterval, PredicateInfo};
+use crate::data_types::presentation::Identifier;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
 use crate::data_types::schema::SchemaId;
+use crate::data_types::w3c::credential::W3CCredential;
+use crate::data_types::w3c::credential_attributes::CredentialAttributeValue;
 use crate::data_types::w3c::presentation::W3CPresentation;
+use crate::data_types::w3c::proof::CredentialPresentationProofValue;
 use crate::error::Result;
-
-use crate::data_types::w3c::credential::{CredentialAttributeValue, W3CCredential};
-use crate::data_types::w3c::presentation_proof::CredentialPresentationProofValue;
-use crate::services::helpers::encode_credential_attribute;
+use crate::services::helpers::{encode_credential_attribute, get_requested_non_revoked_interval};
 use crate::types::{PresentationRequest, RevocationRegistryDefinition, RevocationStatusList};
-use crate::verifier::{
-    compare_attr_from_proof_and_request, verify_requested_restrictions,
-    verify_revealed_attribute_value, CLProofVerifier,
-};
-use anoncreds_clsignatures::Proof;
-use std::collections::{HashMap, HashSet};
+use crate::utils::query::Query;
+use crate::verifier::{gather_filter_info, process_operator};
+use crate::verifier::{verify_revealed_attribute_value, CLProofVerifier};
+use anoncreds_clsignatures::{Proof, SubProof};
+use std::collections::HashMap;
 
 /// Verify an incoming presentation in W3C form
 pub fn verify_presentation(
@@ -34,206 +31,328 @@ pub fn verify_presentation(
         &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
 ) -> Result<bool> {
-    trace!("verify_w3c_presentation >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
+    trace!("verify >>> verify_w3c_presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
 
+    presentation.validate()?;
+
+    let presentation_request = pres_req.value();
+
+    // we need to decode proofs in advance as their data needed in two places: checking
+    // against the request and proof verification itself
+    let credential_proofs = presentation
+        .verifiable_credential
+        .iter()
+        .map(W3CCredential::get_credential_presentation_proof)
+        .collect::<Result<Vec<CredentialPresentationProofValue>>>()?;
+
     // These values are from the prover and cannot be trusted
-    let (received_revealed_attrs, received_unrevealed_attrs, received_predicates) =
-        collect_received_attrs_and_predicates(presentation)?;
-    // W3C presentation does not support self-attested attributes
-    let self_attested_attrs = HashSet::new();
-
-    let pres_req = pres_req.value();
-
-    // Ensures that all attributes in the request is also in the presentation
-    compare_attr_from_proof_and_request(
-        pres_req,
-        &received_revealed_attrs,
-        &received_unrevealed_attrs,
-        &self_attested_attrs,
-        &received_predicates,
-    )?;
-
-    // Ensures the restrictions set out in the request is met
-    let requested_proof = build_requested_proof(presentation, pres_req)?;
-    verify_requested_restrictions(
-        pres_req,
+    // Check that all requested attributes and predicates included into the presentation
+    // Also check that all requested credential restriction are valid
+    check_request_data(
+        presentation_request,
+        presentation,
         schemas,
         cred_defs,
-        &requested_proof,
-        &received_revealed_attrs,
-        &received_unrevealed_attrs,
-        &received_predicates,
-        &self_attested_attrs,
+        nonrevoke_interval_override,
+        &credential_proofs,
     )?;
 
-    let proof_data = presentation.proof.get_proof_value()?;
-    let mut proof = Proof {
-        proofs: Vec::new(),
-        aggregated_proof: proof_data.aggregated,
-    };
+    let presentation_proof = presentation.get_presentation_proof()?;
 
     let mut proof_verifier = CLProofVerifier::new(
-        pres_req,
+        presentation_request,
         schemas,
         cred_defs,
         rev_reg_defs,
         rev_status_lists.as_ref(),
     )?;
 
-    for verifiable_credential in presentation.verifiable_credential.iter() {
-        let credential_proof = verifiable_credential.get_presentation_proof()?;
-        let proof_data = credential_proof.get_proof_value()?;
-        let schema_id = &verifiable_credential.get_schema_id();
-        let cred_def_id = &verifiable_credential.get_cred_def_id();
-        let rev_reg_id = verifiable_credential.get_rev_reg_id();
+    let mut sub_proofs: Vec<SubProof> =
+        Vec::with_capacity(presentation.verifiable_credential.len());
 
-        _check_encoded_attributes(verifiable_credential, &proof_data)?;
+    let iter = presentation
+        .verifiable_credential
+        .iter()
+        .zip(credential_proofs);
 
-        let mut revealed_attribute: HashSet<String> =
-            credential_proof.mapping.revealed_attributes.clone();
-        revealed_attribute.extend(credential_proof.mapping.revealed_attribute_groups.clone());
+    for (verifiable_credential, credential_proof) in iter {
+        let attributes = verifiable_credential.get_attributes();
+        let predicates = verifiable_credential.get_predicates();
+        let attribute_names: Vec<String> = attributes.keys().cloned().collect();
+
+        verify_revealed_attributes(&attributes, &credential_proof)?;
 
         proof_verifier.add_sub_proof(
-            &revealed_attribute,
-            &credential_proof.mapping.predicates,
-            schema_id,
-            cred_def_id,
-            rev_reg_id,
+            &attribute_names,
+            &predicates,
+            &credential_proof.schema_id,
+            &credential_proof.cred_def_id,
+            credential_proof.rev_reg_id.as_ref(),
             credential_proof.timestamp,
-            nonrevoke_interval_override,
         )?;
-        proof.proofs.push(proof_data.sub_proof);
+
+        sub_proofs.push(credential_proof.sub_proof);
     }
 
-    let valid = proof_verifier.verify(&proof)?;
+    let cl_proof = Proof {
+        proofs: sub_proofs,
+        aggregated_proof: presentation_proof.aggregated,
+    };
+    let valid = proof_verifier.verify(&cl_proof)?;
 
     trace!("verify_w3c_presentation <<< valid: {:?}", valid);
+
     Ok(valid)
 }
 
-#[allow(clippy::type_complexity)]
-fn collect_received_attrs_and_predicates(
-    proof: &W3CPresentation,
-) -> Result<(
-    HashMap<String, Identifier>,
-    HashMap<String, Identifier>,
-    HashMap<String, Identifier>,
-)> {
-    let mut revealed: HashMap<String, Identifier> = HashMap::new();
-    let mut unrevealed: HashMap<String, Identifier> = HashMap::new();
-    let mut predicates: HashMap<String, Identifier> = HashMap::new();
-
-    for verifiable_credential in proof.verifiable_credential.iter() {
-        let presentation_proof = verifiable_credential.get_presentation_proof()?;
-
+fn check_credential_restrictions(
+    credential: &W3CCredential,
+    restrictions: Option<&Query>,
+    schemas: &HashMap<SchemaId, Schema>,
+    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
+    proof: &CredentialPresentationProofValue,
+) -> Result<()> {
+    if let Some(restrictions) = restrictions {
         let identifier: Identifier = Identifier {
-            schema_id: verifiable_credential.get_schema_id().to_owned(),
-            cred_def_id: verifiable_credential.get_cred_def_id().to_owned(),
-            rev_reg_id: verifiable_credential.get_rev_reg_id().cloned(),
+            schema_id: proof.schema_id.to_owned(),
+            cred_def_id: proof.cred_def_id.to_owned(),
+            rev_reg_id: proof.rev_reg_id.to_owned(),
             timestamp: None,
         };
-        for revealed_attribute in &presentation_proof.mapping.revealed_attributes {
-            revealed.insert(revealed_attribute.to_string(), identifier.to_owned());
-        }
-        for revealed_attribute_group in &presentation_proof.mapping.revealed_attribute_groups {
-            revealed.insert(revealed_attribute_group.to_string(), identifier.to_owned());
-        }
-        for unrevealed_attribute in &presentation_proof.mapping.unrevealed_attributes {
-            unrevealed.insert(unrevealed_attribute.to_string(), identifier.to_owned());
-        }
-        for predicate in &presentation_proof.mapping.predicates {
-            predicates.insert(predicate.to_string(), identifier.to_owned());
-        }
-    }
-
-    Ok((revealed, unrevealed, predicates))
-}
-
-fn build_requested_proof(
-    presentation: &W3CPresentation,
-    presentation_request: &PresentationRequestPayload,
-) -> Result<RequestedProof> {
-    let mut requested_proof = RequestedProof::default();
-
-    for (index, credential) in presentation.verifiable_credential.iter().enumerate() {
-        let sub_proof_index = index as u32;
-        let proof = credential.get_presentation_proof()?;
-        for referent in proof.mapping.revealed_attributes.iter() {
-            let requested_attribute = presentation_request
-                .requested_attributes
-                .get(referent)
-                .ok_or_else(|| {
-                    err_msg!("Requested Attribute {} not found in ProofFrquest", referent)
-                })?;
-
-            let name = requested_attribute
-                .name
-                .as_ref()
-                .ok_or_else(|| err_msg!("Requested Attribute expected to have a name attribute"))?;
-
-            let (_, value) = credential.get_case_insensitive_attribute(name)?;
+        let filter = gather_filter_info(&identifier, schemas, cred_defs)?;
+        let mut attr_value_map: HashMap<String, Option<&str>> = HashMap::new();
+        for (attribute, value) in credential.credential_subject.attributes.0.iter() {
             if let CredentialAttributeValue::Attribute(value) = value {
-                requested_proof.revealed_attrs.insert(
-                    referent.to_owned(),
-                    RevealedAttributeInfo {
-                        sub_proof_index,
-                        raw: value.to_string(),
-                        encoded: "".to_string(), // encoded value not needed
-                    },
-                );
+                attr_value_map.insert(attribute.to_owned(), Some(value));
             }
         }
-        for referent in proof.mapping.revealed_attribute_groups.iter() {
-            let requested_attribute = presentation_request
-                .requested_attributes
-                .get(referent)
-                .ok_or_else(|| {
-                    err_msg!("Requested Attribute {} not found in ProofRequest", referent)
-                })?;
-            let names = requested_attribute.names.as_ref().ok_or_else(|| {
-                err_msg!("Requested Attribute expected to have a names attribute")
-            })?;
-            let mut group_info = RevealedAttributeGroupInfo {
-                sub_proof_index,
-                values: HashMap::new(),
-            };
-            for name in names.iter() {
-                let (_, value) = credential.get_case_insensitive_attribute(name)?;
-                if let CredentialAttributeValue::Attribute(value) = value {
-                    group_info.values.insert(
-                        name.clone(),
-                        AttributeValue {
-                            raw: value.to_string(),
-                            encoded: "".to_string(),
-                        },
-                    );
-                }
-            }
-            requested_proof
-                .revealed_attr_groups
-                .insert(referent.to_string(), group_info);
-        }
-        for referent in proof.mapping.unrevealed_attributes.iter() {
-            requested_proof
-                .unrevealed_attrs
-                .insert(referent.to_string(), SubProofReferent { sub_proof_index });
-        }
-        for referent in proof.mapping.predicates.iter() {
-            requested_proof
-                .predicates
-                .insert(referent.to_string(), SubProofReferent { sub_proof_index });
-        }
+        process_operator(&attr_value_map, restrictions, &filter).map_err(err_map!(
+            "Requested restriction validation failed for \"{:?}\" attributes",
+            &attr_value_map
+        ))?;
     }
-    Ok(requested_proof)
+    Ok(())
 }
 
-fn _check_encoded_attributes(
+fn check_credential_non_revoked_interval(
+    presentation_request: &PresentationRequestPayload,
+    nonrevoke_interval: Option<&NonRevokedInterval>,
+    nonrevoke_interval_override: Option<
+        &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+    >,
+    proof: &CredentialPresentationProofValue,
+) -> Result<()> {
+    if let Some(ref rev_reg_id) = proof.rev_reg_id {
+        let non_revoked_interval = get_requested_non_revoked_interval(
+            Some(rev_reg_id),
+            nonrevoke_interval,
+            presentation_request.non_revoked.as_ref(),
+            nonrevoke_interval_override,
+        );
+
+        if let Some(non_revoked_interval) = non_revoked_interval {
+            let timestamp = proof
+                .timestamp
+                .ok_or_else(|| err_msg!("Credential timestamp not found for revocation check"))?;
+            non_revoked_interval.is_valid(timestamp)?;
+        }
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn check_credential_conditions(
     credential: &W3CCredential,
+    presentation_request: &PresentationRequestPayload,
+    restrictions: Option<&Query>,
+    schemas: &HashMap<SchemaId, Schema>,
+    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
+    nonrevoke_interval: Option<&NonRevokedInterval>,
+    nonrevoke_interval_override: Option<
+        &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+    >,
+    proof: &CredentialPresentationProofValue,
+) -> Result<()> {
+    check_credential_restrictions(credential, restrictions, schemas, cred_defs, proof)?;
+    check_credential_non_revoked_interval(
+        presentation_request,
+        nonrevoke_interval,
+        nonrevoke_interval_override,
+        proof,
+    )?;
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn check_requested_attribute<'a>(
+    presentation_request: &PresentationRequestPayload,
+    presentation: &'a W3CPresentation,
+    attribute: &str,
+    restrictions: Option<&Query>,
+    nonrevoke_interval: Option<&NonRevokedInterval>,
+    schemas: &HashMap<SchemaId, Schema>,
+    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
+    nonrevoke_interval_override: Option<
+        &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+    >,
+    credential_proofs: &[CredentialPresentationProofValue],
+) -> Result<&'a W3CCredential> {
+    for (index, credential) in presentation.verifiable_credential.iter().enumerate() {
+        let proof = credential_proofs
+            .get(index)
+            .ok_or_else(|| err_msg!("Unable to get credential proof for index {}", index))?;
+        let valid_credential = credential.has_attribute(attribute)
+            && check_credential_conditions(
+                credential,
+                presentation_request,
+                restrictions,
+                schemas,
+                cred_defs,
+                nonrevoke_interval,
+                nonrevoke_interval_override,
+                proof,
+            )
+            .is_ok();
+
+        if valid_credential {
+            return Ok(credential);
+        }
+    }
+
+    // else consider attribute as unrevealed and try to find credential which schema includes requested attribute
+    for (index, credential) in presentation.verifiable_credential.iter().enumerate() {
+        let proof = credential_proofs
+            .get(index)
+            .ok_or_else(|| err_msg!("Unable to get credential proof for index {}", index))?;
+        let schema = schemas
+            .get(&proof.schema_id)
+            .ok_or_else(|| err_msg!("Credential schema not found {}", proof.schema_id))?;
+
+        let valid_credential = schema.has_case_insensitive_attribute(attribute)
+            && check_credential_conditions(
+                credential,
+                presentation_request,
+                restrictions,
+                schemas,
+                cred_defs,
+                nonrevoke_interval,
+                nonrevoke_interval_override,
+                proof,
+            )
+            .is_ok();
+
+        if valid_credential {
+            return Ok(credential);
+        }
+    }
+
+    Err(err_msg!(
+        "Presentation does not contain attribute {}",
+        attribute
+    ))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn check_requested_predicate<'a>(
+    presentation_request: &PresentationRequestPayload,
+    presentation: &'a W3CPresentation,
+    predicate: &PredicateInfo,
+    schemas: &HashMap<SchemaId, Schema>,
+    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
+    nonrevoke_interval_override: Option<
+        &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+    >,
+    credential_proofs: &[CredentialPresentationProofValue],
+) -> Result<&'a W3CCredential> {
+    for (index, credential) in presentation.verifiable_credential.iter().enumerate() {
+        let proof = credential_proofs
+            .get(index)
+            .ok_or_else(|| err_msg!("Unable to get credential proof for index {}", index))?;
+        let valid_credential = credential.has_predicate(predicate)
+            && check_credential_conditions(
+                credential,
+                presentation_request,
+                predicate.restrictions.as_ref(),
+                schemas,
+                cred_defs,
+                predicate.non_revoked.as_ref(),
+                nonrevoke_interval_override,
+                proof,
+            )
+            .is_ok();
+
+        if valid_credential {
+            return Ok(credential);
+        }
+    }
+
+    Err(err_msg!(
+        "Presentation does not contain attribute {}",
+        predicate.name
+    ))
+}
+
+fn check_request_data(
+    presentation_request: &PresentationRequestPayload,
+    presentation: &W3CPresentation,
+    schemas: &HashMap<SchemaId, Schema>,
+    cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
+    nonrevoke_interval_override: Option<
+        &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+    >,
+    credential_proofs: &[CredentialPresentationProofValue],
+) -> Result<()> {
+    for (_, attribute) in presentation_request.requested_attributes.iter() {
+        if let Some(ref name) = attribute.name {
+            check_requested_attribute(
+                presentation_request,
+                presentation,
+                name,
+                attribute.restrictions.as_ref(),
+                attribute.non_revoked.as_ref(),
+                schemas,
+                cred_defs,
+                nonrevoke_interval_override,
+                credential_proofs,
+            )?;
+        }
+        if let Some(ref names) = attribute.names {
+            for name in names {
+                check_requested_attribute(
+                    presentation_request,
+                    presentation,
+                    name,
+                    attribute.restrictions.as_ref(),
+                    attribute.non_revoked.as_ref(),
+                    schemas,
+                    cred_defs,
+                    nonrevoke_interval_override,
+                    credential_proofs,
+                )?;
+            }
+        }
+    }
+    for (_, predicate) in presentation_request.requested_predicates.iter() {
+        check_requested_predicate(
+            presentation_request,
+            presentation,
+            predicate,
+            schemas,
+            cred_defs,
+            nonrevoke_interval_override,
+            credential_proofs,
+        )?;
+    }
+
+    Ok(())
+}
+
+fn verify_revealed_attributes(
+    attributes: &HashMap<String, String>,
     credential_proof: &CredentialPresentationProofValue,
 ) -> Result<()> {
-    credential
-        .get_attributes()
+    attributes
         .iter()
         .map(|(name, value)| {
             encode_credential_attribute(value).and_then(|encoded| {
@@ -242,4 +361,557 @@ fn _check_encoded_attributes(
         })
         .collect::<Result<Vec<()>>>()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data_types::nonce::Nonce;
+    use crate::data_types::pres_request::{AttributeInfo, PredicateTypes};
+    use crate::data_types::w3c::credential_attributes::CredentialAttributes;
+    use crate::data_types::w3c::presentation::PredicateAttribute;
+    use crate::data_types::w3c::proof::DataIntegrityProof;
+    use crate::w3c::credential_conversion::tests::{
+        cred_def_id, credential_definition, issuer_id, schema, schema_id,
+    };
+    use crate::ErrorKind;
+    use rstest::*;
+
+    const PROOF_TIMESTAMP_FROM: u64 = 40;
+    const PROOF_TIMESTAMP_TO: u64 = 50;
+    const PROOF_TIMESTAMP: u64 = 50;
+
+    fn _credential_attributes() -> CredentialAttributes {
+        CredentialAttributes(HashMap::from([
+            (
+                "name".to_string(),
+                CredentialAttributeValue::Attribute("Alice".to_string()),
+            ),
+            (
+                "height".to_string(),
+                CredentialAttributeValue::Attribute("178".to_string()),
+            ),
+            (
+                "age".to_string(),
+                CredentialAttributeValue::Predicate(vec![PredicateAttribute {
+                    type_: Default::default(),
+                    predicate: _predicate().p_type,
+                    value: _predicate().p_value,
+                }]),
+            ),
+        ]))
+    }
+
+    fn _revocation_id() -> RevocationRegistryDefinitionId {
+        RevocationRegistryDefinitionId::new_unchecked("mock:uri")
+    }
+
+    fn _non_revoke_override_interval(
+        timestamp: u64,
+        change: u64,
+    ) -> HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>> {
+        let non_revoke_override =
+            HashMap::from([(_revocation_id(), HashMap::from([(timestamp, change)]))]);
+
+        non_revoke_override
+    }
+
+    fn _credential_proof() -> SubProof {
+        serde_json::from_value(json!({
+            "primary_proof": {
+                "eq_proof":{
+                    "a_prime":"93850854506025106167175657367900738564840399460457583396522672546367771557204596986051012396385435450263898123125896474854176367786952154894815573554451004746144139656996044265545613968836176711502602815031392209790095794160045376494471161541029201092195175557986308757797292716881081775201092320235240062158880723682328272460090331253190919323449053508332270184449026105339413097644934519533429034485982687030017670766107427442501537423985935074367321676374406375566791092427955935956566771002472855738585522175250186544831364686282512410608147641314561395934098066750903464501612432084069923446054698174905994358631",
+                    "e":"162083298053730499878539837415798033696428693449892281052193919207514842725975444071338657195491572547562439622393591965427898285748359108",
+                    "m":{
+                        "age":"6461691768834933403326572830814516653957231030793837560544354737855803497655300429843454445497126568685843068983890896122000977852186661939211990733462807944627807336518424313388",
+                        "height":"6461691768834933403326572830814516653957231030793837560544354737855803497655300429843454445497126574195981378365198960707499125538146253636400775219219390979675126287408712407688",
+                        "master_secret":"67940925789970108743024738273926421512152745397724199848594503731042154269417576665420030681245389493783225644817826683796657351721363490290016166310023507132564589104990678182299219306228446316250328302891742457726158298612477188160335451477126201081347058945471957804431939288091328124225198960258432684399",
+                        "sex":"6461691768834933403326575020439114193500962122447442182375470664835531264262887123435773676729731478629261405277091910956944655533226659560277758686479462667297473396368211269136"
+                    },
+                    "m2":"2553030889054034879941219523536672152702359185828546810612564355745759663351165380563310203986319611277915826660660011443138240248924364893067083241825560",
+                    "revealed_attrs":{
+                        "name":"66682250590915135919393234675423675079281389286836524491448775067034910960723"
+                    },
+                    "v":"241132863422049783305938040060597331735278274539541049316128678268379301866997158072011728743321723078574060931449243960464715113938435991871547190135480379265493203441002211218757120311064385792274455797457074741542288420192538286547871288116110058144080647854995527978708188991483561739974917309498779192480418427060775726652318167442183177955447797995160859302520108340826199956754805286213211181508112097818654928169122460464135690611512133363376553662825967455495276836834812520601471833287810311342575033448652033691127511180098524259451386027266077398672694996373787324223860522678035901333613641370426224798680813171225438770578377781015860719028452471648107174226406996348525110692233661632116547069810544117288754524961349911209241835217711929316799411645465546281445291569655422683908113895340361971530636987203042713656548617543163562701947578529101436799250628979720035967402306966520999250819096598649121167"
+                },
+                "ge_proofs":[]
+            }
+        })).unwrap()
+    }
+
+    fn _credential() -> W3CCredential {
+        let proof = DataIntegrityProof::new_credential_presentation_proof(
+            CredentialPresentationProofValue {
+                schema_id: schema_id(),
+                cred_def_id: cred_def_id(),
+                rev_reg_id: Some(_revocation_id()),
+                timestamp: Some(PROOF_TIMESTAMP),
+                sub_proof: _credential_proof(),
+            },
+        );
+        W3CCredential::new(issuer_id(), _credential_attributes(), proof, None)
+    }
+
+    fn _w3_presentation() -> W3CPresentation {
+        W3CPresentation::new(vec![_credential()], DataIntegrityProof::default(), None)
+    }
+
+    fn _base_presentation_request() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            nonce: Nonce::new().unwrap(),
+            name: "Presentation request".to_string(),
+            version: "1.0".to_string(),
+            requested_attributes: HashMap::new(),
+            requested_predicates: HashMap::new(),
+            non_revoked: None,
+        }
+    }
+
+    fn _attribute() -> AttributeInfo {
+        AttributeInfo {
+            name: Some("name".to_string()),
+            names: None,
+            restrictions: None,
+            non_revoked: None,
+        }
+    }
+
+    fn _attributes_group() -> AttributeInfo {
+        AttributeInfo {
+            name: None,
+            names: Some(vec!["name".to_string(), "height".to_string()]),
+            restrictions: None,
+            non_revoked: None,
+        }
+    }
+
+    fn _predicate() -> PredicateInfo {
+        PredicateInfo {
+            name: "age".to_string(),
+            p_type: PredicateTypes::GE,
+            p_value: 18,
+            restrictions: None,
+            non_revoked: None,
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_attribute_and_predicate() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_attributes: HashMap::from([("attr1_referent".to_string(), _attribute())]),
+            requested_predicates: HashMap::from([(
+                "predicate1_referent".to_string(),
+                _predicate(),
+            )]),
+            .._base_presentation_request()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_single_attribute() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_attributes: HashMap::from([("attr1_referent".to_string(), _attribute())]),
+            .._base_presentation_request()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_multiple_attributes() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_attributes: HashMap::from([
+                ("attr1_referent".to_string(), _attribute()),
+                (
+                    "attr2_referent".to_string(),
+                    AttributeInfo {
+                        name: Some("height".to_string()),
+                        names: None,
+                        restrictions: None,
+                        non_revoked: None,
+                    },
+                ),
+            ]),
+            .._base_presentation_request()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_attribute_names() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_attributes: HashMap::from([(
+                "attr1_referent".to_string(),
+                _attributes_group(),
+            )]),
+            .._base_presentation_request()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_predicate() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_predicates: HashMap::from([(
+                "predicate1_referent".to_string(),
+                _predicate(),
+            )]),
+            .._base_presentation_request()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_attribute_restrictions() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_attributes: HashMap::from([(
+                "attr1_referent".to_string(),
+                AttributeInfo {
+                    restrictions: Some(Query::Eq("schema_id".to_string(), schema_id().to_string())),
+                    .._attribute()
+                },
+            )]),
+            .._base_presentation_request()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_case_insensitive_attribute_and_predicate(
+    ) -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_attributes: HashMap::from([
+                (
+                    "attr1_referent".to_string(),
+                    AttributeInfo {
+                        name: Some("NAME".to_string()),
+                        .._attribute()
+                    },
+                ),
+                (
+                    "attr2_referent".to_string(),
+                    AttributeInfo {
+                        name: Some("Height".to_string()),
+                        .._attribute()
+                    },
+                ),
+            ]),
+            requested_predicates: HashMap::from([(
+                "predicate1_referent".to_string(),
+                PredicateInfo {
+                    name: "AGE".to_string(),
+                    .._predicate()
+                },
+            )]),
+            .._base_presentation_request()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_missing_attribute() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_attributes: HashMap::from([(
+                "attr1_referent".to_string(),
+                AttributeInfo {
+                    name: Some("missing".to_string()),
+                    .._attribute()
+                },
+            )]),
+            .._presentation_request_with_single_attribute()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_missing_attribute_group() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_attributes: HashMap::from([(
+                "attr1_referent".to_string(),
+                AttributeInfo {
+                    names: Some(vec![
+                        "name".to_string(),
+                        "height".to_string(),
+                        "missing".to_string(),
+                    ]),
+                    .._attribute()
+                },
+            )]),
+            .._presentation_request_with_single_attribute()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_missing_predicate() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_predicates: HashMap::from([(
+                "predicate1_referent".to_string(),
+                PredicateInfo {
+                    name: "missing".to_string(),
+                    .._predicate()
+                },
+            )]),
+            .._presentation_request_with_predicate()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_invalid_predicate_restrictions() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_predicates: HashMap::from([(
+                "predicate1_referent".to_string(),
+                PredicateInfo {
+                    restrictions: Some(Query::Eq("schema_id".to_string(), "invalid".to_string())),
+                    .._predicate()
+                },
+            )]),
+            .._presentation_request_with_predicate()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_invalid_attribute_restrictions() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_attributes: HashMap::from([(
+                "attr1_referent".to_string(),
+                AttributeInfo {
+                    restrictions: Some(Query::Eq("schema_id".to_string(), "invalid".to_string())),
+                    .._attribute()
+                },
+            )]),
+            .._presentation_request_with_single_attribute()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_different_predicate() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            requested_predicates: HashMap::from([(
+                "predicate1_referent".to_string(),
+                PredicateInfo {
+                    p_type: PredicateTypes::LE,
+                    .._predicate()
+                },
+            )]),
+            .._base_presentation_request()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_non_revoke_interval() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            non_revoked: Some(NonRevokedInterval {
+                from: Some(PROOF_TIMESTAMP_FROM),
+                to: Some(PROOF_TIMESTAMP_TO),
+            }),
+            .._presentation_request_with_single_attribute()
+        }
+    }
+
+    #[fixture]
+    fn _presentation_request_with_invalid_non_revoke_interval() -> PresentationRequestPayload {
+        PresentationRequestPayload {
+            non_revoked: Some(NonRevokedInterval {
+                from: Some(PROOF_TIMESTAMP_TO + 1),
+                to: Some(PROOF_TIMESTAMP_TO + 10),
+            }),
+            .._presentation_request_with_single_attribute()
+        }
+    }
+
+    #[fixture]
+    fn schemas() -> HashMap<SchemaId, Schema> {
+        HashMap::from([(schema_id(), schema())])
+    }
+
+    #[fixture]
+    fn cred_defs() -> HashMap<CredentialDefinitionId, CredentialDefinition> {
+        HashMap::from([(cred_def_id(), credential_definition())])
+    }
+
+    #[fixture]
+    fn presentation() -> W3CPresentation {
+        _w3_presentation()
+    }
+
+    impl W3CPresentation {
+        fn credential_proofs(&self) -> Vec<CredentialPresentationProofValue> {
+            self.verifiable_credential
+                .iter()
+                .map(|verifiable_credential| {
+                    verifiable_credential.get_credential_presentation_proof()
+                })
+                .collect::<Result<Vec<CredentialPresentationProofValue>>>()
+                .unwrap()
+        }
+    }
+
+    #[rstest]
+    #[case(_presentation_request_with_single_attribute())]
+    #[case(_presentation_request_with_attribute_and_predicate())]
+    #[case(_presentation_request_with_multiple_attributes())]
+    #[case(_presentation_request_with_attribute_names())]
+    #[case(_presentation_request_with_predicate())]
+    #[case(_presentation_request_with_attribute_restrictions())]
+    #[case(_presentation_request_with_case_insensitive_attribute_and_predicate())]
+    #[case(_presentation_request_with_non_revoke_interval())]
+    fn test_check_request_data_works_for_positive_cases(
+        schemas: HashMap<SchemaId, Schema>,
+        cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
+        presentation: W3CPresentation,
+        #[case] presentation_request: PresentationRequestPayload,
+    ) {
+        check_request_data(
+            &presentation_request,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &presentation.credential_proofs(),
+        )
+        .unwrap();
+    }
+
+    #[rstest]
+    #[case(_presentation_request_with_missing_attribute())]
+    #[case(_presentation_request_with_missing_predicate())]
+    #[case(_presentation_request_with_missing_attribute_group())]
+    #[case(_presentation_request_with_invalid_predicate_restrictions())]
+    #[case(_presentation_request_with_invalid_attribute_restrictions())]
+    #[case(_presentation_request_with_different_predicate())]
+    #[case(_presentation_request_with_invalid_non_revoke_interval())]
+    fn test_check_request_data_works_for_negative_cases(
+        schemas: HashMap<SchemaId, Schema>,
+        cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
+        presentation: W3CPresentation,
+        #[case] presentation_request: PresentationRequestPayload,
+    ) {
+        let err = check_request_data(
+            &presentation_request,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &presentation.credential_proofs(),
+        )
+        .unwrap_err();
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
+
+    #[rstest]
+    fn test_check_request_data_works_for_unrevealed_attributes(
+        schemas: HashMap<SchemaId, Schema>,
+        cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
+        mut presentation: W3CPresentation,
+    ) {
+        // empty credential_subject means there is no revealed attributes - only unrevealed
+        presentation.verifiable_credential[0]
+            .credential_subject
+            .attributes = CredentialAttributes::default();
+
+        check_request_data(
+            &_presentation_request_with_single_attribute(),
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &presentation.credential_proofs(),
+        )
+        .unwrap();
+    }
+
+    #[rstest]
+    fn test_check_request_data_fails_for_presentation_with_empty_credential_list(
+        schemas: HashMap<SchemaId, Schema>,
+        cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
+        mut presentation: W3CPresentation,
+    ) {
+        presentation.verifiable_credential = Vec::default();
+
+        let err = check_request_data(
+            &_presentation_request_with_single_attribute(),
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &presentation.credential_proofs(),
+        )
+        .unwrap_err();
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
+
+    #[rstest]
+    fn test_check_request_data_fails_for_empty_schema(
+        cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
+        presentation: W3CPresentation,
+    ) {
+        let schemas = HashMap::new();
+
+        let err = check_request_data(
+            &_presentation_request_with_attribute_restrictions(),
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &presentation.credential_proofs(),
+        )
+        .unwrap_err();
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
+
+    #[rstest]
+    fn test_check_request_data_fails_for_empty_cred_defs(
+        schemas: HashMap<SchemaId, Schema>,
+        presentation: W3CPresentation,
+    ) {
+        let cred_defs = HashMap::new();
+
+        let err = check_request_data(
+            &_presentation_request_with_attribute_restrictions(),
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &presentation.credential_proofs(),
+        )
+        .unwrap_err();
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
+
+    #[rstest]
+    #[case(_presentation_request_with_non_revoke_interval())]
+    fn test_check_request_data_works_for_valid_non_revoke_interval_override(
+        schemas: HashMap<SchemaId, Schema>,
+        cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
+        presentation: W3CPresentation,
+        #[case] presentation_request: PresentationRequestPayload,
+    ) {
+        let interval_override =
+            _non_revoke_override_interval(PROOF_TIMESTAMP_FROM, PROOF_TIMESTAMP_FROM + 1);
+
+        check_request_data(
+            &presentation_request,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            Some(&interval_override),
+            &presentation.credential_proofs(),
+        )
+        .unwrap();
+    }
+
+    #[rstest]
+    #[case(_presentation_request_with_non_revoke_interval())]
+    fn test_check_request_data_fails_for_invalid_non_revoke_interval_override(
+        schemas: HashMap<SchemaId, Schema>,
+        cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
+        presentation: W3CPresentation,
+        #[case] presentation_request: PresentationRequestPayload,
+    ) {
+        let interval_override =
+            _non_revoke_override_interval(PROOF_TIMESTAMP_FROM, PROOF_TIMESTAMP + 1);
+
+        let err = check_request_data(
+            &presentation_request,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            Some(&interval_override),
+            &presentation.credential_proofs(),
+        )
+        .unwrap_err();
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
 }

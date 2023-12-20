@@ -1,4 +1,5 @@
 use crate::data_types::w3c::presentation::W3CPresentation;
+use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::ffi::credential::_link_secret;
 use crate::ffi::error::{catch_error, ErrorCode};
 use crate::ffi::object::ObjectHandle;
@@ -26,6 +27,7 @@ impl_anoncreds_object_from_json!(W3CPresentation, anoncreds_w3c_presentation_fro
 /// schema_ids:             list of schemas ids
 /// cred_defs:              list of credential definitions
 /// cred_def_ids:           list of credential definitions ids
+/// version:                version of w3c verifiable credential specification (1.1 or 2.0) to use
 /// presentation_p:         reference that will contain created presentation (in W3C form) instance pointer.
 ///
 /// # Returns
@@ -40,6 +42,7 @@ pub extern "C" fn anoncreds_create_w3c_presentation(
     schema_ids: FfiStrList,
     cred_defs: FfiList<ObjectHandle>,
     cred_def_ids: FfiStrList,
+    version: FfiStr,
     presentation_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
@@ -50,6 +53,10 @@ pub extern "C" fn anoncreds_create_w3c_presentation(
         let schemas = _prepare_schemas(schemas, schema_ids)?;
         let credentials = _credentials(credentials)?;
         let present_creds = _present_credentials(&credentials, credentials_prove)?;
+        let version = match version.as_opt_str() {
+            Some(value) => Some(VerifiableCredentialSpecVersion::try_from(value)?),
+            None => None,
+        };
 
         let presentation = create_presentation(
             pres_req.load()?.cast_ref()?,
@@ -57,6 +64,7 @@ pub extern "C" fn anoncreds_create_w3c_presentation(
             &link_secret,
             &schemas,
             &cred_defs,
+            version,
         )?;
 
         let presentation = ObjectHandle::create(presentation)?;
