@@ -6,6 +6,7 @@ use crate::data_types::w3c::uri::URI;
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum Context {
     URI(URI),
     Object(serde_json::Value),

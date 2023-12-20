@@ -145,6 +145,7 @@ impl DataIntegrityProof {
 pub struct CredentialSignatureProof {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub rev_reg_id: Option<RevocationRegistryDefinitionId>,
     pub signature: CLCredentialSignature,
     pub signature_correctness_proof: SignatureCorrectnessProof,
