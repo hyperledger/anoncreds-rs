@@ -219,9 +219,9 @@ pub fn create_presentation(
     Ok(presentation)
 }
 
-fn build_credential_subject<'p>(
+fn build_credential_subject(
     pres_req: &PresentationRequestPayload,
-    credentials: &PresentCredential<'p, W3CCredential>,
+    credentials: &PresentCredential<'_, W3CCredential>,
 ) -> Result<CredentialSubject> {
     let mut credential_subject = CredentialSubject {
         id: credentials.cred.credential_subject.id.clone(),
