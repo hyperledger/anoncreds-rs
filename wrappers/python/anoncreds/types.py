@@ -345,7 +345,8 @@ class Credential(bindings.AnoncredsObject):
 
     def to_w3c(
         self,
-        cred_def: Union[str, CredentialDefinition]
+        cred_def: Union[str, CredentialDefinition],
+        version: Optional[str] = None,
     ) -> "W3cCredential":
         if not isinstance(cred_def, bindings.AnoncredsObject):
             cred_def = CredentialDefinition.load(cred_def)
@@ -353,6 +354,7 @@ class Credential(bindings.AnoncredsObject):
             bindings.credential_to_w3c(
                 self.handle,
                 cred_def.handle,
+                version
             )
         )
 
@@ -365,67 +367,8 @@ class Credential(bindings.AnoncredsObject):
         )
 
 
-class W3cCredential(bindings.AnoncredsObject):
-    GET_ATTR = "anoncreds_w3c_credential_get_attribute"
-
-    @classmethod
-    def create(
-        cls,
-        cred_def: Union[str, CredentialDefinition],
-        cred_def_private: Union[str, CredentialDefinitionPrivate],
-        cred_offer: Union[str, CredentialOffer],
-        cred_request: Union[str, CredentialRequest],
-        attr_raw_values: Mapping[str, str],
-        revocation_config: Optional["CredentialRevocationConfig"] = None,
-        encoding: Optional[str] = None,
-    ) -> "W3cCredential":
-        if not isinstance(cred_def, bindings.AnoncredsObject):
-            cred_def = CredentialDefinition.load(cred_def)
-        if not isinstance(cred_def_private, bindings.AnoncredsObject):
-            cred_def_private = CredentialDefinitionPrivate.load(cred_def_private)
-        if not isinstance(cred_offer, bindings.AnoncredsObject):
-            cred_offer = CredentialOffer.load(cred_offer)
-        if not isinstance(cred_request, bindings.AnoncredsObject):
-            cred_request = CredentialRequest.load(cred_request)
-        cred = bindings.create_w3c_credential(
-            cred_def.handle,
-            cred_def_private.handle,
-            cred_offer.handle,
-            cred_request.handle,
-            attr_raw_values,
-            revocation_config._native if revocation_config else None,
-            encoding,
-        )
-        return W3cCredential(cred)
-
-    def process(
-        self,
-        cred_req_metadata: Union[str, CredentialRequestMetadata],
-        link_secret: str,
-        cred_def: Union[str, CredentialDefinition],
-        rev_reg_def: Optional[Union[str, "RevocationRegistryDefinition"]] = None,
-    ) -> "W3cCredential":
-        if not isinstance(cred_req_metadata, bindings.AnoncredsObject):
-            cred_req_metadata = CredentialRequestMetadata.load(cred_req_metadata)
-        if not isinstance(cred_def, bindings.AnoncredsObject):
-            cred_def = CredentialDefinition.load(cred_def)
-        if rev_reg_def and not isinstance(rev_reg_def, bindings.AnoncredsObject):
-            rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
-        return W3cCredential(
-            bindings.process_w3c_credential(
-                self.handle,
-                cred_req_metadata.handle,
-                link_secret,
-                cred_def.handle,
-                rev_reg_def.handle if rev_reg_def else None,
-            )
-        )
-
-    @classmethod
-    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "W3cCredential":
-        return Credential(
-            bindings._object_from_json("anoncreds_w3c_credential_from_json", value)
-        )
+class W3cCredentialProofDetails(bindings.AnoncredsObject):
+    GET_ATTR = "anoncreds_w3c_credential_proof_get_attribute"
 
     @property
     def schema_id(self) -> str:
@@ -466,14 +409,97 @@ class W3cCredential(bindings.AnoncredsObject):
         )
         return int(str(sval)) if sval is not None else None
 
+    @property
+    def timestamp(self) -> Optional[int]:
+        sval = bindings._object_get_attribute(
+            self.GET_ATTR,
+            self.handle,
+            "timestamp",
+        )
+        return int(str(sval)) if sval is not None else None
+
+
+class W3cCredential(bindings.AnoncredsObject):
+    GET_ATTR = "anoncreds_w3c_credential_get_attribute"
+
+    @classmethod
+    def create(
+        cls,
+        cred_def: Union[str, CredentialDefinition],
+        cred_def_private: Union[str, CredentialDefinitionPrivate],
+        cred_offer: Union[str, CredentialOffer],
+        cred_request: Union[str, CredentialRequest],
+        attr_raw_values: Mapping[str, str],
+        revocation_config: Optional["CredentialRevocationConfig"] = None,
+        version: Optional[str] = None,
+    ) -> "W3cCredential":
+        if not isinstance(cred_def, bindings.AnoncredsObject):
+            cred_def = CredentialDefinition.load(cred_def)
+        if not isinstance(cred_def_private, bindings.AnoncredsObject):
+            cred_def_private = CredentialDefinitionPrivate.load(cred_def_private)
+        if not isinstance(cred_offer, bindings.AnoncredsObject):
+            cred_offer = CredentialOffer.load(cred_offer)
+        if not isinstance(cred_request, bindings.AnoncredsObject):
+            cred_request = CredentialRequest.load(cred_request)
+        cred = bindings.create_w3c_credential(
+            cred_def.handle,
+            cred_def_private.handle,
+            cred_offer.handle,
+            cred_request.handle,
+            attr_raw_values,
+            revocation_config._native if revocation_config else None,
+            version,
+        )
+        return W3cCredential(cred)
+
+    def process(
+        self,
+        cred_req_metadata: Union[str, CredentialRequestMetadata],
+        link_secret: str,
+        cred_def: Union[str, CredentialDefinition],
+        rev_reg_def: Optional[Union[str, "RevocationRegistryDefinition"]] = None,
+    ) -> "W3cCredential":
+        if not isinstance(cred_req_metadata, bindings.AnoncredsObject):
+            cred_req_metadata = CredentialRequestMetadata.load(cred_req_metadata)
+        if not isinstance(cred_def, bindings.AnoncredsObject):
+            cred_def = CredentialDefinition.load(cred_def)
+        if rev_reg_def and not isinstance(rev_reg_def, bindings.AnoncredsObject):
+            rev_reg_def = RevocationRegistryDefinition.load(rev_reg_def)
+        return W3cCredential(
+            bindings.process_w3c_credential(
+                self.handle,
+                cred_req_metadata.handle,
+                link_secret,
+                cred_def.handle,
+                rev_reg_def.handle if rev_reg_def else None,
+            )
+        )
+
+    @classmethod
+    def load(cls, value: Union[dict, str, bytes, memoryview]) -> "W3cCredential":
+        return W3cCredential(
+            bindings._object_from_json("anoncreds_w3c_credential_from_json", value)
+        )
+
+    @property
+    def proof_details(self) -> "W3cCredentialProofDetails":
+        return W3cCredentialProofDetails(
+            bindings.w3c_credential_get_integrity_proof_details(self.handle)
+        )
+
     def to_legacy(
         self
     ) -> "Credential":
         return Credential.from_w3c(self)
 
     @classmethod
-    def from_legacy(cls, cred: "Credential", cred_def: Union[str, CredentialDefinition]) -> "W3cCredential":
-        return cred.to_w3c(cred_def)
+    def from_legacy(
+        cls,
+        cred: "Credential",
+        cred_def: Union[str, CredentialDefinition],
+        version: Optional[str] = None
+    ) -> "W3cCredential":
+        return cred.to_w3c(cred_def, version)
 
 
 class PresentationRequest(bindings.AnoncredsObject):
@@ -694,6 +720,7 @@ class W3cPresentation(bindings.AnoncredsObject):
         link_secret: str,
         schemas: Mapping[str, Union[str, Schema]],
         cred_defs: Mapping[str, Union[str, CredentialDefinition]],
+        version: Optional[str] = None,
     ) -> "W3cPresentation":
         if not isinstance(pres_req, bindings.AnoncredsObject):
             pres_req = PresentationRequest.load(pres_req)
@@ -741,6 +768,7 @@ class W3cPresentation(bindings.AnoncredsObject):
                 schema_ids,
                 cred_def_handles,
                 cred_def_ids,
+                version,
             )
         )
 

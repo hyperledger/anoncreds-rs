@@ -973,7 +973,7 @@ def create_w3c_credential(
     cred_request: ObjectHandle,
     attr_raw_values: Mapping[str, str],
     revocation_config: Optional[RevocationConfig],
-    encoding: Optional[str],
+    version: Optional[str],
 ) -> ObjectHandle:
     cred = ObjectHandle()
     attr_keys = list(attr_raw_values.keys())
@@ -987,10 +987,10 @@ def create_w3c_credential(
         cred_request,
         names_list,
         raw_values_list,
-        encode_str(encoding),
         pointer(revocation_config)
         if revocation_config
         else POINTER(RevocationConfig)(),
+        encode_str(version),
         byref(cred),
     )
     return cred
@@ -1019,12 +1019,14 @@ def process_w3c_credential(
 def credential_to_w3c(
     cred: ObjectHandle,
     cred_def: ObjectHandle,
+    version: Optional[str],
 ) -> ObjectHandle:
     result = ObjectHandle()
     do_call(
         "anoncreds_credential_to_w3c",
         cred,
         cred_def,
+        encode_str(version),
         byref(result),
     )
     return result
@@ -1051,6 +1053,7 @@ def create_w3c_presentation(
     schema_ids: Sequence[str],
     cred_defs: Sequence[ObjectHandle],
     cred_def_ids: Sequence[str],
+    version: Optional[str],
 ) -> ObjectHandle:
     entry_list = CredentialEntryList()
     entry_list.count = len(credentials)
@@ -1070,6 +1073,7 @@ def create_w3c_presentation(
         FfiStrList.create(schema_ids),
         FfiObjectHandleList.create(cred_defs),
         FfiStrList.create(cred_def_ids),
+        encode_str(version),
         byref(present),
     )
     return present
@@ -1111,3 +1115,15 @@ def verify_w3c_presentation(
         byref(verify),
     )
     return bool(verify)
+
+
+def w3c_credential_get_integrity_proof_details(
+    cred: ObjectHandle,
+) -> ObjectHandle:
+    result = ObjectHandle()
+    do_call(
+        "anoncreds_w3c_credential_get_integrity_proof_details",
+        cred,
+        byref(result),
+    )
+    return result

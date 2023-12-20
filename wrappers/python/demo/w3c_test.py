@@ -3,6 +3,7 @@ from anoncreds import (
     create_link_secret,
     Credential,
     W3cCredential,
+    W3cCredentialProofDetails,
     CredentialDefinition,
     CredentialOffer,
     CredentialRequest,
@@ -74,6 +75,12 @@ issue_cred = W3cCredential.create(
 recv_cred = issue_cred.process(
     cred_request_metadata, link_secret, cred_def_pub, rev_reg_def_pub
 )
+
+proof_details = recv_cred.proof_details
+assert schema_id == proof_details.schema_id
+assert cred_def_id == proof_details.cred_def_id
+assert rev_idx == proof_details.rev_reg_index
+assert None == proof_details.timestamp
 
 print("W3c Credential")
 print(recv_cred.to_json())
