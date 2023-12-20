@@ -37,17 +37,6 @@ pub enum CryptoSuite {
     AnonCredsPresVp2023,
 }
 
-impl Default for DataIntegrityProof {
-    fn default() -> Self {
-        DataIntegrityProof {
-            type_: DataIntegrityProofType::DataIntegrityProof,
-            cryptosuite: CryptoSuite::AnonCredsVc2023,
-            proof_value: "".to_string(),
-            challenge: None,
-        }
-    }
-}
-
 impl DataIntegrityProof {
     pub fn new<V: EncodedObject + Serialize>(
         cryptosuite: CryptoSuite,
@@ -55,10 +44,10 @@ impl DataIntegrityProof {
         challenge: Option<String>,
     ) -> Self {
         DataIntegrityProof {
+            type_: DataIntegrityProofType::DataIntegrityProof,
             cryptosuite,
             proof_value: value.encode(),
             challenge,
-            ..DataIntegrityProof::default()
         }
     }
 
