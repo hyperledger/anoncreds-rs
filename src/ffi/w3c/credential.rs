@@ -1,7 +1,7 @@
+use crate::data_types::w3c::VerifiableCredentialSpecVersion;
+use ffi_support::{rust_string_to_c, FfiStr};
 use std::ffi::c_char;
 use std::ptr;
-use crate::data_types::w3c::VerifiableCredentialSpecVersion;
-use ffi_support::{FfiStr, rust_string_to_c};
 
 use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::credential_attributes::CredentialAttributes;
