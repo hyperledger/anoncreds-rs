@@ -49,7 +49,7 @@ Methods purpose - have to forms of credentials (probably even duplicate in walle
 /// # Params
 /// cred:       object handle pointing to credential in legacy form to convert
 /// cred_def:   object handle pointing to the credential definition
-/// version:    version of verifiable credential specification (1.1 or 2.0)
+/// version:    version of w3c verifiable credential specification (1.1 or 2.0) to use
 /// cred_p:     reference that will contain converted credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -160,7 +160,7 @@ pub extern "C" fn anoncreds_create_w3c_credential_request(
 /// attr_names:            list of attribute names
 /// attr_raw_values:       list of attribute raw values
 /// revocation:            object handle pointing to the credential revocation info
-/// version:               version of verifiable credential specification (1.1 or 2.0)
+/// version:               version of w3c verifiable credential specification (1.1 or 2.0) to use
 /// cred_p:                reference that will contain credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -212,14 +212,7 @@ pub extern "C" fn anoncreds_process_w3c_credential(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_get_attribute(
-    handle: ObjectHandle,
-    name: FfiStr,
-    result_p: *mut *const c_char,
-) -> ErrorCode {}
-
-#[no_mangle]
-pub extern "C" fn anoncreds_credential_get_info(
+pub extern "C" fn anoncreds_w3c_credential_get_integrity_proof_details(
     handle: ObjectHandle,
     cred_proof_info_p: *mut ObjectHandle,
 ) -> ErrorCode {}
@@ -235,6 +228,7 @@ pub extern "C" fn anoncreds_credential_get_info(
 /// schema_ids:             list of schemas ids
 /// cred_defs:              list of credential definitions
 /// cred_def_ids:           list of credential definitions ids
+/// version:                version of w3c verifiable presentation specification (1.1 or 2.0) to use
 /// presentation_p:         reference that will contain created presentation (in W3C form) instance pointer.
 ///
 /// # Returns

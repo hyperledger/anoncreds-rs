@@ -31,7 +31,7 @@ impl TryFrom<&str> for VerifiableCredentialSpecVersion {
             "1.1" => Ok(VerifiableCredentialSpecVersion::V1_1),
             "2.0" => Ok(VerifiableCredentialSpecVersion::V2_0),
             value => Err(err_msg!(
-                "Unsupported version of verifiable credential specification {}",
+                "Unsupported w3c version of verifiable credential specification {}",
                 value
             )),
         }

@@ -27,7 +27,7 @@ impl_anoncreds_object_from_json!(W3CPresentation, anoncreds_w3c_presentation_fro
 /// schema_ids:             list of schemas ids
 /// cred_defs:              list of credential definitions
 /// cred_def_ids:           list of credential definitions ids
-/// version:                version of verifiable credential specification (1.1 or 2.0)
+/// version:                version of w3c verifiable credential specification (1.1 or 2.0) to use
 /// presentation_p:         reference that will contain created presentation (in W3C form) instance pointer.
 ///
 /// # Returns

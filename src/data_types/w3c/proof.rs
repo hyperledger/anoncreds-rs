@@ -125,11 +125,11 @@ impl DataIntegrityProof {
         self.get_proof_value()
     }
 
-    pub fn get_credential_proof_info(&self) -> Result<CredentialProofInfo> {
+    pub fn get_credential_proof_details(&self) -> Result<CredentialProofDetails> {
         match self.cryptosuite {
             CryptoSuite::AnonCredsVc2023 => {
                 let proof = self.get_credential_signature_proof()?;
-                Ok(CredentialProofInfo {
+                Ok(CredentialProofDetails {
                     schema_id: proof.schema_id,
                     cred_def_id: proof.cred_def_id,
                     rev_reg_id: proof.rev_reg_id,
@@ -139,7 +139,7 @@ impl DataIntegrityProof {
             }
             CryptoSuite::AnonCredsPresVc2023 => {
                 let proof = self.get_credential_presentation_proof()?;
-                Ok(CredentialProofInfo {
+                Ok(CredentialProofDetails {
                     schema_id: proof.schema_id,
                     cred_def_id: proof.cred_def_id,
                     rev_reg_id: proof.rev_reg_id,
@@ -147,9 +147,7 @@ impl DataIntegrityProof {
                     timestamp: proof.timestamp,
                 })
             }
-            CryptoSuite::AnonCredsPresVp2023 => {
-                Err(err_msg!("Unexpected DataIntegrityProof"))
-            }
+            CryptoSuite::AnonCredsPresVp2023 => Err(err_msg!("Unexpected DataIntegrityProof")),
         }
     }
 }
@@ -192,7 +190,7 @@ impl EncodedObject for PresentationProofValue {}
 // Credential information aggregated from `CredentialSignatureProof` and `CredentialPresentationProofValue`
 // This information is needed for presentation creation and verification
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
-pub struct CredentialProofInfo {
+pub struct CredentialProofDetails {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
     pub rev_reg_id: Option<RevocationRegistryDefinitionId>,

@@ -6,7 +6,9 @@ use std::string::ToString;
 use crate::data_types::w3c::constants::ANONCREDS_CREDENTIAL_TYPES;
 use crate::data_types::w3c::context::Contexts;
 use crate::data_types::w3c::credential_attributes::CredentialAttributes;
-use crate::data_types::w3c::proof::{CredentialPresentationProofValue, CredentialSignatureProof, DataIntegrityProof};
+use crate::data_types::w3c::proof::{
+    CredentialPresentationProofValue, CredentialSignatureProof, DataIntegrityProof,
+};
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::data_types::{
     issuer_id::IssuerId,

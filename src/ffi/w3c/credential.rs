@@ -1,12 +1,9 @@
-use std::os::raw::c_char;
-use std::ptr;
-
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
-use ffi_support::{rust_string_to_c, FfiStr};
+use ffi_support::FfiStr;
 
 use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::credential_attributes::CredentialAttributes;
-use crate::data_types::w3c::proof::CredentialProofInfo;
+use crate::data_types::w3c::proof::CredentialProofDetails;
 use crate::error::Result;
 use crate::ffi::credential::{FfiCredRevInfo, _link_secret, _revocation_config};
 use crate::ffi::error::{catch_error, ErrorCode};
@@ -31,7 +28,7 @@ impl_anoncreds_object_from_json!(W3CCredential, anoncreds_w3c_credential_from_js
 /// attr_names:            list of attribute names
 /// attr_raw_values:       list of attribute raw values
 /// revocation:            object handle pointing to the credential revocation info
-/// version:               version of verifiable credential specification (1.1 or 2.0)
+/// version:               version of w3c verifiable credential specification (1.1 or 2.0) to use
 /// cred_p:                reference that will contain credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -127,7 +124,7 @@ pub extern "C" fn anoncreds_process_w3c_credential(
 /// # Params
 /// cred:       object handle pointing to credential in legacy form to convert
 /// cred_def:   object handle pointing to the credential definition
-/// version:    version of verifiable credential specification (1.1 or 2.0)
+/// version:    version of w3c verifiable credential specification (1.1 or 2.0) to use
 /// cred_p:     reference that will contain converted credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -184,43 +181,6 @@ pub extern "C" fn anoncreds_credential_from_w3c(
     })
 }
 
-/// Get value of requested credential attribute as string
-///
-/// # Params
-/// handle:                object handle pointing to the credential (in W3 form)
-/// name:                  name of attribute to retrieve
-/// result_p:              reference that will contain value of request credential attribute
-///
-/// # Returns
-/// Error code
-#[no_mangle]
-pub extern "C" fn anoncreds_w3c_credential_get_attribute(
-    handle: ObjectHandle,
-    name: FfiStr,
-    result_p: *mut *const c_char,
-) -> ErrorCode {
-    catch_error(|| {
-        check_useful_c_ptr!(result_p);
-        let cred = handle.load()?;
-        let cred = cred.cast_ref::<W3CCredential>()?;
-        let data_integrity_proof = cred.get_credential_signature_proof()?;
-        let val = match name.as_opt_str().unwrap_or_default() {
-            "schema_id" => rust_string_to_c(data_integrity_proof.schema_id),
-            "cred_def_id" => rust_string_to_c(data_integrity_proof.cred_def_id),
-            "rev_reg_id" => data_integrity_proof
-                .rev_reg_id
-                .map_or(ptr::null_mut(), |s| rust_string_to_c(s.to_string())),
-            "rev_reg_index" => data_integrity_proof
-                .signature
-                .extract_index()
-                .map_or(ptr::null_mut(), |s| rust_string_to_c(s.to_string())),
-            s => return Err(err_msg!("Unsupported attribute: {}", s)),
-        };
-        unsafe { *result_p = val };
-        Ok(())
-    })
-}
-
 /// Get credential signature information required for proof building and verification
 /// This information is aggregated from `anoncredsvc-2023` and `anoncredspresvc-2023` proofs.
 /// It's needed for Holder and Verifier for public entities resolving
@@ -233,7 +193,7 @@ pub extern "C" fn anoncreds_w3c_credential_get_attribute(
 /// # Returns
 /// Error code
 #[no_mangle]
-pub extern "C" fn anoncreds_credential_get_info(
+pub extern "C" fn anoncreds_w3c_credential_get_integrity_proof_details(
     handle: ObjectHandle,
     cred_proof_info_p: *mut ObjectHandle,
 ) -> ErrorCode {
@@ -242,14 +202,14 @@ pub extern "C" fn anoncreds_credential_get_info(
         let cred = handle.load()?;
         let cred = cred.cast_ref::<W3CCredential>()?;
         let data_integrity_proof = cred.get_data_integrity_proof()?;
-        let cred_info = data_integrity_proof.get_credential_proof_info()?;
+        let cred_info = data_integrity_proof.get_credential_proof_details()?;
         let cred_info = ObjectHandle::create(cred_info)?;
         unsafe { *cred_proof_info_p = cred_info };
         Ok(())
     })
 }
 
-impl_anoncreds_object!(CredentialProofInfo, "CredentialProofInfo");
+impl_anoncreds_object!(CredentialProofDetails, "CredentialProofInfo");
 
 pub(crate) fn _credential_attributes(
     attr_names: FfiStrList,
