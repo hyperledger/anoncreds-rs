@@ -91,8 +91,10 @@ fMap.insert(std::make_tuple("createRevocationStatusList",
       std::make_tuple("createW3cCredential", &anoncreds::createW3cCredential));
   fMap.insert(
       std::make_tuple("createW3cPresentation", &anoncreds::createW3cPresentation));
-  fMap.insert(std::make_tuple("w3cCredentialGetAttribute",
-                              &anoncreds::w3cCredentialGetAttribute));
+  fMap.insert(std::make_tuple("w3cCredentialGetIntegrityProofDetails",
+                              &anoncreds::w3cCredentialGetIntegrityProofDetails));
+  fMap.insert(std::make_tuple("w3cCredentialProofGetAttribute",
+                              &anoncreds::w3cCredentialProofGetAttribute));
   fMap.insert(
       std::make_tuple("processW3cCredential", &anoncreds::processW3cCredential));
   fMap.insert(

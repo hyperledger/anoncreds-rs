@@ -102,16 +102,6 @@ export class NodeJSAnoncreds implements Anoncreds {
     return handleReturnPointer<string>(ret)
   }
 
-  public w3cCredentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }) {
-    const { objectHandle, name } = serializeArguments(options)
-
-    const ret = allocateStringBuffer()
-    this.nativeAnoncreds.anoncreds_w3c_credential_get_attribute(objectHandle, name, ret)
-    this.handleError()
-
-    return handleReturnPointer<string>(ret)
-  }
-
   public createCredentialDefinition(options: {
     schemaId: string
     schema: ObjectHandle
@@ -535,9 +525,9 @@ export class NodeJSAnoncreds implements Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     revocationConfiguration?: NativeCredentialRevocationConfig
-    encoding?: string
+    version?: string
   }): ObjectHandle {
-    const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest, encoding } =
+    const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest, version } =
       serializeArguments(options)
 
     const attributeNames = this.convertAttributeNames(options.attributeRawValues)
@@ -552,8 +542,8 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialRequest,
       attributeNames as unknown as Buffer,
       attributeRawValues as unknown as Buffer,
-      encoding,
       revocationConfiguration?.ref().address() ?? 0,
+      version,
       credentialPtr
     )
     this.handleError()
@@ -592,8 +582,9 @@ export class NodeJSAnoncreds implements Anoncreds {
     linkSecret: string
     schemas: Record<string, ObjectHandle>
     credentialDefinitions: Record<string, ObjectHandle>
+    version?: string
   }): ObjectHandle {
-    const { presentationRequest, linkSecret } = serializeArguments(options)
+    const { presentationRequest, linkSecret, version } = serializeArguments(options)
 
     const credentialEntryList = this.convertCredentialList(options.credentials)
     const credentialProveList = this.convertCredentialProves(options.credentialsProve)
@@ -611,6 +602,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       schemaIds as unknown as Buffer,
       credentialDefinitions as unknown as Buffer,
       credentialDefinitionIds as unknown as Buffer,
+      version,
       ret
     )
     this.handleError()
@@ -664,12 +656,16 @@ export class NodeJSAnoncreds implements Anoncreds {
     return Boolean(handleReturnPointer<number>(ret))
   }
 
-  public credentialToW3c(options: { objectHandle: ObjectHandle; credentialDefinition: ObjectHandle }): ObjectHandle {
-    const { objectHandle, credentialDefinition } = serializeArguments(options)
+  public credentialToW3c(options: {
+    objectHandle: ObjectHandle
+    credentialDefinition: ObjectHandle
+    version?: string
+  }): ObjectHandle {
+    const { objectHandle, credentialDefinition, version } = serializeArguments(options)
 
     const ret = allocatePointer()
 
-    this.nativeAnoncreds.anoncreds_credential_to_w3c(objectHandle, credentialDefinition, ret)
+    this.nativeAnoncreds.anoncreds_credential_to_w3c(objectHandle, credentialDefinition, version, ret)
     this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
@@ -684,6 +680,34 @@ export class NodeJSAnoncreds implements Anoncreds {
     this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public w3cCredentialGetIntegrityProofDetails(options: { objectHandle: ObjectHandle }) {
+    const { objectHandle } = serializeArguments(options)
+
+    const ret = allocatePointer()
+    this.nativeAnoncreds.anoncreds_w3c_credential_get_integrity_proof_details(objectHandle, ret)
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public w3cCredentialProofGetAttribute(options: { objectHandle: ObjectHandle; name: string }) {
+    const { objectHandle, name } = serializeArguments(options)
+
+    const ret = allocateStringBuffer()
+    this.nativeAnoncreds.anoncreds_w3c_credential_proof_get_attribute(objectHandle, name, ret)
+    this.handleError()
+
+    return handleReturnPointer<string>(ret)
+  }
+
+  public w3cCredentialFromJson(options: { json: string }): ObjectHandle {
+    return this.objectFromJson(this.nativeAnoncreds.anoncreds_w3c_credential_from_json, options)
+  }
+
+  public w3cPresentationFromJson(options: { json: string }): ObjectHandle {
+    return this.objectFromJson(this.nativeAnoncreds.anoncreds_w3c_presentation_from_json, options)
   }
 
   public version(): string {
@@ -773,14 +797,6 @@ export class NodeJSAnoncreds implements Anoncreds {
 
   public keyCorrectnessProofFromJson(options: { json: string }): ObjectHandle {
     return this.objectFromJson(this.nativeAnoncreds.anoncreds_key_correctness_proof_from_json, options)
-  }
-
-  public w3cCredentialFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(this.nativeAnoncreds.anoncreds_w3c_credential_from_json, options)
-  }
-
-  public w3cPresentationFromJson(options: { json: string }): ObjectHandle {
-    return this.objectFromJson(this.nativeAnoncreds.anoncreds_w3c_presentation_from_json, options)
   }
 
   public getJson(options: { objectHandle: ObjectHandle }) {

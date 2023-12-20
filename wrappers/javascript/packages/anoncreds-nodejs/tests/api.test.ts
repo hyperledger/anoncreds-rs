@@ -716,7 +716,7 @@ describe('API W3C', () => {
         revocationRegistryDefinitions: { 'mock:uri': revocationRegistryDefinition },
         revocationStatusLists: [revocationStatusList]
       })
-    }).toThrowError('Invalid timestamp')
+    }).toThrowError('Presentation does not contain attribute name')
 
     const verify = presentation.verify({
       presentationRequest,

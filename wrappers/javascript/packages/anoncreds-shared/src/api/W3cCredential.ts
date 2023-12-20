@@ -24,7 +24,7 @@ export type CreateW3cCredentialOptions = {
   revocationRegistryId?: string
   revocationConfiguration?: CredentialRevocationConfig
   revocationStatusList?: RevocationStatusList | JsonObject
-  encoding?: string
+  version?: string
 }
 
 export type ProcessW3cCredentialOptions = {
@@ -37,9 +37,12 @@ export type ProcessW3cCredentialOptions = {
 export type W3cCredentialFromLegacyOptions = {
   credential: Credential
   credentialDefinition: CredentialDefinition | JsonObject
+  version?: string
 }
 
 export class W3cCredential extends AnoncredsObject {
+  private proofDetails?: ObjectHandle
+
   public static create(options: CreateW3cCredentialOptions) {
     let credential
     // Objects created within this method must be freed up
@@ -72,7 +75,7 @@ export class W3cCredential extends AnoncredsObject {
         credentialRequest,
         attributeRawValues: options.attributeRawValues,
         revocationConfiguration: options.revocationConfiguration?.native,
-        encoding: options.encoding
+        version: options.version
       })
     } finally {
       objectHandles.forEach((handle) => {
@@ -130,20 +133,37 @@ export class W3cCredential extends AnoncredsObject {
     return this
   }
 
+  private getProofDetails(): ObjectHandle {
+    if (!this.proofDetails) {
+      this.proofDetails = anoncreds.w3cCredentialGetIntegrityProofDetails({ objectHandle: this.handle })
+    }
+    return this.proofDetails
+  }
+
   public get schemaId() {
-    return anoncreds.w3cCredentialGetAttribute({ objectHandle: this.handle, name: 'schema_id' })
+    const proofDetails = this.getProofDetails()
+    return anoncreds.w3cCredentialProofGetAttribute({ objectHandle: proofDetails, name: 'schema_id' })
   }
 
   public get credentialDefinitionId() {
-    return anoncreds.w3cCredentialGetAttribute({ objectHandle: this.handle, name: 'cred_def_id' })
+    const proofDetails = this.getProofDetails()
+    return anoncreds.w3cCredentialProofGetAttribute({ objectHandle: proofDetails, name: 'cred_def_id' })
   }
 
   public get revocationRegistryId() {
-    return anoncreds.w3cCredentialGetAttribute({ objectHandle: this.handle, name: 'rev_reg_id' })
+    const proofDetails = this.getProofDetails()
+    return anoncreds.w3cCredentialProofGetAttribute({ objectHandle: proofDetails, name: 'rev_reg_id' })
   }
 
   public get revocationRegistryIndex() {
-    const index = anoncreds.w3cCredentialGetAttribute({ objectHandle: this.handle, name: 'rev_reg_index' })
+    const proofDetails = this.getProofDetails()
+    const index = anoncreds.w3cCredentialProofGetAttribute({ objectHandle: proofDetails, name: 'rev_reg_index' })
+    return index ? Number(index) : undefined
+  }
+
+  public get timestamp() {
+    const proofDetails = this.getProofDetails()
+    const index = anoncreds.w3cCredentialProofGetAttribute({ objectHandle: proofDetails, name: 'timestamp' })
     return index ? Number(index) : undefined
   }
 
@@ -168,7 +188,8 @@ export class W3cCredential extends AnoncredsObject {
       credential = new W3cCredential(
         anoncreds.credentialToW3c({
           objectHandle: options.credential.handle,
-          credentialDefinition
+          credentialDefinition,
+          version: options.version
         }).handle
       )
     } finally {

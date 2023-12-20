@@ -400,7 +400,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     revocationConfiguration?: NativeCredentialRevocationConfig
-    encoding?: string
+    version?: string
   }): ObjectHandle {
     const attributeNames = Object.keys(options.attributeRawValues)
     const attributeRawValues = Object.values(options.attributeRawValues)
@@ -419,7 +419,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
               revocationStatusList: options.revocationConfiguration.revocationStatusList.handle
             }
           : undefined,
-        encoding: options.encoding
+        version: options.version
       })
     )
 
@@ -444,6 +444,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     linkSecret: string
     schemas: Record<string, ObjectHandle>
     credentialDefinitions: Record<string, ObjectHandle>
+    version?: string
   }): ObjectHandle {
     const schemaKeys = Object.keys(options.schemas)
     const schemaValues = Object.values(options.schemas).map((o) => o.handle)
@@ -465,7 +466,8 @@ export class ReactNativeAnoncreds implements Anoncreds {
         schemas: schemaValues,
         schemaIds: schemaKeys,
         credentialDefinitions: credentialDefinitionValues,
-        credentialDefinitionIds: credentialDefinitionKeys
+        credentialDefinitionIds: credentialDefinitionKeys,
+        version: options.version
       })
     )
     return new ObjectHandle(handle)
@@ -486,8 +488,13 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return Boolean(this.handleError(this.anoncreds.verifyW3cPresentation(serializeArguments(options))))
   }
 
-  public w3cCredentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string {
-    return this.handleError(this.anoncreds.w3cCredentialGetAttribute(serializeArguments(options)))
+  public w3cCredentialGetIntegrityProofDetails(options: { objectHandle: ObjectHandle }): ObjectHandle {
+    const handle = this.handleError(this.anoncreds.w3cCredentialGetIntegrityProofDetails(serializeArguments(options)))
+    return new ObjectHandle(handle)
+  }
+
+  public w3cCredentialProofGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string {
+    return this.handleError(this.anoncreds.w3cCredentialProofGetAttribute(serializeArguments(options)))
   }
 
   public w3cPresentationFromJson(options: { json: string }): ObjectHandle {
@@ -500,7 +507,11 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return new ObjectHandle(handle)
   }
 
-  public credentialToW3c(options: { objectHandle: ObjectHandle; credentialDefinition: ObjectHandle }): ObjectHandle {
+  public credentialToW3c(options: {
+    objectHandle: ObjectHandle
+    credentialDefinition: ObjectHandle
+    version?: string
+  }): ObjectHandle {
     const handle = this.handleError(this.anoncreds.credentialToW3c(serializeArguments(options)))
     return new ObjectHandle(handle)
   }

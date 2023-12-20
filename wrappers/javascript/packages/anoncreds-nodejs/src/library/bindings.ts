@@ -201,8 +201,8 @@ export const nativeBindings = {
       FFI_OBJECT_HANDLE,
       StringListStruct,
       StringListStruct,
-      FFI_STRING,
       FFI_OBJECT_HANDLE,
+      FFI_STRING,
       FFI_OBJECT_HANDLE_PTR
     ]
   ],
@@ -221,6 +221,7 @@ export const nativeBindings = {
       StringListStruct,
       ObjectHandleListStruct,
       StringListStruct,
+      FFI_STRING,
       FFI_OBJECT_HANDLE_PTR
     ]
   ],
@@ -240,9 +241,13 @@ export const nativeBindings = {
       FFI_INT8_PTR
     ]
   ],
-  anoncreds_credential_to_w3c: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR]],
+  anoncreds_credential_to_w3c: [
+    FFI_ERRORCODE,
+    [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE, FFI_STRING, FFI_OBJECT_HANDLE_PTR]
+  ],
   anoncreds_credential_from_w3c: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR]],
-  anoncreds_w3c_credential_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
+  anoncreds_w3c_credential_get_integrity_proof_details: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_OBJECT_HANDLE_PTR]],
+  anoncreds_w3c_credential_proof_get_attribute: [FFI_ERRORCODE, [FFI_OBJECT_HANDLE, FFI_STRING, FFI_STRING_PTR]],
   anoncreds_w3c_presentation_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]],
   anoncreds_w3c_credential_from_json: [FFI_ERRORCODE, [ByteBufferStruct, FFI_STRING_PTR]]
 } as const

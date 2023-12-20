@@ -440,6 +440,16 @@ ErrorCode anoncreds_verify_presentation(ObjectHandle presentation,
                                         struct FfiList_FfiNonrevokedIntervalOverride nonrevoked_interval_override,
                                         int8_t *result_p);
 
+ErrorCode anoncreds_create_w3c_credential(ObjectHandle cred_def,
+                                          ObjectHandle cred_def_private,
+                                          ObjectHandle cred_offer,
+                                          ObjectHandle cred_request,
+                                          FfiStrList attr_names,
+                                          FfiStrList attr_raw_values,
+                                          const struct FfiCredRevInfo *revocation,
+                                          FfiStr version,
+                                          ObjectHandle *cred_p);
+
 ErrorCode anoncreds_process_w3c_credential(ObjectHandle cred,
                                            ObjectHandle cred_req_metadata,
                                            FfiStr link_secret,
@@ -449,6 +459,7 @@ ErrorCode anoncreds_process_w3c_credential(ObjectHandle cred,
 
 ErrorCode anoncreds_credential_to_w3c(ObjectHandle cred,
                                       ObjectHandle cred_def,
+                                      FfiStr version,
                                       ObjectHandle *cred_p);
 
 ErrorCode anoncreds_credential_from_w3c(ObjectHandle cred,
@@ -462,6 +473,7 @@ ErrorCode anoncreds_create_w3c_presentation(ObjectHandle pres_req,
                                             FfiStrList schema_ids,
                                             struct FfiList_ObjectHandle cred_defs,
                                             FfiStrList cred_def_ids,
+                                            FfiStr version,
                                             ObjectHandle *presentation_p);
 
 ErrorCode anoncreds_verify_w3c_presentation(ObjectHandle presentation,
@@ -476,11 +488,14 @@ ErrorCode anoncreds_verify_w3c_presentation(ObjectHandle presentation,
                                             struct FfiList_FfiNonrevokedIntervalOverride nonrevoked_interval_override,
                                             int8_t *result_p);
 
-ErrorCode anoncreds_w3c_credential_from_json(struct ByteBuffer json, ObjectHandle *result_p);
+ErrorCode anoncreds_w3c_credential_get_integrity_proof_details(ObjectHandle handle,
+                                                               ObjectHandle *result_p);
 
-ErrorCode anoncreds_w3c_credential_get_attribute(ObjectHandle handle,
-                                                 FfiStr name,
-                                                 const char **result_p);
+ErrorCode anoncreds_w3c_credential_proof_get_attribute(ObjectHandle handle,
+                                                       FfiStr name,
+                                                       const char **result_p);
+
+ErrorCode anoncreds_w3c_credential_from_json(struct ByteBuffer json, ObjectHandle *result_p);
 
 ErrorCode anoncreds_w3c_presentation_from_json(struct ByteBuffer json, ObjectHandle *result_p);
 

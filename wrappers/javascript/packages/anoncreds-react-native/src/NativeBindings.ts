@@ -199,7 +199,7 @@ export type NativeBindings = {
       revocationRegistryDefinitionPrivate: number
       revocationStatusList?: number
     }
-    encoding?: string
+    version?: string
   }): ReturnObject<Handle>
 
   processW3cCredential(options: {
@@ -210,9 +210,15 @@ export type NativeBindings = {
     revocationRegistryDefinition?: number
   }): ReturnObject<Handle>
 
-  w3cCredentialGetAttribute(options: { objectHandle: number; name: string }): ReturnObject<string>
+  w3cCredentialGetIntegrityProofDetails(options: { objectHandle: number }): ReturnObject<Handle>
 
-  credentialToW3c(options: { objectHandle: number; credentialDefinition: number }): ReturnObject<Handle>
+  w3cCredentialProofGetAttribute(options: { objectHandle: number; name: string }): ReturnObject<string>
+
+  credentialToW3c(options: {
+    objectHandle: number
+    credentialDefinition: number
+    version?: string
+  }): ReturnObject<Handle>
 
   credentialFromW3c(options: { objectHandle: number }): ReturnObject<Handle>
 
@@ -225,6 +231,7 @@ export type NativeBindings = {
     schemas: number[]
     credentialDefinitionIds: string[]
     credentialDefinitions: number[]
+    version?: string
   }): ReturnObject<Handle>
 
   verifyW3cPresentation(options: {

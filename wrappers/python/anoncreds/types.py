@@ -367,60 +367,9 @@ class Credential(bindings.AnoncredsObject):
         )
 
 
-class W3cCredentialProofDetails(bindings.AnoncredsObject):
-    GET_ATTR = "anoncreds_w3c_credential_proof_get_attribute"
-
-    @property
-    def schema_id(self) -> str:
-        return str(
-            bindings._object_get_attribute(
-                self.GET_ATTR,
-                self.handle,
-                "schema_id",
-            )
-        )
-
-    @property
-    def cred_def_id(self) -> str:
-        return str(
-            bindings._object_get_attribute(
-                self.GET_ATTR,
-                self.handle,
-                "cred_def_id",
-            )
-        )
-
-    @property
-    def rev_reg_id(self) -> str:
-        return str(
-            bindings._object_get_attribute(
-                self.GET_ATTR,
-                self.handle,
-                "rev_reg_id",
-            )
-        )
-
-    @property
-    def rev_reg_index(self) -> Optional[int]:
-        sval = bindings._object_get_attribute(
-            self.GET_ATTR,
-            self.handle,
-            "rev_reg_index",
-        )
-        return int(str(sval)) if sval is not None else None
-
-    @property
-    def timestamp(self) -> Optional[int]:
-        sval = bindings._object_get_attribute(
-            self.GET_ATTR,
-            self.handle,
-            "timestamp",
-        )
-        return int(str(sval)) if sval is not None else None
-
-
 class W3cCredential(bindings.AnoncredsObject):
-    GET_ATTR = "anoncreds_w3c_credential_get_attribute"
+    GET_ATTR = "anoncreds_w3c_credential_proof_get_attribute"
+    _proof_details = None
 
     @classmethod
     def create(
@@ -481,12 +430,6 @@ class W3cCredential(bindings.AnoncredsObject):
             bindings._object_from_json("anoncreds_w3c_credential_from_json", value)
         )
 
-    @property
-    def proof_details(self) -> "W3cCredentialProofDetails":
-        return W3cCredentialProofDetails(
-            bindings.w3c_credential_get_integrity_proof_details(self.handle)
-        )
-
     def to_legacy(
         self
     ) -> "Credential":
@@ -500,6 +443,65 @@ class W3cCredential(bindings.AnoncredsObject):
         version: Optional[str] = None
     ) -> "W3cCredential":
         return cred.to_w3c(cred_def, version)
+
+    def _get_proof_details(self) -> bindings.ObjectHandle:
+        if self._proof_details == None:
+            self._proof_details = bindings.w3c_credential_get_integrity_proof_details(self.handle)
+        return self._proof_details
+
+
+    @property
+    def schema_id(self) -> str:
+        proof_details = self._get_proof_details()
+        return str(
+            bindings._object_get_attribute(
+                self.GET_ATTR,
+                proof_details,
+                "schema_id",
+            )
+        )
+
+    @property
+    def cred_def_id(self) -> str:
+        proof_details = self._get_proof_details()
+        return str(
+            bindings._object_get_attribute(
+                self.GET_ATTR,
+                proof_details,
+                "cred_def_id",
+            )
+        )
+
+    @property
+    def rev_reg_id(self) -> str:
+        proof_details = self._get_proof_details()
+        return str(
+            bindings._object_get_attribute(
+                self.GET_ATTR,
+                proof_details,
+                "rev_reg_id",
+            )
+        )
+
+    @property
+    def rev_reg_index(self) -> Optional[int]:
+        proof_details = self._get_proof_details()
+        sval = bindings._object_get_attribute(
+            self.GET_ATTR,
+            proof_details,
+            "rev_reg_index",
+        )
+        return int(str(sval)) if sval is not None else None
+
+    @property
+    def timestamp(self) -> Optional[int]:
+        proof_details = self._get_proof_details()
+        sval = bindings._object_get_attribute(
+            self.GET_ATTR,
+            proof_details,
+            "timestamp",
+        )
+        return int(str(sval)) if sval is not None else None
 
 
 class PresentationRequest(bindings.AnoncredsObject):

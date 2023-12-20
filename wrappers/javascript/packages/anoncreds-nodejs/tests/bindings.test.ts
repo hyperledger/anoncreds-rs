@@ -712,8 +712,12 @@ describe('bindings', () => {
       revocationRegistryDefinition
     })
 
-    const revRegIndex = anoncreds.w3cCredentialGetAttribute({
+    const credentialProofDetails = anoncreds.w3cCredentialGetIntegrityProofDetails({
       objectHandle: credentialReceived,
+    })
+
+    const revRegIndex = anoncreds.w3cCredentialProofGetAttribute({
+      objectHandle: credentialProofDetails,
       name: 'rev_reg_index'
     })
 

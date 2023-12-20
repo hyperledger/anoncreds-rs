@@ -212,7 +212,7 @@ export type Anoncreds = {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     revocationConfiguration?: NativeCredentialRevocationConfig
-    encoding?: string
+    version?: string
   }): ObjectHandle
 
   processW3cCredential(options: {
@@ -230,6 +230,7 @@ export type Anoncreds = {
     linkSecret: string
     schemas: Record<string, ObjectHandle>
     credentialDefinitions: Record<string, ObjectHandle>
+    version?: string
   }): ObjectHandle
 
   verifyW3cPresentation(options: {
@@ -247,11 +248,17 @@ export type Anoncreds = {
 
   w3cPresentationFromJson(options: { json: string }): ObjectHandle
 
-  w3cCredentialGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string
-
   w3cCredentialFromJson(options: { json: string }): ObjectHandle
 
-  credentialToW3c(options: { objectHandle: ObjectHandle; credentialDefinition: ObjectHandle }): ObjectHandle
+  credentialToW3c(options: {
+    objectHandle: ObjectHandle
+    credentialDefinition: ObjectHandle
+    version?: string
+  }): ObjectHandle
 
   credentialFromW3c(options: { objectHandle: ObjectHandle }): ObjectHandle
+
+  w3cCredentialGetIntegrityProofDetails(options: { objectHandle: ObjectHandle }): ObjectHandle
+
+  w3cCredentialProofGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string
 }

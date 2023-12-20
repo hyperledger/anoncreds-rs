@@ -22,7 +22,6 @@ from .types import (
     RevocationRegistryDefinition,
     RevocationRegistryDefinitionPrivate,
     W3cCredential,
-    W3cCredentialProofDetails,
     W3cPresentation,
 )
 
@@ -52,6 +51,5 @@ __all__ = (
     "RevocationRegistryDefinitionPrivate",
     "Schema",
     "W3cCredential",
-    "W3cCredentialProofDetails",
     "W3cPresentation"
 )

@@ -79,7 +79,8 @@ jsi::Value encodeCredentialAttributes(jsi::Runtime &rt, jsi::Object options);
 jsi::Value processCredential(jsi::Runtime &rt, jsi::Object options);
 
 jsi::Value createW3cCredential(jsi::Runtime &rt, jsi::Object options);
-jsi::Value w3cCredentialGetAttribute(jsi::Runtime &rt, jsi::Object options);
+jsi::Value w3cCredentialGetIntegrityProofDetails(jsi::Runtime &rt, jsi::Object options);
+jsi::Value w3cCredentialProofGetAttribute(jsi::Runtime &rt, jsi::Object options);
 jsi::Value processW3cCredential(jsi::Runtime &rt, jsi::Object options);
 jsi::Value credentialToW3c(jsi::Runtime &rt, jsi::Object options);
 jsi::Value credentialFromW3c(jsi::Runtime &rt, jsi::Object options);
