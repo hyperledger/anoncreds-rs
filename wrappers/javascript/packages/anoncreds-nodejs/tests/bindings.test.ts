@@ -713,7 +713,7 @@ describe('bindings', () => {
     })
 
     const credentialProofDetails = anoncreds.w3cCredentialGetIntegrityProofDetails({
-      objectHandle: credentialReceived,
+      objectHandle: credentialReceived
     })
 
     const revRegIndex = anoncreds.w3cCredentialProofGetAttribute({
