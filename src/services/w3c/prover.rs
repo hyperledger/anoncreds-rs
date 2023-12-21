@@ -1,7 +1,7 @@
 use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
 use crate::data_types::pres_request::PresentationRequestPayload;
 use crate::data_types::schema::{Schema, SchemaId};
-use crate::data_types::w3c::credential::{CredentialProof, CredentialSubject, W3CCredential};
+use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::presentation::W3CPresentation;
 use crate::error::Result;
 use crate::types::{
@@ -10,7 +10,7 @@ use crate::types::{
 };
 use crate::utils::validation::Validatable;
 
-use crate::data_types::w3c::one_or_many::OneOrMany;
+use crate::data_types::w3c::credential_attributes::CredentialAttributes;
 use crate::data_types::w3c::presentation::PredicateAttribute;
 use crate::data_types::w3c::proof::{
     CredentialPresentationProofValue, DataIntegrityProof, PresentationProofValue,
@@ -183,7 +183,7 @@ pub fn create_presentation(
     // cl signatures generates sub proofs and aggregated at once at the end
     // so we need to iterate over credentials again an put sub proofs into their proofs
     for (present, sub_proof) in credentials.0.iter().zip(cl_proof.proofs) {
-        let credential_subject = build_credential_subject(presentation_request, present)?;
+        let credential_attributes = build_credential_attributes(presentation_request, present)?;
         let credential_proof = present.cred.get_credential_signature_proof()?;
         let proof = CredentialPresentationProofValue {
             schema_id: credential_proof.schema_id.to_owned(),
@@ -193,12 +193,7 @@ pub fn create_presentation(
             sub_proof,
         };
         let proof = DataIntegrityProof::new_credential_presentation_proof(proof);
-        let credential = W3CCredential {
-            credential_subject,
-            proof: OneOrMany::One(CredentialProof::DataIntegrityProof(proof)),
-            ..present.cred.to_owned()
-        };
-
+        let credential = W3CCredential::derive(credential_attributes, proof, present.cred);
         verifiable_credentials.push(credential);
     }
 
@@ -209,7 +204,7 @@ pub fn create_presentation(
         presentation_proof,
         presentation_request.nonce.to_string(),
     );
-    let presentation = W3CPresentation::new(verifiable_credentials, proof, version);
+    let presentation = W3CPresentation::new(verifiable_credentials, proof, version.as_ref());
 
     trace!(
         "create_w3c_presentation <<< presentation: {:?}",
@@ -219,14 +214,11 @@ pub fn create_presentation(
     Ok(presentation)
 }
 
-fn build_credential_subject(
+fn build_credential_attributes<'p>(
     pres_req: &PresentationRequestPayload,
-    credentials: &PresentCredential<'_, W3CCredential>,
-) -> Result<CredentialSubject> {
-    let mut credential_subject = CredentialSubject {
-        id: credentials.cred.credential_subject.id.clone(),
-        attributes: Default::default(),
-    };
+    credentials: &PresentCredential<'p, W3CCredential>,
+) -> Result<CredentialAttributes> {
+    let mut attributes = CredentialAttributes::default();
 
     for (referent, reveal) in credentials.requested_attributes.iter() {
         let requested_attribute = pres_req
@@ -237,17 +229,13 @@ fn build_credential_subject(
         if let Some(ref name) = requested_attribute.name {
             let (attribute, value) = credentials.cred.get_case_insensitive_attribute(name)?;
             if *reveal {
-                credential_subject
-                    .attributes
-                    .add_attribute(attribute, value);
+                attributes.add_attribute(attribute, value);
             }
         }
         if let Some(ref names) = requested_attribute.names {
             for name in names {
                 let (attribute, value) = credentials.cred.get_case_insensitive_attribute(name)?;
-                credential_subject
-                    .attributes
-                    .add_attribute(attribute, value);
+                attributes.add_attribute(attribute, value);
             }
         }
     }
@@ -262,10 +250,8 @@ fn build_credential_subject(
             .cred
             .get_case_insensitive_attribute(&predicate_info.name)?;
         let predicate = PredicateAttribute::from(predicate_info);
-        credential_subject
-            .attributes
-            .add_predicate(attribute, predicate)?;
+        attributes.add_predicate(attribute, predicate)?;
     }
 
-    Ok(credential_subject)
+    Ok(attributes)
 }

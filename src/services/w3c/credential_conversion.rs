@@ -111,7 +111,7 @@ pub fn credential_to_w3c(
         witness: credential.witness,
     };
     let proof = DataIntegrityProof::new_credential_proof(signature);
-    let w3c_credential = W3CCredential::new(issuer, attributes, proof, version);
+    let w3c_credential = W3CCredential::new(issuer, attributes, proof, version.as_ref());
 
     trace!("credential_to_w3c <<< w3c_credential {:?}", w3c_credential);
 

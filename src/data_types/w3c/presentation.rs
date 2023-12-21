@@ -29,11 +29,11 @@ impl W3CPresentation {
     pub fn new(
         verifiable_credential: Vec<W3CCredential>,
         proof: DataIntegrityProof,
-        version: Option<VerifiableCredentialSpecVersion>,
+        version: Option<&VerifiableCredentialSpecVersion>,
     ) -> Self {
-        let version = version.unwrap_or_default();
+        let version = version.cloned().unwrap_or_default();
         Self {
-            context: Contexts::get(version),
+            context: Contexts::get(&version),
             type_: ANONCREDS_PRESENTATION_TYPES.clone(),
             verifiable_credential,
             proof,
