@@ -34,7 +34,7 @@ pub struct W3CCredential {
     pub id: Option<URI>,
 
     // for VC 1.1 `issuance_date` property must be used
-    // for VC 2.0 `valid_from` property must be used
+    // for VC 2.0 there is optional `valid_from` which we leave empty in case of anoncreds
     #[serde(skip_serializing_if = "Option::is_none")]
     pub issuance_date: Option<IssuanceDate>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -72,23 +72,22 @@ impl W3CCredential {
         proof: DataIntegrityProof,
         version: Option<&VerifiableCredentialSpecVersion>,
     ) -> Self {
-        let time = Utc::now();
         let version = version.cloned().unwrap_or_default();
-        let (issuance_date, valid_from) = match version {
-            VerifiableCredentialSpecVersion::V1_1 => (Some(time), None),
-            VerifiableCredentialSpecVersion::V2_0 => (None, Some(time)),
+        let issuance_date = match version {
+            VerifiableCredentialSpecVersion::V1_1 => Some(Utc::now()),
+            VerifiableCredentialSpecVersion::V2_0 => None,
         };
         Self {
             context: Contexts::get(&version),
             type_: ANONCREDS_CREDENTIAL_TYPES.clone(),
             issuance_date,
-            valid_from,
             issuer,
             credential_subject: CredentialSubject {
                 id: None,
                 attributes,
             },
             proof: OneOrMany::Many(vec![CredentialProof::DataIntegrityProof(proof)]),
+            valid_from: None,
             id: None,
         }
     }
@@ -152,21 +151,10 @@ impl W3CCredential {
             return Err(err_msg!("Credential does not contain w3c credential type"));
         }
 
-        match version {
-            VerifiableCredentialSpecVersion::V1_1 => {
-                if self.issuance_date.is_none() {
-                    return Err(err_msg!(
-                        "V1.1 Credential must include `issuanceDate` property"
-                    ));
-                }
-            }
-            VerifiableCredentialSpecVersion::V2_0 => {
-                if self.valid_from.is_none() {
-                    return Err(err_msg!(
-                        "V1.1 Credential must include `validFrom` property"
-                    ));
-                }
-            }
+        if version == VerifiableCredentialSpecVersion::V1_1 && self.issuance_date.is_none() {
+            return Err(err_msg!(
+                "V1.1 Credential must include `issuanceDate` property"
+            ));
         }
 
         Ok(())
