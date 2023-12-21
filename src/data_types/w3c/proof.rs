@@ -1,7 +1,6 @@
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
-use crate::utils::encoded_object::EncodedObject;
 use crate::Result;
 use anoncreds_clsignatures::{
     AggregatedProof, CredentialSignature as CLCredentialSignature, RevocationRegistry,
@@ -186,4 +185,29 @@ pub struct CredentialProofDetails {
     pub rev_reg_id: Option<RevocationRegistryDefinitionId>,
     pub rev_reg_index: Option<u32>,
     pub timestamp: Option<u64>,
+}
+
+const BASE_HEADER: char = 'u';
+
+pub trait EncodedObject {
+    fn encode(&self) -> String
+    where
+        Self: Serialize,
+    {
+        let serialized = crate::utils::base64::encode_json(self);
+        format!("{}{}", BASE_HEADER, serialized)
+    }
+
+    fn decode(string: &str) -> Result<Self>
+    where
+        Self: DeserializeOwned,
+    {
+        match string.chars().next() {
+            Some(BASE_HEADER) => {
+                // ok
+            }
+            value => return Err(err_msg!("Unexpected multibase base header {:?}", value)),
+        }
+        crate::utils::base64::decode_json(&string[1..])
+    }
 }
