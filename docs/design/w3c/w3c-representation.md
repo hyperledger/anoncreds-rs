@@ -47,10 +47,10 @@ Methods purpose - have to forms of credentials (probably even duplicate in walle
 /// Convert credential in legacy form into W3C AnonCreds credential form
 ///
 /// # Params
-/// cred:       object handle pointing to credential in legacy form to convert
-/// cred_def:   object handle pointing to the credential definition
-/// version:    version of w3c verifiable credential specification (1.1 or 2.0) to use
-/// cred_p:     reference that will contain converted credential (in W3C form) instance pointer
+/// cred:           object handle pointing to credential in legacy form to convert
+/// cred_def:       object handle pointing to the credential definition
+/// w3c_version:    version of w3c verifiable credential specification (1.1 or 2.0) to use
+/// cred_p:         reference that will contain converted credential (in W3C form) instance pointer
 ///
 /// # Returns
 /// Error code
@@ -58,7 +58,7 @@ Methods purpose - have to forms of credentials (probably even duplicate in walle
 pub extern "C" fn anoncreds_credential_to_w3c(
     cred: ObjectHandle,
     cred_def: ObjectHandle,
-    version: FfiStr,
+    w3c_version: FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
@@ -114,7 +114,7 @@ The reasons for adding duplication methods:
 /// attr_names:            list of attribute names
 /// attr_raw_values:       list of attribute raw values
 /// revocation:            object handle pointing to the credential revocation info
-/// version:               version of w3c verifiable credential specification (1.1 or 2.0) to use
+/// w3c_version:           version of w3c verifiable credential specification (1.1 or 2.0) to use
 /// cred_p:                reference that will contain credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -128,7 +128,7 @@ pub extern "C" fn anoncreds_create_w3c_credential(
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
     revocation: *const FfiCredRevInfo,
-    version: *const FfiStr,
+    w3c_version: *const FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
 
@@ -161,7 +161,7 @@ pub extern "C" fn anoncreds_process_w3c_credential(
 ///
 /// # Params
 /// handle:                object handle pointing to the credential (in W3 form)
-/// result_p:              reference that will contain credential information
+/// cred_proof_info_p:     reference that will contain credential information
 ///
 /// # Returns
 /// Error code
@@ -182,7 +182,7 @@ pub extern "C" fn anoncreds_w3c_credential_get_integrity_proof_details(
 /// schema_ids:             list of schemas ids
 /// cred_defs:              list of credential definitions
 /// cred_def_ids:           list of credential definitions ids
-/// version:                version of w3c verifiable presentation specification (1.1 or 2.0) to use
+/// w3c_version:            version of w3c verifiable presentation specification (1.1 or 2.0) to use
 /// presentation_p:         reference that will contain created presentation (in W3C form) instance pointer.
 ///
 /// # Returns
@@ -198,6 +198,7 @@ pub extern "C" fn anoncreds_create_w3c_presentation(
     cred_defs: FfiList<ObjectHandle>,
     cred_def_ids: FfiStrList,
     presentation_p: *mut ObjectHandle,
+    w3c_version: FfiStr,
 ) -> ErrorCode {}
 
 /// Verity W3C styled Presentation

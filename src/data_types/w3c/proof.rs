@@ -1,8 +1,8 @@
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
-use crate::Result;
 use crate::utils::base64;
+use crate::Result;
 use anoncreds_clsignatures::{
     AggregatedProof, CredentialSignature as CLCredentialSignature, RevocationRegistry,
     SignatureCorrectnessProof, SubProof, Witness,

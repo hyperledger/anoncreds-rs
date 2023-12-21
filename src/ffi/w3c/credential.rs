@@ -30,7 +30,7 @@ impl_anoncreds_object_from_json!(W3CCredential, anoncreds_w3c_credential_from_js
 /// attr_names:            list of attribute names
 /// attr_raw_values:       list of attribute raw values
 /// revocation:            object handle pointing to the credential revocation info
-/// version:               version of w3c verifiable credential specification (1.1 or 2.0) to use
+/// w3c_version:           version of w3c verifiable credential specification (1.1 or 2.0) to use
 /// cred_p:                reference that will contain credential (in W3C form) instance pointer
 ///
 /// # Returns
@@ -44,7 +44,7 @@ pub extern "C" fn anoncreds_create_w3c_credential(
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
     revocation: *const FfiCredRevInfo,
-    version: FfiStr,
+    w3c_version: FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
@@ -52,7 +52,7 @@ pub extern "C" fn anoncreds_create_w3c_credential(
 
         let cred_values = _credential_attributes(attr_names, attr_raw_values)?;
         let revocation_config = _revocation_config(revocation)?;
-        let version = match version.as_opt_str() {
+        let w3c_version = match w3c_version.as_opt_str() {
             Some(value) => Some(VerifiableCredentialSpecVersion::try_from(value)?),
             None => None,
         };
@@ -67,7 +67,7 @@ pub extern "C" fn anoncreds_create_w3c_credential(
                 .as_ref()
                 .map(TryInto::try_into)
                 .transpose()?,
-            version,
+            w3c_version,
         )?;
         let cred = ObjectHandle::create(cred)?;
         unsafe {
@@ -124,10 +124,10 @@ pub extern "C" fn anoncreds_process_w3c_credential(
 /// Convert credential in legacy form into W3C AnonCreds credential form
 ///
 /// # Params
-/// cred:       object handle pointing to credential in legacy form to convert
-/// cred_def:   object handle pointing to the credential definition
-/// version:    version of w3c verifiable credential specification (1.1 or 2.0) to use
-/// cred_p:     reference that will contain converted credential (in W3C form) instance pointer
+/// cred:           object handle pointing to credential in legacy form to convert
+/// cred_def:       object handle pointing to the credential definition
+/// w3c_version:    version of w3c verifiable credential specification (1.1 or 2.0) to use
+/// cred_p:         reference that will contain converted credential (in W3C form) instance pointer
 ///
 /// # Returns
 /// Error code
@@ -135,7 +135,7 @@ pub extern "C" fn anoncreds_process_w3c_credential(
 pub extern "C" fn anoncreds_credential_to_w3c(
     cred: ObjectHandle,
     cred_def: ObjectHandle,
-    version: FfiStr,
+    w3c_version: FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
@@ -143,12 +143,13 @@ pub extern "C" fn anoncreds_credential_to_w3c(
 
         let credential = cred.load()?;
         let credential = credential.cast_ref::<Credential>()?;
-        let version = match version.as_opt_str() {
+        let w3c_version = match w3c_version.as_opt_str() {
             Some(value) => Some(VerifiableCredentialSpecVersion::try_from(value)?),
             None => None,
         };
 
-        let w3c_credential = credential_to_w3c(credential, cred_def.load()?.cast_ref()?, version)?;
+        let w3c_credential =
+            credential_to_w3c(credential, cred_def.load()?.cast_ref()?, w3c_version)?;
         let w3c_cred = ObjectHandle::create(w3c_credential)?;
 
         unsafe { *cred_p = w3c_cred };
@@ -190,7 +191,7 @@ pub extern "C" fn anoncreds_credential_from_w3c(
 ///
 /// # Params
 /// handle:                object handle pointing to the credential (in W3 form)
-/// result_p:              reference that will contain credential information
+/// cred_proof_info_p:     reference that will contain credential information
 ///
 /// # Returns
 /// Error code
