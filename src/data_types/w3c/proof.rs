@@ -195,13 +195,13 @@ pub struct CredentialProofDetails {
 const BASE_HEADER: char = 'u';
 
 pub trait EncodedObject {
-    fn encode(&self) -> String
+    fn encode(&self) -> Result<String>
     where
         Self: Serialize,
     {
         let bytes = msg_pack::encode(self)?;
         let base64_encoded = base64::encode(bytes);
-        format!("{}{}", BASE_HEADER, base64_encoded)
+        Ok(format!("{}{}", BASE_HEADER, base64_encoded))
     }
 
     fn decode(string: &str) -> Result<Self>
@@ -239,6 +239,7 @@ mod tests {
             value: 1,
         };
         let encoded = obj.encode().unwrap();
+        assert_eq!("ugqV0eXBlX6RUZXN0pXZhbHVlAQ", encoded);
         let decoded = TestObject::decode(&encoded).unwrap();
         assert_eq!(obj, decoded)
     }
