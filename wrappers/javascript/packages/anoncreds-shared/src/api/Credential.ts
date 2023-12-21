@@ -36,7 +36,7 @@ export type ProcessCredentialOptions = {
 
 export type CredentialToW3cOptions = {
   credentialDefinition: CredentialDefinition | JsonObject
-  version?: string
+  w3cVersion?: string
 }
 
 export type CredentialFromW3cOptions = {
@@ -164,7 +164,7 @@ export class Credential extends AnoncredsObject {
         anoncreds.credentialToW3c({
           objectHandle: this.handle,
           credentialDefinition,
-          version: options.version
+          w3cVersion: options.w3cVersion
         }).handle
       )
     } finally {

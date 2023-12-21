@@ -346,7 +346,7 @@ class Credential(bindings.AnoncredsObject):
     def to_w3c(
         self,
         cred_def: Union[str, CredentialDefinition],
-        version: Optional[str] = None,
+        w3c_version: Optional[str] = None,
     ) -> "W3cCredential":
         if not isinstance(cred_def, bindings.AnoncredsObject):
             cred_def = CredentialDefinition.load(cred_def)
@@ -354,7 +354,7 @@ class Credential(bindings.AnoncredsObject):
             bindings.credential_to_w3c(
                 self.handle,
                 cred_def.handle,
-                version
+                w3c_version
             )
         )
 
@@ -380,7 +380,7 @@ class W3cCredential(bindings.AnoncredsObject):
         cred_request: Union[str, CredentialRequest],
         attr_raw_values: Mapping[str, str],
         revocation_config: Optional["CredentialRevocationConfig"] = None,
-        version: Optional[str] = None,
+        w3c_version: Optional[str] = None,
     ) -> "W3cCredential":
         if not isinstance(cred_def, bindings.AnoncredsObject):
             cred_def = CredentialDefinition.load(cred_def)
@@ -397,7 +397,7 @@ class W3cCredential(bindings.AnoncredsObject):
             cred_request.handle,
             attr_raw_values,
             revocation_config._native if revocation_config else None,
-            version,
+            w3c_version,
         )
         return W3cCredential(cred)
 
@@ -440,9 +440,9 @@ class W3cCredential(bindings.AnoncredsObject):
         cls,
         cred: "Credential",
         cred_def: Union[str, CredentialDefinition],
-        version: Optional[str] = None
+        w3c_version: Optional[str] = None
     ) -> "W3cCredential":
-        return cred.to_w3c(cred_def, version)
+        return cred.to_w3c(cred_def, w3c_version)
 
     def _get_proof_details(self) -> bindings.ObjectHandle:
         if self._proof_details == None:
@@ -722,7 +722,7 @@ class W3cPresentation(bindings.AnoncredsObject):
         link_secret: str,
         schemas: Mapping[str, Union[str, Schema]],
         cred_defs: Mapping[str, Union[str, CredentialDefinition]],
-        version: Optional[str] = None,
+        w3c_version: Optional[str] = None,
     ) -> "W3cPresentation":
         if not isinstance(pres_req, bindings.AnoncredsObject):
             pres_req = PresentationRequest.load(pres_req)
@@ -770,7 +770,7 @@ class W3cPresentation(bindings.AnoncredsObject):
                 schema_ids,
                 cred_def_handles,
                 cred_def_ids,
-                version,
+                w3c_version,
             )
         )
 

@@ -726,15 +726,15 @@ jsi::Value createW3cPresentation(jsi::Runtime &rt, jsi::Object options) {
       jsiToValue<FfiList_ObjectHandle>(rt, options, "credentialDefinitions");
   auto credentialDefinitionIds =
       jsiToValue<FfiList_FfiStr>(rt, options, "credentialDefinitionIds");
-  auto version =
-      jsiToValue<std::string>(rt, options, "version", true);
+  auto w3cVersion =
+      jsiToValue<std::string>(rt, options, "w3cVersion", true);
 
   ObjectHandle out;
 
   ErrorCode code = anoncreds_create_w3c_presentation(
       presentationRequest, credentials, credentialsProve, linkSecret.c_str(),
       schemas, schemaIds, credentialDefinitions, credentialDefinitionIds,
-      version.length() ? version.c_str() : nullptr, &out);
+      w3cVersion.length() ? w3cVersion.c_str() : nullptr, &out);
 
   auto returnValue = createReturnValue(rt, code, &out);
 
@@ -812,8 +812,8 @@ jsi::Value createW3cCredential(jsi::Runtime &rt, jsi::Object options) {
       jsiToValue<FfiStrList>(rt, options, "attributeRawValues");
   auto revocation =
       jsiToValue<FfiCredRevInfo>(rt, options, "revocationConfiguration", true);
-  auto version =
-      jsiToValue<std::string>(rt, options, "version", true);
+  auto w3cVersion =
+      jsiToValue<std::string>(rt, options, "w3cVersion", true);
 
   ObjectHandle out;
 
@@ -821,7 +821,7 @@ jsi::Value createW3cCredential(jsi::Runtime &rt, jsi::Object options) {
       credentialDefinition, credentialDefinitionPrivate, credentialOffer,
       credentialRequest, attributeNames, attributeRawValues,
       revocation.reg_def ? &revocation : 0,
-      version.length() ? version.c_str() : nullptr, &out);
+      w3cVersion.length() ? w3cVersion.c_str() : nullptr, &out);
 
   return createReturnValue(rt, code, &out);
 };
@@ -872,14 +872,14 @@ jsi::Value credentialToW3c(jsi::Runtime &rt, jsi::Object options) {
   auto credential = jsiToValue<ObjectHandle>(rt, options, "objectHandle");
   auto credentialDefinition =
       jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
-  auto version =
-      jsiToValue<std::string>(rt, options, "version", true);
+  auto w3cVersion =
+      jsiToValue<std::string>(rt, options, "w3cVersion", true);
 
   ObjectHandle out;
 
   ErrorCode code = anoncreds_credential_to_w3c(
       credential, credentialDefinition,
-      version.length() ? version.c_str() : nullptr, &out);
+      w3cVersion.length() ? w3cVersion.c_str() : nullptr, &out);
 
   return createReturnValue(rt, code, &out);
 };

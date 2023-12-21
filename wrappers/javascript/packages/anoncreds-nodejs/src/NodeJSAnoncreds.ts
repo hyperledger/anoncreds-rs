@@ -525,9 +525,9 @@ export class NodeJSAnoncreds implements Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     revocationConfiguration?: NativeCredentialRevocationConfig
-    version?: string
+    w3cVersion?: string
   }): ObjectHandle {
-    const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest, version } =
+    const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest, w3cVersion } =
       serializeArguments(options)
 
     const attributeNames = this.convertAttributeNames(options.attributeRawValues)
@@ -543,7 +543,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       attributeNames as unknown as Buffer,
       attributeRawValues as unknown as Buffer,
       revocationConfiguration?.ref().address() ?? 0,
-      version,
+      w3cVersion,
       credentialPtr
     )
     this.handleError()
@@ -582,9 +582,9 @@ export class NodeJSAnoncreds implements Anoncreds {
     linkSecret: string
     schemas: Record<string, ObjectHandle>
     credentialDefinitions: Record<string, ObjectHandle>
-    version?: string
+    w3cVersion?: string
   }): ObjectHandle {
-    const { presentationRequest, linkSecret, version } = serializeArguments(options)
+    const { presentationRequest, linkSecret, w3cVersion } = serializeArguments(options)
 
     const credentialEntryList = this.convertCredentialList(options.credentials)
     const credentialProveList = this.convertCredentialProves(options.credentialsProve)
@@ -602,7 +602,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       schemaIds as unknown as Buffer,
       credentialDefinitions as unknown as Buffer,
       credentialDefinitionIds as unknown as Buffer,
-      version,
+      w3cVersion,
       ret
     )
     this.handleError()
@@ -659,13 +659,13 @@ export class NodeJSAnoncreds implements Anoncreds {
   public credentialToW3c(options: {
     objectHandle: ObjectHandle
     credentialDefinition: ObjectHandle
-    version?: string
+    w3cVersion?: string
   }): ObjectHandle {
-    const { objectHandle, credentialDefinition, version } = serializeArguments(options)
+    const { objectHandle, credentialDefinition, w3cVersion } = serializeArguments(options)
 
     const ret = allocatePointer()
 
-    this.nativeAnoncreds.anoncreds_credential_to_w3c(objectHandle, credentialDefinition, version, ret)
+    this.nativeAnoncreds.anoncreds_credential_to_w3c(objectHandle, credentialDefinition, w3cVersion, ret)
     this.handleError()
 
     return new ObjectHandle(handleReturnPointer<number>(ret))

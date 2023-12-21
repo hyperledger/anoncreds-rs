@@ -400,7 +400,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     credentialRequest: ObjectHandle
     attributeRawValues: Record<string, string>
     revocationConfiguration?: NativeCredentialRevocationConfig
-    version?: string
+    w3cVersion?: string
   }): ObjectHandle {
     const attributeNames = Object.keys(options.attributeRawValues)
     const attributeRawValues = Object.values(options.attributeRawValues)
@@ -419,7 +419,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
               revocationStatusList: options.revocationConfiguration.revocationStatusList.handle
             }
           : undefined,
-        version: options.version
+        w3cVersion: options.w3cVersion
       })
     )
 
@@ -444,7 +444,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     linkSecret: string
     schemas: Record<string, ObjectHandle>
     credentialDefinitions: Record<string, ObjectHandle>
-    version?: string
+    w3cVersion?: string
   }): ObjectHandle {
     const schemaKeys = Object.keys(options.schemas)
     const schemaValues = Object.values(options.schemas).map((o) => o.handle)
@@ -467,7 +467,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
         schemaIds: schemaKeys,
         credentialDefinitions: credentialDefinitionValues,
         credentialDefinitionIds: credentialDefinitionKeys,
-        version: options.version
+        w3cVersion: options.w3cVersion
       })
     )
     return new ObjectHandle(handle)
@@ -510,7 +510,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
   public credentialToW3c(options: {
     objectHandle: ObjectHandle
     credentialDefinition: ObjectHandle
-    version?: string
+    w3cVersion?: string
   }): ObjectHandle {
     const handle = this.handleError(this.anoncreds.credentialToW3c(serializeArguments(options)))
     return new ObjectHandle(handle)

@@ -24,7 +24,7 @@ export type CreateW3cCredentialOptions = {
   revocationRegistryId?: string
   revocationConfiguration?: CredentialRevocationConfig
   revocationStatusList?: RevocationStatusList | JsonObject
-  version?: string
+  w3cVersion?: string
 }
 
 export type ProcessW3cCredentialOptions = {
@@ -37,7 +37,7 @@ export type ProcessW3cCredentialOptions = {
 export type W3cCredentialFromLegacyOptions = {
   credential: Credential
   credentialDefinition: CredentialDefinition | JsonObject
-  version?: string
+  w3cVersion?: string
 }
 
 export class W3cCredential extends AnoncredsObject {
@@ -75,7 +75,7 @@ export class W3cCredential extends AnoncredsObject {
         credentialRequest,
         attributeRawValues: options.attributeRawValues,
         revocationConfiguration: options.revocationConfiguration?.native,
-        version: options.version
+        w3cVersion: options.w3cVersion
       })
     } finally {
       objectHandles.forEach((handle) => {
@@ -189,7 +189,7 @@ export class W3cCredential extends AnoncredsObject {
         anoncreds.credentialToW3c({
           objectHandle: options.credential.handle,
           credentialDefinition,
-          version: options.version
+          w3cVersion: options.w3cVersion
         }).handle
       )
     } finally {
