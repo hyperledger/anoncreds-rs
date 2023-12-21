@@ -6,6 +6,7 @@ use crate::data_types::w3c::uri::URI;
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum Context {
     URI(URI),
     Object(serde_json::Value),
@@ -24,7 +25,7 @@ impl Context {
 pub struct Contexts(pub Vec<Context>);
 
 impl Contexts {
-    pub fn get(version: VerifiableCredentialSpecVersion) -> Contexts {
+    pub fn get(version: &VerifiableCredentialSpecVersion) -> Contexts {
         match version {
             VerifiableCredentialSpecVersion::V1_1 => ANONCREDS_VC_1_1_CONTEXTS.clone(),
             VerifiableCredentialSpecVersion::V2_0 => ANONCREDS_VC_2_0_CONTEXTS.clone(),

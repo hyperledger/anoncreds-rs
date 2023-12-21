@@ -121,7 +121,7 @@ pub fn create_credential(
         cred_def.issuer_id.to_owned(),
         raw_credential_values,
         proof,
-        version,
+        version.as_ref(),
     );
 
     trace!(

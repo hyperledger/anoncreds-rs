@@ -149,6 +149,7 @@ impl DataIntegrityProof {
 pub struct CredentialSignatureProof {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub rev_reg_id: Option<RevocationRegistryDefinitionId>,
     pub signature: CLCredentialSignature,
     pub signature_correctness_proof: SignatureCorrectnessProof,
@@ -191,21 +192,29 @@ pub struct CredentialProofDetails {
     pub timestamp: Option<u64>,
 }
 
+const BASE_HEADER: char = 'u';
+
 pub trait EncodedObject {
-    fn encode(&self) -> Result<String>
+    fn encode(&self) -> String
     where
         Self: Serialize,
     {
         let bytes = msg_pack::encode(self)?;
         let base64_encoded = base64::encode(bytes);
-        Ok(base64_encoded)
+        format!("{}{}", BASE_HEADER, base64_encoded)
     }
 
     fn decode(string: &str) -> Result<Self>
     where
         Self: DeserializeOwned,
     {
-        let bytes = base64::decode(string.as_bytes())?;
+        match string.chars().next() {
+            Some(BASE_HEADER) => {
+                // ok
+            }
+            value => return Err(err_msg!("Unexpected multibase base header {:?}", value)),
+        }
+        let bytes = base64::decode(&string[1..])?;
         let json = msg_pack::decode(&bytes)?;
         Ok(json)
     }

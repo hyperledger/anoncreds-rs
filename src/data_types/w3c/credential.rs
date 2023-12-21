@@ -70,16 +70,16 @@ impl W3CCredential {
         issuer: IssuerId,
         attributes: CredentialAttributes,
         proof: DataIntegrityProof,
-        version: Option<VerifiableCredentialSpecVersion>,
+        version: Option<&VerifiableCredentialSpecVersion>,
     ) -> Self {
         let time = Utc::now();
-        let version = version.unwrap_or_default();
+        let version = version.cloned().unwrap_or_default();
         let (issuance_date, valid_from) = match version {
             VerifiableCredentialSpecVersion::V1_1 => (Some(time), None),
             VerifiableCredentialSpecVersion::V2_0 => (None, Some(time)),
         };
         Self {
-            context: Contexts::get(version),
+            context: Contexts::get(&version),
             type_: ANONCREDS_CREDENTIAL_TYPES.clone(),
             issuance_date,
             valid_from,
@@ -90,6 +90,26 @@ impl W3CCredential {
             },
             proof: OneOrMany::Many(vec![CredentialProof::DataIntegrityProof(proof)]),
             id: None,
+        }
+    }
+
+    pub(crate) fn derive(
+        attributes: CredentialAttributes,
+        proof: DataIntegrityProof,
+        credential: &W3CCredential,
+    ) -> W3CCredential {
+        W3CCredential {
+            context: credential.context.clone(),
+            type_: credential.type_.clone(),
+            issuer: credential.issuer.clone(),
+            id: credential.id.clone(),
+            issuance_date: credential.issuance_date,
+            valid_from: credential.valid_from,
+            credential_subject: CredentialSubject {
+                id: credential.credential_subject.id.clone(),
+                attributes,
+            },
+            proof: OneOrMany::One(CredentialProof::DataIntegrityProof(proof)),
         }
     }
 
