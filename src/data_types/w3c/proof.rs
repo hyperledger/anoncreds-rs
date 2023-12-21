@@ -1,14 +1,15 @@
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
-use crate::utils::encoded_object::EncodedObject;
 use crate::Result;
+use crate::utils::base64;
 use anoncreds_clsignatures::{
     AggregatedProof, CredentialSignature as CLCredentialSignature, RevocationRegistry,
     SignatureCorrectnessProof, SubProof, Witness,
 };
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde_json::json;
 use std::fmt::Debug;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -186,4 +187,32 @@ pub struct CredentialProofDetails {
     pub rev_reg_id: Option<RevocationRegistryDefinitionId>,
     pub rev_reg_index: Option<u32>,
     pub timestamp: Option<u64>,
+}
+
+const BASE_HEADER: char = 'u';
+
+pub trait EncodedObject {
+    fn encode(&self) -> String
+    where
+        Self: Serialize,
+    {
+        let json = json!(self).to_string();
+        let serialized = base64::encode(json);
+        format!("{}{}", BASE_HEADER, serialized)
+    }
+
+    fn decode(string: &str) -> Result<Self>
+    where
+        Self: DeserializeOwned,
+    {
+        match string.chars().next() {
+            Some(BASE_HEADER) => {
+                // ok
+            }
+            value => return Err(err_msg!("Unexpected multibase base header {:?}", value)),
+        }
+        let decoded = base64::decode(&string[1..])?;
+        let obj: Self = serde_json::from_slice(&decoded)?;
+        Ok(obj)
+    }
 }
