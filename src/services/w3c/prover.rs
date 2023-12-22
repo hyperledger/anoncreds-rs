@@ -178,6 +178,7 @@ pub fn create_presentation(
     }
 
     let mut verifiable_credentials: Vec<W3CCredential> = Vec::with_capacity(credentials.len());
+    let mut pres_verification_method = String::new();
     let cl_proof = proof_builder.build()?;
 
     // cl signatures generates sub proofs and aggregated at once at the end
@@ -195,6 +196,8 @@ pub fn create_presentation(
         let proof = DataIntegrityProof::new_credential_presentation_proof(proof);
         let credential = W3CCredential::derive(credential_attributes, proof, present.cred);
         verifiable_credentials.push(credential);
+        // Temporary hack - use `cred_def_id` verification_method for presentation
+        pres_verification_method = credential_proof.cred_def_id.to_string();
     }
 
     let presentation_proof = PresentationProofValue {
@@ -203,6 +206,7 @@ pub fn create_presentation(
     let proof = DataIntegrityProof::new_presentation_proof(
         presentation_proof,
         presentation_request.nonce.to_string(),
+        pres_verification_method,
     );
     let presentation = W3CPresentation::new(verifiable_credentials, proof, version.as_ref());
 

@@ -370,7 +370,9 @@ mod tests {
     use crate::data_types::pres_request::{AttributeInfo, PredicateTypes};
     use crate::data_types::w3c::credential_attributes::CredentialAttributes;
     use crate::data_types::w3c::presentation::PredicateAttribute;
-    use crate::data_types::w3c::proof::{CryptoSuite, DataIntegrityProof, DataIntegrityProofType};
+    use crate::data_types::w3c::proof::{
+        CryptoSuite, DataIntegrityProof, DataIntegrityProofType, ProofPurpose,
+    };
     use crate::w3c::credential_conversion::tests::{
         cred_def_id, credential_definition, issuer_id, schema, schema_id,
     };
@@ -456,6 +458,8 @@ mod tests {
         let proof = DataIntegrityProof {
             type_: DataIntegrityProofType::DataIntegrityProof,
             cryptosuite: CryptoSuite::AnonCredsPresVp2023,
+            proof_purpose: ProofPurpose::Authentication,
+            verification_method: cred_def_id().to_string(),
             proof_value: "proof".to_string(),
             challenge: Some("1".to_string()),
         };

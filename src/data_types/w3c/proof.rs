@@ -13,11 +13,13 @@ use serde_json::json;
 use std::fmt::Debug;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DataIntegrityProof {
     #[serde(rename = "type")]
     pub(crate) type_: DataIntegrityProofType,
     pub(crate) cryptosuite: CryptoSuite,
-    #[serde(rename = "proofValue")]
+    pub(crate) proof_purpose: ProofPurpose,
+    pub(crate) verification_method: String,
     pub(crate) proof_value: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) challenge: Option<String>,
@@ -26,6 +28,14 @@ pub struct DataIntegrityProof {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DataIntegrityProofType {
     DataIntegrityProof,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProofPurpose {
+    #[serde(rename = "assertionMethod")]
+    AssertionMethod,
+    #[serde(rename = "authentication")]
+    Authentication,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,32 +51,55 @@ pub enum CryptoSuite {
 impl DataIntegrityProof {
     pub fn new<V: EncodedObject + Serialize>(
         cryptosuite: CryptoSuite,
+        proof_purpose: ProofPurpose,
+        verification_method: String,
         value: V,
         challenge: Option<String>,
     ) -> Self {
         DataIntegrityProof {
             type_: DataIntegrityProofType::DataIntegrityProof,
             cryptosuite,
+            proof_purpose,
+            verification_method,
             proof_value: value.encode(),
             challenge,
         }
     }
 
     pub(crate) fn new_credential_proof(value: CredentialSignatureProof) -> DataIntegrityProof {
-        DataIntegrityProof::new(CryptoSuite::AnonCredsVc2023, value, None)
+        DataIntegrityProof::new(
+            CryptoSuite::AnonCredsVc2023,
+            ProofPurpose::AssertionMethod,
+            value.cred_def_id.to_string(),
+            value,
+            None,
+        )
     }
 
     pub(crate) fn new_credential_presentation_proof(
         value: CredentialPresentationProofValue,
     ) -> DataIntegrityProof {
-        DataIntegrityProof::new(CryptoSuite::AnonCredsPresVc2023, value, None)
+        DataIntegrityProof::new(
+            CryptoSuite::AnonCredsPresVc2023,
+            ProofPurpose::AssertionMethod,
+            value.cred_def_id.to_string(),
+            value,
+            None,
+        )
     }
 
     pub(crate) fn new_presentation_proof(
         value: PresentationProofValue,
         challenge: String,
+        verification_method: String,
     ) -> DataIntegrityProof {
-        DataIntegrityProof::new(CryptoSuite::AnonCredsPresVp2023, value, Some(challenge))
+        DataIntegrityProof::new(
+            CryptoSuite::AnonCredsPresVp2023,
+            ProofPurpose::Authentication,
+            verification_method,
+            value,
+            Some(challenge),
+        )
     }
 
     pub fn get_proof_value<V: EncodedObject + DeserializeOwned>(&self) -> Result<V> {
