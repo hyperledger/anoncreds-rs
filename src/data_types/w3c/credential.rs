@@ -105,7 +105,7 @@ impl W3CCredential {
             issuance_date: credential.issuance_date,
             valid_from: credential.valid_from,
             credential_subject: CredentialSubject {
-                id: credential.credential_subject.id.clone(),
+                id: None,
                 attributes,
             },
             proof: OneOrMany::One(CredentialProof::DataIntegrityProof(proof)),
