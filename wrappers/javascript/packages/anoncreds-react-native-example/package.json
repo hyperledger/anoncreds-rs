@@ -13,7 +13,7 @@
     "expo": "~49.0.10",
     "expo-status-bar": "~1.9.0",
     "react": "18.2.0",
-    "react-native": "0.72.7",
+    "react-native": "0.73.0",
     "expo-splash-screen": "~0.24.0"
   },
   "devDependencies": {
