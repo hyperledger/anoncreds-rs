@@ -204,7 +204,11 @@ impl<'a> Deserialize<'a> for Nonce {
                 let mut vec = Vec::new();
 
                 while let Ok(Some(Value::Number(elem))) = seq.next_element() {
-                    vec.push(elem.as_u64().unwrap() as u8);
+                    vec.push(
+                        elem.as_u64()
+                            .ok_or_else(|| E::Error::custom("invalid nonce"))?
+                            as u8,
+                    );
                 }
 
                 Nonce::from_bytes(&vec).map_err(E::Error::custom)
