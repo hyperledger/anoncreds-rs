@@ -1,7 +1,7 @@
 name: "Anoncreds"
 
 env:
-  RUST_VERSION: "1.65.0"
+  RUST_VERSION: "stable 6 months ago"
   CROSS_VERSION: "0.2.4"
 
 on:
@@ -143,7 +143,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           if [ -n "${{ matrix.use_cross }}" ]; then
-            cargo install --git https://github.com/cross-rs/cross --tag v${{ env.CROSS_VERSION }} cross
+            cargo install --locked --git https://github.com/cross-rs/cross --tag v${{ env.CROSS_VERSION }} cross
             cross build --release --package anoncreds --target ${{matrix.target}} --features vendored
           else
             cargo build --release --package anoncreds --target ${{matrix.target}} --features vendored
@@ -253,7 +253,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-
   build-py:
     name: Build Python
     needs: [build-release]
@@ -358,7 +357,7 @@ jobs:
 
       - name: Build
         run: |
-          cargo install --git https://github.com/cross-rs/cross --tag v${{ env.CROSS_VERSION }} cross
+          cargo install --locked --git https://github.com/cross-rs/cross --tag v${{ env.CROSS_VERSION }} cross
           cross build --release --target ${{ matrix.target }} --features=vendored
 
       - name: Upload artifacts
@@ -418,7 +417,7 @@ jobs:
           targets: ${{matrix.architecture}}
 
       - name: Build
-        run: cargo  build --release --target ${{matrix.architecture}} --features=vendored
+        run: cargo build --release --target ${{matrix.architecture}} --features=vendored
 
       - name: Save artifacts
         uses: actions/upload-artifact@v3
