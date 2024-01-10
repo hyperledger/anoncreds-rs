@@ -341,6 +341,9 @@ jobs:
             i686-linux-android,
             x86_64-linux-android,
           ]
+    # NB: RUST_VERSION must be <1.68 here to support NDK 17
+    env:
+      RUST_VERSION: "1.67"
 
     steps:
       - name: Checkout
@@ -358,6 +361,7 @@ jobs:
       - name: Build
         run: |
           cargo install --locked --git https://github.com/cross-rs/cross --tag v${{ env.CROSS_VERSION }} cross
+          cp Cargo.lock.android Cargo.lock
           cross build --release --target ${{ matrix.target }} --features=vendored
 
       - name: Upload artifacts
