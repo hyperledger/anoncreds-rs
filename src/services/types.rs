@@ -161,7 +161,7 @@ impl<T> PresentCredential<'_, T> {
         self.requested_attributes.is_empty() && self.requested_predicates.is_empty()
     }
 
-    pub(crate) fn revealed_attributes(&self) -> HashSet<String> {
+    pub(crate) fn get_revealed_attributes(&self) -> HashSet<String> {
         let mut referents = HashSet::new();
         for (referent, revealed) in self.requested_attributes.iter() {
             if *revealed {
