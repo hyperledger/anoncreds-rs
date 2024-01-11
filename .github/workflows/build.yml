@@ -18,8 +18,13 @@ on:
         required: true
         default: false
         type: boolean
-      publish-wrappers:
-        description: "Publish Wrappers to Registries"
+      publish-python-wrapper:
+        description: "Publish Python Wrapper to Registries"
+        required: true
+        default: false
+        type: boolean
+      publish-javascript-wrapper:
+        description: "Publish JavaScript Wrapper to Registries"
         required: true
         default: false
         type: boolean
@@ -243,7 +248,7 @@ jobs:
       - name: Publish JavaScript Wrapper
         if: |
           github.event_name == 'release' ||
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-wrappers == 'true')
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-javascript-wrapper == 'true')
         run: |
           if [[ $(cat lerna.json | grep version | head -1 | grep dev) ]]; then
             npx lerna publish from-package --no-push --no-private --yes --no-git-tag-version --dist-tag=alpha
@@ -320,7 +325,7 @@ jobs:
       - if: |
           (github.event_name == 'release' ||
             (github.event_name == 'workflow_dispatch' &&
-              github.event.inputs.publish-wrappers == 'true'))
+              github.event.inputs.publish-python-wrapper == 'true'))
         name: Publish python package
         working-directory: wrappers/python
         env:
