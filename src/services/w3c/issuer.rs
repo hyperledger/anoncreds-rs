@@ -1,7 +1,7 @@
 use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::credential_attributes::CredentialAttributes;
-use crate::data_types::w3c::proof::{CredentialSignatureProof, DataIntegrityProof};
+use crate::data_types::w3c::proof::{CredentialSignatureProofValue, DataIntegrityProof};
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::error::Result;
 use crate::issuer::CLCredentialIssuer;
@@ -106,7 +106,7 @@ pub fn create_credential(
             revocation_config,
         )?;
 
-    let signature = CredentialSignatureProof {
+    let signature = CredentialSignatureProofValue {
         schema_id: cred_offer.schema_id.to_owned(),
         cred_def_id: cred_offer.cred_def_id.to_owned(),
         rev_reg_id,
@@ -116,7 +116,7 @@ pub fn create_credential(
         witness,
     };
 
-    let proof = DataIntegrityProof::new_credential_proof(signature)?;
+    let proof = DataIntegrityProof::new_credential_proof(&signature)?;
     let credential = W3CCredential::new(
         cred_def.issuer_id.to_owned(),
         raw_credential_values,
