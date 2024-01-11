@@ -7,7 +7,7 @@ use crate::data_types::w3c::constants::ANONCREDS_CREDENTIAL_TYPES;
 use crate::data_types::w3c::context::Contexts;
 use crate::data_types::w3c::credential_attributes::CredentialAttributes;
 use crate::data_types::w3c::proof::{
-    CredentialPresentationProofValue, CredentialSignatureProof, DataIntegrityProof,
+    CredentialPresentationProofValue, CredentialSignatureProofValue, DataIntegrityProof,
 };
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::data_types::{
@@ -105,7 +105,7 @@ impl W3CCredential {
             issuance_date: credential.issuance_date,
             valid_from: credential.valid_from,
             credential_subject: CredentialSubject {
-                id: credential.credential_subject.id.clone(),
+                id: None,
                 attributes,
             },
             proof: OneOrMany::One(CredentialProof::DataIntegrityProof(proof)),
@@ -116,7 +116,7 @@ impl W3CCredential {
         self.context.version()
     }
 
-    pub fn get_credential_signature_proof(&self) -> Result<CredentialSignatureProof> {
+    pub fn get_credential_signature_proof(&self) -> Result<CredentialSignatureProofValue> {
         self.get_data_integrity_proof()?
             .get_credential_signature_proof()
     }
