@@ -2,7 +2,7 @@ use crate::cl::{
     bn::BigNumber, CredentialSchema, CredentialValues as CLCredentialValues, Issuer,
     NonCredentialSchema, SubProofRequest, Verifier,
 };
-use crate::data_types::pres_request::{PredicateTypes, PredicateValue};
+use crate::data_types::pres_request::PredicateInfo;
 use crate::data_types::presentation::RequestedProof;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
@@ -89,7 +89,7 @@ pub fn encode_credential_attribute(raw_value: &str) -> Result<String> {
 
 pub fn build_sub_proof_request(
     attrs_for_credential: &[String],
-    predicates_for_credential: &HashMap<String, (PredicateTypes, PredicateValue)>,
+    predicates_for_credential: &[PredicateInfo],
 ) -> Result<SubProofRequest> {
     trace!(
         "build_sub_proof_request >>> attrs_for_credential: {:?}, predicates_for_credential: {:?}",
@@ -103,10 +103,14 @@ pub fn build_sub_proof_request(
         sub_proof_request_builder.add_revealed_attr(&attr_common_view(attr))?;
     }
 
-    for (name, (p_type, p_value)) in predicates_for_credential {
-        let p_type = format!("{}", p_type);
+    for predicate in predicates_for_credential {
+        let p_type = format!("{}", predicate.p_type);
 
-        sub_proof_request_builder.add_predicate(&attr_common_view(name), &p_type, *p_value)?;
+        sub_proof_request_builder.add_predicate(
+            &attr_common_view(&predicate.name),
+            &p_type,
+            predicate.p_value,
+        )?;
     }
 
     let res = sub_proof_request_builder.finalize()?;
@@ -231,18 +235,14 @@ impl PresentationRequestPayload {
         Ok((attributes, non_revoked_interval))
     }
 
-    #[allow(clippy::type_complexity)]
     pub(crate) fn get_requested_predicates(
         &self,
         referents: &HashSet<String>,
-    ) -> Result<(
-        HashMap<String, (PredicateTypes, PredicateValue)>,
-        Option<NonRevokedInterval>,
-    )> {
+    ) -> Result<(Vec<PredicateInfo>, Option<NonRevokedInterval>)> {
         trace!("get_requested_predicates >>> referents: {:?}", referents);
         let mut non_revoked_interval: Option<NonRevokedInterval> = None;
-        let mut predicates: HashMap<String, (PredicateTypes, PredicateValue)> =
-            HashMap::with_capacity(self.requested_predicates.len());
+        let mut predicates: Vec<PredicateInfo> =
+            Vec::with_capacity(self.requested_predicates.len());
 
         for referent in referents {
             let requested = self
@@ -259,7 +259,7 @@ impl PresentationRequestPayload {
                     None => non_revoked_interval = Some(int.clone()),
                 }
             }
-            predicates.insert(requested.name, (requested.p_type, requested.p_value));
+            predicates.push(requested);
         }
 
         trace!(

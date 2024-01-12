@@ -1,5 +1,3 @@
-use crate::data_types::pres_request::{PredicateInfo, PredicateTypes, PredicateValue};
-use crate::data_types::schema::Schema;
 use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::credential_attributes::CredentialAttributeValue;
 use crate::error::Result;
@@ -31,21 +29,12 @@ impl W3CCredential {
         matches!(value, CredentialAttributeValue::Attribute(_))
     }
 
-    pub(crate) fn has_predicate(&self, predicate: &PredicateInfo) -> bool {
-        let (_, value) = match self.get_case_insensitive_attribute(&predicate.name) {
+    pub(crate) fn has_predicate(&self, requested_predicate: &str) -> bool {
+        let (_, value) = match self.get_case_insensitive_attribute(requested_predicate) {
             Ok(value) => value,
             Err(_) => return false,
         };
-
-        match value {
-            CredentialAttributeValue::Predicate(ref predicates) => {
-                predicates.iter().any(|shared_predicate| {
-                    shared_predicate.predicate == predicate.p_type
-                        && shared_predicate.value == predicate.p_value
-                })
-            }
-            _ => false,
-        }
+        matches!(value, CredentialAttributeValue::Predicate(_))
     }
 
     pub(crate) fn get_attributes(&self) -> HashMap<String, String> {
@@ -56,30 +45,5 @@ impl W3CCredential {
             }
         }
         attributes
-    }
-
-    pub(crate) fn get_predicates(&self) -> HashMap<String, (PredicateTypes, PredicateValue)> {
-        let mut predicates: HashMap<String, (PredicateTypes, PredicateValue)> = HashMap::new();
-        for (name, attribute) in self.credential_subject.attributes.0.iter() {
-            if let CredentialAttributeValue::Predicate(predicate_list) = attribute {
-                predicate_list.iter().for_each(|predicate| {
-                    predicates.insert(
-                        name.to_string(),
-                        (predicate.predicate.to_owned(), predicate.value),
-                    );
-                });
-            }
-        }
-        predicates
-    }
-}
-
-impl Schema {
-    pub(crate) fn has_case_insensitive_attribute(&self, requested_attribute: &str) -> bool {
-        let requested_attribute = attr_common_view(requested_attribute);
-        self.attr_names
-            .0
-            .iter()
-            .any(|attribute| attr_common_view(attribute) == requested_attribute)
     }
 }

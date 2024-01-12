@@ -10,6 +10,7 @@ use anoncreds_clsignatures::{
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::json;
+use std::collections::HashSet;
 use std::fmt::Debug;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -205,7 +206,20 @@ pub struct CredentialPresentationProofValue {
     pub rev_reg_id: Option<RevocationRegistryDefinitionId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<u64>,
+    pub mapping: CredentialAttributesMapping,
     pub sub_proof: SubProof,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CredentialAttributesMapping {
+    #[serde(default)]
+    pub revealed_attributes: HashSet<String>,
+    pub revealed_attribute_groups: HashSet<String>,
+    #[serde(default)]
+    pub unrevealed_attributes: HashSet<String>,
+    #[serde(default)]
+    pub predicates: HashSet<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -335,6 +349,7 @@ pub(crate) mod tests {
             cred_def_id: cred_def_id(),
             rev_reg_id: Some(verifier::tests::revocation_id()),
             timestamp: Some(PROOF_TIMESTAMP),
+            mapping: Default::default(),
             sub_proof: credential_sub_proof(),
         }
     }

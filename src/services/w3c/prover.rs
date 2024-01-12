@@ -11,9 +11,9 @@ use crate::types::{
 use crate::utils::validation::Validatable;
 
 use crate::data_types::w3c::credential_attributes::CredentialAttributes;
-use crate::data_types::w3c::presentation::PredicateAttribute;
 use crate::data_types::w3c::proof::{
-    CredentialPresentationProofValue, DataIntegrityProof, PresentationProofValue,
+    CredentialAttributesMapping, CredentialPresentationProofValue, DataIntegrityProof,
+    PresentationProofValue,
 };
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::prover::{CLCredentialProver, CLProofBuilder};
@@ -191,6 +191,7 @@ pub fn create_presentation(
             cred_def_id: credential_proof.cred_def_id.to_owned(),
             rev_reg_id: credential_proof.rev_reg_id.to_owned(),
             timestamp: present.timestamp,
+            mapping: build_mapping(presentation_request, present)?,
             sub_proof,
         };
         let proof = DataIntegrityProof::new_credential_presentation_proof(&proof);
@@ -253,9 +254,41 @@ fn build_credential_attributes<'p>(
         let (attribute, _) = credentials
             .cred
             .get_case_insensitive_attribute(&predicate_info.name)?;
-        let predicate = PredicateAttribute::from(predicate_info);
-        attributes.add_predicate(attribute, predicate)?;
+        attributes.add_predicate(attribute)?;
     }
 
     Ok(attributes)
+}
+
+fn build_mapping<'p>(
+    pres_req: &PresentationRequestPayload,
+    credential: &PresentCredential<'p, W3CCredential>,
+) -> Result<CredentialAttributesMapping> {
+    let mut mapping = CredentialAttributesMapping::default();
+
+    for (referent, reveal) in credential.requested_attributes.iter() {
+        let requested_attribute = pres_req.requested_attributes.get(referent).ok_or_else(|| {
+            err_msg!(
+                "Attribute with referent \"{}\" not found in ProofRequest",
+                referent
+            )
+        })?;
+        if requested_attribute.name.is_some() {
+            if *reveal {
+                mapping.revealed_attributes.insert(referent.to_string());
+            } else {
+                mapping.unrevealed_attributes.insert(referent.to_string());
+            }
+        }
+        if requested_attribute.names.is_some() {
+            mapping
+                .revealed_attribute_groups
+                .insert(referent.to_string());
+        }
+    }
+    for referent in credential.requested_predicates.iter() {
+        mapping.predicates.insert(referent.to_string());
+    }
+
+    Ok(mapping)
 }

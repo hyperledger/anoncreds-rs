@@ -1,4 +1,3 @@
-use crate::data_types::pres_request::{PredicateInfo, PredicateTypes};
 use serde::{Deserialize, Serialize};
 
 use crate::data_types::w3c::constants::ANONCREDS_PRESENTATION_TYPES;
@@ -61,35 +60,5 @@ impl W3CPresentation {
             ));
         }
         Ok(())
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
-pub struct PredicateAttribute {
-    #[serde(rename = "type")]
-    pub type_: PredicateAttributeType,
-    pub predicate: PredicateTypes,
-    pub value: i32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PredicateAttributeType {
-    #[serde(rename = "AnonCredsPredicate")]
-    AnonCredsPredicate,
-}
-
-impl Default for PredicateAttributeType {
-    fn default() -> Self {
-        PredicateAttributeType::AnonCredsPredicate
-    }
-}
-
-impl From<PredicateInfo> for PredicateAttribute {
-    fn from(info: PredicateInfo) -> Self {
-        PredicateAttribute {
-            type_: PredicateAttributeType::AnonCredsPredicate,
-            predicate: info.p_type,
-            value: info.p_value,
-        }
     }
 }

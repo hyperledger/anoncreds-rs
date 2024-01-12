@@ -9,8 +9,8 @@ use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
 use crate::data_types::nonce::Nonce;
+use crate::data_types::pres_request::PresentationRequestPayload;
 use crate::data_types::pres_request::{AttributeInfo, NonRevokedInterval};
-use crate::data_types::pres_request::{PredicateTypes, PredicateValue, PresentationRequestPayload};
 use crate::data_types::presentation::{Identifier, RequestedProof};
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
@@ -105,29 +105,13 @@ pub fn verify_presentation(
             .requested_proof
             .get_predicates_for_credential(sub_proof_index as u32);
 
-        let (attributes, attrs_nonrevoked_interval) =
-            pres_req.get_requested_attributes(&attributes)?;
-        let (predicates, pred_nonrevoked_interval) =
-            pres_req.get_requested_predicates(&predicates)?;
-
-        {
-            check_non_revoked_interval(
-                proof_verifier.get_credential_definition(&identifier.cred_def_id)?,
-                attrs_nonrevoked_interval,
-                pred_nonrevoked_interval,
-                pres_req,
-                identifier.rev_reg_id.as_ref(),
-                nonrevoke_interval_override,
-                identifier.timestamp,
-            )?;
-        }
-
         proof_verifier.add_sub_proof(
             &attributes,
             &predicates,
             &identifier.schema_id,
             &identifier.cred_def_id,
             identifier.rev_reg_id.as_ref(),
+            nonrevoke_interval_override,
             identifier.timestamp,
         )?;
     }
@@ -851,11 +835,14 @@ impl<'a> CLProofVerifier<'a> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn add_sub_proof(
         &mut self,
-        attributes: &[String],
-        predicates: &HashMap<String, (PredicateTypes, PredicateValue)>,
+        attributes: &HashSet<String>,
+        predicates: &HashSet<String>,
         schema_id: &SchemaId,
         cred_def_id: &CredentialDefinitionId,
         rev_reg_def_id: Option<&RevocationRegistryDefinitionId>,
+        nonrevoke_interval_override: Option<
+            &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
+        >,
         timestamp: Option<u64>,
     ) -> Result<()> {
         let schema = self.get_schema(schema_id)?;
@@ -867,7 +854,25 @@ impl<'a> CLProofVerifier<'a> {
             &cred_def.value.primary,
             cred_def.value.revocation.as_ref(),
         )?;
-        let sub_pres_request = build_sub_proof_request(attributes, predicates)?;
+
+        let (attributes, attrs_nonrevoked_interval) = self
+            .presentation_request
+            .get_requested_attributes(attributes)?;
+        let (predicates, pred_nonrevoked_interval) = self
+            .presentation_request
+            .get_requested_predicates(predicates)?;
+
+        check_non_revoked_interval(
+            self.get_credential_definition(cred_def_id)?,
+            attrs_nonrevoked_interval,
+            pred_nonrevoked_interval,
+            self.presentation_request,
+            rev_reg_def_id,
+            nonrevoke_interval_override,
+            timestamp,
+        )?;
+
+        let sub_pres_request = build_sub_proof_request(&attributes, &predicates)?;
         let rev_key_pub = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
         self.proof_verifier.add_sub_proof_request(
             &sub_pres_request,
