@@ -17,7 +17,7 @@
     "check-format": "pnpm prettier --list-different",
     "build": "pnpm -r build",
     "clean": "pnpm -r clean",
-    "prettier": "prettier --ignore-path .gitignore '**/*.+(js|json|ts|md|yml|yaml)'",
+    "prettier": "prettier '**/*.+(js|json|ts|md|yml|yaml)'",
     "format": "pnpm prettier --write",
     "validate": "pnpm lint && pnpm check-types && pnpm check-format",
     "shared": "pnpm --cwd anoncreds-shared",
