@@ -421,7 +421,8 @@ pub(crate) mod tests {
 
     fn _credential() -> W3CCredential {
         let proof =
-            DataIntegrityProof::new_credential_presentation_proof(&credential_pres_proof_value());
+            DataIntegrityProof::new_credential_presentation_proof(&credential_pres_proof_value())
+                .unwrap();
         W3CCredential::new(issuer_id(), credential_attributes(), proof, None)
     }
 
@@ -430,7 +431,8 @@ pub(crate) mod tests {
             &presentation_proof_value(),
             "1".to_string(),
             cred_def_id().to_string(),
-        );
+        )
+        .unwrap();
         W3CPresentation::new(vec![_credential()], proof, None)
     }
 

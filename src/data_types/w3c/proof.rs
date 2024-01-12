@@ -1,7 +1,7 @@
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
-use crate::utils::base64;
+use crate::utils::{base64, msg_pack};
 use crate::Result;
 use anoncreds_clsignatures::{
     AggregatedProof, CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, SubProof,
@@ -9,7 +9,6 @@ use anoncreds_clsignatures::{
 };
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json::json;
 use std::fmt::Debug;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -55,20 +54,20 @@ impl DataIntegrityProof {
         verification_method: String,
         value: &V,
         challenge: Option<String>,
-    ) -> Self {
-        DataIntegrityProof {
+    ) -> Result<Self> {
+        Ok(DataIntegrityProof {
             type_: DataIntegrityProofType::DataIntegrityProof,
             cryptosuite,
             proof_purpose,
             verification_method,
-            proof_value: value.encode(),
+            proof_value: value.encode()?,
             challenge,
-        }
+        })
     }
 
     pub(crate) fn new_credential_proof(
         value: &CredentialSignatureProofValue,
-    ) -> DataIntegrityProof {
+    ) -> Result<DataIntegrityProof> {
         DataIntegrityProof::new(
             CryptoSuite::AnonCredsVc2023,
             ProofPurpose::AssertionMethod,
@@ -80,7 +79,7 @@ impl DataIntegrityProof {
 
     pub(crate) fn new_credential_presentation_proof(
         value: &CredentialPresentationProofValue,
-    ) -> DataIntegrityProof {
+    ) -> Result<DataIntegrityProof> {
         DataIntegrityProof::new(
             CryptoSuite::AnonCredsPresVc2023,
             ProofPurpose::AssertionMethod,
@@ -94,7 +93,7 @@ impl DataIntegrityProof {
         value: &PresentationProofValue,
         challenge: String,
         verification_method: String,
-    ) -> DataIntegrityProof {
+    ) -> Result<DataIntegrityProof> {
         DataIntegrityProof::new(
             CryptoSuite::AnonCredsPresVp2023,
             ProofPurpose::Authentication,
@@ -233,13 +232,13 @@ pub struct CredentialProofDetails {
 const BASE_HEADER: char = 'u';
 
 pub trait EncodedObject {
-    fn encode(&self) -> String
+    fn encode(&self) -> Result<String>
     where
         Self: Serialize,
     {
-        let json = json!(self).to_string();
-        let serialized = base64::encode(json);
-        format!("{}{}", BASE_HEADER, serialized)
+        let msg_pack_encoded = msg_pack::encode(self)?;
+        let base64_encoded = base64::encode(msg_pack_encoded);
+        Ok(format!("{}{}", BASE_HEADER, base64_encoded))
     }
 
     fn decode(string: &str) -> Result<Self>
@@ -253,7 +252,7 @@ pub trait EncodedObject {
             value => return Err(err_msg!("Unexpected multibase base header {:?}", value)),
         }
         let decoded = base64::decode(&string[1..])?;
-        let obj: Self = serde_json::from_slice(&decoded)?;
+        let obj: Self = msg_pack::decode(&decoded)?;
         Ok(obj)
     }
 }
@@ -359,20 +358,20 @@ pub(crate) mod tests {
             type_: "Test".to_string(),
             value: 1,
         };
-        let encoded = obj.encode();
-        assert_eq!("ueyJ0eXBlXyI6IlRlc3QiLCJ2YWx1ZSI6MX0", encoded);
+        let encoded = obj.encode().unwrap();
+        assert_eq!("ugqV0eXBlX6RUZXN0pXZhbHVlAQ", encoded);
         let decoded = TestObject::decode(&encoded).unwrap();
         assert_eq!(obj, decoded)
     }
 
     fn credential_proof() -> DataIntegrityProof {
         let credential_proof = credential_signature_proof();
-        DataIntegrityProof::new_credential_proof(&credential_proof)
+        DataIntegrityProof::new_credential_proof(&credential_proof).unwrap()
     }
 
     fn credential_pres_proof() -> DataIntegrityProof {
         let credential_pres_proof = credential_pres_proof_value();
-        DataIntegrityProof::new_credential_presentation_proof(&credential_pres_proof)
+        DataIntegrityProof::new_credential_presentation_proof(&credential_pres_proof).unwrap()
     }
 
     fn presentation_proof() -> DataIntegrityProof {
@@ -382,6 +381,7 @@ pub(crate) mod tests {
             "1".to_string(),
             cred_def_id().to_string(),
         )
+        .unwrap()
     }
 
     #[rstest]

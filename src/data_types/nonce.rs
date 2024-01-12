@@ -4,7 +4,9 @@ use std::hash::{Hash, Hasher};
 
 use crate::cl::{new_nonce, Nonce as CryptoNonce};
 use crate::error::ConversionError;
+use serde::de::{Error, SeqAccess};
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::Value;
 
 pub struct Nonce {
     strval: String,
@@ -50,6 +52,13 @@ impl Nonce {
 
         let native = CryptoNonce::from_dec(&strval).map_err(|e| e.to_string())?;
         Ok(Self { strval, native })
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, ConversionError> {
+        let native = CryptoNonce::from_bytes(bytes).map_err(|err| {
+            ConversionError::from_msg(format!("Error converting nonce from bytes: {err}"))
+        })?;
+        Self::from_native(native)
     }
 
     pub fn try_clone(&self) -> Result<Self, ConversionError> {
@@ -157,7 +166,7 @@ impl<'a> Deserialize<'a> for Nonce {
             type Value = Nonce;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("integer or string nonce")
+                formatter.write_str("integer or string nonce or bytes")
             }
 
             fn visit_i64<E>(self, value: i64) -> Result<Nonce, E>
@@ -187,9 +196,26 @@ impl<'a> Deserialize<'a> for Nonce {
             {
                 Nonce::from_dec(value).map_err(E::custom)
             }
+
+            fn visit_seq<E>(self, mut seq: E) -> Result<Self::Value, E::Error>
+            where
+                E: SeqAccess<'a>,
+            {
+                let mut vec = Vec::new();
+
+                while let Ok(Some(Value::Number(elem))) = seq.next_element() {
+                    vec.push(
+                        elem.as_u64()
+                            .ok_or_else(|| E::Error::custom("invalid nonce"))?
+                            as u8,
+                    );
+                }
+
+                Nonce::from_bytes(&vec).map_err(E::Error::custom)
+            }
         }
 
-        deserializer.deserialize_str(BigNumberVisitor)
+        deserializer.deserialize_any(BigNumberVisitor)
     }
 }
 
