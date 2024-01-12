@@ -236,9 +236,9 @@ pub trait EncodedObject {
     where
         Self: Serialize,
     {
-        let json = msg_pack::encode(self)?;
-        let serialized = base64::encode(json);
-        Ok(format!("{}{}", BASE_HEADER, serialized))
+        let msg_pack_encoded = msg_pack::encode(self)?;
+        let base64_encoded = base64::encode(msg_pack_encoded);
+        Ok(format!("{}{}", BASE_HEADER, base64_encoded))
     }
 
     fn decode(string: &str) -> Result<Self>
@@ -359,7 +359,7 @@ pub(crate) mod tests {
             value: 1,
         };
         let encoded = obj.encode().unwrap();
-        assert_eq!("ueyJ0eXBlXyI6IlRlc3QiLCJ2YWx1ZSI6MX0", encoded);
+        assert_eq!("ugqV0eXBlX6RUZXN0pXZhbHVlAQ", encoded);
         let decoded = TestObject::decode(&encoded).unwrap();
         assert_eq!(obj, decoded)
     }
