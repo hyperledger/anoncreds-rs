@@ -1,3 +1,4 @@
+use anoncreds_clsignatures::PredicateType;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -215,6 +216,17 @@ impl fmt::Display for PredicateTypes {
             Self::GT => write!(f, "GT"),
             Self::LE => write!(f, "LE"),
             Self::LT => write!(f, "LT"),
+        }
+    }
+}
+
+impl Into<PredicateType> for PredicateTypes {
+    fn into(self) -> PredicateType {
+        match self {
+            Self::GE => PredicateType::GE,
+            Self::GT => PredicateType::GT,
+            Self::LE => PredicateType::LE,
+            Self::LT => PredicateType::LT,
         }
     }
 }
