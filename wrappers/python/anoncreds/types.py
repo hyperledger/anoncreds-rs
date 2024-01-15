@@ -445,7 +445,7 @@ class W3cCredential(bindings.AnoncredsObject):
         return cred.to_w3c(cred_def, w3c_version)
 
     def _get_proof_details(self) -> bindings.ObjectHandle:
-        if self._proof_details == None:
+        if self._proof_details is None:
             self._proof_details = bindings.w3c_credential_get_integrity_proof_details(self.handle)
         return self._proof_details
 

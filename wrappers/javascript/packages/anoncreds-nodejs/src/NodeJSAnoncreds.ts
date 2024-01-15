@@ -163,8 +163,8 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialDefinitionPrivate,
       credentialOffer,
       credentialRequest,
-      attributeNames as unknown as Buffer,
-      attributeRawValues as unknown as Buffer,
+      attributeNames,
+      attributeRawValues,
       attributeEncodedValues as unknown as Buffer,
       revocationConfiguration?.ref().address() ?? 0,
       credentialPtr
@@ -296,15 +296,15 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     this.nativeAnoncreds.anoncreds_create_presentation(
       presentationRequest,
-      credentialEntryList as unknown as Buffer,
-      credentialProveList as unknown as Buffer,
+      credentialEntryList,
+      credentialProveList,
       selfAttestNames as unknown as Buffer,
       selfAttestValues as unknown as Buffer,
       linkSecret,
-      schemas as unknown as Buffer,
-      schemaIds as unknown as Buffer,
-      credentialDefinitions as unknown as Buffer,
-      credentialDefinitionIds as unknown as Buffer,
+      schemas,
+      schemaIds,
+      credentialDefinitions,
+      credentialDefinitionIds,
       ret
     )
     this.handleError()
@@ -350,7 +350,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       revocationRegistryDefinitions,
       revocationRegistryDefinitionIds,
       revocationStatusLists,
-      nonRevokedIntervalOverrideList as unknown as Buffer,
+      nonRevokedIntervalOverrideList,
       ret
     )
     this.handleError()
@@ -540,8 +540,8 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialDefinitionPrivate,
       credentialOffer,
       credentialRequest,
-      attributeNames as unknown as Buffer,
-      attributeRawValues as unknown as Buffer,
+      attributeNames,
+      attributeRawValues,
       revocationConfiguration?.ref().address() ?? 0,
       w3cVersion,
       credentialPtr
@@ -595,13 +595,13 @@ export class NodeJSAnoncreds implements Anoncreds {
 
     this.nativeAnoncreds.anoncreds_create_w3c_presentation(
       presentationRequest,
-      credentialEntryList as unknown as Buffer,
-      credentialProveList as unknown as Buffer,
+      credentialEntryList,
+      credentialProveList,
       linkSecret,
-      schemas as unknown as Buffer,
-      schemaIds as unknown as Buffer,
-      credentialDefinitions as unknown as Buffer,
-      credentialDefinitionIds as unknown as Buffer,
+      schemas,
+      schemaIds,
+      credentialDefinitions,
+      credentialDefinitionIds,
       w3cVersion,
       ret
     )
@@ -648,7 +648,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       revocationRegistryDefinitions,
       revocationRegistryDefinitionIds,
       revocationStatusLists,
-      nonRevokedIntervalOverrideList as unknown as Buffer,
+      nonRevokedIntervalOverrideList,
       ret
     )
     this.handleError()
@@ -850,7 +850,7 @@ export class NodeJSAnoncreds implements Anoncreds {
           rev_state: number
         }>
       >
-    })
+    }) as unknown as Buffer
   }
 
   private convertCredentialProves(credentialsProve: NativeCredentialProve[]) {
@@ -869,7 +869,7 @@ export class NodeJSAnoncreds implements Anoncreds {
           reveal: number
         }>
       >
-    })
+    }) as unknown as Buffer
   }
 
   private convertSchemas(schemas: Record<string, ObjectHandle>) {
@@ -877,13 +877,13 @@ export class NodeJSAnoncreds implements Anoncreds {
     const schemaIds = StringListStruct({
       count: schemaKeys.length,
       data: schemaKeys as unknown as TypedArray<string>
-    })
+    }) as unknown as Buffer
 
     const schemaValues = Object.values(schemas)
     const schemasList = ObjectHandleListStruct({
       count: schemaValues.length,
       data: ObjectHandleArray(schemaValues.map((o) => o.handle))
-    })
+    }) as unknown as Buffer
     return {
       schemaIds,
       schemas: schemasList
@@ -895,13 +895,13 @@ export class NodeJSAnoncreds implements Anoncreds {
     const credentialDefinitionIds = StringListStruct({
       count: credentialDefinitionKeys.length,
       data: credentialDefinitionKeys as unknown as TypedArray<string>
-    })
+    }) as unknown as Buffer
 
     const credentialDefinitionValues = Object.values(credentialDefinitions)
     const credentialDefinitionsList = ObjectHandleListStruct({
       count: credentialDefinitionValues.length,
       data: ObjectHandleArray(credentialDefinitionValues.map((o) => o.handle))
-    })
+    }) as unknown as Buffer
     return {
       credentialDefinitionIds,
       credentialDefinitions: credentialDefinitionsList
@@ -928,21 +928,21 @@ export class NodeJSAnoncreds implements Anoncreds {
           override_rev_status_list_ts: number
         }>
       >
-    })
+    }) as unknown as Buffer
   }
 
   private convertAttributeNames(attributeRawValues: Record<string, string>) {
     return StringListStruct({
       count: Object.keys(attributeRawValues).length,
       data: Object.keys(attributeRawValues) as unknown as TypedArray<string>
-    })
+    }) as unknown as Buffer
   }
 
   private convertAttributeRawValues(attributeRawValues: Record<string, string>) {
     return StringListStruct({
       count: Object.keys(attributeRawValues).length,
       data: Object.values(attributeRawValues) as unknown as TypedArray<string>
-    })
+    }) as unknown as Buffer
   }
 
   private convertAttributeEncodedValues(attributeEncodedValues?: Record<string, string>) {
