@@ -204,4 +204,61 @@ export type Anoncreds = {
   getTypeName(options: { objectHandle: ObjectHandle }): string
 
   objectFree(options: { objectHandle: ObjectHandle }): void
+
+  createW3cCredential(options: {
+    credentialDefinition: ObjectHandle
+    credentialDefinitionPrivate: ObjectHandle
+    credentialOffer: ObjectHandle
+    credentialRequest: ObjectHandle
+    attributeRawValues: Record<string, string>
+    revocationConfiguration?: NativeCredentialRevocationConfig
+    w3cVersion?: string
+  }): ObjectHandle
+
+  processW3cCredential(options: {
+    credential: ObjectHandle
+    credentialRequestMetadata: ObjectHandle
+    linkSecret: string
+    credentialDefinition: ObjectHandle
+    revocationRegistryDefinition?: ObjectHandle
+  }): ObjectHandle
+
+  createW3cPresentation(options: {
+    presentationRequest: ObjectHandle
+    credentials: NativeCredentialEntry[]
+    credentialsProve: NativeCredentialProve[]
+    linkSecret: string
+    schemas: Record<string, ObjectHandle>
+    credentialDefinitions: Record<string, ObjectHandle>
+    w3cVersion?: string
+  }): ObjectHandle
+
+  verifyW3cPresentation(options: {
+    presentation: ObjectHandle
+    presentationRequest: ObjectHandle
+    schemas: ObjectHandle[]
+    schemaIds: string[]
+    credentialDefinitions: ObjectHandle[]
+    credentialDefinitionIds: string[]
+    revocationRegistryDefinitions?: ObjectHandle[]
+    revocationRegistryDefinitionIds?: string[]
+    revocationStatusLists?: ObjectHandle[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
+  }): boolean
+
+  w3cPresentationFromJson(options: { json: string }): ObjectHandle
+
+  w3cCredentialFromJson(options: { json: string }): ObjectHandle
+
+  credentialToW3c(options: {
+    objectHandle: ObjectHandle
+    credentialDefinition: ObjectHandle
+    w3cVersion?: string
+  }): ObjectHandle
+
+  credentialFromW3c(options: { objectHandle: ObjectHandle }): ObjectHandle
+
+  w3cCredentialGetIntegrityProofDetails(options: { objectHandle: ObjectHandle }): ObjectHandle
+
+  w3cCredentialProofGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string
 }

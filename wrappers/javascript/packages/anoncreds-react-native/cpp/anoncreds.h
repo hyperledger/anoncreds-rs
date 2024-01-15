@@ -61,10 +61,14 @@ jsi::Value credentialDefinitionFromJson(jsi::Runtime &rt, jsi::Object options);
 jsi::Value credentialDefinitionPrivateFromJson(jsi::Runtime &rt,
                                                jsi::Object options);
 jsi::Value keyCorrectnessProofFromJson(jsi::Runtime &rt, jsi::Object options);
+jsi::Value w3cCredentialFromJson(jsi::Runtime &rt, jsi::Object options);
+jsi::Value w3cPresentationFromJson(jsi::Runtime &rt, jsi::Object options);
 
 // Proofs
 jsi::Value createPresentation(jsi::Runtime &rt, jsi::Object options);
 jsi::Value verifyPresentation(jsi::Runtime &rt, jsi::Object options);
+jsi::Value createW3cPresentation(jsi::Runtime &rt, jsi::Object options);
+jsi::Value verifyW3cPresentation(jsi::Runtime &rt, jsi::Object options);
 
 // Credentials
 jsi::Value createCredential(jsi::Runtime &rt, jsi::Object options);
@@ -73,6 +77,13 @@ jsi::Value createCredentialRequest(jsi::Runtime &rt, jsi::Object options);
 jsi::Value credentialGetAttribute(jsi::Runtime &rt, jsi::Object options);
 jsi::Value encodeCredentialAttributes(jsi::Runtime &rt, jsi::Object options);
 jsi::Value processCredential(jsi::Runtime &rt, jsi::Object options);
+
+jsi::Value createW3cCredential(jsi::Runtime &rt, jsi::Object options);
+jsi::Value w3cCredentialGetIntegrityProofDetails(jsi::Runtime &rt, jsi::Object options);
+jsi::Value w3cCredentialProofGetAttribute(jsi::Runtime &rt, jsi::Object options);
+jsi::Value processW3cCredential(jsi::Runtime &rt, jsi::Object options);
+jsi::Value credentialToW3c(jsi::Runtime &rt, jsi::Object options);
+jsi::Value credentialFromW3c(jsi::Runtime &rt, jsi::Object options);
 
 // Revocation
 jsi::Value createOrUpdateRevocationState(jsi::Runtime &rt, jsi::Object options);

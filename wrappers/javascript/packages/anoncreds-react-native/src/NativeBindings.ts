@@ -185,4 +185,69 @@ export type NativeBindings = {
   credentialDefinitionPrivateFromJson(options: { json: string }): ReturnObject<Handle>
 
   keyCorrectnessProofFromJson(options: { json: string }): ReturnObject<Handle>
+
+  createW3cCredential(options: {
+    credentialDefinition: number
+    credentialDefinitionPrivate: number
+    credentialOffer: number
+    credentialRequest: number
+    attributeNames: string[]
+    attributeRawValues: string[]
+    revocationConfiguration?: {
+      registryIndex: number
+      revocationRegistryDefinition: number
+      revocationRegistryDefinitionPrivate: number
+      revocationStatusList?: number
+    }
+    w3cVersion?: string
+  }): ReturnObject<Handle>
+
+  processW3cCredential(options: {
+    credential: number
+    credentialRequestMetadata: number
+    linkSecret: string
+    credentialDefinition: number
+    revocationRegistryDefinition?: number
+  }): ReturnObject<Handle>
+
+  w3cCredentialGetIntegrityProofDetails(options: { objectHandle: number }): ReturnObject<Handle>
+
+  w3cCredentialProofGetAttribute(options: { objectHandle: number; name: string }): ReturnObject<string>
+
+  credentialToW3c(options: {
+    objectHandle: number
+    credentialDefinition: number
+    w3cVersion?: string
+  }): ReturnObject<Handle>
+
+  credentialFromW3c(options: { objectHandle: number }): ReturnObject<Handle>
+
+  createW3cPresentation(options: {
+    presentationRequest: number
+    credentials: { credential: number; timestamp?: number; revocationState?: number }[]
+    credentialsProve: NativeCredentialProve[]
+    linkSecret: string
+    schemaIds: string[]
+    schemas: number[]
+    credentialDefinitionIds: string[]
+    credentialDefinitions: number[]
+    w3cVersion?: string
+  }): ReturnObject<Handle>
+
+  verifyW3cPresentation(options: {
+    presentation: number
+    presentationRequest: number
+    schemas: number[]
+    schemaIds: string[]
+    credentialDefinitions: number[]
+    credentialDefinitionIds: string[]
+    revocationRegistryDefinitions?: number[]
+    revocationRegistryDefinitionIds?: string[]
+    revocationStatusLists?: number[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
+  }): ReturnObject<number>
+
+  w3cCredentialFromJson(options: { json: string }): ReturnObject<Handle>
+
+  w3cPresentationFromJson(options: { json: string }): ReturnObject<Handle>
 }

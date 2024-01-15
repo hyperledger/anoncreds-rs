@@ -87,6 +87,28 @@ fMap.insert(std::make_tuple("createRevocationStatusList",
                               &anoncreds::credentialDefinitionPrivateFromJson));
   fMap.insert(std::make_tuple("keyCorrectnessProofFromJson",
                               &anoncreds::keyCorrectnessProofFromJson));
+  fMap.insert(
+      std::make_tuple("createW3cCredential", &anoncreds::createW3cCredential));
+  fMap.insert(
+      std::make_tuple("createW3cPresentation", &anoncreds::createW3cPresentation));
+  fMap.insert(std::make_tuple("w3cCredentialGetIntegrityProofDetails",
+                              &anoncreds::w3cCredentialGetIntegrityProofDetails));
+  fMap.insert(std::make_tuple("w3cCredentialProofGetAttribute",
+                              &anoncreds::w3cCredentialProofGetAttribute));
+  fMap.insert(
+      std::make_tuple("processW3cCredential", &anoncreds::processW3cCredential));
+  fMap.insert(
+      std::make_tuple("verifyW3cPresentation", &anoncreds::verifyW3cPresentation));
+  fMap.insert(std::make_tuple("w3cPresentationFromJson",
+                              &anoncreds::w3cPresentationFromJson));
+  fMap.insert(
+      std::make_tuple("w3cCredentialFromJson", &anoncreds::w3cCredentialFromJson));
+  fMap.insert(
+      std::make_tuple("credentialToW3c",
+                      &anoncreds::credentialToW3c));
+  fMap.insert(
+      std::make_tuple("credentialFromW3c",
+                      &anoncreds::credentialFromW3c));
 
   return fMap;
 }
