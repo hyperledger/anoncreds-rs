@@ -234,7 +234,7 @@ fn check_requested_attribute<'a>(
         }
 
         // check credential restrictions
-        if !check_credential_conditions(
+        if check_credential_conditions(
             credential,
             presentation_request,
             restrictions,
@@ -244,7 +244,7 @@ fn check_requested_attribute<'a>(
             nonrevoke_interval_override,
             proof,
         )
-        .is_ok()
+        .is_err()
         {
             continue;
         }
@@ -310,7 +310,7 @@ fn check_requested_predicate<'a>(
     }
 
     Err(err_msg!(
-        "Presentation does not contain attribute {}",
+        "Presentation does not contain predicate {}",
         predicate.name
     ))
 }

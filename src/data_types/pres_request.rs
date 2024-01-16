@@ -220,13 +220,13 @@ impl fmt::Display for PredicateTypes {
     }
 }
 
-impl Into<PredicateType> for PredicateTypes {
-    fn into(self) -> PredicateType {
-        match self {
-            Self::GE => PredicateType::GE,
-            Self::GT => PredicateType::GT,
-            Self::LE => PredicateType::LE,
-            Self::LT => PredicateType::LT,
+impl From<PredicateTypes> for PredicateType {
+    fn from(value: PredicateTypes) -> Self {
+        match value {
+            PredicateTypes::GE => PredicateType::GE,
+            PredicateTypes::GT => PredicateType::GT,
+            PredicateTypes::LE => PredicateType::LE,
+            PredicateTypes::LT => PredicateType::LT,
         }
     }
 }
