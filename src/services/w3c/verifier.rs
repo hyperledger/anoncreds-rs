@@ -70,15 +70,7 @@ pub fn verify_presentation(
     let mut sub_proofs: Vec<SubProof> =
         Vec::with_capacity(presentation.verifiable_credential.len());
 
-    let iter = presentation
-        .verifiable_credential
-        .iter()
-        .zip(credential_proofs);
-
-    for (verifiable_credential, credential_proof) in iter {
-        let attributes = verifiable_credential.get_attributes();
-        verify_revealed_attributes(&attributes, &credential_proof)?;
-
+    for credential_proof in credential_proofs {
         let mut revealed_attribute: HashSet<String> =
             credential_proof.mapping.revealed_attributes.clone();
         revealed_attribute.extend(credential_proof.mapping.revealed_attribute_groups.clone());
@@ -153,12 +145,11 @@ fn check_requested_attribute<'a>(
     for (credential, proof) in iter {
         if let Some(ref name) = attribute.name {
             if proof.mapping.revealed_attributes.contains(referent) {
-                if !credential.has_attribute(name) {
-                    return Err(err_msg!(
-                        "Credential does not contain revealed attribute {}",
-                        name
-                    ));
-                }
+                let (_, value) = credential.get_attribute(name)?;
+
+                let encoded = encode_credential_attribute(&value)?;
+                verify_revealed_attribute_value(name, &proof.sub_proof, &encoded)?;
+
                 check_credential_restrictions(
                     credential,
                     attribute.restrictions.as_ref(),
@@ -166,8 +157,10 @@ fn check_requested_attribute<'a>(
                     cred_defs,
                     proof,
                 )?;
+
                 return Ok(credential);
             }
+
             if proof.mapping.unrevealed_attributes.contains(referent) {
                 check_credential_restrictions(
                     credential,
@@ -182,12 +175,11 @@ fn check_requested_attribute<'a>(
         if let Some(ref names) = attribute.names {
             if proof.mapping.revealed_attribute_groups.contains(referent) {
                 for name in names {
-                    if !credential.has_attribute(name) {
-                        return Err(err_msg!(
-                            "Credential does not contain revealed attribute {}",
-                            name
-                        ));
-                    }
+                    let (_, value) = credential.get_attribute(name)?;
+
+                    let encoded = encode_credential_attribute(&value)?;
+                    verify_revealed_attribute_value(name, &proof.sub_proof, &encoded)?;
+
                     check_credential_restrictions(
                         credential,
                         attribute.restrictions.as_ref(),
@@ -223,12 +215,21 @@ fn check_requested_predicate<'a>(
 
     for (credential, proof) in iter {
         if proof.mapping.predicates.contains(referent) {
-            if !credential.has_predicate(&predicate.name) {
+            let (predicate_name, _) = credential.get_predicate(&predicate.name)?;
+
+            let matches_cl_proof_predicate = proof.sub_proof.predicates().into_iter().find(|p| {
+                p.attr_name == predicate_name
+                    && p.p_type == predicate.p_type.clone().into()
+                    && p.value == predicate.p_value
+            });
+
+            if matches_cl_proof_predicate.is_none() {
                 return Err(err_msg!(
-                    "Credential does not contain revealed attribute {}",
+                    "Predicate does not match to requested {}",
                     predicate.name
                 ));
             }
+
             check_credential_restrictions(
                 credential,
                 predicate.restrictions.as_ref(),
@@ -236,12 +237,13 @@ fn check_requested_predicate<'a>(
                 cred_defs,
                 proof,
             )?;
+
             return Ok(credential);
         }
     }
 
     Err(err_msg!(
-        "Presentation does not contain attribute {}",
+        "Presentation does not contain predicate {}",
         predicate.name
     ))
 }
@@ -274,21 +276,6 @@ fn check_request_data(
         )?;
     }
 
-    Ok(())
-}
-
-fn verify_revealed_attributes(
-    attributes: &HashMap<String, String>,
-    credential_proof: &CredentialPresentationProofValue,
-) -> Result<()> {
-    attributes
-        .iter()
-        .map(|(name, value)| {
-            encode_credential_attribute(value).and_then(|encoded| {
-                verify_revealed_attribute_value(name, &credential_proof.sub_proof, &encoded)
-            })
-        })
-        .collect::<Result<Vec<()>>>()?;
     Ok(())
 }
 
