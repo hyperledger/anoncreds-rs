@@ -9,8 +9,8 @@ use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::issuer_id::IssuerId;
 use crate::data_types::nonce::Nonce;
+use crate::data_types::pres_request::PresentationRequestPayload;
 use crate::data_types::pres_request::{AttributeInfo, NonRevokedInterval};
-use crate::data_types::pres_request::{PredicateTypes, PredicateValue, PresentationRequestPayload};
 use crate::data_types::presentation::{Identifier, RequestedProof};
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::Schema;
@@ -105,10 +105,8 @@ pub fn verify_presentation(
             .requested_proof
             .get_predicates_for_credential(sub_proof_index as u32);
 
-        let (attributes, attrs_nonrevoked_interval) =
-            pres_req.get_requested_attributes(&attributes)?;
-        let (predicates, pred_nonrevoked_interval) =
-            pres_req.get_requested_predicates(&predicates)?;
+        let (_, attrs_nonrevoked_interval) = pres_req.get_requested_attributes(&attributes)?;
+        let (_, pred_nonrevoked_interval) = pres_req.get_requested_predicates(&predicates)?;
 
         {
             check_non_revoked_interval(
@@ -123,8 +121,7 @@ pub fn verify_presentation(
         }
 
         proof_verifier.add_sub_proof(
-            &attributes,
-            &predicates,
+            &presentation.proof.proofs[sub_proof_index],
             &identifier.schema_id,
             &identifier.cred_def_id,
             identifier.rev_reg_id.as_ref(),
@@ -851,8 +848,7 @@ impl<'a> CLProofVerifier<'a> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn add_sub_proof(
         &mut self,
-        attributes: &[String],
-        predicates: &HashMap<String, (PredicateTypes, PredicateValue)>,
+        sub_proof: &SubProof,
         schema_id: &SchemaId,
         cred_def_id: &CredentialDefinitionId,
         rev_reg_def_id: Option<&RevocationRegistryDefinitionId>,
@@ -867,7 +863,11 @@ impl<'a> CLProofVerifier<'a> {
             &cred_def.value.primary,
             cred_def.value.revocation.as_ref(),
         )?;
-        let sub_pres_request = build_sub_proof_request(attributes, predicates)?;
+
+        let attributes: Vec<String> = sub_proof.revealed_attrs()?.keys().cloned().collect();
+        let predicates = sub_proof.predicates();
+
+        let sub_pres_request = build_sub_proof_request(&attributes, &predicates)?;
         let rev_key_pub = rev_reg_def.map(|d| &d.value.public_keys.accum_key);
         self.proof_verifier.add_sub_proof_request(
             &sub_pres_request,

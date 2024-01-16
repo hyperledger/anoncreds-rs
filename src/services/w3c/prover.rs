@@ -11,7 +11,6 @@ use crate::types::{
 use crate::utils::validation::Validatable;
 
 use crate::data_types::w3c::credential_attributes::CredentialAttributes;
-use crate::data_types::w3c::presentation::PredicateAttribute;
 use crate::data_types::w3c::proof::{
     CredentialPresentationProofValue, DataIntegrityProof, PresentationProofValue,
 };
@@ -253,8 +252,7 @@ fn build_credential_attributes<'p>(
         let (attribute, _) = credentials
             .cred
             .get_case_insensitive_attribute(&predicate_info.name)?;
-        let predicate = PredicateAttribute::from(predicate_info);
-        attributes.add_predicate(attribute, predicate)?;
+        attributes.add_predicate(attribute)?;
     }
 
     Ok(attributes)

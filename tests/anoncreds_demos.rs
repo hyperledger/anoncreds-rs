@@ -1,6 +1,4 @@
-use anoncreds::data_types::pres_request::PredicateTypes;
 use anoncreds::data_types::w3c::credential_attributes::CredentialAttributeValue;
-use anoncreds::data_types::w3c::presentation::{PredicateAttribute, PredicateAttributeType};
 use anoncreds::data_types::w3c::VerifiableCredentialSpecVersion;
 use anoncreds::verifier;
 use rstest::rstest;
@@ -2976,11 +2974,7 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
     );
 
     assert_eq!(
-        CredentialAttributeValue::Predicate(vec![PredicateAttribute {
-            type_: PredicateAttributeType::AnonCredsPredicate,
-            predicate: PredicateTypes::GE,
-            value: 18,
-        }]),
+        CredentialAttributeValue::Predicate(true),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes

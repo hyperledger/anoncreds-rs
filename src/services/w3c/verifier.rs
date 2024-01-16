@@ -68,24 +68,11 @@ pub fn verify_presentation(
         rev_status_lists.as_ref(),
     )?;
 
-    let mut sub_proofs: Vec<SubProof> =
-        Vec::with_capacity(presentation.verifiable_credential.len());
+    let mut sub_proofs: Vec<SubProof> = Vec::with_capacity(credential_proofs.len());
 
-    let iter = presentation
-        .verifiable_credential
-        .iter()
-        .zip(credential_proofs);
-
-    for (verifiable_credential, credential_proof) in iter {
-        let attributes = verifiable_credential.get_attributes();
-        let predicates = verifiable_credential.get_predicates();
-        let attribute_names: Vec<String> = attributes.keys().cloned().collect();
-
-        verify_revealed_attributes(&attributes, &credential_proof)?;
-
+    for credential_proof in credential_proofs {
         proof_verifier.add_sub_proof(
-            &attribute_names,
-            &predicates,
+            &credential_proof.sub_proof,
             &credential_proof.schema_id,
             &credential_proof.cred_def_id,
             credential_proof.rev_reg_id.as_ref(),
@@ -198,12 +185,22 @@ fn check_requested_attribute<'a>(
     >,
     credential_proofs: &[CredentialPresentationProofValue],
 ) -> Result<&'a W3CCredential> {
+    // find a credential matching to requested attribute
     for (index, credential) in presentation.verifiable_credential.iter().enumerate() {
-        let proof = credential_proofs
-            .get(index)
-            .ok_or_else(|| err_msg!("Unable to get credential proof for index {}", index))?;
-        let valid_credential = credential.has_attribute(attribute)
-            && check_credential_conditions(
+        // credential must contain requested attribute in subject
+        if let Ok((attribute, value)) = credential.get_attribute(attribute) {
+            // attribute value must match to encoded value in cl proof
+            let proof = credential_proofs
+                .get(index)
+                .ok_or_else(|| err_msg!("Unable to get credential proof for index {}", index))?;
+
+            let encoded = encode_credential_attribute(&value)?;
+            if verify_revealed_attribute_value(&attribute, &proof.sub_proof, &encoded).is_err() {
+                continue;
+            }
+
+            // check credential restrictions
+            if check_credential_conditions(
                 credential,
                 presentation_request,
                 restrictions,
@@ -213,9 +210,11 @@ fn check_requested_attribute<'a>(
                 nonrevoke_interval_override,
                 proof,
             )
-            .is_ok();
+            .is_err()
+            {
+                continue;
+            }
 
-        if valid_credential {
             return Ok(credential);
         }
     }
@@ -229,22 +228,28 @@ fn check_requested_attribute<'a>(
             .get(&proof.schema_id)
             .ok_or_else(|| err_msg!("Credential schema not found {}", proof.schema_id))?;
 
-        let valid_credential = schema.has_case_insensitive_attribute(attribute)
-            && check_credential_conditions(
-                credential,
-                presentation_request,
-                restrictions,
-                schemas,
-                cred_defs,
-                nonrevoke_interval,
-                nonrevoke_interval_override,
-                proof,
-            )
-            .is_ok();
-
-        if valid_credential {
-            return Ok(credential);
+        // credential schema must contain requested attribute
+        if !schema.has_case_insensitive_attribute(attribute) {
+            continue;
         }
+
+        // check credential restrictions
+        if check_credential_conditions(
+            credential,
+            presentation_request,
+            restrictions,
+            schemas,
+            cred_defs,
+            nonrevoke_interval,
+            nonrevoke_interval_override,
+            proof,
+        )
+        .is_err()
+        {
+            continue;
+        }
+
+        return Ok(credential);
     }
 
     Err(err_msg!(
@@ -257,20 +262,35 @@ fn check_requested_attribute<'a>(
 fn check_requested_predicate<'a>(
     presentation_request: &PresentationRequestPayload,
     presentation: &'a W3CPresentation,
+    credential_proofs: &[CredentialPresentationProofValue],
     predicate: &PredicateInfo,
     schemas: &HashMap<SchemaId, Schema>,
     cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
     nonrevoke_interval_override: Option<
         &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
-    credential_proofs: &[CredentialPresentationProofValue],
 ) -> Result<&'a W3CCredential> {
+    // find a credential matching to requested predicate
     for (index, credential) in presentation.verifiable_credential.iter().enumerate() {
-        let proof = credential_proofs
-            .get(index)
-            .ok_or_else(|| err_msg!("Unable to get credential proof for index {}", index))?;
-        let valid_credential = credential.has_predicate(predicate)
-            && check_credential_conditions(
+        // credential must contain requested predicate in subject
+        if let Ok((name, _)) = credential.get_predicate(&predicate.name) {
+            // predicate value must match to predicate in cl proof
+            let proof = credential_proofs
+                .get(index)
+                .ok_or_else(|| err_msg!("Unable to get credential proof for index {}", index))?;
+
+            let matches_cl_proof_predicate = proof.sub_proof.predicates().into_iter().find(|p| {
+                p.attr_name == name
+                    && p.p_type == predicate.clone().p_type.into()
+                    && p.value == predicate.p_value
+            });
+
+            if matches_cl_proof_predicate.is_none() {
+                continue;
+            }
+
+            // check credential restrictions
+            if check_credential_conditions(
                 credential,
                 presentation_request,
                 predicate.restrictions.as_ref(),
@@ -280,15 +300,17 @@ fn check_requested_predicate<'a>(
                 nonrevoke_interval_override,
                 proof,
             )
-            .is_ok();
+            .is_err()
+            {
+                continue;
+            }
 
-        if valid_credential {
             return Ok(credential);
         }
     }
 
     Err(err_msg!(
-        "Presentation does not contain attribute {}",
+        "Presentation does not contain predicate {}",
         predicate.name
     ))
 }
@@ -337,29 +359,14 @@ fn check_request_data(
         check_requested_predicate(
             presentation_request,
             presentation,
+            credential_proofs,
             predicate,
             schemas,
             cred_defs,
             nonrevoke_interval_override,
-            credential_proofs,
         )?;
     }
 
-    Ok(())
-}
-
-fn verify_revealed_attributes(
-    attributes: &HashMap<String, String>,
-    credential_proof: &CredentialPresentationProofValue,
-) -> Result<()> {
-    attributes
-        .iter()
-        .map(|(name, value)| {
-            encode_credential_attribute(value).and_then(|encoded| {
-                verify_revealed_attribute_value(name, &credential_proof.sub_proof, &encoded)
-            })
-        })
-        .collect::<Result<Vec<()>>>()?;
     Ok(())
 }
 
@@ -369,7 +376,6 @@ pub(crate) mod tests {
     use crate::data_types::nonce::Nonce;
     use crate::data_types::pres_request::{AttributeInfo, PredicateTypes};
     use crate::data_types::w3c::credential_attributes::CredentialAttributes;
-    use crate::data_types::w3c::presentation::PredicateAttribute;
     use crate::data_types::w3c::proof::tests::{
         credential_pres_proof_value, presentation_proof_value,
     };
@@ -394,14 +400,7 @@ pub(crate) mod tests {
                 "height".to_string(),
                 CredentialAttributeValue::Attribute("178".to_string()),
             ),
-            (
-                "age".to_string(),
-                CredentialAttributeValue::Predicate(vec![PredicateAttribute {
-                    type_: Default::default(),
-                    predicate: _predicate().p_type,
-                    value: _predicate().p_value,
-                }]),
-            ),
+            ("age".to_string(), CredentialAttributeValue::Predicate(true)),
         ]))
     }
 

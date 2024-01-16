@@ -1,10 +1,8 @@
-use crate::data_types::pres_request::{PredicateInfo, PredicateTypes, PredicateValue};
 use crate::data_types::schema::Schema;
 use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::credential_attributes::CredentialAttributeValue;
 use crate::error::Result;
 use crate::helpers::attr_common_view;
-use std::collections::HashMap;
 
 impl W3CCredential {
     pub(crate) fn get_case_insensitive_attribute(
@@ -21,56 +19,26 @@ impl W3CCredential {
             .ok_or_else(|| err_msg!("Credential attribute {} not found", requested_attribute))
     }
 
-    pub(crate) fn has_attribute(&self, requested_attribute: &str) -> bool {
-        let (_, value) = match self.get_case_insensitive_attribute(requested_attribute) {
-            Ok(value) => value,
-            _ => {
-                return false;
-            }
-        };
-        matches!(value, CredentialAttributeValue::Attribute(_))
-    }
-
-    pub(crate) fn has_predicate(&self, predicate: &PredicateInfo) -> bool {
-        let (_, value) = match self.get_case_insensitive_attribute(&predicate.name) {
-            Ok(value) => value,
-            Err(_) => return false,
-        };
-
+    pub(crate) fn get_attribute(&self, requested_attribute: &str) -> Result<(String, String)> {
+        let (attribute, value) = self.get_case_insensitive_attribute(requested_attribute)?;
         match value {
-            CredentialAttributeValue::Predicate(ref predicates) => {
-                predicates.iter().any(|shared_predicate| {
-                    shared_predicate.predicate == predicate.p_type
-                        && shared_predicate.value == predicate.p_value
-                })
-            }
-            _ => false,
+            CredentialAttributeValue::Attribute(value) => Ok((attribute, value)),
+            CredentialAttributeValue::Predicate(_) => Err(err_msg!(
+                "Credential attribute {} not found",
+                requested_attribute
+            )),
         }
     }
 
-    pub(crate) fn get_attributes(&self) -> HashMap<String, String> {
-        let mut attributes: HashMap<String, String> = HashMap::new();
-        for (name, attribute) in self.credential_subject.attributes.0.iter() {
-            if let CredentialAttributeValue::Attribute(attribute) = attribute {
-                attributes.insert(name.to_string(), attribute.to_string());
-            }
+    pub(crate) fn get_predicate(&self, requested_predicate: &str) -> Result<(String, bool)> {
+        let (attribute, value) = self.get_case_insensitive_attribute(requested_predicate)?;
+        match value {
+            CredentialAttributeValue::Predicate(value) => Ok((attribute, value)),
+            CredentialAttributeValue::Attribute(_) => Err(err_msg!(
+                "Credential predicate {} not found",
+                requested_predicate
+            )),
         }
-        attributes
-    }
-
-    pub(crate) fn get_predicates(&self) -> HashMap<String, (PredicateTypes, PredicateValue)> {
-        let mut predicates: HashMap<String, (PredicateTypes, PredicateValue)> = HashMap::new();
-        for (name, attribute) in self.credential_subject.attributes.0.iter() {
-            if let CredentialAttributeValue::Predicate(predicate_list) = attribute {
-                predicate_list.iter().for_each(|predicate| {
-                    predicates.insert(
-                        name.to_string(),
-                        (predicate.predicate.to_owned(), predicate.value),
-                    );
-                });
-            }
-        }
-        predicates
     }
 }
 

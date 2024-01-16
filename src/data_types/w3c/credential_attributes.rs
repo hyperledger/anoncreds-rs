@@ -1,4 +1,3 @@
-use crate::data_types::w3c::presentation::PredicateAttribute;
 use crate::error::ValidationError;
 use crate::types::{CredentialValues, MakeCredentialValues};
 use crate::utils::validation::Validatable;
@@ -59,23 +58,20 @@ impl CredentialAttributes {
         self.0.insert(attribute, value);
     }
 
-    pub(crate) fn add_predicate(
-        &mut self,
-        attribute: String,
-        predicate: PredicateAttribute,
-    ) -> crate::Result<()> {
-        match self.0.get_mut(&attribute) {
+    pub(crate) fn add_predicate(&mut self, attribute: String) -> crate::Result<()> {
+        match self.0.get(&attribute) {
             Some(value) => match value {
                 CredentialAttributeValue::Attribute(_) => {
                     return Err(err_msg!("Predicate cannot be added for revealed attribute"));
                 }
-                CredentialAttributeValue::Predicate(predicates) => predicates.push(predicate),
+                CredentialAttributeValue::Predicate(_) => {
+                    // predicate already exists
+                    return Ok(());
+                }
             },
             None => {
-                self.0.insert(
-                    attribute,
-                    CredentialAttributeValue::Predicate(vec![predicate]),
-                );
+                self.0
+                    .insert(attribute, CredentialAttributeValue::Predicate(true));
             }
         }
         Ok(())
@@ -104,5 +100,5 @@ impl CredentialAttributes {
 #[serde(untagged)]
 pub enum CredentialAttributeValue {
     Attribute(String),
-    Predicate(Vec<PredicateAttribute>),
+    Predicate(bool),
 }
