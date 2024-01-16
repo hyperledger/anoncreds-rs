@@ -392,4 +392,132 @@ export class ReactNativeAnoncreds implements Anoncreds {
     const handle = this.handleError(this.anoncreds.keyCorrectnessProofFromJson(serializeArguments(options)))
     return new ObjectHandle(handle)
   }
+
+  public createW3cCredential(options: {
+    credentialDefinition: ObjectHandle
+    credentialDefinitionPrivate: ObjectHandle
+    credentialOffer: ObjectHandle
+    credentialRequest: ObjectHandle
+    attributeRawValues: Record<string, string>
+    revocationConfiguration?: NativeCredentialRevocationConfig
+    w3cVersion?: string
+  }): ObjectHandle {
+    const attributeNames = Object.keys(options.attributeRawValues)
+    const attributeRawValues = Object.values(options.attributeRawValues)
+
+    const credential = this.handleError(
+      this.anoncreds.createW3cCredential({
+        ...serializeArguments(options),
+        attributeRawValues,
+        attributeNames,
+        revocationConfiguration: options.revocationConfiguration
+          ? {
+              registryIndex: options.revocationConfiguration.registryIndex,
+              revocationRegistryDefinition: options.revocationConfiguration.revocationRegistryDefinition.handle,
+              revocationRegistryDefinitionPrivate:
+                options.revocationConfiguration.revocationRegistryDefinitionPrivate.handle,
+              revocationStatusList: options.revocationConfiguration.revocationStatusList.handle
+            }
+          : undefined,
+        w3cVersion: options.w3cVersion
+      })
+    )
+
+    return new ObjectHandle(credential)
+  }
+
+  public processW3cCredential(options: {
+    credential: ObjectHandle
+    credentialRequestMetadata: ObjectHandle
+    linkSecret: string
+    credentialDefinition: ObjectHandle
+    revocationRegistryDefinition?: ObjectHandle
+  }): ObjectHandle {
+    const handle = this.handleError(this.anoncreds.processW3cCredential(serializeArguments(options)))
+    return new ObjectHandle(handle)
+  }
+
+  public createW3cPresentation(options: {
+    presentationRequest: ObjectHandle
+    credentials: NativeCredentialEntry[]
+    credentialsProve: NativeCredentialProve[]
+    linkSecret: string
+    schemas: Record<string, ObjectHandle>
+    credentialDefinitions: Record<string, ObjectHandle>
+    w3cVersion?: string
+  }): ObjectHandle {
+    const schemaKeys = Object.keys(options.schemas)
+    const schemaValues = Object.values(options.schemas).map((o) => o.handle)
+    const credentialDefinitionKeys = Object.keys(options.credentialDefinitions)
+    const credentialDefinitionValues = Object.values(options.credentialDefinitions).map((o) => o.handle)
+
+    const credentialEntries = options.credentials.map((value) => ({
+      credential: value.credential.handle,
+      timestamp: value.timestamp ?? -1,
+      revocationState: value.revocationState?.handle ?? 0
+    }))
+
+    const handle = this.handleError(
+      this.anoncreds.createW3cPresentation({
+        presentationRequest: options.presentationRequest.handle,
+        linkSecret: options.linkSecret,
+        credentialsProve: options.credentialsProve,
+        credentials: credentialEntries,
+        schemas: schemaValues,
+        schemaIds: schemaKeys,
+        credentialDefinitions: credentialDefinitionValues,
+        credentialDefinitionIds: credentialDefinitionKeys,
+        w3cVersion: options.w3cVersion
+      })
+    )
+    return new ObjectHandle(handle)
+  }
+
+  public verifyW3cPresentation(options: {
+    presentation: ObjectHandle
+    presentationRequest: ObjectHandle
+    schemas: ObjectHandle[]
+    schemaIds: string[]
+    credentialDefinitions: ObjectHandle[]
+    credentialDefinitionIds: string[]
+    revocationRegistryDefinitions?: ObjectHandle[]
+    revocationRegistryDefinitionIds?: string[]
+    revocationStatusLists?: ObjectHandle[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
+  }): boolean {
+    return Boolean(this.handleError(this.anoncreds.verifyW3cPresentation(serializeArguments(options))))
+  }
+
+  public w3cCredentialGetIntegrityProofDetails(options: { objectHandle: ObjectHandle }): ObjectHandle {
+    const handle = this.handleError(this.anoncreds.w3cCredentialGetIntegrityProofDetails(serializeArguments(options)))
+    return new ObjectHandle(handle)
+  }
+
+  public w3cCredentialProofGetAttribute(options: { objectHandle: ObjectHandle; name: string }): string {
+    return this.handleError(this.anoncreds.w3cCredentialProofGetAttribute(serializeArguments(options)))
+  }
+
+  public w3cPresentationFromJson(options: { json: string }): ObjectHandle {
+    const handle = this.handleError(this.anoncreds.w3cPresentationFromJson(serializeArguments(options)))
+    return new ObjectHandle(handle)
+  }
+
+  public w3cCredentialFromJson(options: { json: string }): ObjectHandle {
+    const handle = this.handleError(this.anoncreds.w3cCredentialFromJson(serializeArguments(options)))
+    return new ObjectHandle(handle)
+  }
+
+  public credentialToW3c(options: {
+    objectHandle: ObjectHandle
+    credentialDefinition: ObjectHandle
+    w3cVersion?: string
+  }): ObjectHandle {
+    const handle = this.handleError(this.anoncreds.credentialToW3c(serializeArguments(options)))
+    return new ObjectHandle(handle)
+  }
+
+  public credentialFromW3c(options: { objectHandle: ObjectHandle }): ObjectHandle {
+    const handle = this.handleError(this.anoncreds.credentialFromW3c(serializeArguments(options)))
+    return new ObjectHandle(handle)
+  }
 }

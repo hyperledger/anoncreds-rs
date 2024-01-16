@@ -964,3 +964,166 @@ def create_or_update_revocation_state(
         byref(updated_rev_state),
     )
     return updated_rev_state
+
+
+def create_w3c_credential(
+    cred_def: ObjectHandle,
+    cred_def_private: ObjectHandle,
+    cred_offer: ObjectHandle,
+    cred_request: ObjectHandle,
+    attr_raw_values: Mapping[str, str],
+    revocation_config: Optional[RevocationConfig],
+    w3c_version: Optional[str],
+) -> ObjectHandle:
+    cred = ObjectHandle()
+    attr_keys = list(attr_raw_values.keys())
+    names_list = FfiStrList.create(attr_keys)
+    raw_values_list = FfiStrList.create(str(attr_raw_values[k]) for k in attr_keys)
+    do_call(
+        "anoncreds_create_w3c_credential",
+        cred_def,
+        cred_def_private,
+        cred_offer,
+        cred_request,
+        names_list,
+        raw_values_list,
+        pointer(revocation_config)
+        if revocation_config
+        else POINTER(RevocationConfig)(),
+        encode_str(w3c_version),
+        byref(cred),
+    )
+    return cred
+
+
+def process_w3c_credential(
+    cred: ObjectHandle,
+    cred_req_metadata: ObjectHandle,
+    link_secret: str,
+    cred_def: ObjectHandle,
+    rev_reg_def: Optional[ObjectHandle],
+) -> ObjectHandle:
+    result = ObjectHandle()
+    do_call(
+        "anoncreds_process_w3c_credential",
+        cred,
+        cred_req_metadata,
+        encode_str(link_secret),
+        cred_def,
+        rev_reg_def or ObjectHandle(),
+        byref(result),
+    )
+    return result
+
+
+def credential_to_w3c(
+    cred: ObjectHandle,
+    cred_def: ObjectHandle,
+    w3c_version: Optional[str],
+) -> ObjectHandle:
+    result = ObjectHandle()
+    do_call(
+        "anoncreds_credential_to_w3c",
+        cred,
+        cred_def,
+        encode_str(w3c_version),
+        byref(result),
+    )
+    return result
+
+
+def credential_from_w3c(
+    cred: ObjectHandle,
+) -> ObjectHandle:
+    result = ObjectHandle()
+    do_call(
+        "anoncreds_credential_from_w3c",
+        cred,
+        byref(result),
+    )
+    return result
+
+
+def create_w3c_presentation(
+    pres_req: ObjectHandle,
+    credentials: Sequence[CredentialEntry],
+    credentials_prove: Sequence[CredentialProve],
+    link_secret: str,
+    schemas: Sequence[ObjectHandle],
+    schema_ids: Sequence[str],
+    cred_defs: Sequence[ObjectHandle],
+    cred_def_ids: Sequence[str],
+    w3c_version: Optional[str],
+) -> ObjectHandle:
+    entry_list = CredentialEntryList()
+    entry_list.count = len(credentials)
+    entry_list.data = (CredentialEntry * entry_list.count)(*credentials)
+    prove_list = CredentialProveList()
+    prove_list.count = len(credentials_prove)
+    prove_list.data = (CredentialProve * prove_list.count)(*credentials_prove)
+    present = ObjectHandle()
+
+    do_call(
+        "anoncreds_create_w3c_presentation",
+        pres_req,
+        entry_list,
+        prove_list,
+        encode_str(link_secret),
+        FfiObjectHandleList.create(schemas),
+        FfiStrList.create(schema_ids),
+        FfiObjectHandleList.create(cred_defs),
+        FfiStrList.create(cred_def_ids),
+        encode_str(w3c_version),
+        byref(present),
+    )
+    return present
+
+
+def verify_w3c_presentation(
+    presentation: ObjectHandle,
+    pres_req: ObjectHandle,
+    schema_ids: Sequence[str],
+    schemas: Sequence[ObjectHandle],
+    cred_def_ids: Sequence[str],
+    cred_defs: Sequence[ObjectHandle],
+    rev_reg_def_ids: Optional[Sequence[str]],
+    rev_reg_defs: Optional[Sequence[ObjectHandle]],
+    rev_status_lists: Optional[Sequence[ObjectHandle]],
+    nonrevoked_interval_overrides: Optional[Sequence[NonrevokedIntervalOverride]],
+) -> bool:
+    verify = c_int8()
+
+    nonrevoked_interval_overrides_list = NonrevokedIntervalOverrideList()
+    if nonrevoked_interval_overrides:
+        nonrevoked_interval_overrides_list.count = len(nonrevoked_interval_overrides)
+        nonrevoked_interval_overrides_list.data = (
+            NonrevokedIntervalOverride * nonrevoked_interval_overrides.count
+        )(*nonrevoked_interval_overrides)
+
+    do_call(
+        "anoncreds_verify_w3c_presentation",
+        presentation,
+        pres_req,
+        FfiObjectHandleList.create(schemas),
+        FfiStrList.create(schema_ids),
+        FfiObjectHandleList.create(cred_defs),
+        FfiStrList.create(cred_def_ids),
+        FfiObjectHandleList.create(rev_reg_defs),
+        FfiStrList.create(rev_reg_def_ids),
+        FfiObjectHandleList.create(rev_status_lists),
+        nonrevoked_interval_overrides_list,
+        byref(verify),
+    )
+    return bool(verify)
+
+
+def w3c_credential_get_integrity_proof_details(
+    cred: ObjectHandle,
+) -> ObjectHandle:
+    result = ObjectHandle()
+    do_call(
+        "anoncreds_w3c_credential_get_integrity_proof_details",
+        cred,
+        byref(result),
+    )
+    return result

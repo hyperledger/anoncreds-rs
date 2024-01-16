@@ -329,6 +329,94 @@ describe('bindings', () => {
     expect(JSON.parse(credReceivedJson)).toHaveProperty('witness')
   })
 
+  test('create and receive w3c credential', () => {
+    const schemaObj = anoncreds.createSchema({
+      name: 'schema-1',
+      issuerId: 'mock:uri',
+      version: '1',
+      attributeNames: ['attr-1']
+    })
+
+    const { credentialDefinition, keyCorrectnessProof, credentialDefinitionPrivate } =
+      anoncreds.createCredentialDefinition({
+        schemaId: 'mock:uri',
+        issuerId: 'mock:uri',
+        schema: schemaObj,
+        signatureType: 'CL',
+        supportRevocation: true,
+        tag: 'TAG'
+      })
+
+    const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate } =
+      anoncreds.createRevocationRegistryDefinition({
+        credentialDefinitionId: 'mock:uri',
+        credentialDefinition,
+        issuerId: 'mock:uri',
+        tag: 'some_tag',
+        revocationRegistryType: 'CL_ACCUM',
+        maximumCredentialNumber: 10
+      })
+
+    const tailsPath = anoncreds.revocationRegistryDefinitionGetAttribute({
+      objectHandle: revocationRegistryDefinition,
+      name: 'tails_location'
+    })
+    expect(tailsPath).toBeTruthy()
+
+    const timeCreateRevStatusList = 12
+    const revocationStatusList = anoncreds.createRevocationStatusList({
+      credentialDefinition,
+      revocationRegistryDefinitionId: 'mock:uri',
+      revocationRegistryDefinition,
+      revocationRegistryDefinitionPrivate,
+      issuerId: 'mock:uri',
+      issuanceByDefault: true,
+      timestamp: timeCreateRevStatusList
+    })
+
+    const credentialOffer = anoncreds.createCredentialOffer({
+      schemaId: 'mock:uri',
+      credentialDefinitionId: 'mock:uri',
+      keyCorrectnessProof
+    })
+
+    const linkSecret = anoncreds.createLinkSecret()
+    const linkSecretId = 'link secret id'
+
+    const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
+      entropy: ENTROPY,
+      credentialDefinition,
+      linkSecret,
+      linkSecretId,
+      credentialOffer
+    })
+
+    const credential = anoncreds.createW3cCredential({
+      credentialDefinition,
+      credentialDefinitionPrivate,
+      credentialOffer,
+      credentialRequest,
+      revocationConfiguration: {
+        revocationRegistryDefinition,
+        revocationRegistryDefinitionPrivate,
+        revocationStatusList,
+        registryIndex: 9
+      },
+      attributeRawValues: { 'attr-1': 'test' },
+      encoding: undefined
+    })
+
+    const credReceived = anoncreds.processW3cCredential({
+      credential,
+      credentialDefinition,
+      credentialRequestMetadata,
+      linkSecret,
+      revocationRegistryDefinition
+    })
+
+    anoncreds.getJson({ objectHandle: credReceived })
+  })
+
   test('create and verify presentation', () => {
     const nonce = anoncreds.generateNonce()
 
@@ -515,6 +603,184 @@ describe('bindings', () => {
     expect(verify).toBeTruthy()
   })
 
+  test('create and verify w3c presentation', () => {
+    const nonce = anoncreds.generateNonce()
+
+    const presentationRequest = anoncreds.presentationRequestFromJson({
+      json: JSON.stringify({
+        nonce,
+        name: 'pres_req_1',
+        version: '0.1',
+        requested_attributes: {
+          attr1_referent: {
+            name: 'name',
+            issuer: 'mock:uri'
+          },
+          attr2_referent: {
+            names: ['name', 'height']
+          }
+        },
+        requested_predicates: {
+          predicate1_referent: { name: 'age', p_type: '>=', p_value: 18 }
+        },
+        non_revoked: { from: 10, to: 200 }
+      })
+    })
+
+    expect(anoncreds.getTypeName({ objectHandle: presentationRequest })).toEqual('PresentationRequest')
+
+    const schemaObj = anoncreds.createSchema({
+      name: 'schema-1',
+      issuerId: 'mock:uri',
+      version: '1',
+      attributeNames: ['name', 'age', 'sex', 'height']
+    })
+
+    const { credentialDefinition, keyCorrectnessProof, credentialDefinitionPrivate } =
+      anoncreds.createCredentialDefinition({
+        schemaId: 'mock:uri',
+        issuerId: 'mock:uri',
+        schema: schemaObj,
+        signatureType: 'CL',
+        supportRevocation: true,
+        tag: 'TAG'
+      })
+
+    const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate } =
+      anoncreds.createRevocationRegistryDefinition({
+        credentialDefinitionId: 'mock:uri',
+        credentialDefinition,
+        issuerId: 'mock:uri',
+        tag: 'some_tag',
+        revocationRegistryType: 'CL_ACCUM',
+        maximumCredentialNumber: 10
+      })
+
+    const tailsPath = anoncreds.revocationRegistryDefinitionGetAttribute({
+      objectHandle: revocationRegistryDefinition,
+      name: 'tails_location'
+    })
+
+    const timeCreateRevStatusList = 12
+    const revocationStatusList = anoncreds.createRevocationStatusList({
+      credentialDefinition,
+      revocationRegistryDefinitionId: 'mock:uri',
+      revocationRegistryDefinition,
+      revocationRegistryDefinitionPrivate,
+      issuerId: 'mock:uri',
+      issuanceByDefault: true,
+      timestamp: timeCreateRevStatusList
+    })
+
+    const credentialOffer = anoncreds.createCredentialOffer({
+      schemaId: 'mock:uri',
+      credentialDefinitionId: 'mock:uri',
+      keyCorrectnessProof
+    })
+
+    const linkSecret = anoncreds.createLinkSecret()
+    const linkSecretId = 'link secret id'
+
+    const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
+      entropy: ENTROPY,
+      credentialDefinition,
+      linkSecret,
+      linkSecretId,
+      credentialOffer
+    })
+
+    const credential = anoncreds.createW3cCredential({
+      credentialDefinition,
+      credentialDefinitionPrivate,
+      credentialOffer,
+      credentialRequest,
+      revocationConfiguration: {
+        revocationRegistryDefinition,
+        revocationRegistryDefinitionPrivate,
+        revocationStatusList,
+        registryIndex: 9
+      },
+      attributeRawValues: { name: 'Alex', height: '175', age: '28', sex: 'male' },
+      encoding: undefined
+    })
+
+    const credentialReceived = anoncreds.processW3cCredential({
+      credential,
+      credentialDefinition,
+      credentialRequestMetadata,
+      linkSecret,
+      revocationRegistryDefinition
+    })
+
+    const credentialProofDetails = anoncreds.w3cCredentialGetIntegrityProofDetails({
+      objectHandle: credentialReceived
+    })
+
+    const revRegIndex = anoncreds.w3cCredentialProofGetAttribute({
+      objectHandle: credentialProofDetails,
+      name: 'rev_reg_index'
+    })
+
+    const revocationRegistryIndex = revRegIndex === null ? 0 : parseInt(revRegIndex)
+
+    const revocationState = anoncreds.createOrUpdateRevocationState({
+      revocationRegistryDefinition,
+      revocationStatusList,
+      revocationRegistryIndex,
+      tailsPath
+    })
+
+    const presentation = anoncreds.createW3cPresentation({
+      presentationRequest,
+      credentials: [
+        {
+          credential: credentialReceived,
+          revocationState,
+          timestamp: timeCreateRevStatusList
+        }
+      ],
+      credentialDefinitions: { 'mock:uri': credentialDefinition },
+      credentialsProve: [
+        {
+          entryIndex: 0,
+          isPredicate: false,
+          referent: 'attr1_referent',
+          reveal: true
+        },
+        {
+          entryIndex: 0,
+          isPredicate: false,
+          referent: 'attr2_referent',
+          reveal: true
+        },
+        {
+          entryIndex: 0,
+          isPredicate: true,
+          referent: 'predicate1_referent',
+          reveal: true
+        }
+      ],
+      linkSecret,
+      schemas: { 'mock:uri': schemaObj }
+    })
+
+    expect(presentation.handle).toStrictEqual(expect.any(Number))
+
+    const verify = anoncreds.verifyW3cPresentation({
+      presentation,
+      presentationRequest,
+      schemas: [schemaObj],
+      schemaIds: ['mock:uri'],
+      credentialDefinitions: [credentialDefinition],
+      credentialDefinitionIds: ['mock:uri'],
+      revocationRegistryDefinitions: [revocationRegistryDefinition],
+      revocationRegistryDefinitionIds: ['mock:uri'],
+      revocationStatusLists: [revocationStatusList]
+    })
+
+    expect(verify).toBeTruthy()
+  })
+
   test('create and verify presentation (no revocation use case)', () => {
     const schemaObj = anoncreds.createSchema({
       name: 'schema-1',
@@ -653,6 +919,124 @@ describe('bindings', () => {
     expect(presentation.handle).toStrictEqual(expect.any(Number))
 
     const verify = anoncreds.verifyPresentation({
+      presentation,
+      presentationRequest,
+      schemas: [schemaObj],
+      schemaIds: ['mock:uri'],
+      credentialDefinitions: [credentialDefinition],
+      credentialDefinitionIds: ['mock:uri']
+    })
+
+    expect(verify).toBeTruthy()
+  })
+
+  test('create and verify w3c presentation (no revocation use case)', () => {
+    const schemaObj = anoncreds.createSchema({
+      name: 'schema-1',
+      issuerId: 'mock:uri',
+      version: '1',
+      attributeNames: ['name', 'age', 'sex', 'height']
+    })
+
+    const { credentialDefinition, keyCorrectnessProof, credentialDefinitionPrivate } =
+      anoncreds.createCredentialDefinition({
+        schemaId: 'mock:uri',
+        issuerId: 'mock:uri',
+        schema: schemaObj,
+        signatureType: 'CL',
+        supportRevocation: false,
+        tag: 'TAG'
+      })
+
+    const credentialOffer = anoncreds.createCredentialOffer({
+      schemaId: 'mock:uri',
+      credentialDefinitionId: 'mock:uri',
+      keyCorrectnessProof
+    })
+
+    const linkSecret = anoncreds.createLinkSecret()
+    const linkSecretId = 'link secret id'
+
+    const { credentialRequestMetadata, credentialRequest } = anoncreds.createCredentialRequest({
+      entropy: ENTROPY,
+      credentialDefinition,
+      linkSecret,
+      linkSecretId,
+      credentialOffer
+    })
+
+    const credential = anoncreds.createW3cCredential({
+      credentialDefinition,
+      credentialDefinitionPrivate,
+      credentialOffer,
+      credentialRequest,
+      attributeRawValues: { name: 'Alex', height: '175', age: '28', sex: 'male' }
+    })
+
+    const credReceived = anoncreds.processW3cCredential({
+      credential,
+      credentialDefinition,
+      credentialRequestMetadata,
+      linkSecret
+    })
+
+    const nonce = anoncreds.generateNonce()
+
+    const presentationRequest = anoncreds.presentationRequestFromJson({
+      json: JSON.stringify({
+        nonce,
+        name: 'pres_req_1',
+        version: '0.1',
+        requested_attributes: {
+          attr1_referent: {
+            name: 'name',
+            issuer: 'mock:uri'
+          },
+          attr2_referent: {
+            names: ['name', 'height']
+          }
+        },
+        requested_predicates: {
+          predicate1_referent: { name: 'age', p_type: '>=', p_value: 18 }
+        }
+      })
+    })
+
+    const presentation = anoncreds.createW3cPresentation({
+      presentationRequest,
+      credentials: [
+        {
+          credential: credReceived
+        }
+      ],
+      credentialDefinitions: { 'mock:uri': credentialDefinition },
+      credentialsProve: [
+        {
+          entryIndex: 0,
+          isPredicate: false,
+          referent: 'attr1_referent',
+          reveal: true
+        },
+        {
+          entryIndex: 0,
+          isPredicate: false,
+          referent: 'attr2_referent',
+          reveal: true
+        },
+        {
+          entryIndex: 0,
+          isPredicate: true,
+          referent: 'predicate1_referent',
+          reveal: true
+        }
+      ],
+      linkSecret,
+      schemas: { 'mock:uri': schemaObj }
+    })
+
+    expect(presentation.handle).toStrictEqual(expect.any(Number))
+
+    const verify = anoncreds.verifyW3cPresentation({
       presentation,
       presentationRequest,
       schemas: [schemaObj],

@@ -152,35 +152,10 @@ export class NodeJSAnoncreds implements Anoncreds {
     const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest } =
       serializeArguments(options)
 
-    const attributeNames = StringListStruct({
-      count: Object.keys(options.attributeRawValues).length,
-      data: Object.keys(options.attributeRawValues) as unknown as TypedArray<string>
-    })
-
-    const attributeRawValues = StringListStruct({
-      count: Object.keys(options.attributeRawValues).length,
-      data: Object.values(options.attributeRawValues) as unknown as TypedArray<string>
-    })
-
-    const attributeEncodedValues = options.attributeEncodedValues
-      ? StringListStruct({
-          count: Object.keys(options.attributeEncodedValues).length,
-          data: Object.values(options.attributeEncodedValues) as unknown as TypedArray<string>
-        })
-      : undefined
-
-    let revocationConfiguration
-    if (options.revocationConfiguration) {
-      const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate, revocationStatusList, registryIndex } =
-        serializeArguments(options.revocationConfiguration)
-
-      revocationConfiguration = CredRevInfoStruct({
-        reg_def: revocationRegistryDefinition,
-        reg_def_private: revocationRegistryDefinitionPrivate,
-        status_list: revocationStatusList,
-        reg_idx: registryIndex
-      })
-    }
+    const attributeNames = this.convertAttributeNames(options.attributeRawValues)
+    const attributeRawValues = this.convertAttributeRawValues(options.attributeRawValues)
+    const attributeEncodedValues = this.convertAttributeEncodedValues(options.attributeEncodedValues)
+    const revocationConfiguration = this.convertRevocationConfiguration(options.revocationConfiguration)
 
     const credentialPtr = allocatePointer()
     this.nativeAnoncreds.anoncreds_create_credential(
@@ -188,8 +163,8 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialDefinitionPrivate,
       credentialOffer,
       credentialRequest,
-      attributeNames as unknown as Buffer,
-      attributeRawValues as unknown as Buffer,
+      attributeNames,
+      attributeRawValues,
       attributeEncodedValues as unknown as Buffer,
       revocationConfiguration?.ref().address() ?? 0,
       credentialPtr
@@ -302,42 +277,6 @@ export class NodeJSAnoncreds implements Anoncreds {
   }): ObjectHandle {
     const { presentationRequest, linkSecret } = serializeArguments(options)
 
-    const credentialEntries = options.credentials.map((value) =>
-      CredentialEntryStruct({
-        credential: value.credential.handle,
-        timestamp: value.timestamp ?? -1,
-        rev_state: value.revocationState?.handle ?? 0
-      })
-    )
-
-    const credentialEntryList = CredentialEntryListStruct({
-      count: credentialEntries.length,
-      data: credentialEntries as unknown as TypedArray<
-        StructObject<{
-          credential: number
-          timestamp: number
-          rev_state: number
-        }>
-      >
-    })
-
-    const credentialProves = options.credentialsProve.map((value) => {
-      const { entryIndex: entry_idx, isPredicate: is_predicate, reveal, referent } = serializeArguments(value)
-      return CredentialProveStruct({ entry_idx, referent, is_predicate, reveal })
-    })
-
-    const credentialProveList = CredentialProveListStruct({
-      count: credentialProves.length,
-      data: credentialProves as unknown as TypedArray<
-        StructObject<{
-          entry_idx: string | number
-          referent: string
-          is_predicate: number
-          reveal: number
-        }>
-      >
-    })
-
     const selfAttestNames = StringListStruct({
       count: Object.keys(options.selfAttest).length,
       data: Object.keys(options.selfAttest) as unknown as TypedArray<string>
@@ -348,43 +287,24 @@ export class NodeJSAnoncreds implements Anoncreds {
       data: Object.values(options.selfAttest) as unknown as TypedArray<string>
     })
 
-    const schemaKeys = Object.keys(options.schemas)
-    const schemaIds = StringListStruct({
-      count: schemaKeys.length,
-      data: schemaKeys as unknown as TypedArray<string>
-    })
-
-    const schemaValues = Object.values(options.schemas)
-    const schemas = ObjectHandleListStruct({
-      count: schemaValues.length,
-      data: ObjectHandleArray(schemaValues.map((o) => o.handle))
-    })
-
-    const credentialDefinitionKeys = Object.keys(options.credentialDefinitions)
-    const credentialDefinitionIds = StringListStruct({
-      count: credentialDefinitionKeys.length,
-      data: credentialDefinitionKeys as unknown as TypedArray<string>
-    })
-
-    const credentialDefinitionValues = Object.values(options.credentialDefinitions)
-    const credentialDefinitions = ObjectHandleListStruct({
-      count: credentialDefinitionValues.length,
-      data: ObjectHandleArray(credentialDefinitionValues.map((o) => o.handle))
-    })
+    const credentialEntryList = this.convertCredentialList(options.credentials)
+    const credentialProveList = this.convertCredentialProves(options.credentialsProve)
+    const { schemaIds, schemas } = this.convertSchemas(options.schemas)
+    const { credentialDefinitionIds, credentialDefinitions } = this.convertCredDefs(options.credentialDefinitions)
 
     const ret = allocatePointer()
 
     this.nativeAnoncreds.anoncreds_create_presentation(
       presentationRequest,
-      credentialEntryList as unknown as Buffer,
-      credentialProveList as unknown as Buffer,
+      credentialEntryList,
+      credentialProveList,
       selfAttestNames as unknown as Buffer,
       selfAttestValues as unknown as Buffer,
       linkSecret,
-      schemas as unknown as Buffer,
-      schemaIds as unknown as Buffer,
-      credentialDefinitions as unknown as Buffer,
-      credentialDefinitionIds as unknown as Buffer,
+      schemas,
+      schemaIds,
+      credentialDefinitions,
+      credentialDefinitionIds,
       ret
     )
     this.handleError()
@@ -416,26 +336,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       credentialDefinitionIds
     } = serializeArguments(options)
 
-    const nativeNonRevokedIntervalOverrides = options.nonRevokedIntervalOverrides?.map((value) => {
-      const { requestedFromTimestamp, revocationRegistryDefinitionId, overrideRevocationStatusListTimestamp } =
-        serializeArguments(value)
-      return NonRevokedIntervalOverrideStruct({
-        rev_reg_def_id: revocationRegistryDefinitionId,
-        requested_from_ts: requestedFromTimestamp,
-        override_rev_status_list_ts: overrideRevocationStatusListTimestamp
-      })
-    })
-
-    const nonRevokedIntervalOverrideList = NonRevokedIntervalOverrideListStruct({
-      count: options.nonRevokedIntervalOverrides?.length ?? 0,
-      data: nativeNonRevokedIntervalOverrides as unknown as TypedArray<
-        StructObject<{
-          rev_reg_def_id: string
-          requested_from_ts: number
-          override_rev_status_list_ts: number
-        }>
-      >
-    })
+    const nonRevokedIntervalOverrideList = this.convertNonRevokedIntervalOverrides(options.nonRevokedIntervalOverrides)
 
     const ret = allocateInt8Buffer()
 
@@ -449,7 +350,7 @@ export class NodeJSAnoncreds implements Anoncreds {
       revocationRegistryDefinitions,
       revocationRegistryDefinitionIds,
       revocationStatusLists,
-      nonRevokedIntervalOverrideList as unknown as Buffer,
+      nonRevokedIntervalOverrideList,
       ret
     )
     this.handleError()
@@ -617,6 +518,198 @@ export class NodeJSAnoncreds implements Anoncreds {
     return new ObjectHandle(handleReturnPointer<number>(ret))
   }
 
+  public createW3cCredential(options: {
+    credentialDefinition: ObjectHandle
+    credentialDefinitionPrivate: ObjectHandle
+    credentialOffer: ObjectHandle
+    credentialRequest: ObjectHandle
+    attributeRawValues: Record<string, string>
+    revocationConfiguration?: NativeCredentialRevocationConfig
+    w3cVersion?: string
+  }): ObjectHandle {
+    const { credentialDefinition, credentialDefinitionPrivate, credentialOffer, credentialRequest, w3cVersion } =
+      serializeArguments(options)
+
+    const attributeNames = this.convertAttributeNames(options.attributeRawValues)
+    const attributeRawValues = this.convertAttributeRawValues(options.attributeRawValues)
+    const revocationConfiguration = this.convertRevocationConfiguration(options.revocationConfiguration)
+
+    const credentialPtr = allocatePointer()
+    this.nativeAnoncreds.anoncreds_create_w3c_credential(
+      credentialDefinition,
+      credentialDefinitionPrivate,
+      credentialOffer,
+      credentialRequest,
+      attributeNames,
+      attributeRawValues,
+      revocationConfiguration?.ref().address() ?? 0,
+      w3cVersion,
+      credentialPtr
+    )
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(credentialPtr))
+  }
+
+  public processW3cCredential(options: {
+    credential: ObjectHandle
+    credentialRequestMetadata: ObjectHandle
+    linkSecret: string
+    credentialDefinition: ObjectHandle
+    revocationRegistryDefinition?: ObjectHandle | undefined
+  }): ObjectHandle {
+    const { credential, credentialRequestMetadata, linkSecret, credentialDefinition } = serializeArguments(options)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_process_w3c_credential(
+      credential,
+      credentialRequestMetadata,
+      linkSecret,
+      credentialDefinition,
+      options.revocationRegistryDefinition?.handle ?? 0,
+      ret
+    )
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public createW3cPresentation(options: {
+    presentationRequest: ObjectHandle
+    credentials: NativeCredentialEntry[]
+    credentialsProve: NativeCredentialProve[]
+    linkSecret: string
+    schemas: Record<string, ObjectHandle>
+    credentialDefinitions: Record<string, ObjectHandle>
+    w3cVersion?: string
+  }): ObjectHandle {
+    const { presentationRequest, linkSecret, w3cVersion } = serializeArguments(options)
+
+    const credentialEntryList = this.convertCredentialList(options.credentials)
+    const credentialProveList = this.convertCredentialProves(options.credentialsProve)
+    const { schemaIds, schemas } = this.convertSchemas(options.schemas)
+    const { credentialDefinitionIds, credentialDefinitions } = this.convertCredDefs(options.credentialDefinitions)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_create_w3c_presentation(
+      presentationRequest,
+      credentialEntryList,
+      credentialProveList,
+      linkSecret,
+      schemas,
+      schemaIds,
+      credentialDefinitions,
+      credentialDefinitionIds,
+      w3cVersion,
+      ret
+    )
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public verifyW3cPresentation(options: {
+    presentation: ObjectHandle
+    presentationRequest: ObjectHandle
+    schemas: ObjectHandle[]
+    schemaIds: string[]
+    credentialDefinitions: ObjectHandle[]
+    credentialDefinitionIds: string[]
+    revocationRegistryDefinitions?: ObjectHandle[]
+    revocationRegistryDefinitionIds?: string[]
+    revocationStatusLists?: ObjectHandle[]
+    nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]
+  }): boolean {
+    const {
+      presentation,
+      presentationRequest,
+      schemas,
+      credentialDefinitions,
+      revocationRegistryDefinitions,
+      revocationStatusLists,
+      revocationRegistryDefinitionIds,
+      schemaIds,
+      credentialDefinitionIds
+    } = serializeArguments(options)
+
+    const nonRevokedIntervalOverrideList = this.convertNonRevokedIntervalOverrides(options.nonRevokedIntervalOverrides)
+
+    const ret = allocateInt8Buffer()
+
+    this.nativeAnoncreds.anoncreds_verify_w3c_presentation(
+      presentation,
+      presentationRequest,
+      schemas,
+      schemaIds,
+      credentialDefinitions,
+      credentialDefinitionIds,
+      revocationRegistryDefinitions,
+      revocationRegistryDefinitionIds,
+      revocationStatusLists,
+      nonRevokedIntervalOverrideList,
+      ret
+    )
+    this.handleError()
+
+    return Boolean(handleReturnPointer<number>(ret))
+  }
+
+  public credentialToW3c(options: {
+    objectHandle: ObjectHandle
+    credentialDefinition: ObjectHandle
+    w3cVersion?: string
+  }): ObjectHandle {
+    const { objectHandle, credentialDefinition, w3cVersion } = serializeArguments(options)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_credential_to_w3c(objectHandle, credentialDefinition, w3cVersion, ret)
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public credentialFromW3c(options: { objectHandle: ObjectHandle }): ObjectHandle {
+    const { objectHandle } = serializeArguments(options)
+
+    const ret = allocatePointer()
+
+    this.nativeAnoncreds.anoncreds_credential_from_w3c(objectHandle, ret)
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public w3cCredentialGetIntegrityProofDetails(options: { objectHandle: ObjectHandle }) {
+    const { objectHandle } = serializeArguments(options)
+
+    const ret = allocatePointer()
+    this.nativeAnoncreds.anoncreds_w3c_credential_get_integrity_proof_details(objectHandle, ret)
+    this.handleError()
+
+    return new ObjectHandle(handleReturnPointer<number>(ret))
+  }
+
+  public w3cCredentialProofGetAttribute(options: { objectHandle: ObjectHandle; name: string }) {
+    const { objectHandle, name } = serializeArguments(options)
+
+    const ret = allocateStringBuffer()
+    this.nativeAnoncreds.anoncreds_w3c_credential_proof_get_attribute(objectHandle, name, ret)
+    this.handleError()
+
+    return handleReturnPointer<string>(ret)
+  }
+
+  public w3cCredentialFromJson(options: { json: string }): ObjectHandle {
+    return this.objectFromJson(this.nativeAnoncreds.anoncreds_w3c_credential_from_json, options)
+  }
+
+  public w3cPresentationFromJson(options: { json: string }): ObjectHandle {
+    return this.objectFromJson(this.nativeAnoncreds.anoncreds_w3c_presentation_from_json, options)
+  }
+
   public version(): string {
     return this.nativeAnoncreds.anoncreds_version()
   }
@@ -737,5 +830,143 @@ export class NodeJSAnoncreds implements Anoncreds {
   public objectFree(options: { objectHandle: ObjectHandle }) {
     this.nativeAnoncreds.anoncreds_object_free(options.objectHandle.handle)
     this.handleError()
+  }
+
+  private convertCredentialList(credentials: NativeCredentialEntry[]) {
+    const credentialEntries = credentials.map((value) =>
+      CredentialEntryStruct({
+        credential: value.credential.handle,
+        timestamp: value.timestamp ?? -1,
+        rev_state: value.revocationState?.handle ?? 0
+      })
+    )
+
+    return CredentialEntryListStruct({
+      count: credentialEntries.length,
+      data: credentialEntries as unknown as TypedArray<
+        StructObject<{
+          credential: number
+          timestamp: number
+          rev_state: number
+        }>
+      >
+    }) as unknown as Buffer
+  }
+
+  private convertCredentialProves(credentialsProve: NativeCredentialProve[]) {
+    const credentialProves = credentialsProve.map((value) => {
+      const { entryIndex: entry_idx, isPredicate: is_predicate, reveal, referent } = serializeArguments(value)
+      return CredentialProveStruct({ entry_idx, referent, is_predicate, reveal })
+    })
+
+    return CredentialProveListStruct({
+      count: credentialProves.length,
+      data: credentialProves as unknown as TypedArray<
+        StructObject<{
+          entry_idx: string | number
+          referent: string
+          is_predicate: number
+          reveal: number
+        }>
+      >
+    }) as unknown as Buffer
+  }
+
+  private convertSchemas(schemas: Record<string, ObjectHandle>) {
+    const schemaKeys = Object.keys(schemas)
+    const schemaIds = StringListStruct({
+      count: schemaKeys.length,
+      data: schemaKeys as unknown as TypedArray<string>
+    }) as unknown as Buffer
+
+    const schemaValues = Object.values(schemas)
+    const schemasList = ObjectHandleListStruct({
+      count: schemaValues.length,
+      data: ObjectHandleArray(schemaValues.map((o) => o.handle))
+    }) as unknown as Buffer
+    return {
+      schemaIds,
+      schemas: schemasList
+    }
+  }
+
+  private convertCredDefs(credentialDefinitions: Record<string, ObjectHandle>) {
+    const credentialDefinitionKeys = Object.keys(credentialDefinitions)
+    const credentialDefinitionIds = StringListStruct({
+      count: credentialDefinitionKeys.length,
+      data: credentialDefinitionKeys as unknown as TypedArray<string>
+    }) as unknown as Buffer
+
+    const credentialDefinitionValues = Object.values(credentialDefinitions)
+    const credentialDefinitionsList = ObjectHandleListStruct({
+      count: credentialDefinitionValues.length,
+      data: ObjectHandleArray(credentialDefinitionValues.map((o) => o.handle))
+    }) as unknown as Buffer
+    return {
+      credentialDefinitionIds,
+      credentialDefinitions: credentialDefinitionsList
+    }
+  }
+
+  private convertNonRevokedIntervalOverrides(nonRevokedIntervalOverrides?: NativeNonRevokedIntervalOverride[]) {
+    const nativeNonRevokedIntervalOverrides = nonRevokedIntervalOverrides?.map((value) => {
+      const { requestedFromTimestamp, revocationRegistryDefinitionId, overrideRevocationStatusListTimestamp } =
+        serializeArguments(value)
+      return NonRevokedIntervalOverrideStruct({
+        rev_reg_def_id: revocationRegistryDefinitionId,
+        requested_from_ts: requestedFromTimestamp,
+        override_rev_status_list_ts: overrideRevocationStatusListTimestamp
+      })
+    })
+
+    return NonRevokedIntervalOverrideListStruct({
+      count: nonRevokedIntervalOverrides?.length ?? 0,
+      data: nativeNonRevokedIntervalOverrides as unknown as TypedArray<
+        StructObject<{
+          rev_reg_def_id: string
+          requested_from_ts: number
+          override_rev_status_list_ts: number
+        }>
+      >
+    }) as unknown as Buffer
+  }
+
+  private convertAttributeNames(attributeRawValues: Record<string, string>) {
+    return StringListStruct({
+      count: Object.keys(attributeRawValues).length,
+      data: Object.keys(attributeRawValues) as unknown as TypedArray<string>
+    }) as unknown as Buffer
+  }
+
+  private convertAttributeRawValues(attributeRawValues: Record<string, string>) {
+    return StringListStruct({
+      count: Object.keys(attributeRawValues).length,
+      data: Object.values(attributeRawValues) as unknown as TypedArray<string>
+    }) as unknown as Buffer
+  }
+
+  private convertAttributeEncodedValues(attributeEncodedValues?: Record<string, string>) {
+    return attributeEncodedValues
+      ? StringListStruct({
+          count: Object.keys(attributeEncodedValues).length,
+          data: Object.values(attributeEncodedValues) as unknown as TypedArray<string>
+        })
+      : undefined
+  }
+
+  private convertRevocationConfiguration(revocationConfiguration?: NativeCredentialRevocationConfig) {
+    let credRevInfo
+    if (revocationConfiguration) {
+      const { revocationRegistryDefinition, revocationRegistryDefinitionPrivate, revocationStatusList, registryIndex } =
+        serializeArguments(revocationConfiguration)
+
+      credRevInfo = CredRevInfoStruct({
+        reg_def: revocationRegistryDefinition,
+        reg_def_private: revocationRegistryDefinitionPrivate,
+        status_list: revocationStatusList,
+        reg_idx: registryIndex
+      })
+    }
+    return credRevInfo
   }
 }

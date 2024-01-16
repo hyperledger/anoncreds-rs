@@ -682,4 +682,217 @@ jsi::Value revocationRegistryDefinitionGetAttribute(jsi::Runtime &rt,
   return createReturnValue(rt, code, &out);
 };
 
+jsi::Value w3cPresentationFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle out;
+  ByteBuffer b = stringToByteBuffer(json);
+
+  ErrorCode code = anoncreds_w3c_presentation_from_json(b, &out);
+  auto returnValue = createReturnValue(rt, code, &out);
+
+  // Free memory
+  delete[] b.data;
+
+  return returnValue;
+};
+
+jsi::Value w3cCredentialFromJson(jsi::Runtime &rt, jsi::Object options) {
+  auto json = jsiToValue<std::string>(rt, options, "json");
+
+  ObjectHandle out;
+  ByteBuffer b = stringToByteBuffer(json);
+
+  ErrorCode code = anoncreds_w3c_credential_from_json(b, &out);
+  auto returnValue = createReturnValue(rt, code, &out);
+
+  // Free memory
+  delete[] b.data;
+
+  return returnValue;
+};
+
+jsi::Value createW3cPresentation(jsi::Runtime &rt, jsi::Object options) {
+  auto presentationRequest =
+      jsiToValue<ObjectHandle>(rt, options, "presentationRequest");
+  auto credentials =
+      jsiToValue<FfiList_FfiCredentialEntry>(rt, options, "credentials");
+  auto credentialsProve =
+      jsiToValue<FfiList_FfiCredentialProve>(rt, options, "credentialsProve");
+  auto linkSecret = jsiToValue<std::string>(rt, options, "linkSecret");
+  auto schemas = jsiToValue<FfiList_ObjectHandle>(rt, options, "schemas");
+  auto schemaIds = jsiToValue<FfiList_FfiStr>(rt, options, "schemaIds");
+  auto credentialDefinitions =
+      jsiToValue<FfiList_ObjectHandle>(rt, options, "credentialDefinitions");
+  auto credentialDefinitionIds =
+      jsiToValue<FfiList_FfiStr>(rt, options, "credentialDefinitionIds");
+  auto w3cVersion =
+      jsiToValue<std::string>(rt, options, "w3cVersion", true);
+
+  ObjectHandle out;
+
+  ErrorCode code = anoncreds_create_w3c_presentation(
+      presentationRequest, credentials, credentialsProve, linkSecret.c_str(),
+      schemas, schemaIds, credentialDefinitions, credentialDefinitionIds,
+      w3cVersion.length() ? w3cVersion.c_str() : nullptr, &out);
+
+  auto returnValue = createReturnValue(rt, code, &out);
+
+  // Free memory
+  delete[] credentials.data;
+  for (int i = 0; i < credentialsProve.count; i++) {
+    delete[] credentialsProve.data[i].referent;
+  }
+  for (int i = 0; i < schemaIds.count; i++) {
+    delete[] schemaIds.data[i];
+  }
+  delete[] schemas.data;
+  for (int i = 0; i < credentialDefinitionIds.count; i++) {
+    delete[] credentialDefinitionIds.data[i];
+  }
+  delete[] credentialDefinitions.data;
+
+  return returnValue;
+};
+
+jsi::Value verifyW3cPresentation(jsi::Runtime &rt, jsi::Object options) {
+  auto presentation = jsiToValue<ObjectHandle>(rt, options, "presentation");
+  auto presentationRequest =
+      jsiToValue<ObjectHandle>(rt, options, "presentationRequest");
+  auto schemas = jsiToValue<FfiList_ObjectHandle>(rt, options, "schemas");
+  auto schemaIds = jsiToValue<FfiList_FfiStr>(rt, options, "schemaIds");
+  auto credentialDefinitions =
+      jsiToValue<FfiList_ObjectHandle>(rt, options, "credentialDefinitions");
+  auto credentialDefinitionIds =
+      jsiToValue<FfiList_FfiStr>(rt, options, "credentialDefinitionIds");
+  auto revocationRegistryDefinitions = jsiToValue<FfiList_ObjectHandle>(
+      rt, options, "revocationRegistryDefinitions", true);
+  auto revocationRegistryDefinitionIds = jsiToValue<FfiList_FfiStr>(
+      rt, options, "revocationRegistryDefinitionIds", true);
+  auto revocationStatusLists = jsiToValue<FfiList_ObjectHandle>(
+      rt, options, "revocationStatusLists", true);
+  auto nonRevokedIntervalOverrides =
+      jsiToValue<FfiList_FfiNonrevokedIntervalOverride>(
+          rt, options, "nonRevokedIntervalOverrides", true);
+
+  int8_t out;
+
+  ErrorCode code = anoncreds_verify_w3c_presentation(
+      presentation, presentationRequest, schemas, schemaIds,
+      credentialDefinitions, credentialDefinitionIds,
+      revocationRegistryDefinitions, revocationRegistryDefinitionIds,
+      revocationStatusLists, nonRevokedIntervalOverrides, &out);
+
+  auto returnValue = createReturnValue(rt, code, &out);
+
+  // Free memory
+  for (int i = 0; i < schemaIds.count; i++) {
+    delete[] schemaIds.data[i];
+  }
+  delete[] schemas.data;
+  for (int i = 0; i < credentialDefinitionIds.count; i++) {
+    delete[] credentialDefinitionIds.data[i];
+  }
+  delete[] credentialDefinitions.data;
+
+  return returnValue;
+};
+
+jsi::Value createW3cCredential(jsi::Runtime &rt, jsi::Object options) {
+  auto credentialDefinition =
+      jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
+  auto credentialDefinitionPrivate =
+      jsiToValue<ObjectHandle>(rt, options, "credentialDefinitionPrivate");
+  auto credentialOffer =
+      jsiToValue<ObjectHandle>(rt, options, "credentialOffer");
+  auto credentialRequest =
+      jsiToValue<ObjectHandle>(rt, options, "credentialRequest");
+  auto attributeNames = jsiToValue<FfiStrList>(rt, options, "attributeNames");
+  auto attributeRawValues =
+      jsiToValue<FfiStrList>(rt, options, "attributeRawValues");
+  auto revocation =
+      jsiToValue<FfiCredRevInfo>(rt, options, "revocationConfiguration", true);
+  auto w3cVersion =
+      jsiToValue<std::string>(rt, options, "w3cVersion", true);
+
+  ObjectHandle out;
+
+  ErrorCode code = anoncreds_create_w3c_credential(
+      credentialDefinition, credentialDefinitionPrivate, credentialOffer,
+      credentialRequest, attributeNames, attributeRawValues,
+      revocation.reg_def ? &revocation : 0,
+      w3cVersion.length() ? w3cVersion.c_str() : nullptr, &out);
+
+  return createReturnValue(rt, code, &out);
+};
+
+jsi::Value w3cCredentialGetIntegrityProofDetails(jsi::Runtime &rt, jsi::Object options) {
+  auto handle = jsiToValue<ObjectHandle>(rt, options, "objectHandle");
+
+  ObjectHandle out;
+
+  ErrorCode code =
+      anoncreds_w3c_credential_get_integrity_proof_details(handle, &out);
+
+  return createReturnValue(rt, code, &out);
+};
+
+jsi::Value w3cCredentialProofGetAttribute(jsi::Runtime &rt, jsi::Object options) {
+  auto handle = jsiToValue<ObjectHandle>(rt, options, "objectHandle");
+  auto name = jsiToValue<std::string>(rt, options, "name");
+
+  const char *out;
+
+  ErrorCode code =
+      anoncreds_w3c_credential_proof_get_attribute(handle, name.c_str(), &out);
+
+  return createReturnValue(rt, code, &out);
+};
+
+jsi::Value processW3cCredential(jsi::Runtime &rt, jsi::Object options) {
+  auto credential = jsiToValue<ObjectHandle>(rt, options, "credential");
+  auto credentialRequestMetadata =
+      jsiToValue<ObjectHandle>(rt, options, "credentialRequestMetadata");
+  auto linkSecret = jsiToValue<std::string>(rt, options, "linkSecret");
+  auto credentialDefinition =
+      jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
+  auto revocationRegistryDefinition = jsiToValue<ObjectHandle>(
+      rt, options, "revocationRegistryDefinition", true);
+
+  ObjectHandle out;
+
+  ErrorCode code = anoncreds_process_w3c_credential(
+      credential, credentialRequestMetadata, linkSecret.c_str(), credentialDefinition,
+      revocationRegistryDefinition, &out);
+
+  return createReturnValue(rt, code, &out);
+};
+
+jsi::Value credentialToW3c(jsi::Runtime &rt, jsi::Object options) {
+  auto credential = jsiToValue<ObjectHandle>(rt, options, "objectHandle");
+  auto credentialDefinition =
+      jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
+  auto w3cVersion =
+      jsiToValue<std::string>(rt, options, "w3cVersion", true);
+
+  ObjectHandle out;
+
+  ErrorCode code = anoncreds_credential_to_w3c(
+      credential, credentialDefinition,
+      w3cVersion.length() ? w3cVersion.c_str() : nullptr, &out);
+
+  return createReturnValue(rt, code, &out);
+};
+
+jsi::Value credentialFromW3c(jsi::Runtime &rt, jsi::Object options) {
+  auto credential = jsiToValue<ObjectHandle>(rt, options, "objectHandle");
+
+  ObjectHandle out;
+
+  ErrorCode code = anoncreds_credential_from_w3c(
+      credential, &out);
+
+  return createReturnValue(rt, code, &out);
+};
+
 } // namespace anoncreds
