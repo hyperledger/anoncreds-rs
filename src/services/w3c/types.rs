@@ -8,7 +8,7 @@ impl MakeCredentialAttributes {
     pub fn add(&mut self, name: impl Into<String>, raw: impl Into<String>) {
         self.0
              .0
-            .insert(name.into(), CredentialAttributeValue::Attribute(raw.into()));
+            .insert(name.into(), CredentialAttributeValue::String(raw.into()));
     }
 }
 

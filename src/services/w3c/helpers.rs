@@ -19,25 +19,31 @@ impl W3CCredential {
             .ok_or_else(|| err_msg!("Credential attribute {} not found", requested_attribute))
     }
 
-    pub(crate) fn get_attribute(&self, requested_attribute: &str) -> Result<(String, String)> {
+    pub(crate) fn get_attribute(
+        &self,
+        requested_attribute: &str,
+    ) -> Result<(String, CredentialAttributeValue)> {
         let (attribute, value) = self.get_case_insensitive_attribute(requested_attribute)?;
         match value {
-            CredentialAttributeValue::Attribute(value) => Ok((attribute, value)),
-            CredentialAttributeValue::Predicate(_) => Err(err_msg!(
+            CredentialAttributeValue::String(_) => Ok((attribute, value)),
+            CredentialAttributeValue::Number(_) => Ok((attribute, value)),
+            CredentialAttributeValue::Bool(_) => Err(err_msg!(
                 "Credential attribute {} not found",
                 requested_attribute
             )),
         }
     }
 
-    pub(crate) fn get_predicate(&self, requested_predicate: &str) -> Result<(String, bool)> {
+    pub(crate) fn get_predicate(
+        &self,
+        requested_predicate: &str,
+    ) -> Result<(String, CredentialAttributeValue)> {
         let (attribute, value) = self.get_case_insensitive_attribute(requested_predicate)?;
         match value {
-            CredentialAttributeValue::Predicate(value) => Ok((attribute, value)),
-            CredentialAttributeValue::Attribute(_) => Err(err_msg!(
-                "Credential predicate {} not found",
-                requested_predicate
-            )),
+            CredentialAttributeValue::Bool(_) => Ok((attribute, value)),
+            CredentialAttributeValue::String(_) | CredentialAttributeValue::Number(_) => Err(
+                err_msg!("Credential predicate {} not found", requested_predicate),
+            ),
         }
     }
 }
