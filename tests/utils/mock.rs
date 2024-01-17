@@ -1,4 +1,5 @@
 use super::storage::{IssuerWallet, Ledger, ProverWallet, StoredCredDef, StoredRevDef};
+use serde::Serialize;
 use serde_json::json;
 use std::{
     collections::{BTreeSet, HashMap},
@@ -58,7 +59,7 @@ pub enum PresentationFormat {
     W3C,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum Presentations {
     Legacy(Presentation),
     W3C(W3CPresentation),
@@ -764,7 +765,8 @@ impl IssuerWallet {
                     cred_def_private,
                     &cred_offer,
                     &cred_request,
-                    CredentialAttributes::from(&cred_values),
+                    CredentialAttributes::try_from(&cred_values)
+                        .expect("Error generating credential attributes"),
                     revocation_config,
                     version,
                 )
@@ -1033,7 +1035,7 @@ impl VerifierWallet {
                 match attribute.expected {
                     ExpectedAttributeValue::RevealedAttribute(expected) => {
                         assert_eq!(
-                            expected,
+                            expected.to_string(),
                             presentation
                                 .requested_proof
                                 .revealed_attrs
@@ -1049,7 +1051,7 @@ impl VerifierWallet {
                             .get(attribute.referent)
                             .unwrap();
                         assert_eq!(
-                            expected,
+                            expected.to_string(),
                             revealed_attr_groups.values.get(attribute.name).unwrap().raw
                         );
                     }
@@ -1088,14 +1090,16 @@ impl VerifierWallet {
                                     .contains_key(&attribute.name.to_lowercase())
                             })
                             .unwrap();
+
                         assert_eq!(
-                            &CredentialAttributeValue::Attribute(expected.to_string()),
+                            expected,
                             credential
                                 .credential_subject
                                 .attributes
                                 .0
                                 .get(&attribute.name.to_lowercase())
                                 .unwrap()
+                                .clone()
                         );
                     }
                     ExpectedAttributeValue::UnrevealedAttribute(expected) => {
@@ -1145,13 +1149,13 @@ pub enum PresentAttributeForm {
 pub struct PresentedAttribute<'a> {
     pub referent: &'a str,
     pub name: &'a str,
-    pub expected: ExpectedAttributeValue<'a>,
+    pub expected: ExpectedAttributeValue,
 }
 
-pub enum ExpectedAttributeValue<'a> {
-    RevealedAttribute(&'a str),
+pub enum ExpectedAttributeValue {
+    RevealedAttribute(CredentialAttributeValue),
     UnrevealedAttribute(u32),
-    GroupedAttribute(&'a str),
+    GroupedAttribute(CredentialAttributeValue),
     Predicate,
 }
 

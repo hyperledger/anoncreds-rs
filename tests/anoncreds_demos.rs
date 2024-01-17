@@ -151,7 +151,9 @@ fn anoncreds_demo_works_for_single_issuer_single_prover(
         PresentedAttribute {
             referent: "attr1_referent",
             name: "name",
-            expected: ExpectedAttributeValue::RevealedAttribute("Alex"),
+            expected: ExpectedAttributeValue::RevealedAttribute(CredentialAttributeValue::String(
+                "Alex".to_string(),
+            )),
         },
     );
 
@@ -169,7 +171,9 @@ fn anoncreds_demo_works_for_single_issuer_single_prover(
         PresentedAttribute {
             referent: "attr3_referent",
             name: "name",
-            expected: ExpectedAttributeValue::GroupedAttribute("Alex"),
+            expected: ExpectedAttributeValue::GroupedAttribute(CredentialAttributeValue::String(
+                "Alex".to_string(),
+            )),
         },
     );
 
@@ -178,7 +182,9 @@ fn anoncreds_demo_works_for_single_issuer_single_prover(
         PresentedAttribute {
             referent: "attr3_referent",
             name: "height",
-            expected: ExpectedAttributeValue::GroupedAttribute("175"),
+            expected: ExpectedAttributeValue::GroupedAttribute(CredentialAttributeValue::Number(
+                175,
+            )),
         },
     );
 }
@@ -851,7 +857,9 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case(
         PresentedAttribute {
             referent: "attr1_referent",
             name: "NAME",
-            expected: ExpectedAttributeValue::RevealedAttribute("Alex"),
+            expected: ExpectedAttributeValue::RevealedAttribute(CredentialAttributeValue::String(
+                "Alex".to_string(),
+            )),
         },
     );
 
@@ -869,7 +877,9 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case(
         PresentedAttribute {
             referent: "attr3_referent",
             name: "NAME",
-            expected: ExpectedAttributeValue::GroupedAttribute("Alex"),
+            expected: ExpectedAttributeValue::GroupedAttribute(CredentialAttributeValue::String(
+                "Alex".to_string(),
+            )),
         },
     );
 
@@ -878,7 +888,9 @@ fn anoncreds_demo_works_for_requested_attribute_in_upper_case(
         PresentedAttribute {
             referent: "attr3_referent",
             name: "HEIGHT",
-            expected: ExpectedAttributeValue::GroupedAttribute("175"),
+            expected: ExpectedAttributeValue::GroupedAttribute(CredentialAttributeValue::Number(
+                175,
+            )),
         },
     );
 
@@ -2964,7 +2976,7 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
     // Verifier verifies presentation
     let presentation = presentation.w3c();
     assert_eq!(
-        &CredentialAttributeValue::Attribute("Alex".to_string()),
+        &CredentialAttributeValue::String("Alex".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -2974,7 +2986,7 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
     );
 
     assert_eq!(
-        CredentialAttributeValue::Predicate(true),
+        CredentialAttributeValue::Bool(true),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3283,7 +3295,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
     // Verifier verifies presentation
     let presentation = presentation.w3c();
     assert_eq!(
-        &CredentialAttributeValue::Attribute("Alex".to_string()),
+        &CredentialAttributeValue::String("Alex".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3293,7 +3305,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
     );
 
     assert_eq!(
-        &CredentialAttributeValue::Attribute("male".to_string()),
+        &CredentialAttributeValue::String("male".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
             .attributes
@@ -3303,7 +3315,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
     );
 
     assert_eq!(
-        &CredentialAttributeValue::Attribute("Developer".to_string()),
+        &CredentialAttributeValue::String("Developer".to_string()),
         presentation.verifiable_credential[1]
             .credential_subject
             .attributes
@@ -3313,7 +3325,7 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
     );
 
     assert_eq!(
-        &CredentialAttributeValue::Attribute("IT".to_string()),
+        &CredentialAttributeValue::String("IT".to_string()),
         presentation.verifiable_credential[1]
             .credential_subject
             .attributes

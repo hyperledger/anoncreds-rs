@@ -108,10 +108,13 @@ fn check_credential_restrictions(
             timestamp: None,
         };
         let filter = gather_filter_info(&identifier, schemas, cred_defs)?;
-        let mut attr_value_map: HashMap<String, Option<&str>> = HashMap::new();
+        let mut attr_value_map: HashMap<String, Option<String>> = HashMap::new();
         for (attribute, value) in credential.credential_subject.attributes.0.iter() {
-            if let CredentialAttributeValue::Attribute(value) = value {
-                attr_value_map.insert(attribute.to_owned(), Some(value));
+            if let CredentialAttributeValue::String(value) = value {
+                attr_value_map.insert(attribute.to_owned(), Some(value.to_string()));
+            }
+            if let CredentialAttributeValue::Number(value) = value {
+                attr_value_map.insert(attribute.to_owned(), Some(value.to_string()));
             }
         }
         process_operator(&attr_value_map, restrictions, &filter).map_err(err_map!(
@@ -194,7 +197,7 @@ fn check_requested_attribute<'a>(
                 .get(index)
                 .ok_or_else(|| err_msg!("Unable to get credential proof for index {}", index))?;
 
-            let encoded = encode_credential_attribute(&value)?;
+            let encoded = encode_credential_attribute(&value.to_string())?;
             if verify_revealed_attribute_value(&attribute, &proof.sub_proof, &encoded).is_err() {
                 continue;
             }
@@ -394,13 +397,13 @@ pub(crate) mod tests {
         CredentialAttributes(HashMap::from([
             (
                 "name".to_string(),
-                CredentialAttributeValue::Attribute("Alice".to_string()),
+                CredentialAttributeValue::String("Alice".to_string()),
             ),
             (
                 "height".to_string(),
-                CredentialAttributeValue::Attribute("178".to_string()),
+                CredentialAttributeValue::String("178".to_string()),
             ),
-            ("age".to_string(), CredentialAttributeValue::Predicate(true)),
+            ("age".to_string(), CredentialAttributeValue::Bool(true)),
         ]))
     }
 

@@ -314,7 +314,7 @@ pub(crate) mod tests {
     pub fn w3c_credential() -> W3CCredential {
         W3CCredential::new(
             issuer_id(),
-            CredentialAttributes::from(&cred_values()),
+            CredentialAttributes::try_from(&cred_values()).unwrap(),
             DataIntegrityProof::new_credential_proof(&credential_signature_proof()).unwrap(),
             None,
         )
@@ -345,9 +345,11 @@ pub(crate) mod tests {
 
         assert_eq!(w3c_credential.context, expected_context.clone());
         assert_eq!(w3c_credential.type_, ANONCREDS_CREDENTIAL_TYPES.clone());
+
+        let expected_attributes = CredentialAttributes::from(&legacy_credential.values);
         assert_eq!(
             w3c_credential.credential_subject.attributes,
-            CredentialAttributes::from(&legacy_credential.values)
+            expected_attributes
         );
 
         let proof = w3c_credential

@@ -432,7 +432,7 @@ pub(crate) fn verify_requested_restrictions(
             })?;
             let filter = gather_filter_info(identifier, schemas, cred_defs)?;
 
-            let attr_value_map: HashMap<String, Option<&str>> = if let Some(name) =
+            let attr_value_map: HashMap<String, Option<String>> = if let Some(name) =
                 info.name.as_ref()
             {
                 let mut map = HashMap::new();
@@ -441,17 +441,17 @@ pub(crate) fn verify_requested_restrictions(
                     requested_proof
                         .revealed_attrs
                         .get(referent)
-                        .map(|attr| attr.raw.as_str()),
+                        .map(|attr| attr.raw.to_string()),
                 );
                 map
             } else if let Some(names) = info.names.as_ref() {
-                let mut map = HashMap::new();
+                let mut map: HashMap<String, Option<String>> = HashMap::new();
                 let attrs = requested_proof
                     .revealed_attr_groups
                     .get(referent)
                     .ok_or_else(|| err_msg!("Proof does not have referent from proof request"))?;
                 for name in names {
-                    let val = attrs.values.get(name).map(|attr| attr.raw.as_str());
+                    let val = attrs.values.get(name).map(|attr| attr.raw.clone());
                     map.insert(name.clone(), val);
                 }
                 map
@@ -484,7 +484,7 @@ pub(crate) fn verify_requested_restrictions(
             let filter = gather_filter_info(identifier, schemas, cred_defs)?;
 
             // start with the predicate requested attribute, which is un-revealed
-            let mut attr_value_map = HashMap::new();
+            let mut attr_value_map: HashMap<String, Option<String>> = HashMap::new();
             attr_value_map.insert(info.name.to_string(), None);
 
             // include any revealed attributes for the same credential (based on sub_proof_index)
@@ -499,7 +499,7 @@ pub(crate) fn verify_requested_restrictions(
                 if pred_sub_proof_index == attr_sub_proof_index {
                     let attr_name = requested_attrs.get(attr_referent).unwrap().name.clone();
                     if let Some(name) = attr_name {
-                        attr_value_map.insert(name, Some(attr_info.raw.as_str()));
+                        attr_value_map.insert(name, Some(attr_info.raw.clone()));
                     }
                 }
             }
@@ -511,7 +511,7 @@ pub(crate) fn verify_requested_restrictions(
                 let attr_sub_proof_index = attr_info.sub_proof_index;
                 if pred_sub_proof_index == attr_sub_proof_index {
                     for name in attr_info.values.keys() {
-                        let raw_val = attr_info.values.get(name).unwrap().raw.as_str();
+                        let raw_val = attr_info.values.get(name).unwrap().raw.clone();
                         attr_value_map.insert(name.to_string(), Some(raw_val));
                     }
                 }
@@ -568,7 +568,7 @@ pub(crate) fn gather_filter_info(
 }
 
 pub(crate) fn process_operator(
-    attr_value_map: &HashMap<String, Option<&str>>,
+    attr_value_map: &HashMap<String, Option<String>>,
     restriction_op: &Query,
     filter: &Filter,
 ) -> Result<()> {
@@ -637,7 +637,7 @@ pub(crate) fn process_operator(
 }
 
 fn process_filter(
-    attr_value_map: &HashMap<String, Option<&str>>,
+    attr_value_map: &HashMap<String, Option<String>>,
     tag: &str,
     tag_value: &str,
     filter: &Filter,
@@ -695,7 +695,7 @@ fn precess_filed(filed: &str, filter_value: impl Into<String>, tag_value: &str) 
     }
 }
 
-fn is_attr_internal_tag(key: &str, attr_value_map: &HashMap<String, Option<&str>>) -> bool {
+fn is_attr_internal_tag(key: &str, attr_value_map: &HashMap<String, Option<String>>) -> bool {
     INTERNAL_TAG_MATCHER.captures(key).map_or(false, |caps| {
         caps.get(1).map_or(false, |s| {
             attr_value_map.contains_key(&s.as_str().to_string())
@@ -706,7 +706,7 @@ fn is_attr_internal_tag(key: &str, attr_value_map: &HashMap<String, Option<&str>
 fn check_internal_tag_revealed_value(
     key: &str,
     tag_value: &str,
-    attr_value_map: &HashMap<String, Option<&str>>,
+    attr_value_map: &HashMap<String, Option<String>>,
 ) -> Result<()> {
     let attr_name = INTERNAL_TAG_MATCHER
         .captures(key)
@@ -1019,7 +1019,7 @@ mod tests {
         revealed_value: Option<&str>,
     ) -> Result<()> {
         let mut attr_value_map = HashMap::new();
-        attr_value_map.insert(attr.to_string(), revealed_value);
+        attr_value_map.insert(attr.to_string(), revealed_value.map(String::from));
         process_operator(&attr_value_map, restriction_op, filter)
     }
 
