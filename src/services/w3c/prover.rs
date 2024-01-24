@@ -10,7 +10,7 @@ use crate::types::{
 };
 use crate::utils::validation::Validatable;
 
-use crate::data_types::w3c::credential_attributes::CredentialAttributes;
+use crate::data_types::w3c::credential_attributes::CredentialSubject;
 use crate::data_types::w3c::proof::{
     CredentialPresentationProofValue, DataIntegrityProof, PresentationProofValue,
 };
@@ -102,7 +102,7 @@ pub fn process_credential(
     trace!("process_w3c_credential >>> credential: {:?}, cred_request_metadata: {:?}, link_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
             w3c_credential, cred_request_metadata, secret!(&link_secret), cred_def, rev_reg_def);
 
-    let cred_values = w3c_credential.credential_subject.attributes.encode()?;
+    let cred_values = w3c_credential.credential_subject.encode()?;
 
     let proof = w3c_credential.get_mut_data_integrity_proof()?;
     let mut credential_signature = proof.get_credential_signature_proof()?;
@@ -161,8 +161,7 @@ pub fn create_presentation(
             continue;
         }
         let credential = present.cred;
-        let credential_values: CredentialValues =
-            credential.credential_subject.attributes.encode()?;
+        let credential_values: CredentialValues = credential.credential_subject.encode()?;
         let proof = credential.get_credential_signature_proof()?;
 
         proof_builder.add_sub_proof(
@@ -220,8 +219,8 @@ pub fn create_presentation(
 fn build_credential_attributes<'p>(
     pres_req: &PresentationRequestPayload,
     credentials: &PresentCredential<'p, W3CCredential>,
-) -> Result<CredentialAttributes> {
-    let mut attributes = CredentialAttributes::default();
+) -> Result<CredentialSubject> {
+    let mut attributes = CredentialSubject::default();
 
     for (referent, reveal) in credentials.requested_attributes.iter() {
         let requested_attribute = pres_req

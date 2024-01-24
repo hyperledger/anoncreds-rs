@@ -1,6 +1,6 @@
 use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::w3c::credential::W3CCredential;
-use crate::data_types::w3c::credential_attributes::CredentialAttributes;
+use crate::data_types::w3c::credential_attributes::CredentialSubject;
 use crate::data_types::w3c::proof::{CredentialSignatureProofValue, DataIntegrityProof};
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::types::Credential;
@@ -100,7 +100,7 @@ pub fn credential_to_w3c(
 
     let credential = credential.try_clone()?;
     let issuer = cred_def.issuer_id.clone();
-    let attributes = CredentialAttributes::from(&credential.values);
+    let attributes = CredentialSubject::from(&credential.values);
     let signature = CredentialSignatureProofValue {
         schema_id: credential.schema_id,
         cred_def_id: credential.cred_def_id,
@@ -207,7 +207,7 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
     w3c_credential.validate()?;
 
     let credential_signature = w3c_credential.get_credential_signature_proof()?;
-    let values = w3c_credential.credential_subject.attributes.encode()?;
+    let values = w3c_credential.credential_subject.encode()?;
 
     let credential = Credential {
         values,
@@ -314,7 +314,7 @@ pub(crate) mod tests {
     pub fn w3c_credential() -> W3CCredential {
         W3CCredential::new(
             issuer_id(),
-            CredentialAttributes::try_from(&cred_values()).unwrap(),
+            CredentialSubject::try_from(&cred_values()).unwrap(),
             DataIntegrityProof::new_credential_proof(&credential_signature_proof()).unwrap(),
             None,
         )
@@ -346,11 +346,8 @@ pub(crate) mod tests {
         assert_eq!(w3c_credential.context, expected_context.clone());
         assert_eq!(w3c_credential.type_, ANONCREDS_CREDENTIAL_TYPES.clone());
 
-        let expected_attributes = CredentialAttributes::from(&legacy_credential.values);
-        assert_eq!(
-            w3c_credential.credential_subject.attributes,
-            expected_attributes
-        );
+        let expected_attributes = CredentialSubject::from(&legacy_credential.values);
+        assert_eq!(w3c_credential.credential_subject, expected_attributes);
 
         let proof = w3c_credential
             .get_credential_signature_proof()

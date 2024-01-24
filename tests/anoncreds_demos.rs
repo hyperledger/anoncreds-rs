@@ -2979,7 +2979,6 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
         &CredentialAttributeValue::String("Alex".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
-            .attributes
             .0
             .get("name")
             .unwrap()
@@ -2989,7 +2988,6 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
         CredentialAttributeValue::Bool(true),
         presentation.verifiable_credential[0]
             .credential_subject
-            .attributes
             .0
             .get("age")
             .cloned()
@@ -3298,7 +3296,6 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
         &CredentialAttributeValue::String("Alex".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
-            .attributes
             .0
             .get("name")
             .unwrap()
@@ -3308,7 +3305,6 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
         &CredentialAttributeValue::String("male".to_string()),
         presentation.verifiable_credential[0]
             .credential_subject
-            .attributes
             .0
             .get("sex")
             .unwrap()
@@ -3318,7 +3314,6 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
         &CredentialAttributeValue::String("Developer".to_string()),
         presentation.verifiable_credential[1]
             .credential_subject
-            .attributes
             .0
             .get("role")
             .unwrap()
@@ -3328,7 +3323,6 @@ fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present
         &CredentialAttributeValue::String("IT".to_string()),
         presentation.verifiable_credential[1]
             .credential_subject
-            .attributes
             .0
             .get("department")
             .unwrap()

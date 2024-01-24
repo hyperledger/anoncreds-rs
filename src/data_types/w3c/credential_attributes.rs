@@ -5,17 +5,17 @@ use std::collections::HashMap;
 use zeroize::Zeroize;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
-pub struct CredentialAttributes(pub HashMap<String, CredentialAttributeValue>);
+pub struct CredentialSubject(pub HashMap<String, CredentialAttributeValue>);
 
 #[cfg(feature = "zeroize")]
-impl Drop for CredentialAttributes {
+impl Drop for CredentialSubject {
     fn drop(&mut self) {
         self.zeroize();
     }
 }
 
 #[cfg(feature = "zeroize")]
-impl Zeroize for CredentialAttributes {
+impl Zeroize for CredentialSubject {
     fn zeroize(&mut self) {
         for attr in self.0.values_mut() {
             if let CredentialAttributeValue::String(attr) = attr {
@@ -25,7 +25,7 @@ impl Zeroize for CredentialAttributes {
     }
 }
 
-impl Validatable for CredentialAttributes {
+impl Validatable for CredentialSubject {
     fn validate(&self) -> std::result::Result<(), ValidationError> {
         if self.0.is_empty() {
             return Err(
@@ -36,9 +36,9 @@ impl Validatable for CredentialAttributes {
     }
 }
 
-impl From<&CredentialValues> for CredentialAttributes {
+impl From<&CredentialValues> for CredentialSubject {
     fn from(values: &CredentialValues) -> Self {
-        CredentialAttributes(
+        CredentialSubject(
             values
                 .0
                 .iter()
@@ -60,7 +60,7 @@ impl From<&CredentialValues> for CredentialAttributes {
     }
 }
 
-impl CredentialAttributes {
+impl CredentialSubject {
     pub(crate) fn add_attribute(&mut self, attribute: String, value: CredentialAttributeValue) {
         self.0.insert(attribute, value);
     }
