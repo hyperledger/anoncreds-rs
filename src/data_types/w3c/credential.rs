@@ -5,7 +5,7 @@ use std::string::ToString;
 
 use crate::data_types::w3c::constants::ANONCREDS_CREDENTIAL_TYPES;
 use crate::data_types::w3c::context::Contexts;
-use crate::data_types::w3c::credential_attributes::CredentialAttributes;
+use crate::data_types::w3c::credential_attributes::CredentialSubject;
 use crate::data_types::w3c::proof::{
     CredentialPresentationProofValue, CredentialSignatureProofValue, DataIntegrityProof,
 };
@@ -46,15 +46,6 @@ pub struct Types(pub HashSet<String>);
 
 pub type IssuanceDate = DateTime<Utc>;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CredentialSubject {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<URI>,
-    #[serde(flatten)]
-    pub attributes: CredentialAttributes,
-}
-
 pub type NonAnonCredsDataIntegrityProof = serde_json::Value;
 
 #[allow(clippy::large_enum_variant)]
@@ -68,7 +59,7 @@ pub enum CredentialProof {
 impl W3CCredential {
     pub fn new(
         issuer: IssuerId,
-        attributes: CredentialAttributes,
+        credential_subject: CredentialSubject,
         proof: DataIntegrityProof,
         version: Option<&VerifiableCredentialSpecVersion>,
     ) -> Self {
@@ -82,10 +73,7 @@ impl W3CCredential {
             type_: ANONCREDS_CREDENTIAL_TYPES.clone(),
             issuance_date,
             issuer,
-            credential_subject: CredentialSubject {
-                id: None,
-                attributes,
-            },
+            credential_subject,
             proof: OneOrMany::Many(vec![CredentialProof::DataIntegrityProof(proof)]),
             valid_from: None,
             id: None,
@@ -93,7 +81,7 @@ impl W3CCredential {
     }
 
     pub(crate) fn derive(
-        attributes: CredentialAttributes,
+        credential_subject: CredentialSubject,
         proof: DataIntegrityProof,
         credential: &W3CCredential,
     ) -> W3CCredential {
@@ -104,10 +92,7 @@ impl W3CCredential {
             id: credential.id.clone(),
             issuance_date: credential.issuance_date,
             valid_from: credential.valid_from,
-            credential_subject: CredentialSubject {
-                id: None,
-                attributes,
-            },
+            credential_subject,
             proof: OneOrMany::One(CredentialProof::DataIntegrityProof(proof)),
         }
     }

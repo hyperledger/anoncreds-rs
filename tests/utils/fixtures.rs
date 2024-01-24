@@ -24,7 +24,7 @@ use super::storage::ProverWallet;
 pub const GVT_SCHEMA_NAME: &str = "Government Schema";
 pub const GVT_SCHEMA_ID: &str = "schema:government";
 pub const GVT_SCHEMA_VERSION: &str = "1.0";
-pub const GVT_SCHEMA_ATTRIBUTES: &[&str; 4] = &["name", "age", "sex", "height"];
+pub const GVT_SCHEMA_ATTRIBUTES: &[&str; 5] = &["id", "name", "age", "sex", "height"];
 
 pub const GVT_CRED_DEF_ID: &str = "creddef:government";
 pub const GVT_CRED_DEF_TAG: &str = "govermenttag";
@@ -196,6 +196,9 @@ pub fn credential_values(name: &str) -> MakeCredentialValues {
         GVT_CRED => {
             let mut gvt_cred_values = MakeCredentialValues::default();
             gvt_cred_values
+                .add_raw("id", "example_id")
+                .expect("Error encoding attribute");
+            gvt_cred_values
                 .add_raw("sex", "male")
                 .expect("Error encoding attribute");
             gvt_cred_values
@@ -230,6 +233,7 @@ pub fn raw_credential_values(name: &str) -> MakeCredentialAttributes {
     match name {
         GVT_CRED => {
             let mut gvt_cred_values = MakeCredentialAttributes::default();
+            gvt_cred_values.add("id", "example_id");
             gvt_cred_values.add("sex", "male");
             gvt_cred_values.add("name", "Alex");
             gvt_cred_values.add("height", "175");

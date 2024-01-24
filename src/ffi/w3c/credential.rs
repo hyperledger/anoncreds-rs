@@ -4,7 +4,7 @@ use std::ffi::c_char;
 use std::ptr;
 
 use crate::data_types::w3c::credential::W3CCredential;
-use crate::data_types::w3c::credential_attributes::CredentialAttributes;
+use crate::data_types::w3c::credential_attributes::CredentialSubject;
 use crate::data_types::w3c::proof::CredentialProofDetails;
 use crate::error::Result;
 use crate::ffi::credential::{FfiCredRevInfo, _link_secret, _revocation_config};
@@ -247,7 +247,7 @@ impl_anoncreds_object!(CredentialProofDetails, "CredentialProofInfo");
 pub(crate) fn _credential_attributes(
     attr_names: FfiStrList,
     attr_raw_values: FfiStrList,
-) -> Result<CredentialAttributes> {
+) -> Result<CredentialSubject> {
     if attr_names.is_empty() {
         return Err(err_msg!("Cannot create credential with no attribute"));
     }

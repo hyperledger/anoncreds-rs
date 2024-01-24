@@ -11,7 +11,6 @@ impl W3CCredential {
     ) -> Result<(String, CredentialAttributeValue)> {
         let requested_attribute = attr_common_view(requested_attribute);
         self.credential_subject
-            .attributes
             .0
             .iter()
             .find(|(attribute, _)| attr_common_view(attribute) == requested_attribute)

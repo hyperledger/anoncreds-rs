@@ -1,6 +1,6 @@
 use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::w3c::credential::W3CCredential;
-use crate::data_types::w3c::credential_attributes::CredentialAttributes;
+use crate::data_types::w3c::credential_attributes::CredentialSubject;
 use crate::data_types::w3c::proof::{CredentialSignatureProofValue, DataIntegrityProof};
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::error::Result;
@@ -86,7 +86,7 @@ pub fn create_credential(
     cred_def_private: &CredentialDefinitionPrivate,
     cred_offer: &CredentialOffer,
     cred_request: &CredentialRequest,
-    raw_credential_values: CredentialAttributes,
+    raw_credential_values: CredentialSubject,
     revocation_config: Option<CredentialRevocationConfig>,
     version: Option<VerifiableCredentialSpecVersion>,
 ) -> Result<W3CCredential> {

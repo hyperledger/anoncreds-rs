@@ -10,7 +10,7 @@ use crate::utils::{fixtures, VerifierWallet};
 use anoncreds::data_types::nonce::Nonce;
 use anoncreds::data_types::w3c::credential::W3CCredential;
 use anoncreds::data_types::w3c::credential_attributes::{
-    CredentialAttributeValue, CredentialAttributes,
+    CredentialAttributeValue, CredentialSubject,
 };
 use anoncreds::data_types::w3c::presentation::W3CPresentation;
 use anoncreds::data_types::w3c::VerifiableCredentialSpecVersion;
@@ -765,7 +765,7 @@ impl IssuerWallet {
                     cred_def_private,
                     &cred_offer,
                     &cred_request,
-                    CredentialAttributes::try_from(&cred_values)
+                    CredentialSubject::try_from(&cred_values)
                         .expect("Error generating credential attributes"),
                     revocation_config,
                     version,
@@ -1085,7 +1085,6 @@ impl VerifierWallet {
                             .find(|credential| {
                                 credential
                                     .credential_subject
-                                    .attributes
                                     .0
                                     .contains_key(&attribute.name.to_lowercase())
                             })
@@ -1095,7 +1094,6 @@ impl VerifierWallet {
                             expected,
                             credential
                                 .credential_subject
-                                .attributes
                                 .0
                                 .get(&attribute.name.to_lowercase())
                                 .unwrap()
@@ -1112,14 +1110,12 @@ impl VerifierWallet {
                             .find(|credential| {
                                 credential
                                     .credential_subject
-                                    .attributes
                                     .0
                                     .contains_key(&attribute.name.to_lowercase())
                             })
                             .unwrap();
                         credential
                             .credential_subject
-                            .attributes
                             .0
                             .get(&attribute.name.to_lowercase())
                             .unwrap();

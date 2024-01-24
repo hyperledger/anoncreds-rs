@@ -109,7 +109,7 @@ fn check_credential_restrictions(
         };
         let filter = gather_filter_info(&identifier, schemas, cred_defs)?;
         let mut attr_value_map: HashMap<String, Option<String>> = HashMap::new();
-        for (attribute, value) in credential.credential_subject.attributes.0.iter() {
+        for (attribute, value) in credential.credential_subject.0.iter() {
             if let CredentialAttributeValue::String(value) = value {
                 attr_value_map.insert(attribute.to_owned(), Some(value.to_string()));
             }
@@ -378,7 +378,7 @@ pub(crate) mod tests {
     use super::*;
     use crate::data_types::nonce::Nonce;
     use crate::data_types::pres_request::{AttributeInfo, PredicateTypes};
-    use crate::data_types::w3c::credential_attributes::CredentialAttributes;
+    use crate::data_types::w3c::credential_attributes::CredentialSubject;
     use crate::data_types::w3c::proof::tests::{
         credential_pres_proof_value, presentation_proof_value,
     };
@@ -393,8 +393,8 @@ pub(crate) mod tests {
     const PROOF_TIMESTAMP_TO: u64 = 50;
     const PROOF_TIMESTAMP: u64 = 50;
 
-    fn credential_attributes() -> CredentialAttributes {
-        CredentialAttributes(HashMap::from([
+    fn credential_attributes() -> CredentialSubject {
+        CredentialSubject(HashMap::from([
             (
                 "name".to_string(),
                 CredentialAttributeValue::String("Alice".to_string()),
@@ -779,9 +779,7 @@ pub(crate) mod tests {
         mut presentation: W3CPresentation,
     ) {
         // empty credential_subject means there is no revealed attributes - only unrevealed
-        presentation.verifiable_credential[0]
-            .credential_subject
-            .attributes = CredentialAttributes::default();
+        presentation.verifiable_credential[0].credential_subject = CredentialSubject::default();
 
         check_request_data(
             &_presentation_request_with_single_attribute(),
