@@ -1,6 +1,6 @@
 {
   "name": "@hyperledger/anoncreds-nodejs",
-  "version": "0.2.0-dev.7",
+  "version": "0.2.0-dev.8",
   "license": "Apache-2.0",
   "description": "Nodejs wrapper for Anoncreds",
   "main": "build/index",
@@ -43,7 +43,7 @@
   "binary": {
     "module_name": "anoncreds",
     "module_path": "native",
-    "remote_path": "v0.2.0-dev.7",
+    "remote_path": "v0.2.0-dev.8",
     "host": "https://github.com/hyperledger/anoncreds-rs/releases/download/",
     "package_name": "library-{platform}-{arch}.tar.gz"
   }
