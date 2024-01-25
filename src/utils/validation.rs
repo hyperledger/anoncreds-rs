@@ -6,7 +6,7 @@ use regex::Regex;
 // Right now everything after the first colon is allowed,
 // we might want to restrict this
 pub static URI_IDENTIFIER: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^[a-zA-Z0-9\+\-\.]+:.+$").unwrap());
+    Lazy::new(|| Regex::new(r"^[a-zA-Z][a-zA-Z0-9\+\-\.]*:.+$").unwrap());
 
 /// base58 alpahet as defined in the [base58
 /// specification](https://datatracker.ietf.org/doc/html/draft-msporny-base58#section-2) This is

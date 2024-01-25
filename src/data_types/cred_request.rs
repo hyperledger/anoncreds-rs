@@ -4,7 +4,7 @@ use crate::cl::{
 };
 use crate::error::{Result, ValidationError};
 use crate::invalid;
-use crate::utils::validation::{Validatable, LEGACY_DID_IDENTIFIER};
+use crate::utils::validation::{is_uri_identifier, Validatable, LEGACY_DID_IDENTIFIER};
 
 use super::{cred_def::CredentialDefinitionId, nonce::Nonce};
 
@@ -34,8 +34,10 @@ impl Validatable for CredentialRequest {
             }
             None => {
                 if self.cred_def_id.is_legacy_cred_def_identifier() {
-                    if let Some(prover_did) = self.prover_did.clone() {
-                        if LEGACY_DID_IDENTIFIER.captures(&prover_did).is_some() {
+                    if let Some(prover_did) = self.prover_did.as_deref() {
+                        if is_uri_identifier(prover_did)
+                            || LEGACY_DID_IDENTIFIER.captures(prover_did).is_some()
+                        {
                             Ok(())
                         } else {
                             Err(invalid!("Prover did was supplied, not valid"))
@@ -118,7 +120,8 @@ mod cred_req_tests {
     const LEGACY_CRED_DEF_IDENTIFIER: &str = "DXoTtQJNtXtiwWaZAK3rB1:3:CL:98153:default";
 
     const ENTROPY: Option<&str> = Some("entropy");
-    const PROVER_DID: Option<&str> = Some(LEGACY_DID_IDENTIFIER);
+    const PROVER_DID_INDY: Option<&str> = Some(LEGACY_DID_IDENTIFIER);
+    const PROVER_DID_URI: Option<&str> = Some(NEW_IDENTIFIER);
     const LINK_SECRET_ID: &str = "link:secret:id";
 
     fn cred_def() -> Result<(CredentialDefinition, CredentialKeyCorrectnessProof)> {
@@ -186,14 +189,34 @@ mod cred_req_tests {
     }
 
     #[test]
-    fn create_credential_request_with_valid_input_legacy() -> Result<()> {
+    fn create_credential_request_with_valid_input_legacy_indy() -> Result<()> {
         let (cred_def, correctness_proof) = cred_def()?;
         let link_secret = link_secret();
         let credential_offer = credential_offer(correctness_proof, true)?;
 
         let res = create_credential_request(
             None,
-            PROVER_DID,
+            PROVER_DID_INDY,
+            &cred_def,
+            &link_secret,
+            LINK_SECRET_ID,
+            &credential_offer,
+        );
+
+        assert!(res.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn create_credential_request_with_valid_input_legacy_uri() -> Result<()> {
+        let (cred_def, correctness_proof) = cred_def()?;
+        let link_secret = link_secret();
+        let credential_offer = credential_offer(correctness_proof, true)?;
+
+        let res = create_credential_request(
+            None,
+            PROVER_DID_URI,
             &cred_def,
             &link_secret,
             LINK_SECRET_ID,
@@ -213,7 +236,7 @@ mod cred_req_tests {
 
         let res = create_credential_request(
             None,
-            PROVER_DID,
+            PROVER_DID_INDY,
             &cred_def,
             &link_secret,
             LINK_SECRET_ID,
@@ -233,7 +256,7 @@ mod cred_req_tests {
 
         let res = create_credential_request(
             ENTROPY,
-            PROVER_DID,
+            PROVER_DID_INDY,
             &cred_def,
             &link_secret,
             LINK_SECRET_ID,
@@ -316,7 +339,7 @@ mod cred_req_tests {
 
         let res = create_credential_request(
             None,
-            PROVER_DID,
+            PROVER_DID_INDY,
             &cred_def,
             &link_secret,
             LINK_SECRET_ID,
