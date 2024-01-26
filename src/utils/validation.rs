@@ -17,10 +17,14 @@ pub static LEGACY_DID_IDENTIFIER: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}$").unwrap());
 
 pub static LEGACY_SCHEMA_IDENTIFIER: Lazy<Regex> =
-    Lazy::new(|| Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}:2:.+:[0-9.]+$").unwrap());
+    Lazy::new(|| Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}:2:[^:]+:[0-9.]+$").unwrap());
 
 pub static LEGACY_CRED_DEF_IDENTIFIER: Lazy<Regex> = Lazy::new(|| {
-    Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}:3:CL:(([1-9][0-9]*)|([a-zA-Z0-9]{21,22}:2:.+:[0-9.]+)):(.+)?$").unwrap()
+    Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}:3:CL:(([1-9][0-9]*)|([a-zA-Z0-9]{21,22}:2:[^:]+:[0-9.]+)):([^:]+)?$").unwrap()
+});
+
+pub static LEGACY_REV_REG_DEF_IDENTIFIER: Lazy<Regex> = Lazy::new(|| {
+    Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}:4:[1-9A-HJ-NP-Za-km-z]{21,22}:3:CL:(([1-9][0-9]*)|([a-zA-Z0-9]{21,22}:2:[^:]+:[0-9.]+)):([^:]+):CL_ACCUM:([^:]+)?$").unwrap()
 });
 
 pub fn is_uri_identifier(id: &str) -> bool {
@@ -53,6 +57,8 @@ mod test_identifiers {
         let valid_uri_identifier = "mock:uri";
         let valid_legacy_schema_identifier = "DXoTtQJNtXtiwWaZAK3rB1:2:example:1.0";
         let valid_legacy_cred_def_identifier = "DXoTtQJNtXtiwWaZAK3rB1:3:CL:98153:default";
+        let valid_legacy_rev_reg_def_identifier =
+            "DXoTtQJNtXtiwWaZAK3rB1:4:DXoTtQJNtXtiwWaZAK3rB1:3:CL:288602:example:CL_ACCUM:default";
         let valid_legacy_did_identifier = "DXoTtQJNtXtiwWaZAK3rB1";
 
         assert!(URI_IDENTIFIER.captures(valid_uri_identifier).is_some());
@@ -61,6 +67,9 @@ mod test_identifiers {
             .is_some());
         assert!(LEGACY_CRED_DEF_IDENTIFIER
             .captures(valid_legacy_cred_def_identifier)
+            .is_some());
+        assert!(LEGACY_REV_REG_DEF_IDENTIFIER
+            .captures(valid_legacy_rev_reg_def_identifier)
             .is_some());
         assert!(LEGACY_DID_IDENTIFIER
             .captures(valid_legacy_did_identifier)
@@ -72,6 +81,7 @@ mod test_identifiers {
         let invalid_uri_identifier = "DXoTtQJNtXtiwWaZAK3rB1";
         let invalid_legacy_schema_identifier = "invalid:id";
         let invalid_legacy_cred_def_identifier = "invalid:id";
+        let invalid_legacy_rev_reg_def_identifier = "invalid:id";
         let invalid_legacy_did_identifier = "invalid:id";
 
         assert!(URI_IDENTIFIER.captures(invalid_uri_identifier).is_none());
@@ -80,6 +90,9 @@ mod test_identifiers {
             .is_none());
         assert!(LEGACY_CRED_DEF_IDENTIFIER
             .captures(invalid_legacy_cred_def_identifier)
+            .is_none());
+        assert!(LEGACY_REV_REG_DEF_IDENTIFIER
+            .captures(invalid_legacy_rev_reg_def_identifier)
             .is_none());
         assert!(LEGACY_DID_IDENTIFIER
             .captures(invalid_legacy_did_identifier)
@@ -90,6 +103,9 @@ mod test_identifiers {
             .is_none());
         assert!(LEGACY_CRED_DEF_IDENTIFIER
             .captures("DXoTtQJNtXtiwWaZAK3rB1:4:CL:98153:default")
+            .is_none());
+        assert!(LEGACY_REV_REG_DEF_IDENTIFIER
+            .captures("DXoTtQJNtXtiwWaZAK3rB1:5:DXoTtQJNtXtiwWaZAK3rB1:3:CL:288602:example:CL_ACCUM:default")
             .is_none());
     }
 }
