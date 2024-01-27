@@ -4,7 +4,7 @@ macro_rules! impl_anoncreds_object_identifier {
         use $crate::error::ValidationError;
         use $crate::utils::validation::{
             Validatable, LEGACY_CRED_DEF_IDENTIFIER, LEGACY_DID_IDENTIFIER,
-            LEGACY_SCHEMA_IDENTIFIER, URI_IDENTIFIER,
+            LEGACY_REV_REG_DEF_IDENTIFIER, LEGACY_SCHEMA_IDENTIFIER, URI_IDENTIFIER,
         };
 
         #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Default)]
@@ -29,6 +29,10 @@ macro_rules! impl_anoncreds_object_identifier {
                 LEGACY_CRED_DEF_IDENTIFIER.captures(&self.0).is_some()
             }
 
+            pub fn is_legacy_rev_reg_def_identifier(&self) -> bool {
+                LEGACY_REV_REG_DEF_IDENTIFIER.captures(&self.0).is_some()
+            }
+
             pub fn is_legacy_schema_identifier(&self) -> bool {
                 LEGACY_SCHEMA_IDENTIFIER.captures(&self.0).is_some()
             }
@@ -44,8 +48,7 @@ macro_rules! impl_anoncreds_object_identifier {
                     "IssuerId" => &LEGACY_DID_IDENTIFIER,
                     "CredentialDefinitionId" => &LEGACY_CRED_DEF_IDENTIFIER,
                     "SchemaId" => &LEGACY_SCHEMA_IDENTIFIER,
-                    // TODO: we do not have correct validation for a revocation registry definition id
-                    "RevocationRegistryDefinitionId" => &LEGACY_DID_IDENTIFIER,
+                    "RevocationRegistryDefinitionId" => &LEGACY_REV_REG_DEF_IDENTIFIER,
                     invalid_name => {
                         return Err($crate::invalid!(
                             "type: {} does not have a validation regex",
