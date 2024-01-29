@@ -1,6 +1,6 @@
 [package]
 name = "anoncreds"
-version = "0.2.0-dev.8"
+version = "0.2.0-dev.9"
 authors = [
     "Hyperledger AnonCreds Contributors <anoncreds@lists.hyperledger.org>",
 ]
