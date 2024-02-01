@@ -11,6 +11,8 @@ pub mod presentation;
 pub mod proof;
 pub mod uri;
 
+mod format;
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum VerifiableCredentialSpecVersion {
     V1_1,

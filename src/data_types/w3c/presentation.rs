@@ -1,18 +1,15 @@
 use serde::{Deserialize, Serialize};
 
-use crate::data_types::w3c::constants::ANONCREDS_PRESENTATION_TYPES;
+use crate::data_types::w3c::constants::{ANONCREDS_PRESENTATION_TYPES, W3C_PRESENTATION_TYPE};
 use crate::data_types::w3c::context::Contexts;
-use crate::data_types::w3c::credential::Types;
-use crate::data_types::w3c::proof::PresentationProofValue;
-use crate::data_types::w3c::proof::{CryptoSuite, DataIntegrityProof};
-use crate::data_types::w3c::{
-    constants::W3C_PRESENTATION_TYPE, credential::W3CCredential, VerifiableCredentialSpecVersion,
-};
+use crate::data_types::w3c::credential::{Types, W3CCredential};
+use crate::data_types::w3c::proof::{DataIntegrityProof, PresentationProofValue};
+use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::Result;
 
 /// AnonCreds W3C Presentation definition
 /// Note, that this definition is tied to AnonCreds W3C form
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct W3CPresentation {
     #[serde(rename = "@context")]
@@ -43,13 +40,8 @@ impl W3CPresentation {
         self.context.version()
     }
 
-    pub fn get_presentation_proof(&self) -> Result<PresentationProofValue> {
-        if self.proof.cryptosuite != CryptoSuite::AnonCredsPresVp2023 {
-            return Err(err_msg!(
-                "Credential does not contain anoncredspresvc-2023 proof"
-            ));
-        }
-        self.proof.get_proof_value()
+    pub fn get_presentation_proof(&self) -> Result<&PresentationProofValue> {
+        self.proof.get_presentation_proof()
     }
 
     pub(crate) fn validate(&self) -> Result<()> {
@@ -60,5 +52,21 @@ impl W3CPresentation {
             ));
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::W3CPresentation;
+
+    #[test]
+    fn serde_w3c_presentation() {
+        let pres_json = include_str!("sample_presentation.json");
+        let pres1: W3CPresentation =
+            serde_json::from_str(&pres_json).expect("Error deserializing w3c presentation");
+        let out_json = serde_json::to_string(&pres1).expect("Error serializing w3c presentation");
+        let pres2: W3CPresentation =
+            serde_json::from_str(&out_json).expect("Error deserializing w3c presentation");
+        assert_eq!(pres1, pres2);
     }
 }

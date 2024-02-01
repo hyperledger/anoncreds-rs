@@ -1,28 +1,18 @@
-use crate::data_types::cred_def::CredentialDefinitionId;
-use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
-use crate::data_types::schema::SchemaId;
-use crate::utils::{base64, msg_pack};
-use crate::Result;
 use anoncreds_clsignatures::{
     AggregatedProof, CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, SubProof,
     Witness,
 };
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use serde::{
+    de::{Error, Visitor},
+    ser::SerializeSeq,
+    Deserialize, Serialize,
+};
 use std::fmt::Debug;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DataIntegrityProof {
-    #[serde(rename = "type")]
-    pub(crate) type_: DataIntegrityProofType,
-    pub(crate) cryptosuite: CryptoSuite,
-    pub(crate) proof_purpose: ProofPurpose,
-    pub(crate) verification_method: String,
-    pub(crate) proof_value: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) challenge: Option<String>,
-}
+use crate::data_types::cred_def::CredentialDefinitionId;
+use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
+use crate::data_types::schema::SchemaId;
+use crate::Result;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DataIntegrityProofType {
@@ -37,19 +27,115 @@ pub enum ProofPurpose {
     Authentication,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DataIntegrityProofValue {
+    CredentialSignature(CredentialSignatureProofValue),
+    CredentialPresentation(CredentialPresentationProofValue),
+    Presentation(PresentationProofValue),
+}
+
+impl Serialize for DataIntegrityProofValue {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut out = serializer.serialize_seq(Some(2))?;
+        match self {
+            Self::CredentialSignature(proof) => {
+                out.serialize_element(&1i32)?;
+                out.serialize_element(proof)?;
+            }
+            Self::CredentialPresentation(proof) => {
+                out.serialize_element(&2i32)?;
+                out.serialize_element(proof)?;
+            }
+            Self::Presentation(proof) => {
+                out.serialize_element(&3i32)?;
+                out.serialize_element(proof)?;
+            }
+        }
+        out.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for DataIntegrityProofValue {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct ProofVisitor;
+
+        impl<'de> Visitor<'de> for ProofVisitor {
+            type Value = DataIntegrityProofValue;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("expected tagged DataIntegrityProof")
+            }
+
+            fn visit_seq<A>(self, mut map: A) -> std::result::Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                let Some(key) = map.next_element()? else {
+                    return Err(A::Error::custom("expected tagged DataIntegrityProof"))
+                };
+                let mut result = match key {
+                    1i32 => map
+                        .next_element()?
+                        .map(DataIntegrityProofValue::CredentialSignature),
+                    2 => map
+                        .next_element()?
+                        .map(DataIntegrityProofValue::CredentialPresentation),
+                    3 => map
+                        .next_element()?
+                        .map(DataIntegrityProofValue::Presentation),
+                    _ => return Err(A::Error::custom("unexpected tag for DataIntegrityProof")),
+                };
+                if map.size_hint().unwrap_or(0) != 0 {
+                    result = None;
+                }
+                result.ok_or_else(|| A::Error::custom("invalid tagged DataIntegrityProof"))
+            }
+        }
+
+        deserializer.deserialize_seq(ProofVisitor)
+    }
+}
+
+impl From<CredentialSignatureProofValue> for DataIntegrityProofValue {
+    fn from(value: CredentialSignatureProofValue) -> Self {
+        Self::CredentialSignature(value)
+    }
+}
+
+impl From<CredentialPresentationProofValue> for DataIntegrityProofValue {
+    fn from(value: CredentialPresentationProofValue) -> Self {
+        Self::CredentialPresentation(value)
+    }
+}
+
+impl From<PresentationProofValue> for DataIntegrityProofValue {
+    fn from(value: PresentationProofValue) -> Self {
+        Self::Presentation(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CryptoSuite {
-    #[serde(rename = "anoncredsvc-2023")]
-    AnonCredsVc2023,
-    #[serde(rename = "anoncredspresvc-2023")]
-    AnonCredsPresVc2023,
-    #[serde(rename = "anoncredspresvp-2023")]
-    AnonCredsPresVp2023,
+#[serde(tag = "cryptosuite", rename = "anoncreds-2023")]
+#[serde(rename_all = "camelCase")]
+pub struct DataIntegrityProof {
+    #[serde(rename = "type")]
+    pub(crate) type_: DataIntegrityProofType,
+    pub(crate) proof_purpose: ProofPurpose,
+    pub(crate) verification_method: String,
+    #[serde(with = "super::format::base64_msgpack")]
+    pub(crate) proof_value: DataIntegrityProofValue,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) challenge: Option<String>,
 }
 
 impl DataIntegrityProof {
-    pub fn new<V: EncodedObject + Serialize>(
-        cryptosuite: CryptoSuite,
+    pub fn new<V: Clone + Into<DataIntegrityProofValue>>(
         proof_purpose: ProofPurpose,
         verification_method: String,
         value: &V,
@@ -57,10 +143,9 @@ impl DataIntegrityProof {
     ) -> Result<Self> {
         Ok(DataIntegrityProof {
             type_: DataIntegrityProofType::DataIntegrityProof,
-            cryptosuite,
             proof_purpose,
             verification_method,
-            proof_value: value.encode()?,
+            proof_value: value.clone().into(),
             challenge,
         })
     }
@@ -69,7 +154,6 @@ impl DataIntegrityProof {
         value: &CredentialSignatureProofValue,
     ) -> Result<DataIntegrityProof> {
         DataIntegrityProof::new(
-            CryptoSuite::AnonCredsVc2023,
             ProofPurpose::AssertionMethod,
             value.cred_def_id.to_string(),
             value,
@@ -81,7 +165,6 @@ impl DataIntegrityProof {
         value: &CredentialPresentationProofValue,
     ) -> Result<DataIntegrityProof> {
         DataIntegrityProof::new(
-            CryptoSuite::AnonCredsPresVc2023,
             ProofPurpose::AssertionMethod,
             value.cred_def_id.to_string(),
             value,
@@ -95,7 +178,6 @@ impl DataIntegrityProof {
         verification_method: String,
     ) -> Result<DataIntegrityProof> {
         DataIntegrityProof::new(
-            CryptoSuite::AnonCredsPresVp2023,
             ProofPurpose::Authentication,
             verification_method,
             value,
@@ -103,86 +185,82 @@ impl DataIntegrityProof {
         )
     }
 
-    pub fn get_proof_value<V: EncodedObject + DeserializeOwned>(&self) -> Result<V> {
-        V::decode(&self.proof_value)
+    pub fn get_proof_value(&self) -> &DataIntegrityProofValue {
+        &self.proof_value
     }
 
-    pub fn get_credential_signature_proof(&self) -> Result<CredentialSignatureProofValue> {
-        if self.cryptosuite != CryptoSuite::AnonCredsVc2023 {
-            return Err(err_msg!(
-                "DataIntegrityProof does not contain {:?} proof",
-                CryptoSuite::AnonCredsVc2023
-            ));
-        }
+    pub fn get_credential_signature_proof(&self) -> Result<&CredentialSignatureProofValue> {
         if self.proof_purpose != ProofPurpose::AssertionMethod {
             return Err(err_msg!(
-                "DataIntegrityProof does not contain {:?} proof",
+                "DataIntegrityProof contains unexpected proof purpose ({:?}), expected {:?}",
+                self.proof_purpose,
                 ProofPurpose::AssertionMethod
             ));
         }
-        self.get_proof_value()
+        match &self.proof_value {
+            DataIntegrityProofValue::CredentialSignature(proof) => Ok(proof),
+            _ => Err(err_msg!(
+                "DataIntegrityProof does not contain credential signature proof"
+            )),
+        }
     }
 
-    pub fn get_credential_presentation_proof(&self) -> Result<CredentialPresentationProofValue> {
-        if self.cryptosuite != CryptoSuite::AnonCredsPresVc2023 {
-            return Err(err_msg!(
-                "DataIntegrityProof does not contain {:?} proof",
-                CryptoSuite::AnonCredsVc2023
-            ));
-        }
+    pub fn get_credential_presentation_proof(&self) -> Result<&CredentialPresentationProofValue> {
         if self.proof_purpose != ProofPurpose::AssertionMethod {
             return Err(err_msg!(
-                "DataIntegrityProof does not contain {:?} proof",
+                "DataIntegrityProof contains unexpected proof purpose ({:?}), expected {:?}",
+                self.proof_purpose,
                 ProofPurpose::AssertionMethod
             ));
         }
-        self.get_proof_value()
+        match &self.proof_value {
+            DataIntegrityProofValue::CredentialPresentation(proof) => Ok(proof),
+            _ => Err(err_msg!(
+                "DataIntegrityProof does not contain credential presentation proof"
+            )),
+        }
     }
 
-    pub fn get_presentation_proof(&self) -> Result<PresentationProofValue> {
-        if self.cryptosuite != CryptoSuite::AnonCredsPresVp2023 {
-            return Err(err_msg!(
-                "DataIntegrityProof does not contain {:?} proof",
-                CryptoSuite::AnonCredsVc2023
-            ));
-        }
+    pub fn get_presentation_proof(&self) -> Result<&PresentationProofValue> {
         if self.proof_purpose != ProofPurpose::Authentication {
             return Err(err_msg!(
-                "DataIntegrityProof does not contain {:?} proof",
+                "DataIntegrityProof contains unexpected proof purpose ({:?}), expected {:?}",
+                self.proof_purpose,
                 ProofPurpose::Authentication
             ));
         }
-        self.get_proof_value()
+        match &self.proof_value {
+            DataIntegrityProofValue::Presentation(proof) => Ok(proof),
+            _ => Err(err_msg!(
+                "DataIntegrityProof does not contain presentation proof"
+            )),
+        }
     }
 
     pub fn get_credential_proof_details(&self) -> Result<CredentialProofDetails> {
-        match self.cryptosuite {
-            CryptoSuite::AnonCredsVc2023 => {
-                let proof = self.get_credential_signature_proof()?;
-                Ok(CredentialProofDetails {
-                    schema_id: proof.schema_id,
-                    cred_def_id: proof.cred_def_id,
-                    rev_reg_id: proof.rev_reg_id,
-                    rev_reg_index: proof.signature.extract_index(),
-                    timestamp: None,
-                })
+        match &self.proof_value {
+            DataIntegrityProofValue::CredentialSignature(proof) => Ok(CredentialProofDetails {
+                schema_id: proof.schema_id.clone(),
+                cred_def_id: proof.cred_def_id.clone(),
+                rev_reg_id: proof.rev_reg_id.clone(),
+                rev_reg_index: proof.signature.extract_index(),
+                timestamp: None,
+            }),
+            DataIntegrityProofValue::CredentialPresentation(proof) => Ok(CredentialProofDetails {
+                schema_id: proof.schema_id.clone(),
+                cred_def_id: proof.cred_def_id.clone(),
+                rev_reg_id: proof.rev_reg_id.clone(),
+                rev_reg_index: None,
+                timestamp: proof.timestamp,
+            }),
+            DataIntegrityProofValue::Presentation(_) => {
+                Err(err_msg!("Unexpected DataIntegrityProof"))
             }
-            CryptoSuite::AnonCredsPresVc2023 => {
-                let proof = self.get_credential_presentation_proof()?;
-                Ok(CredentialProofDetails {
-                    schema_id: proof.schema_id,
-                    cred_def_id: proof.cred_def_id,
-                    rev_reg_id: proof.rev_reg_id,
-                    rev_reg_index: None,
-                    timestamp: proof.timestamp,
-                })
-            }
-            CryptoSuite::AnonCredsPresVp2023 => Err(err_msg!("Unexpected DataIntegrityProof")),
         }
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialSignatureProofValue {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
@@ -196,7 +274,7 @@ pub struct CredentialSignatureProofValue {
     pub witness: Option<Witness>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialPresentationProofValue {
     pub schema_id: SchemaId,
     pub cred_def_id: CredentialDefinitionId,
@@ -207,16 +285,10 @@ pub struct CredentialPresentationProofValue {
     pub sub_proof: SubProof,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PresentationProofValue {
     pub aggregated: AggregatedProof,
 }
-
-impl EncodedObject for CredentialSignatureProofValue {}
-
-impl EncodedObject for CredentialPresentationProofValue {}
-
-impl EncodedObject for PresentationProofValue {}
 
 // Credential information aggregated from `CredentialSignatureProof` and `CredentialPresentationProofValue`
 // This information is needed for presentation creation and verification
@@ -227,34 +299,6 @@ pub struct CredentialProofDetails {
     pub rev_reg_id: Option<RevocationRegistryDefinitionId>,
     pub rev_reg_index: Option<u32>,
     pub timestamp: Option<u64>,
-}
-
-const BASE_HEADER: char = 'u';
-
-pub trait EncodedObject {
-    fn encode(&self) -> Result<String>
-    where
-        Self: Serialize,
-    {
-        let msg_pack_encoded = msg_pack::encode(self)?;
-        let base64_encoded = base64::encode(msg_pack_encoded);
-        Ok(format!("{}{}", BASE_HEADER, base64_encoded))
-    }
-
-    fn decode(string: &str) -> Result<Self>
-    where
-        Self: DeserializeOwned,
-    {
-        match string.chars().next() {
-            Some(BASE_HEADER) => {
-                // ok
-            }
-            value => return Err(err_msg!("Unexpected multibase base header {:?}", value)),
-        }
-        let decoded = base64::decode(&string[1..])?;
-        let obj: Self = msg_pack::decode(&decoded)?;
-        Ok(obj)
-    }
 }
 
 #[cfg(test)]
@@ -374,26 +418,6 @@ pub(crate) mod tests {
         }
     }
 
-    #[derive(Debug, PartialEq, Serialize, Deserialize)]
-    struct TestObject {
-        type_: String,
-        value: i32,
-    }
-
-    impl EncodedObject for TestObject {}
-
-    #[test]
-    fn encoded_object_encode_decode_works() {
-        let obj = TestObject {
-            type_: "Test".to_string(),
-            value: 1,
-        };
-        let encoded = obj.encode().unwrap();
-        assert_eq!("ugqV0eXBlX6RUZXN0pXZhbHVlAQ", encoded);
-        let decoded = TestObject::decode(&encoded).unwrap();
-        assert_eq!(obj, decoded)
-    }
-
     fn credential_proof() -> DataIntegrityProof {
         let credential_proof = credential_signature_proof();
         DataIntegrityProof::new_credential_proof(&credential_proof).unwrap()
@@ -415,29 +439,12 @@ pub(crate) mod tests {
     }
 
     #[rstest]
-    #[case(
-        credential_proof(),
-        ProofPurpose::AssertionMethod,
-        CryptoSuite::AnonCredsVc2023
-    )]
-    #[case(
-        credential_pres_proof(),
-        ProofPurpose::AssertionMethod,
-        CryptoSuite::AnonCredsPresVc2023
-    )]
-    #[case(
-        presentation_proof(),
-        ProofPurpose::Authentication,
-        CryptoSuite::AnonCredsPresVp2023
-    )]
-    fn create_poof_cases(
-        #[case] proof: DataIntegrityProof,
-        #[case] purpose: ProofPurpose,
-        #[case] suite: CryptoSuite,
-    ) {
+    #[case(credential_proof(), ProofPurpose::AssertionMethod)]
+    #[case(credential_pres_proof(), ProofPurpose::AssertionMethod)]
+    #[case(presentation_proof(), ProofPurpose::Authentication)]
+    fn create_proof_cases(#[case] proof: DataIntegrityProof, #[case] purpose: ProofPurpose) {
         assert_eq!(DataIntegrityProofType::DataIntegrityProof, proof.type_);
         assert_eq!(purpose, proof.proof_purpose);
-        assert_eq!(suite, proof.cryptosuite);
         assert_eq!(cred_def_id().to_string(), proof.verification_method);
     }
 
@@ -445,7 +452,7 @@ pub(crate) mod tests {
     #[case(credential_proof(), true, false, false)]
     #[case(credential_pres_proof(), false, true, false)]
     #[case(presentation_proof(), false, false, true)]
-    fn get_poof_value_cases(
+    fn get_proof_value_cases(
         #[case] proof: DataIntegrityProof,
         #[case] is_credential_signature_proof: bool,
         #[case] is_credential_presentation_proof: bool,

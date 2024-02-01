@@ -18,7 +18,7 @@ use crate::Result;
 
 /// AnonCreds W3C Credential definition
 /// Note, that this definition is tied to AnonCreds W3C form
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct W3CCredential {
     #[serde(rename = "@context")]
@@ -49,10 +49,10 @@ pub type IssuanceDate = DateTime<Utc>;
 pub type NonAnonCredsDataIntegrityProof = serde_json::Value;
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum CredentialProof {
-    DataIntegrityProof(DataIntegrityProof),
+    AnonCredsDataIntegrityProof(DataIntegrityProof),
     NonAnonCredsDataIntegrityProof(NonAnonCredsDataIntegrityProof),
 }
 
@@ -74,7 +74,7 @@ impl W3CCredential {
             issuance_date,
             issuer,
             credential_subject,
-            proof: OneOrMany::Many(vec![CredentialProof::DataIntegrityProof(proof)]),
+            proof: OneOrMany::Many(vec![CredentialProof::AnonCredsDataIntegrityProof(proof)]),
             valid_from: None,
             id: None,
         }
@@ -93,7 +93,7 @@ impl W3CCredential {
             issuance_date: credential.issuance_date,
             valid_from: credential.valid_from,
             credential_subject,
-            proof: OneOrMany::One(CredentialProof::DataIntegrityProof(proof)),
+            proof: OneOrMany::One(CredentialProof::AnonCredsDataIntegrityProof(proof)),
         }
     }
 
@@ -101,30 +101,32 @@ impl W3CCredential {
         self.context.version()
     }
 
-    pub fn get_credential_signature_proof(&self) -> Result<CredentialSignatureProofValue> {
+    pub fn get_credential_signature_proof(&self) -> Result<&CredentialSignatureProofValue> {
         self.get_data_integrity_proof()?
             .get_credential_signature_proof()
     }
 
-    pub fn get_credential_presentation_proof(&self) -> Result<CredentialPresentationProofValue> {
+    pub fn get_credential_presentation_proof(&self) -> Result<&CredentialPresentationProofValue> {
         self.get_data_integrity_proof()?
             .get_credential_presentation_proof()
     }
 
     pub(crate) fn get_data_integrity_proof(&self) -> Result<&DataIntegrityProof> {
         self.proof
-            .get_value(&|proof: &CredentialProof| match proof {
-                CredentialProof::DataIntegrityProof(proof) => Ok(proof),
-                _ => Err(err_msg!("Credential does not contain data integrity proof")),
+            .find_value(&|proof: &CredentialProof| match proof {
+                CredentialProof::AnonCredsDataIntegrityProof(proof) => Some(proof),
+                _ => None,
             })
+            .ok_or_else(|| err_msg!("Credential does not contain data integrity proof"))
     }
 
     pub(crate) fn get_mut_data_integrity_proof(&mut self) -> Result<&mut DataIntegrityProof> {
         self.proof
-            .get_mut_value(&|proof: &mut CredentialProof| match proof {
-                CredentialProof::DataIntegrityProof(proof) => Ok(proof),
-                _ => Err(err_msg!("Credential does not contain data integrity proof")),
+            .find_mut_value(&|proof: &mut CredentialProof| match proof {
+                CredentialProof::AnonCredsDataIntegrityProof(proof) => Some(proof),
+                _ => None,
             })
+            .ok_or_else(|| err_msg!("Credential does not contain data integrity proof"))
     }
 
     pub(crate) fn validate(&self) -> Result<()> {
@@ -143,5 +145,21 @@ impl W3CCredential {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::W3CCredential;
+
+    #[test]
+    fn serde_w3c_credential() {
+        let cred_json = include_str!("sample_credential.json");
+        let cred1: W3CCredential =
+            serde_json::from_str(&cred_json).expect("Error deserializing w3c credential");
+        let out_json = serde_json::to_string(&cred1).expect("Error serializing w3c credential");
+        let cred2: W3CCredential =
+            serde_json::from_str(&out_json).expect("Error deserializing w3c credential");
+        assert_eq!(cred1, cred2);
     }
 }
