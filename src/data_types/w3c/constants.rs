@@ -1,8 +1,8 @@
-use crate::data_types::w3c::context::{Context, Contexts};
 use once_cell::sync::Lazy;
 use serde_json::{json, Value};
 use std::collections::HashSet;
 
+use crate::data_types::w3c::context::{Context, Contexts};
 use crate::data_types::w3c::credential::Types;
 use crate::data_types::w3c::uri::URI;
 

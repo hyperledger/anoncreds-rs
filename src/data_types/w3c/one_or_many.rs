@@ -1,7 +1,5 @@
-use crate::error::Result;
-
 /// Helper structure to handle the case when value is either single object or list of objects
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum OneOrMany<T> {
     Many(Vec<T>),
@@ -15,26 +13,20 @@ impl<T> Default for OneOrMany<T> {
 }
 
 impl<T> OneOrMany<T> {
-    pub fn get_value<F>(&self, closure: &dyn Fn(&T) -> Result<&F>) -> Result<&F> {
-        match &self {
+    pub fn find_value<'a, F: 'a>(&'a self, closure: &dyn Fn(&'a T) -> Option<F>) -> Option<F> {
+        match self {
             OneOrMany::One(value) => closure(value),
-            OneOrMany::Many(values) => values
-                .iter()
-                .find_map(|value| closure(value).ok())
-                .ok_or_else(|| err_msg!("Object does not contain required value")),
+            OneOrMany::Many(values) => values.iter().find_map(closure),
         }
     }
 
-    pub(crate) fn get_mut_value<F>(
-        &mut self,
-        closure: &dyn Fn(&mut T) -> Result<&mut F>,
-    ) -> Result<&mut F> {
+    pub(crate) fn find_mut_value<'a, F: 'a>(
+        &'a mut self,
+        closure: &dyn Fn(&'a mut T) -> Option<F>,
+    ) -> Option<F> {
         match self {
             OneOrMany::One(value) => closure(value),
-            OneOrMany::Many(values) => values
-                .iter_mut()
-                .find_map(|value| closure(value).ok())
-                .ok_or_else(|| err_msg!("Object does not contain required value")),
+            OneOrMany::Many(values) => values.iter_mut().find_map(closure),
         }
     }
 }

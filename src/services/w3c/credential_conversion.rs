@@ -206,7 +206,7 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
 
     w3c_credential.validate()?;
 
-    let credential_signature = w3c_credential.get_credential_signature_proof()?;
+    let credential_signature = w3c_credential.get_credential_signature_proof()?.clone();
     let values = w3c_credential.credential_subject.encode()?;
 
     let credential = Credential {

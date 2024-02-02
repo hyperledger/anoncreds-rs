@@ -43,7 +43,7 @@ pub fn verify_presentation(
     let credential_proofs = presentation
         .verifiable_credential
         .iter()
-        .map(W3CCredential::get_credential_presentation_proof)
+        .map(|vc| vc.get_credential_presentation_proof().cloned())
         .collect::<Result<Vec<CredentialPresentationProofValue>>>()?;
 
     // These values are from the prover and cannot be trusted
@@ -84,7 +84,7 @@ pub fn verify_presentation(
 
     let cl_proof = Proof {
         proofs: sub_proofs,
-        aggregated_proof: presentation_proof.aggregated,
+        aggregated_proof: presentation_proof.aggregated.clone(),
     };
     let valid = proof_verifier.verify(&cl_proof)?;
 
@@ -712,9 +712,7 @@ pub(crate) mod tests {
         fn credential_proofs(&self) -> Vec<CredentialPresentationProofValue> {
             self.verifiable_credential
                 .iter()
-                .map(|verifiable_credential| {
-                    verifiable_credential.get_credential_presentation_proof()
-                })
+                .map(|vc| vc.get_credential_presentation_proof().cloned())
                 .collect::<Result<Vec<CredentialPresentationProofValue>>>()
                 .unwrap()
         }

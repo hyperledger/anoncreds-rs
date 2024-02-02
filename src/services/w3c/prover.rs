@@ -105,7 +105,7 @@ pub fn process_credential(
     let cred_values = w3c_credential.credential_subject.encode()?;
 
     let proof = w3c_credential.get_mut_data_integrity_proof()?;
-    let mut credential_signature = proof.get_credential_signature_proof()?;
+    let mut credential_signature = proof.get_credential_signature_proof()?.clone();
 
     CLCredentialProver::new(link_secret).process_credential(
         &mut credential_signature.signature,
