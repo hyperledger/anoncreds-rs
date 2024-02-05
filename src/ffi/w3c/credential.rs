@@ -150,7 +150,7 @@ pub extern "C" fn anoncreds_credential_to_w3c(
         };
 
         let issuer_id = IssuerId::new(issuer_id).expect("Invalid issuer ID");
-        let w3c_credential = credential_to_w3c(credential, issuer_id, w3c_version)?;
+        let w3c_credential = credential_to_w3c(credential, &issuer_id, w3c_version)?;
         let w3c_cred = ObjectHandle::create(w3c_credential)?;
 
         unsafe { *cred_p = w3c_cred };

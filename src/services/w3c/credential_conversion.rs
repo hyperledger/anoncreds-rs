@@ -81,13 +81,13 @@ use crate::Error;
 ///                            None,
 ///                            ).expect("Unable to process the credential");
 ///
-/// let _w3c_credential = w3c::credential_conversion::credential_to_w3c(&credential, &cred_def, None)
+/// let _w3c_credential = w3c::credential_conversion::credential_to_w3c(&credential, &cred_def.issuer_id, None)
 ///                         .expect("Unable to convert credential to w3c form");
 ///
 /// ```
 pub fn credential_to_w3c(
     credential: &Credential,
-    issuer_id: IssuerId,
+    issuer_id: &IssuerId,
     version: Option<VerifiableCredentialSpecVersion>,
 ) -> Result<W3CCredential, Error> {
     trace!(
@@ -228,7 +228,7 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use crate::data_types::cred_def::CredentialDefinitionId;
+    use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
     use crate::data_types::issuer_id::IssuerId;
     use crate::data_types::schema::{Schema, SchemaId};
     use crate::data_types::w3c::constants::ANONCREDS_CREDENTIAL_TYPES;
@@ -325,7 +325,7 @@ pub(crate) mod tests {
         let original_legacy_credential = legacy_credential();
         let w3c_credential = credential_to_w3c(
             &original_legacy_credential,
-            credential_definition().issuer_id,
+            &credential_definition().issuer_id,
             None,
         )
         .expect("unable to convert credential to w3c form");
@@ -344,7 +344,7 @@ pub(crate) mod tests {
         let legacy_credential = legacy_credential();
         let w3c_credential = credential_to_w3c(
             &legacy_credential,
-            credential_definition().issuer_id,
+            &credential_definition().issuer_id,
             Some(version),
         )
         .expect("unable to convert credential to w3c form");
