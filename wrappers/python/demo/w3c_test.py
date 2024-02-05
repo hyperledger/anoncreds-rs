@@ -91,11 +91,11 @@ legacy_cred = Credential.from_w3c(recv_cred)
 print("Legacy Credential `from_w3c`")
 print(legacy_cred.to_json())
 
-w3c_cred = legacy_cred.to_w3c(cred_def_pub)
+w3c_cred = legacy_cred.to_w3c(issuer_id)
 print("W3c converted Credential `to_w3c`")
 print(w3c_cred.to_json())
 
-w3c_cred_restored = W3cCredential.from_legacy(legacy_cred, cred_def_pub)
+w3c_cred_restored = W3cCredential.from_legacy(legacy_cred, issuer_id)
 print("W3C restored Credential `from_legacy`")
 print(w3c_cred_restored.to_json())
 

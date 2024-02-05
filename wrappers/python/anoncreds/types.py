@@ -345,15 +345,13 @@ class Credential(bindings.AnoncredsObject):
 
     def to_w3c(
         self,
-        cred_def: Union[str, CredentialDefinition],
+        issuer_id: str,
         w3c_version: Optional[str] = None,
     ) -> "W3cCredential":
-        if not isinstance(cred_def, bindings.AnoncredsObject):
-            cred_def = CredentialDefinition.load(cred_def)
         return W3cCredential(
             bindings.credential_to_w3c(
                 self.handle,
-                cred_def.handle,
+                issuer_id,
                 w3c_version
             )
         )
@@ -439,10 +437,10 @@ class W3cCredential(bindings.AnoncredsObject):
     def from_legacy(
         cls,
         cred: "Credential",
-        cred_def: Union[str, CredentialDefinition],
+        issuer_id: str,
         w3c_version: Optional[str] = None
     ) -> "W3cCredential":
-        return cred.to_w3c(cred_def, w3c_version)
+        return cred.to_w3c(issuer_id, w3c_version)
 
     def _get_proof_details(self) -> bindings.ObjectHandle:
         if self._proof_details is None:

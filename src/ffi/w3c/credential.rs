@@ -1,3 +1,4 @@
+use crate::data_types::issuer_id::IssuerId;
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use ffi_support::{rust_string_to_c, FfiStr};
 use std::ffi::c_char;
@@ -125,7 +126,7 @@ pub extern "C" fn anoncreds_process_w3c_credential(
 ///
 /// # Params
 /// cred:           object handle pointing to credential in legacy form to convert
-/// cred_def:       object handle pointing to the credential definition
+/// issuer_id:      issuer_id of the credential. Can be extracted from the cred_def and will be used as the `issuer` field in the w3c credential
 /// w3c_version:    version of w3c verifiable credential specification (1.1 or 2.0) to use
 /// cred_p:         reference that will contain converted credential (in W3C form) instance pointer
 ///
@@ -134,7 +135,7 @@ pub extern "C" fn anoncreds_process_w3c_credential(
 #[no_mangle]
 pub extern "C" fn anoncreds_credential_to_w3c(
     cred: ObjectHandle,
-    cred_def: ObjectHandle,
+    issuer_id: FfiStr,
     w3c_version: FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {
@@ -148,8 +149,8 @@ pub extern "C" fn anoncreds_credential_to_w3c(
             None => None,
         };
 
-        let w3c_credential =
-            credential_to_w3c(credential, cred_def.load()?.cast_ref()?, w3c_version)?;
+        let issuer_id = IssuerId::new(issuer_id).expect("Invalid issuer ID");
+        let w3c_credential = credential_to_w3c(credential, issuer_id, w3c_version)?;
         let w3c_cred = ObjectHandle::create(w3c_credential)?;
 
         unsafe { *cred_p = w3c_cred };

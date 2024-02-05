@@ -36,7 +36,7 @@ export type ProcessW3cCredentialOptions = {
 
 export type W3cCredentialFromLegacyOptions = {
   credential: Credential
-  credentialDefinition: CredentialDefinition | JsonObject
+  issuerId: string
   w3cVersion?: string
 }
 
@@ -176,27 +176,12 @@ export class W3cCredential extends AnoncredsObject {
   }
 
   public static fromLegacy(options: W3cCredentialFromLegacyOptions): W3cCredential {
-    let credential
-    // Objects created within this method must be freed up
-    const objectHandles: ObjectHandle[] = []
-    try {
-      const credentialDefinition =
-        options.credentialDefinition instanceof CredentialDefinition
-          ? options.credentialDefinition.handle
-          : pushToArray(CredentialDefinition.fromJson(options.credentialDefinition).handle, objectHandles)
-
-      credential = new W3cCredential(
-        anoncreds.credentialToW3c({
-          objectHandle: options.credential.handle,
-          credentialDefinition,
-          w3cVersion: options.w3cVersion
-        }).handle
-      )
-    } finally {
-      objectHandles.forEach((handle) => {
-        handle.clear()
-      })
-    }
-    return credential
+    return new W3cCredential(
+      anoncreds.credentialToW3c({
+        objectHandle: options.credential.handle,
+        issuerId: options.issuerId,
+        w3cVersion: options.w3cVersion
+      }).handle
+    )
   }
 }

@@ -1,31 +1,31 @@
 ## Design for W3C representation of AnonCreds credentials and presentation
 
-This design document describes how W3C formatted Verifiable Credentials and Presentations are supported in `anoncreds-rs` library. 
+This design document describes how W3C formatted Verifiable Credentials and Presentations are supported in `anoncreds-rs` library.
 
 ### Goals and ideas
 
-* Use legacy styled credentials to generate W3C AnonCreds credentials and presentations
-    * Credentials conversion:
-        * Convert legacy styled AnonCreds credentials into W3C form
-        * Convert W3C styled AnonCreds credentials into legacy form
-    * Presentation conversion (Optional):
-        * Convert legacy styled AnonCreds presentation into W3C form
-        * Convert W3C styled AnonCreds presentation into legacy form
-* Issue AnonCreds credentials in W3C form
-* Create W3C presentations using W3C AnonCreds credentials
-* Verify W3C presentations containing AnonCreds proof
-* Extend W3C credentials:
-    * Ability to set Data Integrity proof signatures for generated W3C credential objects:
-        * W3C credentials may contain multiple signatures
-        * AnonCreds-Rs only generates/handle AnonCreds signatures
-    * Ability to add additional credential metadata
+- Use legacy styled credentials to generate W3C AnonCreds credentials and presentations
+  - Credentials conversion:
+    - Convert legacy styled AnonCreds credentials into W3C form
+    - Convert W3C styled AnonCreds credentials into legacy form
+  - Presentation conversion (Optional):
+    - Convert legacy styled AnonCreds presentation into W3C form
+    - Convert W3C styled AnonCreds presentation into legacy form
+- Issue AnonCreds credentials in W3C form
+- Create W3C presentations using W3C AnonCreds credentials
+- Verify W3C presentations containing AnonCreds proof
+- Extend W3C credentials:
+  - Ability to set Data Integrity proof signatures for generated W3C credential objects:
+    - W3C credentials may contain multiple signatures
+    - AnonCreds-Rs only generates/handle AnonCreds signatures
+  - Ability to add additional credential metadata
 
 #### Out of scope
 
-* Credentials: Verify validity of non-AnonCreds Data Integrity proof signatures
-* Presentations: Create presentations using non-AnonCreds Data Integrity proof signature
-* Presentations: Verify validity of presentations including non-AnonCreds Data Integrity proof signatures
-* Presentations: Support different formats (for example DIF) of Presentation Request
+- Credentials: Verify validity of non-AnonCreds Data Integrity proof signatures
+- Presentations: Create presentations using non-AnonCreds Data Integrity proof signature
+- Presentations: Verify validity of presentations including non-AnonCreds Data Integrity proof signatures
+- Presentations: Support different formats (for example DIF) of Presentation Request
 
 ### Public API
 
@@ -40,15 +40,16 @@ is require application uses conversion methods to get required format.
 These methods allow to solve both cases:
 
 Methods purpose - have to forms of credentials (probably even duplicate in wallet) to cover both cases: legacy and W3C
-* `anoncreds_credential_to_w3c` - create W3C Presentation using a credential previously issued in legacy form
-* `anoncreds_credential_from_w3c` - create a legacy styled presentation (for legacy Verifier) using a credential issued in W3C form
+
+- `anoncreds_credential_to_w3c` - create W3C Presentation using a credential previously issued in legacy form
+- `anoncreds_credential_from_w3c` - create a legacy styled presentation (for legacy Verifier) using a credential issued in W3C form
 
 ```rust
 /// Convert credential in legacy form into W3C AnonCreds credential form
 ///
 /// # Params
 /// cred:           object handle pointing to credential in legacy form to convert
-/// cred_def:       object handle pointing to the credential definition
+/// issuer_id:      issuer_id of the credential. Can be extracted from the cred_def and will be used as the `issuer` field in the w3c credential
 /// w3c_version:    version of w3c verifiable credential specification (1.1 or 2.0) to use
 /// cred_p:         reference that will contain converted credential (in W3C form) instance pointer
 ///
@@ -57,7 +58,7 @@ Methods purpose - have to forms of credentials (probably even duplicate in walle
 #[no_mangle]
 pub extern "C" fn anoncreds_credential_to_w3c(
     cred: ObjectHandle,
-    cred_def: ObjectHandle,
+    issuer_id: FfiStr,
     w3c_version: FfiStr,
     cred_p: *mut ObjectHandle,
 ) -> ErrorCode {}
@@ -90,18 +91,18 @@ So the credentials and presentations themselves are generated using new flow met
 The reasons for adding duplication methods:
 
 - avoid breaking changes in the existing API
-    - for example if we want Credential Offer pointing to the form of a credential to be issued
+  - for example if we want Credential Offer pointing to the form of a credential to be issued
 - clear separation between flows
-    - if a flow targeting issuing of W3C Credential the specific set of function to be used
+  - if a flow targeting issuing of W3C Credential the specific set of function to be used
 - avoid the situation when function result value may be in different forms
-    - example:
-        - issuer creates offer in legacy form but with resulting credential format indication (legacy or w3c )
-        - as the flow execution result, create credential function returns credential either in w3c or legacy form
-          depending on offer
-        - if application analyze credential somehow it cause difficulties
+  - example:
+    - issuer creates offer in legacy form but with resulting credential format indication (legacy or w3c )
+    - as the flow execution result, create credential function returns credential either in w3c or legacy form
+      depending on offer
+    - if application analyze credential somehow it cause difficulties
 - easier deprecation of legacy styled credentials and APIs
 - presentation conversion methods are not needed anymore in this case
-    - only credential conversion method to do migration for previously issued credentials
+  - only credential conversion method to do migration for previously issued credentials
 
 ```rust
 /// Create Credential in W3C form according to the specification.
@@ -172,7 +173,7 @@ pub extern "C" fn anoncreds_w3c_credential_get_integrity_proof_details(
 ) -> ErrorCode {}
 
 /// Create W3C Presentation according to the specification.
-/// 
+///
 /// # Params
 /// pres_req:               object handle pointing to presentation request
 /// credentials:            credentials (in W3C form) to use for presentation preparation
@@ -248,7 +249,7 @@ legacy_credential = Holder.anoncreds_process_credential(legacy_credential,...)
 /// Convert legacy styled credential to W3C credential form
 w3c_credential = Holder.anoncreds_credential_to_w3c(legacy_credential)
 
-/// Do wallets need to store both credential forms to handle legacy and DIF presentations requests?  
+/// Do wallets need to store both credential forms to handle legacy and DIF presentations requests?
 Wallet.store_legacy_credential(legacy_credential)
 Wallet.store_w3c_credential(w3c_credential)
 
@@ -270,7 +271,7 @@ w3c_credential = Holder.anoncreds_w3c_process_credential(w3c_credential,...)
 /// Convert W3C credential to legacy form
 legacy_credential = Holder.anoncreds_credential_from_w3c(w3c_credential)
 
-/// Do wallets need to store both credential forms to handle legacy and DIF presentations requests?  
+/// Do wallets need to store both credential forms to handle legacy and DIF presentations requests?
 Wallet.store_legacy_credential(legacy_credential)
 Wallet.store_w3c_credential(w3c_credential)
 
@@ -289,7 +290,7 @@ w3c_credential_request = Holder.anoncreds_w3c_create_credential_request(w3c_cred
 w3c_credential = Issuer.anoncreds_w3c_create_credential(w3c_credential_request,...)
 w3c_credential = Holder.anoncreds_w3c_process_credential(w3c_credential,...)
 
-/// Do wallets need to store both credential forms to handle legacy and DIF presentations requests?  
+/// Do wallets need to store both credential forms to handle legacy and DIF presentations requests?
 Wallet.store_w3c_credential(w3c_credential)
 
 /// Verifiy W3C presenttion using W3C crdential form
