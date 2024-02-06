@@ -647,11 +647,11 @@ describe('API W3C', () => {
     expect('mock:uri').toEqual(legacyCredentialFrom.schemaId)
     expect('mock:uri').toEqual(legacyCredentialFrom.credentialDefinitionId)
 
-    const w3cCredential = W3cCredential.fromLegacy({ credential: legacyCredential, credentialDefinition })
+    const w3cCredential = W3cCredential.fromLegacy({ credential: legacyCredential, issuerId: 'mock:uri' })
     expect('mock:uri').toEqual(w3cCredential.schemaId)
     expect('mock:uri').toEqual(w3cCredential.credentialDefinitionId)
 
-    const convertedW3cCredential = legacyCredential.toW3c({ credentialDefinition })
+    const convertedW3cCredential = legacyCredential.toW3c({ issuerId: 'mock:uri' })
     expect('mock:uri').toEqual(convertedW3cCredential.schemaId)
     expect('mock:uri').toEqual(convertedW3cCredential.credentialDefinitionId)
 

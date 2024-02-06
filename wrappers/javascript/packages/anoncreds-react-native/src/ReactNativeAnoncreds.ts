@@ -507,11 +507,7 @@ export class ReactNativeAnoncreds implements Anoncreds {
     return new ObjectHandle(handle)
   }
 
-  public credentialToW3c(options: {
-    objectHandle: ObjectHandle
-    credentialDefinition: ObjectHandle
-    w3cVersion?: string
-  }): ObjectHandle {
+  public credentialToW3c(options: { objectHandle: ObjectHandle; issuerId: string; w3cVersion?: string }): ObjectHandle {
     const handle = this.handleError(this.anoncreds.credentialToW3c(serializeArguments(options)))
     return new ObjectHandle(handle)
   }

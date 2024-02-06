@@ -214,11 +214,7 @@ export type NativeBindings = {
 
   w3cCredentialProofGetAttribute(options: { objectHandle: number; name: string }): ReturnObject<string>
 
-  credentialToW3c(options: {
-    objectHandle: number
-    credentialDefinition: number
-    w3cVersion?: string
-  }): ReturnObject<Handle>
+  credentialToW3c(options: { objectHandle: number; issuerId: string; w3cVersion?: string }): ReturnObject<Handle>
 
   credentialFromW3c(options: { objectHandle: number }): ReturnObject<Handle>
 

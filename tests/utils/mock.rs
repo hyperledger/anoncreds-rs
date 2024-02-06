@@ -964,7 +964,7 @@ impl<'a> ProverWallet<'a> {
         match credential {
             Credentials::Legacy(legacy_cred) => {
                 // Convert legacy credential into W3C form
-                let w3c_cred = credential_to_w3c(&legacy_cred, cred_def, None)
+                let w3c_cred = credential_to_w3c(&legacy_cred, &cred_def.issuer_id, None)
                     .expect("Error converting legacy credential into W3C form");
 
                 // Store w3c credential in wallet

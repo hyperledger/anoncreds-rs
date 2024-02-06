@@ -1,4 +1,4 @@
-use crate::data_types::cred_def::CredentialDefinition;
+use crate::data_types::issuer_id::IssuerId;
 use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::credential_attributes::CredentialSubject;
 use crate::data_types::w3c::proof::{CredentialSignatureProofValue, DataIntegrityProof};
@@ -81,25 +81,25 @@ use crate::Error;
 ///                            None,
 ///                            ).expect("Unable to process the credential");
 ///
-/// let _w3c_credential = w3c::credential_conversion::credential_to_w3c(&credential, &cred_def, None)
+/// let _w3c_credential = w3c::credential_conversion::credential_to_w3c(&credential, &cred_def.issuer_id, None)
 ///                         .expect("Unable to convert credential to w3c form");
 ///
 /// ```
 pub fn credential_to_w3c(
     credential: &Credential,
-    cred_def: &CredentialDefinition,
+    issuer_id: &IssuerId,
     version: Option<VerifiableCredentialSpecVersion>,
 ) -> Result<W3CCredential, Error> {
     trace!(
-        "credential_to_w3c >>> credential: {:?}, cred_def: {:?}",
+        "credential_to_w3c >>> credential: {:?}, issuer_id: {:?}",
         credential,
-        cred_def
+        issuer_id
     );
 
     credential.validate()?;
 
     let credential = credential.try_clone()?;
-    let issuer = cred_def.issuer_id.clone();
+    let issuer = issuer_id.clone();
     let attributes = CredentialSubject::from(&credential.values);
     let signature = CredentialSignatureProofValue {
         schema_id: credential.schema_id,
@@ -228,7 +228,7 @@ pub fn credential_from_w3c(w3c_credential: &W3CCredential) -> Result<Credential,
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use crate::data_types::cred_def::CredentialDefinitionId;
+    use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
     use crate::data_types::issuer_id::IssuerId;
     use crate::data_types::schema::{Schema, SchemaId};
     use crate::data_types::w3c::constants::ANONCREDS_CREDENTIAL_TYPES;
@@ -323,9 +323,12 @@ pub(crate) mod tests {
     #[test]
     fn test_convert_credential_to_and_from_w3c() {
         let original_legacy_credential = legacy_credential();
-        let w3c_credential =
-            credential_to_w3c(&original_legacy_credential, &credential_definition(), None)
-                .expect("unable to convert credential to w3c form");
+        let w3c_credential = credential_to_w3c(
+            &original_legacy_credential,
+            &credential_definition().issuer_id,
+            None,
+        )
+        .expect("unable to convert credential to w3c form");
         let legacy_credential = credential_from_w3c(&w3c_credential)
             .expect("unable to convert credential to legacy form");
         assert_eq!(json!(original_legacy_credential), json!(legacy_credential),)
@@ -339,9 +342,12 @@ pub(crate) mod tests {
         #[case] expected_context: Contexts,
     ) {
         let legacy_credential = legacy_credential();
-        let w3c_credential =
-            credential_to_w3c(&legacy_credential, &credential_definition(), Some(version))
-                .expect("unable to convert credential to w3c form");
+        let w3c_credential = credential_to_w3c(
+            &legacy_credential,
+            &credential_definition().issuer_id,
+            Some(version),
+        )
+        .expect("unable to convert credential to w3c form");
 
         assert_eq!(w3c_credential.context, expected_context.clone());
         assert_eq!(w3c_credential.type_, ANONCREDS_CREDENTIAL_TYPES.clone());

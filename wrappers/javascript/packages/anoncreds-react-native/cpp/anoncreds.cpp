@@ -870,15 +870,15 @@ jsi::Value processW3cCredential(jsi::Runtime &rt, jsi::Object options) {
 
 jsi::Value credentialToW3c(jsi::Runtime &rt, jsi::Object options) {
   auto credential = jsiToValue<ObjectHandle>(rt, options, "objectHandle");
-  auto credentialDefinition =
-      jsiToValue<ObjectHandle>(rt, options, "credentialDefinition");
+  auto issuerId =
+      jsiToValue<std::string>(rt, options, "issuerId");
   auto w3cVersion =
       jsiToValue<std::string>(rt, options, "w3cVersion", true);
 
   ObjectHandle out;
 
   ErrorCode code = anoncreds_credential_to_w3c(
-      credential, credentialDefinition,
+      credential, issuerId.c_str(),
       w3cVersion.length() ? w3cVersion.c_str() : nullptr, &out);
 
   return createReturnValue(rt, code, &out);

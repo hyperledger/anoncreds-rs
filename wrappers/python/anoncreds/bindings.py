@@ -1018,14 +1018,14 @@ def process_w3c_credential(
 
 def credential_to_w3c(
     cred: ObjectHandle,
-    cred_def: ObjectHandle,
+    issuer_id: str,
     w3c_version: Optional[str],
 ) -> ObjectHandle:
     result = ObjectHandle()
     do_call(
         "anoncreds_credential_to_w3c",
         cred,
-        cred_def,
+        encode_str(issuer_id),
         encode_str(w3c_version),
         byref(result),
     )
