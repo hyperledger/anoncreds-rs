@@ -1,6 +1,6 @@
 {
   "name": "@hyperledger/anoncreds-shared",
-  "version": "0.2.0-dev.10",
+  "version": "0.2.0-dev.11",
   "license": "Apache-2.0",
   "description": "Anoncreds wrapper library with NodeJS and React Native",
   "main": "build/index",
