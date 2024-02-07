@@ -4,7 +4,6 @@ use anoncreds::verifier;
 use rstest::rstest;
 use serde_json::json;
 use std::collections::{BTreeSet, HashMap};
-use anoncreds::w3c::credential_conversion::{credential_from_w3c, credential_to_w3c};
 
 use utils::*;
 
@@ -3043,15 +3042,7 @@ fn anoncreds_demo_works_for_issue_w3c_credential_convert_into_legacy_and_present
         None,
     );
 
-    println!("recv_cred {}", json!(recv_cred.w3c()).to_string());
-
     // Convert W3C credential into legacy form
-    let legacy_cred = credential_from_w3c(&recv_cred.w3c())
-        .expect("Error converting legacy credential into W3C form");
-    let w3c_cred = credential_to_w3c(&legacy_cred, &gvt_cred_def.issuer_id, None)
-        .expect("Error converting legacy credential into W3C form");
-    println!("w3c_cred {}", json!(w3c_cred).to_string());
-
     prover_wallet.convert_credential(GVT_CRED, &recv_cred, &gvt_cred_def);
 
     // Create and Verify legacy presentation using converted credential
