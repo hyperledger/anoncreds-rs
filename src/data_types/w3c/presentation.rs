@@ -11,6 +11,7 @@ use crate::Result;
 /// Note, that this definition is tied to AnonCreds W3C form
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct W3CPresentation {
     #[serde(rename = "@context")]
     pub context: Contexts,
@@ -68,5 +69,17 @@ mod tests {
         let pres2: W3CPresentation =
             serde_json::from_str(&out_json).expect("Error deserializing w3c presentation");
         assert_eq!(pres1, pres2);
+    }
+
+    #[test]
+    fn serde_w3c_presentation_deny_unknown() {
+        let pres_json = include_str!("sample_presentation.json");
+        let mut pres: serde_json::Value =
+            serde_json::from_str(pres_json).expect("Error deserializing w3c presentation");
+        pres.as_object_mut()
+            .unwrap()
+            .insert("prop".into(), "val".into());
+        let res = serde_json::from_value::<W3CPresentation>(pres);
+        assert!(res.is_err());
     }
 }

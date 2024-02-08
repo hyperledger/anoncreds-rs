@@ -20,6 +20,7 @@ use crate::Result;
 /// Note, that this definition is tied to AnonCreds W3C form
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct W3CCredential {
     #[serde(rename = "@context")]
     pub context: Contexts,
@@ -161,5 +162,17 @@ mod tests {
         let cred2: W3CCredential =
             serde_json::from_str(&out_json).expect("Error deserializing w3c credential");
         assert_eq!(cred1, cred2);
+    }
+
+    #[test]
+    fn serde_w3c_credential_deny_unknown() {
+        let cred_json = include_str!("sample_credential.json");
+        let mut cred: serde_json::Value =
+            serde_json::from_str(cred_json).expect("Error deserializing w3c credential");
+        cred.as_object_mut()
+            .unwrap()
+            .insert("prop".into(), "val".into());
+        let res = serde_json::from_value::<W3CCredential>(cred);
+        assert!(res.is_err());
     }
 }
