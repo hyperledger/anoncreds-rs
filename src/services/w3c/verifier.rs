@@ -370,6 +370,24 @@ fn check_request_data(
         )?;
     }
 
+    for (cred, proof) in presentation
+        .verifiable_credential
+        .as_slice()
+        .iter()
+        .zip(credential_proofs)
+    {
+        let Some(cred_def_issuer) = cred_defs.get(&proof.cred_def_id).map(|cd| &cd.issuer_id) else {
+            return Err(err_msg!("Missing credential definition"));
+        };
+        if cred_def_issuer != &cred.issuer {
+            return Err(err_msg!("Inconsistent issuer ID"));
+        }
+        let di_proof = cred.get_data_integrity_proof()?;
+        if di_proof.verification_method != proof.cred_def_id.0 {
+            return Err(err_msg!("Inconsistent credential definition ID"));
+        }
+    }
+
     Ok(())
 }
 
@@ -887,6 +905,52 @@ pub(crate) mod tests {
             &schemas,
             &cred_defs,
             Some(&interval_override),
+            &presentation.credential_proofs(),
+        )
+        .unwrap_err();
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
+
+    #[rstest]
+    #[case(_presentation_request_with_single_attribute())]
+    fn test_check_cred_def_id_mismatch_fails(
+        schemas: HashMap<SchemaId, Schema>,
+        cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
+        presentation: W3CPresentation,
+        #[case] presentation_request: PresentationRequestPayload,
+    ) {
+        let mut cred_proofs = presentation.credential_proofs();
+        cred_proofs[0].cred_def_id = "other:id".try_into().unwrap();
+
+        let err = check_request_data(
+            &presentation_request,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
+            &cred_proofs,
+        )
+        .unwrap_err();
+        assert_eq!(ErrorKind::Input, err.kind());
+    }
+
+    #[rstest]
+    #[case(_presentation_request_with_single_attribute())]
+    fn test_check_issuer_id_mismatch_fails(
+        schemas: HashMap<SchemaId, Schema>,
+        mut cred_defs: HashMap<CredentialDefinitionId, CredentialDefinition>,
+        presentation: W3CPresentation,
+        #[case] presentation_request: PresentationRequestPayload,
+    ) {
+        let cred_def = cred_defs.iter_mut().next().unwrap().1;
+        cred_def.issuer_id = "other:id".try_into().unwrap();
+
+        let err = check_request_data(
+            &presentation_request,
+            &presentation,
+            &schemas,
+            &cred_defs,
+            None,
             &presentation.credential_proofs(),
         )
         .unwrap_err();
