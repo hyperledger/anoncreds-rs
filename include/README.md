@@ -29,5 +29,5 @@ cbindgen --config include/cbindgen.toml --crate anoncreds --output include/liban
 5. Copy to React Native:
 
 ```sh
-cp include/libanoncreds.h wrappers/javascript/anoncreds-react-native/cpp/include/
+cp include/libanoncreds.h wrappers/javascript/packages/anoncreds-react-native/cpp/include/
 ```
