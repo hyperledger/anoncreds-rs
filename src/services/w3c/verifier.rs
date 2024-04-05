@@ -376,7 +376,8 @@ fn check_request_data(
         .iter()
         .zip(credential_proofs)
     {
-        let Some(cred_def_issuer) = cred_defs.get(&proof.cred_def_id).map(|cd| &cd.issuer_id) else {
+        let Some(cred_def_issuer) = cred_defs.get(&proof.cred_def_id).map(|cd| &cd.issuer_id)
+        else {
             return Err(err_msg!("Missing credential definition"));
         };
         if cred_def_issuer != &cred.issuer {

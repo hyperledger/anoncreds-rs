@@ -77,7 +77,7 @@ impl<'de> Deserialize<'de> for DataIntegrityProofValue {
                 A: serde::de::SeqAccess<'de>,
             {
                 let Some(key) = map.next_element()? else {
-                    return Err(A::Error::custom("expected tagged DataIntegrityProof"))
+                    return Err(A::Error::custom("expected tagged DataIntegrityProof"));
                 };
                 let mut result = match key {
                     1i32 => map
