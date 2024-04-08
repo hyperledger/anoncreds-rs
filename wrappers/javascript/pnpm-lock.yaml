@@ -66,10 +66,10 @@ importers:
   packages/anoncreds-nodejs:
     dependencies:
       '@2060.io/ffi-napi':
-        specifier: 4.0.9
+        specifier: ^4.0.9
         version: 4.0.9
       '@2060.io/ref-napi':
-        specifier: 3.0.6
+        specifier: ^3.0.6
         version: 3.0.6
       '@hyperledger/anoncreds-shared':
         specifier: workspace:*
