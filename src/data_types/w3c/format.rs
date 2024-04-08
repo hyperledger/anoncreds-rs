@@ -37,12 +37,15 @@ pub mod base64_msgpack {
             where
                 E: serde::de::Error,
             {
-                let Some(obj) = v.strip_prefix(BASE_HEADER).and_then(|v| {
-                    base64::decode(v).ok()
-                }).and_then(|v| {
-                    msg_pack::decode(&v).ok()
-                }) else {
-                    return Err(E::custom(format!("Unexpected multibase base header: {:?}", v)))
+                let Some(obj) = v
+                    .strip_prefix(BASE_HEADER)
+                    .and_then(|v| base64::decode(v).ok())
+                    .and_then(|v| msg_pack::decode(&v).ok())
+                else {
+                    return Err(E::custom(format!(
+                        "Unexpected multibase base header: {:?}",
+                        v
+                    )));
                 };
                 Ok(obj)
             }
