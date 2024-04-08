@@ -27,8 +27,8 @@
     "install": "node scripts/install.js"
   },
   "dependencies": {
-    "@2060.io/ffi-napi": "4.0.8",
-    "@2060.io/ref-napi": "3.0.6",
+    "@2060.io/ffi-napi": "^4.0.9",
+    "@2060.io/ref-napi": "^3.0.6",
     "@hyperledger/anoncreds-shared": "workspace:*",
     "@mapbox/node-pre-gyp": "^1.0.11",
     "ref-array-di": "1.2.2",
