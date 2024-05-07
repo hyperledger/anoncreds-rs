@@ -173,7 +173,13 @@ macro_rules! impl_anoncreds_object_identifier {
 
 #[cfg(test)]
 mod test_legacy_id_matching {
-    use crate::{data_types::{cred_def::CredentialDefinitionId, rev_reg_def::RevocationRegistryDefinitionId, schema::SchemaId}, error::ValidationError};
+    use crate::{
+        data_types::{
+            cred_def::CredentialDefinitionId, rev_reg_def::RevocationRegistryDefinitionId,
+            schema::SchemaId,
+        },
+        error::ValidationError,
+    };
 
     // use super::*;
     #[test]
@@ -185,13 +191,20 @@ mod test_legacy_id_matching {
         assert!(did_indy_schema_id.eq(&legacy_indy_schema_id));
 
         // test cred def id matching
-        let did_indy_cred_def_id = CredentialDefinitionId::new("did:indy:sovrin:5nDyJVP1NrcPAttP3xwMB9/anoncreds/v0/CLAIM_DEF/56495/npdb")?;
-        let legacy_indy_cred_def_id = CredentialDefinitionId::new("5nDyJVP1NrcPAttP3xwMB9:3:CL:56495:npdb")?;
+        let did_indy_cred_def_id = CredentialDefinitionId::new(
+            "did:indy:sovrin:5nDyJVP1NrcPAttP3xwMB9/anoncreds/v0/CLAIM_DEF/56495/npdb",
+        )?;
+        let legacy_indy_cred_def_id =
+            CredentialDefinitionId::new("5nDyJVP1NrcPAttP3xwMB9:3:CL:56495:npdb")?;
         assert!(did_indy_cred_def_id.eq(&legacy_indy_cred_def_id));
 
         // test rev reg def id matching
-        let did_indy_rev_reg_def_id = RevocationRegistryDefinitionId::new("did:indy:sovrin:5nDyJVP1NrcPAttP3xwMB9/anoncreds/v0/REV_REG_DEF/56495/npdb/TAG1")?;
-        let legacy_indy_rev_reg_def_id = RevocationRegistryDefinitionId::new("5nDyJVP1NrcPAttP3xwMB9:4:5nDyJVP1NrcPAttP3xwMB9:3:CL:56495:npdb:CL_ACCUM:TAG1")?;
+        let did_indy_rev_reg_def_id = RevocationRegistryDefinitionId::new(
+            "did:indy:sovrin:5nDyJVP1NrcPAttP3xwMB9/anoncreds/v0/REV_REG_DEF/56495/npdb/TAG1",
+        )?;
+        let legacy_indy_rev_reg_def_id = RevocationRegistryDefinitionId::new(
+            "5nDyJVP1NrcPAttP3xwMB9:4:5nDyJVP1NrcPAttP3xwMB9:3:CL:56495:npdb:CL_ACCUM:TAG1",
+        )?;
         assert!(did_indy_rev_reg_def_id.eq(&legacy_indy_rev_reg_def_id));
         Ok(())
     }
@@ -211,18 +224,28 @@ mod test_legacy_id_matching {
         assert_eq!(map.get(&legacy_indy_schema_id), Some(&"schema_id2"));
 
         // test cred def id matching
-        let did_indy_cred_def_id = CredentialDefinitionId::new("did:indy:sovrin:5nDyJVP1NrcPAttP3xwMB9/anoncreds/v0/CLAIM_DEF/56495/npdb")?;
-        let legacy_indy_cred_def_id = CredentialDefinitionId::new("5nDyJVP1NrcPAttP3xwMB9:3:CL:56495:npdb")?;
+        let did_indy_cred_def_id = CredentialDefinitionId::new(
+            "did:indy:sovrin:5nDyJVP1NrcPAttP3xwMB9/anoncreds/v0/CLAIM_DEF/56495/npdb",
+        )?;
+        let legacy_indy_cred_def_id =
+            CredentialDefinitionId::new("5nDyJVP1NrcPAttP3xwMB9:3:CL:56495:npdb")?;
         let mut map = HashMap::new();
         map.insert(did_indy_cred_def_id, "cred_def_id");
         assert_eq!(map.get(&legacy_indy_cred_def_id), Some(&"cred_def_id"));
 
         // test rev reg def id matching
-        let did_indy_rev_reg_def_id = RevocationRegistryDefinitionId::new("did:indy:sovrin:5nDyJVP1NrcPAttP3xwMB9/anoncreds/v0/REV_REG_DEF/56495/npdb/TAG1")?;
-        let legacy_indy_rev_reg_def_id = RevocationRegistryDefinitionId::new("5nDyJVP1NrcPAttP3xwMB9:4:5nDyJVP1NrcPAttP3xwMB9:3:CL:56495:npdb:CL_ACCUM:TAG1")?;
+        let did_indy_rev_reg_def_id = RevocationRegistryDefinitionId::new(
+            "did:indy:sovrin:5nDyJVP1NrcPAttP3xwMB9/anoncreds/v0/REV_REG_DEF/56495/npdb/TAG1",
+        )?;
+        let legacy_indy_rev_reg_def_id = RevocationRegistryDefinitionId::new(
+            "5nDyJVP1NrcPAttP3xwMB9:4:5nDyJVP1NrcPAttP3xwMB9:3:CL:56495:npdb:CL_ACCUM:TAG1",
+        )?;
         let mut map = HashMap::new();
         map.insert(did_indy_rev_reg_def_id, "rev_reg_def_id");
-        assert_eq!(map.get(&legacy_indy_rev_reg_def_id), Some(&"rev_reg_def_id"));
+        assert_eq!(
+            map.get(&legacy_indy_rev_reg_def_id),
+            Some(&"rev_reg_def_id")
+        );
         Ok(())
     }
 }
