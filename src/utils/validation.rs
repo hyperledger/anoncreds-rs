@@ -17,14 +17,14 @@ pub static LEGACY_DID_IDENTIFIER: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}$").unwrap());
 
 pub static LEGACY_SCHEMA_IDENTIFIER: Lazy<Regex> =
-    Lazy::new(|| Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}:2:[^:]+:[0-9.]+$").unwrap());
+    Lazy::new(|| Regex::new("^([1-9A-HJ-NP-Za-km-z]{21,22}):(2):([^:]+):([0-9.]+)$").unwrap());
 
 pub static LEGACY_CRED_DEF_IDENTIFIER: Lazy<Regex> = Lazy::new(|| {
-    Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}:3:CL:(([1-9][0-9]*)|([a-zA-Z0-9]{21,22}:2:[^:]+:[0-9.]+)):([^:]+)?$").unwrap()
+    Regex::new("^([1-9A-HJ-NP-Za-km-z]{21,22}):(3):CL:(?:([1-9][0-9]*)|([a-zA-Z0-9]{21,22}:2:[^:]+:[0-9.]+)):([^:]+)?$").unwrap()
 });
 
 pub static LEGACY_REV_REG_DEF_IDENTIFIER: Lazy<Regex> = Lazy::new(|| {
-    Regex::new("^[1-9A-HJ-NP-Za-km-z]{21,22}:4:[1-9A-HJ-NP-Za-km-z]{21,22}:3:CL:(([1-9][0-9]*)|([a-zA-Z0-9]{21,22}:2:[^:]+:[0-9.]+)):([^:]+):CL_ACCUM:([^:]+)?$").unwrap()
+    Regex::new("^([1-9A-HJ-NP-Za-km-z]{21,22}):(4):[1-9A-HJ-NP-Za-km-z]{21,22}:3:CL:(?:([1-9][0-9]*)|([a-zA-Z0-9]{21,22}:2:[^:]+:[0-9.]+)):([^:]+):CL_ACCUM:([^:]+)?$").unwrap()
 });
 
 pub fn is_uri_identifier(id: &str) -> bool {
