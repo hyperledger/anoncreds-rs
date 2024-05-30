@@ -380,7 +380,7 @@ jobs:
     runs-on: anoncreds-ubuntu-latest
     needs: build-android-libraries
     if: |
-      (github.event_name == 'pull_request' ||
+      (github.event_name == 'push' ||
         github.event_name == 'release' ||
       (github.event_name == 'workflow_dispatch' &&
        github.event.inputs.publish-binaries == 'true'))
@@ -440,7 +440,7 @@ jobs:
     runs-on: macos-latest
     needs: build-ios-libraries
     if: |
-      (github.event_name == 'pull_request' ||
+      (github.event_name == 'push' ||
         github.event_name == 'release' ||
       (github.event_name == 'workflow_dispatch' &&
        github.event.inputs.publish-binaries == 'true'))
