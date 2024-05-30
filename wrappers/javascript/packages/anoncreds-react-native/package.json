@@ -47,12 +47,5 @@
   "peerDependencies": {
     "react": ">= 16",
     "react-native": ">= 0.66.0"
-  },
-  "binary": {
-    "module_name": "anoncreds",
-    "module_path": "native",
-    "remote_path": "v0.2.0",
-    "host": "https://github.com/hyperledger/anoncreds-rs/releases/download/",
-    "package_name": "library-ios-android.tar.gz"
   }
 }
