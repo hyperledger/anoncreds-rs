@@ -1,5 +1,5 @@
 {
-  "name": "@hyperledger/anoncreds-nodejs",
+  "name": "@wadeking98/anoncreds-nodejs",
   "version": "0.2.2",
   "license": "Apache-2.0",
   "description": "Nodejs wrapper for Anoncreds",
@@ -9,7 +9,7 @@
   "author": "Hyperledger (https://github.com/hyperledger)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hyperledger/anoncreds-rs",
+    "url": "https://github.com/wadeking98/anoncreds-rs",
     "directory": "wrappers/javascript/anoncreds-nodejs"
   },
   "publishConfig": {
