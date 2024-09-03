@@ -1,6 +1,6 @@
 {
   "name": "anoncreds-react-native-example",
-  "version": "1.0.0",
+  "version": "0.2.3",
   "main": "./src/index.js",
   "scripts": {
     "start": "expo start",
@@ -11,10 +11,10 @@
   "dependencies": {
     "@hyperledger/anoncreds-react-native": "workspace:*",
     "expo": "~49.0.10",
+    "expo-splash-screen": "~0.26.4",
     "expo-status-bar": "~1.11.1",
     "react": "18.2.0",
-    "react-native": "0.73.4",
-    "expo-splash-screen": "~0.26.4"
+    "react-native": "0.73.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
