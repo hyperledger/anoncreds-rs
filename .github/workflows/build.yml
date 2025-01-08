@@ -164,7 +164,7 @@ jobs:
           fi
 
       - name: Upload library artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: library-${{ matrix.architecture }}
           path: target/${{ matrix.target }}/release/${{ matrix.lib }}
@@ -220,7 +220,7 @@ jobs:
           version: 9
 
       - name: Fetch library artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: library-linux-x86_64
 
@@ -298,7 +298,7 @@ jobs:
           pip install setuptools wheel twine auditwheel
 
       - name: Fetch library artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: library-${{ matrix.architecture }}
           path: wrappers/python/anoncreds/
@@ -370,7 +370,7 @@ jobs:
           cross build --release --target ${{ matrix.target }} --features=vendored
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
           path: target/${{ matrix.target }}/release/libanoncreds.so
@@ -385,7 +385,7 @@ jobs:
        github.event.inputs.publish-binaries == 'true'))
     steps:
       - name: Fetch libraries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - run: |
           sudo mkdir ./libs
           sudo mv aarch64-linux-android   ./libs/arm64-v8a
@@ -393,7 +393,7 @@ jobs:
           sudo mv i686-linux-android      ./libs/x86
           sudo mv x86_64-linux-android    ./libs/x86_64
       - name: Save Android library
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: android-libraries
           path: ./libs
@@ -429,7 +429,7 @@ jobs:
         run: cargo build --release --target ${{matrix.architecture}} --features=vendored
 
       - name: Save artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{matrix.architecture}}
           path: target/${{matrix.architecture}}/release/libanoncreds.a
@@ -447,7 +447,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Fetch static libraries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - run: >
           ./build-xcframework.sh aarch64-apple-ios \
                                  aarch64-apple-ios-sim \
@@ -455,7 +455,7 @@ jobs:
                                  include
 
       - name: Save xcframework
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: anoncreds.xcframework
           path: out
@@ -482,13 +482,13 @@ jobs:
 
     steps:
       - name: Fetch Android libraries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: android-libraries
           path: mobile/android/
 
       - name: Fetch iOS Framework
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: anoncreds.xcframework
           path: mobile/ios/
