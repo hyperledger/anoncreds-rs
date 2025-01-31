@@ -3,6 +3,8 @@
 Rust library and reference implementation of the [Anoncreds V1.0
 specification](https://hyperledger.github.io/anoncreds-spec/).
 
+<p float="left"> <a href="https://scorecard.dev/viewer/?uri=github.com/hyperledger/anoncreds-rs"><img src="https://api.scorecard.dev/projects/github.com/hyperledger/anoncreds-rs/badge" /> </p>
+
 The AnonCreds (Anonymous Credentials) specification is based on the open source
 verifiable credential implementation of AnonCreds that has been in use since
 2017, initially as part of the Hyperledger Indy open source project and now in
