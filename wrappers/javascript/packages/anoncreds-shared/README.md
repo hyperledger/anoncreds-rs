@@ -44,7 +44,7 @@ import '@hyperledger/anoncreds-nodejs'
 import '@hyperledger/anoncreds-react-native'
 ```
 
-An alterative approach is to first try to require the Node.JS package, and otherwise require the React Native package:
+An alternative approach is to first try to require the Node.JS package, and otherwise require the React Native package:
 
 ```typescript
 try {
