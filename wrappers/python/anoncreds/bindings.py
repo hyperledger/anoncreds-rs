@@ -181,7 +181,7 @@ class ByteBuffer(Structure):
 
     @classmethod
     def _cleanup(cls, buffer: RawBuffer):
-        """Call the byte buffer desctructor when this instance is released."""
+        """Call the byte buffer destructor when this instance is released."""
         get_library().anoncreds_buffer_free(buffer)
 
 

@@ -253,7 +253,7 @@ w3c_credential = Holder.anoncreds_credential_to_w3c(legacy_credential)
 Wallet.store_legacy_credential(legacy_credential)
 Wallet.store_w3c_credential(w3c_credential)
 
-/// Verifiy W3C preentation using converted W3C crdential form
+/// Verify W3C preentation using converted W3C crdential form
 w3c_presentation_request = Verifier.w3c_create_presentation_request()
 w3c_presentation = Holder.anoncreds_w3c_create_presentation(w3c_presentation_request, w3c_credentials)
 Verifier.anoncreds_w3c_verify_presentation(w3c_presentation)
@@ -275,7 +275,7 @@ legacy_credential = Holder.anoncreds_credential_from_w3c(w3c_credential)
 Wallet.store_legacy_credential(legacy_credential)
 Wallet.store_w3c_credential(w3c_credential)
 
-/// Verifiy legacy presentation using converted Iny crdential form
+/// Verify legacy presentation using converted Iny crdential form
 legacy_presentation_request = Verifier.create_presentation_request()
 legacy_presentation = Holder.create_presentation(legacy_presentation_request, legacy_credential)
 Verifier.anoncreds_verify_presentation(legacy_presentation)
@@ -293,7 +293,7 @@ w3c_credential = Holder.anoncreds_w3c_process_credential(w3c_credential,...)
 /// Do wallets need to store both credential forms to handle legacy and DIF presentations requests?
 Wallet.store_w3c_credential(w3c_credential)
 
-/// Verifiy W3C presenttion using W3C crdential form
+/// Verify W3C presenttion using W3C crdential form
 w3c_presentation_request = Verifier.w3c_create_presentation_request()
 w3c_presentation = Holder.anoncreds_w3c_create_presentation(w3c_presentation_request, w3c_credential)
 Verifier.anoncreds_w3c_verify_presentation(w3c_presentation)
