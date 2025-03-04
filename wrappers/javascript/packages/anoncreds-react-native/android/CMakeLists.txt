@@ -87,7 +87,14 @@ if(${REACT_NATIVE_VERSION} LESS 71)
   )
 endif()
 
-if(${REACT_NATIVE_VERSION} GREATER_EQUAL 71)
+if(${REACT_NATIVE_VERSION} GREATER_EQUAL 76)
+  target_link_libraries(
+    ${PACKAGE_NAME}
+    ReactAndroid::jsi
+    ReactAndroid::reactnative
+    fbjni::fbjni
+  )
+elseif(${REACT_NATIVE_VERSION} GREATER_EQUAL 71)
   target_link_libraries(
     ${PACKAGE_NAME}
     ReactAndroid::jsi
