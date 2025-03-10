@@ -29,8 +29,8 @@ pub extern "C" fn anoncreds_credential_definition_get_attribute(
             "tag" => cred_def.tag.to_string().to_owned(),
             "issuer_id" => cred_def.issuer_id.to_string().to_owned(),
             "signature_type" => match cred_def.signature_type {
-                SignatureType::CL => "CL".to_string()
-            }
+                SignatureType::CL => "CL".to_string(),
+            },
             s => return Err(err_msg!("Unsupported attribute: {}", s)),
         };
         unsafe { *result_p = rust_string_to_c(val) };
