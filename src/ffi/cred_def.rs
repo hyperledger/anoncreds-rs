@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use ffi_support::FfiStr;
+use ffi_support::{rust_string_to_c, FfiStr};
 
 use super::error::{catch_error, ErrorCode};
 use super::object::ObjectHandle;
@@ -12,6 +12,31 @@ use crate::services::{
         CredentialKeyCorrectnessProof as KeyCorrectnessProof, SignatureType,
     },
 };
+use std::os::raw::c_char;
+
+#[no_mangle]
+pub extern "C" fn anoncreds_credential_definition_get_attribute(
+    handle: ObjectHandle,
+    name: FfiStr,
+    result_p: *mut *const c_char,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(result_p);
+        let cred_def = handle.load()?;
+        let cred_def = cred_def.cast_ref::<CredentialDefinition>()?;
+        let val = match name.as_opt_str().unwrap_or_default() {
+            "schema_id" => cred_def.schema_id.to_string().to_owned(),
+            "tag" => cred_def.tag.to_string().to_owned(),
+            "issuer_id" => cred_def.issuer_id.to_string().to_owned(),
+            "signature_type" => match cred_def.signature_type {
+                SignatureType::CL => "CL".to_string()
+            }
+            s => return Err(err_msg!("Unsupported attribute: {}", s)),
+        };
+        unsafe { *result_p = rust_string_to_c(val) };
+        Ok(())
+    })
+}
 
 #[no_mangle]
 pub extern "C" fn anoncreds_create_credential_definition(
