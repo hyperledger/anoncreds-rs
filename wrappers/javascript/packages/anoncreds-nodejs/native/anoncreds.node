@@ -1,4 +1,0 @@
-# This is a placeholder file to prevent node-pre-gyp from installing the
-# anoncreds binary when cloning this repository. It won't be published to NPM,
-# meaning when you download this package from npm it will try to download the
-# binary.

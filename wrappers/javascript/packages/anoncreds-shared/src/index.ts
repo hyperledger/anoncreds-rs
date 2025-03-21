@@ -1,7 +1,0 @@
-export * from './api'
-export * from './register'
-export * from './Anoncreds'
-export * from './error'
-export * from './AnoncredsObject'
-export * from './ObjectHandle'
-export * from './types'
