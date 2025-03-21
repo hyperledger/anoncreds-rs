@@ -46,11 +46,11 @@ Anoncreds-rs exposes three main parts: [`issuer`](./src/services/issuer.rs),
 
 Anoncreds is, soon, available as a standalone library in Rust, but also via wrappers.
 
-| Language     | Directory                                                                               | Status |
-| ------------ | --------------------------------------------------------------------------------------- | ------ |
-| Node.js      | [javascript](https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/javascript) | ✅     |
-| React Native | [javascript](https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/javascript) | ✅     |
-| Python       | [python](https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/python)         | ✅     |
+| Language     | Location                                                                                                            | Status |
+| ------------ | ------------------------------------------------------------------------------------------------------------------- | ------ |
+| Node.js      | [javascript](https://github.com/hyperledger/anoncreds-wrapper-javascript/tree/main/packages/anoncreds-nodejs)       | ✅     |
+| React Native | [javascript](https://github.com/hyperledger/anoncreds-wrapper-javascript/tree/main/packages/anoncreds-react-native) | ✅     |
+| Python       | [python](https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/python)                                     | ✅     |
 
 ## Credit
 

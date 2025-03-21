@@ -1,7 +1,7 @@
 name: "Anoncreds"
 
 env:
-  RUST_VERSION: "stable 6 months ago"
+  RUST_VERSION: "1.81.0"
   CROSS_VERSION: "0.2.4"
 
 on:
@@ -23,11 +23,6 @@ on:
         required: true
         default: false
         type: boolean
-      publish-javascript-wrapper:
-        description: "Publish JavaScript Wrapper to Registries"
-        required: true
-        default: false
-        type: boolean
 
 jobs:
   lint:
@@ -37,7 +32,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -65,7 +60,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -123,7 +118,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         if: ${{ matrix.target != 'darwin-universal' }}
@@ -197,67 +192,6 @@ jobs:
           file: library-${{ matrix.architecture }}.tar.gz
           asset_name: "library-${{ matrix.architecture }}.tar.gz"
 
-  build-javascript:
-    name: Build and Test JavaScript wrapper
-    needs: [build-release]
-    runs-on: anoncreds-ubuntu-latest
-    defaults:
-      run:
-        working-directory: wrappers/javascript
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node.JS 18.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18.x
-          registry-url: "https://registry.npmjs.org/"
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Fetch library artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: library-linux-x86_64
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build JavaScript Wrapper
-        run: pnpm build
-
-      - name: Lint JavaScript Wrapper
-        run: pnpm lint
-
-      - name: Format Check JavaScript Wrapper
-        run: pnpm check-format
-
-      - name: Type Check JavaScript Wrapper
-        run: pnpm check-types
-
-      - name: Test JavaScript Wrapper
-        env:
-          # binary is downloaded to root of repository
-          LIB_ANONCREDS_PATH: ../../
-        run: pnpm test
-
-      - name: Publish JavaScript Wrapper
-        if: |
-          github.event_name == 'release' ||
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.publish-javascript-wrapper == 'true')
-        run: |
-          if [[ $(cat lerna.json | grep version | head -1 | grep dev) ]]; then
-            npx lerna publish from-package --no-push --no-private --yes --no-git-tag-version --dist-tag=alpha
-          else
-            npx lerna publish from-package --no-push --no-private --yes --no-git-tag-version
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
   build-py:
     name: Build Python
     needs: [build-release]
@@ -285,7 +219,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v4
@@ -336,7 +270,9 @@ jobs:
 
   build-android-libraries:
     name: Build Android Libraries
+
     runs-on: anoncreds-ubuntu-latest
+
     strategy:
       matrix:
         target:
@@ -346,28 +282,27 @@ jobs:
             i686-linux-android,
             x86_64-linux-android,
           ]
-    # NB: RUST_VERSION must be <1.68 here to support NDK 17
-    env:
-      RUST_VERSION: "1.67"
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
-          targets: ${{ matrix.target }}
 
       - name: Cache cargo resources
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: deps
+          save-if: false
 
       - name: Build
         run: |
-          cargo install --locked --git https://github.com/cross-rs/cross --tag v${{ env.CROSS_VERSION }} cross
-          cp Cargo.lock.android Cargo.lock
-          cross build --release --target ${{ matrix.target }} --features=vendored
+          cargo install cross --git https://github.com/cross-rs/cross.git
+
+          cross build --lib --release --target ${{ matrix.target }} --features=vendored
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -418,12 +353,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{matrix.architecture}}
+          toolchain: ${{RUST_VERSION}}
 
       - name: Build
         run: cargo build --release --target ${{matrix.architecture}} --features=vendored
@@ -444,7 +380,7 @@ jobs:
        github.event.inputs.publish-binaries == 'true'))
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Fetch static libraries
         uses: actions/download-artifact@v4
