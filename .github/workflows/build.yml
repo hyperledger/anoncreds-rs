@@ -344,7 +344,7 @@ jobs:
 
   build-ios-libraries:
     name: Build ios Libraries
-    runs-on: macos-latest
+    runs-on: macos-13
     strategy:
       matrix:
         architecture:
