@@ -264,3 +264,45 @@ impl_anoncreds_object_from_json!(
     CredentialRevocationState,
     anoncreds_revocation_state_from_json
 );
+
+#[no_mangle]
+pub extern "C" fn anoncreds_generate_tails_file(
+    cred_def: ObjectHandle,
+    max_cred_num: i64,
+    tails_dir_path: FfiStr,
+    tails_location_p: *mut *const c_char,
+    tails_hash_p: *mut *const c_char,
+) -> ErrorCode {
+    catch_error(|| {
+        check_useful_c_ptr!(tails_location_p);
+        check_useful_c_ptr!(tails_hash_p);
+        
+        let max_cred_num = max_cred_num
+            .try_into()
+            .map_err(|_| err_msg!("Invalid maximum credential count"))?;
+            
+        let cred_def_obj = cred_def.load()?;
+        let cred_def = cred_def_obj.cast_ref::<crate::data_types::cred_def::CredentialDefinition>()?;
+        let credential_pub_key = cred_def.get_public_key().map_err(|err| {
+            err_msg!("Error fetching public key from credential definition: {}", err)
+        })?;
+        
+        // Create the tails generator using the same approach as create_revocation_registry_def
+        let (_, _, _, mut rev_tails_generator) =
+            crate::cl::Issuer::new_revocation_registry_def(&credential_pub_key, max_cred_num, false)?;
+        
+        // Create the tails writer
+        let mut tails_writer = TailsFileWriter::new(tails_dir_path.into_opt_string());
+        
+        // Generate the tails file using the TailsWriter trait
+        let (tails_location, tails_hash) = crate::services::tails::TailsWriter::write(&mut tails_writer, &mut rev_tails_generator)?;
+        
+        // Return the results
+        unsafe {
+            *tails_location_p = rust_string_to_c(tails_location);
+            *tails_hash_p = rust_string_to_c(tails_hash);
+        }
+        
+        Ok(())
+    })
+}
