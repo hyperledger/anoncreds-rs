@@ -1,0 +1,108 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.DisableRuntimeMarshallingAttribute" />
+  </ItemGroup>
+
+  <Target Name="CopyNativeAnoncreds" BeforeTargets="Build">
+    <ItemGroup>
+      <!-- Windows x64 -->
+      <_WinX64Dll Include="../../../target/x86_64-pc-windows-msvc/release/anoncreds.dll"
+        Condition="Exists('../../../target/x86_64-pc-windows-msvc/release/anoncreds.dll')" />
+      <_WinX64Pdb Include="../../../target/x86_64-pc-windows-msvc/release/anoncreds.pdb"
+        Condition="Exists('../../../target/x86_64-pc-windows-msvc/release/anoncreds.pdb')" />
+      <!-- Windows ARM64 -->
+      <_WinArm64Dll Include="../../../target/aarch64-pc-windows-msvc/release/anoncreds.dll"
+        Condition="Exists('../../../target/aarch64-pc-windows-msvc/release/anoncreds.dll')" />
+      <_WinArm64Pdb Include="../../../target/aarch64-pc-windows-msvc/release/anoncreds.pdb"
+        Condition="Exists('../../../target/aarch64-pc-windows-msvc/release/anoncreds.pdb')" />
+      <!-- Linux x64 -->
+      <_LinuxX64So Include="../../../target/x86_64-unknown-linux-gnu/release/libanoncreds.so"
+        Condition="Exists('../../../target/x86_64-unknown-linux-gnu/release/libanoncreds.so')" />
+      <!-- macOS x64 -->
+      <_MacX64Dylib Include="../../../target/x86_64-apple-darwin/release/libanoncreds.dylib"
+        Condition="Exists('../../../target/x86_64-apple-darwin/release/libanoncreds.dylib')" />
+      <!-- macOS ARM64 -->
+      <_MacArm64Dylib Include="../../../target/aarch64-apple-darwin/release/libanoncreds.dylib"
+        Condition="Exists('../../../target/aarch64-apple-darwin/release/libanoncreds.dylib')" />
+      <!-- Fallback to host target -->
+      <_HostDll Include="../../../target/release/anoncreds.dll"
+        Condition="Exists('../../../target/release/anoncreds.dll') And '@(_WinX64Dll)' == '' And '@(_WinArm64Dll)' == ''" />
+      <_HostPdb Include="../../../target/release/anoncreds.pdb"
+        Condition="Exists('../../../target/release/anoncreds.pdb') And '@(_WinX64Pdb)' == '' And '@(_WinArm64Pdb)' == ''" />
+      <_HostSo Include="../../../target/release/libanoncreds.so"
+        Condition="Exists('../../../target/release/libanoncreds.so') And '@(_LinuxX64So)' == ''" />
+      <_HostDylib Include="../../../target/release/libanoncreds.dylib"
+        Condition="Exists('../../../target/release/libanoncreds.dylib') And '@(_MacX64Dylib)' == '' And '@(_MacArm64Dylib)' == ''" />
+    </ItemGroup>
+
+    <!-- Copy to $(OutputPath)/runtimes/ -->
+    <Copy SourceFiles="@(_WinX64Dll)"
+      DestinationFiles="$(OutputPath)/runtimes/win-x64/native/anoncreds.dll"
+      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_WinX64Pdb)"
+      DestinationFiles="$(OutputPath)/runtimes/win-x64/native/anoncreds.pdb"
+      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_WinArm64Dll)"
+      DestinationFiles="$(OutputPath)/runtimes/win-arm64/native/anoncreds.dll"
+      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_WinArm64Pdb)"
+      DestinationFiles="$(OutputPath)/runtimes/win-arm64/native/anoncreds.pdb"
+      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_LinuxX64So)"
+      DestinationFiles="$(OutputPath)/runtimes/linux-x64/native/libanoncreds.so"
+      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_MacX64Dylib)"
+      DestinationFiles="$(OutputPath)/runtimes/osx-x64/native/libanoncreds.dylib"
+      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_MacArm64Dylib)"
+      DestinationFiles="$(OutputPath)/runtimes/osx-arm64/native/libanoncreds.dylib"
+      SkipUnchangedFiles="true" />
+    <!-- Copy fallback files to a fallback RID (e.g., win-x64) -->
+    <Copy SourceFiles="@(_HostDll)"
+      DestinationFiles="$(OutputPath)/runtimes/win-x64/native/anoncreds.dll"
+      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_HostPdb)"
+      DestinationFiles="$(OutputPath)/runtimes/win-x64/native/anoncreds.pdb"
+      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_HostSo)"
+      DestinationFiles="$(OutputPath)/runtimes/linux-x64/native/libanoncreds.so"
+      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_HostDylib)"
+      DestinationFiles="$(OutputPath)/runtimes/osx-x64/native/libanoncreds.dylib"
+      SkipUnchangedFiles="true" />
+
+    <!-- Copy native library directly to output directory for project references -->
+    <Copy SourceFiles="@(_WinX64Dll);@(_WinArm64Dll);@(_HostDll)"
+      DestinationFiles="$(OutputPath)/anoncreds.dll"
+      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_WinX64Pdb);@(_WinArm64Pdb);@(_HostPdb)"
+      DestinationFiles="$(OutputPath)/anoncreds.pdb"
+      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_LinuxX64So);@(_HostSo)"
+      DestinationFiles="$(OutputPath)/libanoncreds.so"
+      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_MacX64Dylib);@(_MacArm64Dylib);@(_HostDylib)"
+      DestinationFiles="$(OutputPath)/libanoncreds.dylib"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Include native files for consumers and NuGet -->
+  <Target Name="IncludeNativeFilesForConsumers" AfterTargets="CopyNativeAnoncreds">
+    <ItemGroup>
+      <!-- Include runtimes/ folder from output directory -->
+      <Content Include="$(OutputPath)/runtimes/**" Pack="true" PackagePath="runtimes"
+        CopyToOutputDirectory="PreserveNewest">
+        <Link>runtimes/%(RecursiveDir)%(Filename)%(Extension)</Link>
+      </Content>
+    </ItemGroup>
+  </Target>
+</Project>

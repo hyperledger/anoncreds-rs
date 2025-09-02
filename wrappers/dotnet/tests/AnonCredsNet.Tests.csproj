@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <EnablePreviewFeatures>true</EnablePreviewFeatures>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+        <PackageReference Include="xunit" Version="2.6.2" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="coverlet.collector" Version="6.0.0">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../lib/AnonCredsNet.csproj" />
+    </ItemGroup>
+
+    <!-- Ensure native library is available for testing -->
+    <Target Name="CopyNativeLibraryForTests" BeforeTargets="Build">
+        <!-- Copy runtime folders from the AnonCredsNet project -->
+        <ItemGroup>
+            <NativeLib Include="../lib/bin/$(Configuration)/net9.0/runtimes/**" />
+        </ItemGroup>
+        <Copy SourceFiles="@(NativeLib)"
+            DestinationFiles="$(OutputPath)/runtimes/%(RecursiveDir)%(Filename)%(Extension)"
+            SkipUnchangedFiles="true" />
+
+        <!-- For test execution, also copy the native library directly to output directory -->
+        <Copy SourceFiles="../lib/bin/$(Configuration)/net9.0/runtimes/win-x64/native/anoncreds.dll"
+            DestinationFiles="$(OutputPath)/anoncreds.dll"
+            SkipUnchangedFiles="true" />
+    </Target>
+
+</Project>
