@@ -38,21 +38,16 @@ public sealed class Presentation : AnonCredsObject
             try
             {
                 var count = (int)credentialsList.Count.ToUInt32();
-                Console.WriteLine($"[DEBUG] CredentialsList count: {count}");
                 if (credentialsList.Data != IntPtr.Zero)
                 {
-                    var size =
-                        System.Runtime.InteropServices.Marshal.SizeOf<AnonCredsNet.Interop.FfiCredentialEntry>();
+                    var size = System.Runtime.InteropServices.Marshal.SizeOf<FfiCredentialEntry>();
                     for (int i = 0; i < count; i++)
                     {
                         var ptr = credentialsList.Data + (i * size);
                         var e =
-                            System.Runtime.InteropServices.Marshal.PtrToStructure<AnonCredsNet.Interop.FfiCredentialEntry>(
+                            System.Runtime.InteropServices.Marshal.PtrToStructure<FfiCredentialEntry>(
                                 ptr
                             );
-                        Console.WriteLine(
-                            $"[DEBUG] Entry {i}: cred={e.Credential}, ts={e.Timestamp}, revState={e.RevState}"
-                        );
                     }
                 }
             }

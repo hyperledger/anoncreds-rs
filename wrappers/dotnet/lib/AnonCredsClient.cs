@@ -99,7 +99,6 @@ public class AnonCredsClient
         string? revListsJson
     )
     {
-        Console.WriteLine("   DEBUG: Entering CreatePresentation");
         if (
             presReq == null
             || string.IsNullOrEmpty(credentialsJson)
@@ -111,48 +110,36 @@ public class AnonCredsClient
         )
             throw new ArgumentNullException("Required parameters cannot be null or empty");
 
-        Console.WriteLine("   DEBUG: Creating schemas list from JSON");
         var (schemasList, schemasObjects) = AnonCredsHelpers.CreateFfiObjectHandleListWithObjects(
             schemasJson,
             Schema.FromJson
         );
-        Console.WriteLine("   DEBUG: Created schemas list successfully");
-
-        Console.WriteLine("   DEBUG: Creating credDefs list from JSON");
         var (credDefsList, credDefsObjects) = AnonCredsHelpers.CreateFfiObjectHandleListWithObjects(
             credDefsJson,
             CredentialDefinition.FromJson
         );
-        Console.WriteLine("   DEBUG: Created credDefs list successfully");
-
-        Console.WriteLine("   DEBUG: Parsing credentials JSON");
         FfiCredentialEntryList credentialsList = ParseCredentialsJson(credentialsJson);
-        Console.WriteLine("   DEBUG: Parsed credentials JSON successfully");
         // Debug each entry for timestamp/rev_state presence
-        try
-        {
-            var dbgEntries = System.Text.Json.JsonSerializer.Deserialize<CredentialEntryJson[]>(
-                credentialsJson
-            );
-            if (dbgEntries != null)
-            {
-                foreach (var e in dbgEntries)
-                {
-                    Console.WriteLine(
-                        $"DEBUG Credentials entry -> Timestamp: {e.Timestamp?.ToString() ?? "<null>"}, RevState: {(string.IsNullOrEmpty(e.RevState) ? 0 : 1)}"
-                    );
-                }
-            }
-        }
-        catch { }
+        // try
+        // {
+        //     var dbgEntries = JsonSerializer.Deserialize<CredentialEntryJson[]>(
+        //         credentialsJson
+        //     );
+        //     if (dbgEntries != null)
+        //     {
+        //         foreach (var e in dbgEntries)
+        //         {
+        //             Console.WriteLine(
+        //                 $"DEBUG Credentials entry -> Timestamp: {e.Timestamp?.ToString() ?? "<null>"}, RevState: {(string.IsNullOrEmpty(e.RevState) ? 0 : 1)}"
+        //             );
+        //         }
+        //     }
+        // }
+        // catch { }
 
-        Console.WriteLine("   DEBUG: Creating schema IDs list");
         var schemaIds = AnonCredsHelpers.CreateFfiStrList(schemaIdsJson);
-        Console.WriteLine("   DEBUG: Created schema IDs list successfully");
 
-        Console.WriteLine("   DEBUG: Creating credDef IDs list");
         var credDefIds = AnonCredsHelpers.CreateFfiStrList(credDefIdsJson);
-        Console.WriteLine("   DEBUG: Created credDef IDs list successfully");
 
         var revRegIds = new FfiStrList();
         var revRegsList = new FfiObjectHandleList();
@@ -176,14 +163,12 @@ public class AnonCredsClient
             revListsList = revLists;
         }
 
-        Console.WriteLine("   DEBUG: Creating credentials prove list");
         // Create credentials_prove list based on presentation request, excluding self-attested referents
         var credentialsProve = CreateCredentialsProveList(
             presReq.ToJson(),
             selfAttestJson,
             credentialsJson
         );
-        Console.WriteLine("   DEBUG: Created credentials prove list successfully");
 
         var selfAttestNames = new FfiStrList();
         var selfAttestValues = new FfiStrList();
@@ -206,9 +191,6 @@ public class AnonCredsClient
         {
             var entryPtr = credentialsList.Data;
             var entry = Marshal.PtrToStructure<FfiCredentialEntry>(entryPtr);
-            Console.WriteLine(
-                $"DEBUG Credentials entry -> Timestamp: {entry.Timestamp}, RevState: {entry.RevState}"
-            );
         }
 
         var presentation = Presentation.Create(
@@ -411,7 +393,6 @@ public class AnonCredsClient
     )
     {
         // Reuse the same helper structure for list creation and IDs
-        Console.WriteLine("Starting VerifyW3cPresentation...");
         try
         {
             var (schemasList, schemasObjects) =
@@ -481,8 +462,6 @@ public class AnonCredsClient
                     )
                 )
                 {
-                    Console.WriteLine($"Verification returned error: {err}");
-                    Console.WriteLine("Interpreting verification error as invalid=false");
                     return false;
                 }
                 throw new AnonCredsException(code, err);
