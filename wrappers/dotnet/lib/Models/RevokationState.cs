@@ -1,69 +1,64 @@
 using AnonCredsNet.Exceptions;
-using AnonCredsNet.Helpers;
 using AnonCredsNet.Interop;
 
-namespace AnonCredsNet.Objects;
+namespace AnonCredsNet.Models;
 
 public class RevocationState : AnonCredsObject
 {
-    private RevocationState(int handle)
+    private RevocationState(long handle)
         : base(handle) { }
 
     public static RevocationState Create(
-        int credRevInfo,
         RevocationRegistryDefinition revRegDef,
         RevocationStatusList statusList,
-        string timestamp,
+        uint revRegIndex,
         string tailsPath
     )
     {
-        if (
-            credRevInfo == 0
-            || revRegDef == null
-            || statusList == null
-            || string.IsNullOrEmpty(timestamp)
-            || string.IsNullOrEmpty(tailsPath)
-        )
+        if (revRegDef == null || statusList == null || string.IsNullOrEmpty(tailsPath))
             throw new ArgumentNullException("Input parameters cannot be null or empty");
-        var code = NativeMethods.anoncreds_create_revocation_state(
-            credRevInfo,
+
+        var code = NativeMethods.anoncreds_create_or_update_revocation_state(
             revRegDef.Handle,
             statusList.Handle,
-            timestamp,
+            (long)revRegIndex,
             tailsPath,
+            0,
+            0,
             out var handle
         );
         if (code != ErrorCode.Success)
-            throw new AnonCredsException(code, AnonCredsHelpers.GetCurrentError());
+            throw new AnonCredsException(code, AnonCreds.GetCurrentError());
         return new RevocationState(handle);
     }
 
     public static RevocationState Update(
         RevocationState revState,
         RevocationRegistryDefinition revRegDef,
-        RevocationStatusListDelta delta,
-        string timestamp,
-        string tailsPath
+        RevocationStatusList newStatusList,
+        uint revRegIndex,
+        string tailsPath,
+        RevocationStatusList? oldStatusList = null
     )
     {
         if (
             revState == null
             || revRegDef == null
-            || delta == null
-            || string.IsNullOrEmpty(timestamp)
+            || newStatusList == null
             || string.IsNullOrEmpty(tailsPath)
         )
             throw new ArgumentNullException("Input parameters cannot be null or empty");
-        var code = NativeMethods.anoncreds_update_revocation_state(
-            revState.Handle,
+        var code = NativeMethods.anoncreds_create_or_update_revocation_state(
             revRegDef.Handle,
-            delta.Handle,
-            timestamp,
+            newStatusList.Handle,
+            (long)revRegIndex,
             tailsPath,
+            revState.Handle,
+            oldStatusList?.Handle ?? 0,
             out var updated
         );
         if (code != ErrorCode.Success)
-            throw new AnonCredsException(code, AnonCredsHelpers.GetCurrentError());
+            throw new AnonCredsException(code, AnonCreds.GetCurrentError());
         return new RevocationState(updated);
     }
 

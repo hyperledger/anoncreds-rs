@@ -1,39 +1,42 @@
 using AnonCredsNet.Exceptions;
-using AnonCredsNet.Helpers;
 using AnonCredsNet.Interop;
-using AnonCredsNet.Objects;
+using AnonCredsNet.Models;
 
 namespace AnonCredsNet.Requests;
 
 public class CredentialRequest : AnonCredsObject
 {
-    private CredentialRequest(int handle)
+    private CredentialRequest(long handle)
         : base(handle) { }
 
-    internal static (CredentialRequest Request, CredentialRequestMetadata Metadata) Create(
+    public static (CredentialRequest Request, CredentialRequestMetadata Metadata) Create(
         CredentialDefinition credDef,
-        LinkSecret linkSecret,
+        string linkSecret,
         string linkSecretId,
-        CredentialOffer credOffer
+        CredentialOffer credOffer,
+        string? entropy = null,
+        string? proverDid = null
     )
     {
         if (
             credDef == null
-            || linkSecret == null
+            || string.IsNullOrEmpty(linkSecret)
             || string.IsNullOrEmpty(linkSecretId)
             || credOffer == null
         )
             throw new ArgumentNullException("Input parameters cannot be null or empty");
         var code = NativeMethods.anoncreds_create_credential_request(
+            entropy,
+            proverDid,
             credDef.Handle,
-            linkSecret.Handle,
+            linkSecret,
             linkSecretId,
             credOffer.Handle,
             out var req,
             out var meta
         );
         if (code != ErrorCode.Success)
-            throw new AnonCredsException(code, AnonCredsHelpers.GetCurrentError());
+            throw new AnonCredsException(code, AnonCreds.GetCurrentError());
         return (new CredentialRequest(req), new CredentialRequestMetadata(meta));
     }
 

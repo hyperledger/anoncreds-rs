@@ -1,8 +1,8 @@
-namespace AnonCredsNet.Objects;
+namespace AnonCredsNet.Models;
 
 public class RevocationStatusListDelta : AnonCredsObject
 {
-    internal RevocationStatusListDelta(int handle)
+    internal RevocationStatusListDelta(long handle)
         : base(handle) { }
 
     public static RevocationStatusListDelta FromJson(string json) =>

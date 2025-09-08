@@ -4,6 +4,7 @@ use super::util::{FfiList, FfiStrList};
 use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
 use crate::data_types::link_secret::LinkSecret;
 use crate::data_types::presentation::Presentation;
+use crate::data_types::pres_request::PresentationRequest;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinition;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::rev_status_list::RevocationStatusList;
@@ -75,26 +76,50 @@ pub extern "C" fn anoncreds_create_presentation(
     presentation_p: *mut ObjectHandle,
 ) -> ErrorCode {
     catch_error(|| {
+        eprintln!("=== CREATE_PRESENTATION FFI START ===");
         check_useful_c_ptr!(presentation_p);
 
+        eprintln!("Loading link_secret...");
         let link_secret = _link_secret(link_secret)?;
+        eprintln!("Link secret loaded successfully");
+        
+        eprintln!("Processing self-attested attributes...");
         let self_attested = _self_attested(self_attest_names, self_attest_values)?;
+        eprintln!("Self-attested attributes processed successfully");
+        
+        eprintln!("Preparing credential definitions...");
         let cred_defs = _prepare_cred_defs(cred_defs, cred_def_ids)?;
+        eprintln!("Credential definitions prepared: {} entries", cred_defs.len());
+        
+        eprintln!("Preparing schemas...");
         let schemas = _prepare_schemas(schemas, schema_ids)?;
+        eprintln!("Schemas prepared: {} entries", schemas.len());
+        
+        eprintln!("Loading credentials...");
         let credentials = _credentials(credentials)?;
+        eprintln!("Credentials loaded: {} entries", credentials.len());
+        
+        eprintln!("Creating present credentials structure...");
         let present_creds = _present_credentials(&credentials, credentials_prove)?;
+        eprintln!("Present credentials created successfully");
 
+        eprintln!("About to call core create_presentation function...");
+        let pres_req_binding = pres_req.load()?;
+        let pres_req_obj: &PresentationRequest = pres_req_binding.cast_ref()?;
+        eprintln!("Pres_req nonce during creation: {:?}", pres_req_obj.value().nonce);
         let presentation = create_presentation(
-            pres_req.load()?.cast_ref()?,
+            pres_req_obj,
             present_creds,
             self_attested,
             &link_secret,
             &schemas,
             &cred_defs,
         )?;
+        eprintln!("Core create_presentation completed successfully");
 
         let presentation = ObjectHandle::create(presentation)?;
         unsafe { *presentation_p = presentation };
+        eprintln!("=== CREATE_PRESENTATION FFI END - SUCCESS ===");
         Ok(())
     })
 }
@@ -158,23 +183,67 @@ pub extern "C" fn anoncreds_verify_presentation(
     result_p: *mut i8,
 ) -> ErrorCode {
     catch_error(|| {
+        eprintln!("=== RUST VERIFY PRESENTATION DEBUG ===");
+        eprintln!("Input parameters:");
+        eprintln!("  presentation handle: {:?}", presentation);
+        eprintln!("  pres_req handle: {:?}", pres_req);
+        eprintln!("  schemas count: {}", schemas.len());
+        eprintln!("  schema_ids count: {}", schema_ids.len());
+        eprintln!("  cred_defs count: {}", cred_defs.len());
+        eprintln!("  cred_def_ids count: {}", cred_def_ids.len());
+        
+        eprintln!("Schema IDs received:");
+        for (i, schema_id) in schema_ids.as_slice().iter().enumerate() {
+            if let Some(id_str) = schema_id.as_opt_str() {
+                eprintln!("  [{}]: '{}'", i, id_str);
+            }
+        }
+        
+        eprintln!("CredDef IDs received:");
+        for (i, cred_def_id) in cred_def_ids.as_slice().iter().enumerate() {
+            if let Some(id_str) = cred_def_id.as_opt_str() {
+                eprintln!("  [{}]: '{}'", i, id_str);
+            }
+        }
+
         let cred_defs = _prepare_cred_defs(cred_defs, cred_def_ids)?;
+        eprintln!("Prepared cred_defs: {} entries", cred_defs.len());
+        for (id, _) in &cred_defs {
+            eprintln!("  CredDef ID: '{}'", id);
+        }
+        
         let schemas = _prepare_schemas(schemas, schema_ids)?;
+        eprintln!("Prepared schemas: {} entries", schemas.len());
+        for (id, _) in &schemas {
+            eprintln!("  Schema ID: '{}'", id);
+        }
+        
         let rev_reg_defs = _rev_reg_defs(rev_reg_defs, rev_reg_def_ids)?;
         let rev_status_lists = _rev_status_list(rev_status_list)?;
         let map_nonrevoked_interval_override =
             _nonrevoke_interval_override(nonrevoked_interval_override)?;
 
+        eprintln!("Loading presentation and pres_req objects...");
+        let presentation_binding = presentation.load()?;
+        let presentation_obj = presentation_binding.cast_ref()?;
+        let pres_req_binding = pres_req.load()?;
+        let pres_req_obj = pres_req_binding.cast_ref()?;
+        
+        eprintln!("Calling verify_presentation...");
         let verify = verify_presentation(
-            presentation.load()?.cast_ref()?,
-            pres_req.load()?.cast_ref()?,
+            presentation_obj,
+            pres_req_obj,
             &schemas,
             &cred_defs,
             rev_reg_defs.as_ref(),
             rev_status_lists,
             Some(&map_nonrevoked_interval_override),
         )?;
+        
+        eprintln!("Verification result: {}", verify);
+        eprintln!("Setting result_p to: {}", i8::from(verify));
         unsafe { *result_p = i8::from(verify) };
+        eprintln!("=== END RUST VERIFY PRESENTATION DEBUG ===");
         Ok(())
     })
 }

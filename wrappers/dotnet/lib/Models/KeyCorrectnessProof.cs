@@ -1,8 +1,8 @@
-namespace AnonCredsNet.Objects;
+namespace AnonCredsNet.Models;
 
 public class KeyCorrectnessProof : AnonCredsObject
 {
-    internal KeyCorrectnessProof(int handle)
+    internal KeyCorrectnessProof(long handle)
         : base(handle) { }
 
     internal static KeyCorrectnessProof FromJson(string json) =>

@@ -30,29 +30,33 @@ public enum ErrorCode : int
 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct ObjectHandle
+public struct ObjectHandle
 {
-    public int Value { get; }
-
-    public ObjectHandle(int value) => Value = value;
-
-    public static implicit operator int(ObjectHandle h) => h.Value;
-
-    public static implicit operator ObjectHandle(int v) => new(v);
+    // Match C typedef i64 ObjectHandle;
+    public long Value;
 }
 
 [StructLayout(LayoutKind.Sequential)]
 internal struct ByteBuffer
 {
-    public int Len;
+    // C layout: int64_t len; uint8_t* data;
+    public long Len;
     public IntPtr Data;
 }
 
 [StructLayout(LayoutKind.Sequential)]
 public struct FfiList
 {
-    public IntPtr Handles; // Pointer to array of handles
-    public int Count;
+    // C layout: size_t count; const T* data;
+    public UIntPtr Count; // usize is unsigned pointer-sized
+    public IntPtr Data; // Pointer to array of elements (blittable)
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct FfiStrList
+{
+    public UIntPtr Count; // usize is unsigned pointer-sized
+    public IntPtr Data; // POINTER(c_char_p)
 }
 
 // Added structs to align with anoncreds-rs FFI
@@ -63,7 +67,74 @@ internal struct AnoncredsPresentationRequest
 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct AnoncredsCredentialRevocationInfo
+internal struct FfiCredentialEntry
 {
-    public IntPtr Json; // Pointer to JSON string
+    // C layout uses ObjectHandle (i64), i32 timestamp, ObjectHandle
+    public long Credential;
+    public int Timestamp;
+    public long RevState;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct FfiCredentialProve
+{
+    public long EntryIdx;
+    public IntPtr Referent; // FfiStr
+    public byte IsPredicate;
+    public byte Reveal;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct FfiCredentialEntryList
+{
+    public UIntPtr Count; // usize is unsigned pointer-sized
+    public IntPtr Data; // POINTER(FfiCredentialEntry)
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct FfiCredentialProveList
+{
+    public UIntPtr Count; // usize is unsigned pointer-sized
+    public IntPtr Data; // POINTER(FfiCredentialProve)
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct FfiObjectHandleList
+{
+    public UIntPtr Count; // usize is unsigned pointer-sized
+    public IntPtr Data; // POINTER(ObjectHandle)
+}
+
+// List of 32-bit integers used in revocation status list updates
+[StructLayout(LayoutKind.Sequential)]
+public struct FfiInt32List
+{
+    public UIntPtr Count; // size_t
+    public IntPtr Data; // pointer to int32_t
+}
+
+// Revocation configuration struct passed to create_credential
+[StructLayout(LayoutKind.Sequential)]
+public struct FfiCredRevInfo
+{
+    public long RegDef; // ObjectHandle (size_t)
+    public long RegDefPrivate; // ObjectHandle (size_t)
+    public long StatusList; // ObjectHandle (size_t)
+    public long RegIdx; // int64_t
+}
+
+// Non-revoked interval override types required by verify_presentation
+[StructLayout(LayoutKind.Sequential)]
+public struct FfiNonrevokedIntervalOverride
+{
+    public IntPtr RevRegDefId; // FfiStr (char*)
+    public int RequestedFromTs; // i32
+    public int OverrideRevStatusListTs; // i32
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct FfiNonrevokedIntervalOverrideList
+{
+    public UIntPtr Count; // usize is unsigned pointer-sized
+    public IntPtr Data; // pointer to FfiNonrevokedIntervalOverride
 }
