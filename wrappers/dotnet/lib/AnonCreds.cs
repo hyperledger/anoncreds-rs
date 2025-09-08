@@ -38,7 +38,6 @@ public static class AnonCreds
         return nonce;
     }
 
-    // Generic FFI helpers (migrated from Helpers/AnonCredsHelpers.cs)
     internal static ByteBuffer CreateByteBuffer(string json)
     {
         var bytes = Encoding.UTF8.GetBytes(json);
