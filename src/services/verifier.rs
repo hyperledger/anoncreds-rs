@@ -52,22 +52,6 @@ pub fn verify_presentation(
         &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
 ) -> Result<bool> {
-    eprintln!("=== VERIFY_PRESENTATION FUNCTION START ===");
-    eprintln!("Schemas received ({} total):", schemas.len());
-    for (id, schema) in schemas {
-        eprintln!("  Schema ID: '{}', Name: '{}'", id, schema.name);
-    }
-    
-    eprintln!("CredDefs received ({} total):", cred_defs.len());
-    for (id, cred_def) in cred_defs {
-        eprintln!("  CredDef ID: '{}', Schema ID: '{}'", id, cred_def.schema_id);
-    }
-    
-    eprintln!("Presentation identifiers:");
-    for (i, identifier) in presentation.identifiers.iter().enumerate() {
-        eprintln!("  [{}] Schema ID: '{}', CredDef ID: '{}'", i, identifier.schema_id, identifier.cred_def_id);
-    }
-
     trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
     presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
 
@@ -79,19 +63,8 @@ pub fn verify_presentation(
     let received_predicates: HashMap<String, Identifier> = received_predicates(presentation)?;
     let received_self_attested_attrs: HashSet<String> = received_self_attested_attrs(presentation);
 
-    eprintln!("Received revealed attrs: {} entries", received_revealed_attrs.len());
-    for (attr, identifier) in &received_revealed_attrs {
-        eprintln!("  '{}' -> Schema: '{}', CredDef: '{}'", attr, identifier.schema_id, identifier.cred_def_id);
-    }
-    
-    eprintln!("Received predicates: {} entries", received_predicates.len());
-    for (pred, identifier) in &received_predicates {
-        eprintln!("  '{}' -> Schema: '{}', CredDef: '{}'", pred, identifier.schema_id, identifier.cred_def_id);
-    }
-
     let pres_req = pres_req.value();
 
-    eprintln!("Starting attribute comparison...");
     // Ensures that all attributes in the request is also in the presentation
     compare_attr_from_proof_and_request(
         pres_req,
@@ -100,14 +73,10 @@ pub fn verify_presentation(
         &received_self_attested_attrs,
         &received_predicates,
     )?;
-    eprintln!("Attribute comparison passed");
 
-    eprintln!("Starting revealed attribute value verification...");
     // Ensures the encoded values are same as request
     verify_revealed_attribute_values(pres_req, presentation)?;
-    eprintln!("Revealed attribute values verified");
 
-    eprintln!("Starting restriction verification...");
     // Ensures the restrictions set out in the request is met
     verify_requested_restrictions(
         pres_req,
@@ -119,9 +88,7 @@ pub fn verify_presentation(
         &received_predicates,
         &received_self_attested_attrs,
     )?;
-    eprintln!("Restriction verification passed");
 
-    eprintln!("Creating CLProofVerifier...");
     let mut proof_verifier = CLProofVerifier::new(
         pres_req,
         schemas,
@@ -129,16 +96,8 @@ pub fn verify_presentation(
         rev_reg_defs,
         rev_status_lists.as_ref(),
     )?;
-    eprintln!("CLProofVerifier created successfully");
 
-    eprintln!("Processing {} sub-proofs...", presentation.identifiers.len());
     for (sub_proof_index, identifier) in presentation.identifiers.iter().enumerate() {
-        eprintln!("Processing sub-proof {} with identifier:", sub_proof_index);
-        eprintln!("  Schema ID: '{}'", identifier.schema_id);
-        eprintln!("  CredDef ID: '{}'", identifier.cred_def_id);
-        eprintln!("  RevReg ID: {:?}", identifier.rev_reg_id);
-        eprintln!("  Timestamp: {:?}", identifier.timestamp);
-        
         let attributes = presentation
             .requested_proof
             .get_attributes_for_credential(sub_proof_index as u32);
@@ -146,14 +105,10 @@ pub fn verify_presentation(
             .requested_proof
             .get_predicates_for_credential(sub_proof_index as u32);
 
-        eprintln!("  Attributes for this credential: {} items", attributes.len());
-        eprintln!("  Predicates for this credential: {} items", predicates.len());
-
         let (_, attrs_nonrevoked_interval) = pres_req.get_requested_attributes(&attributes)?;
         let (_, pred_nonrevoked_interval) = pres_req.get_requested_predicates(&predicates)?;
 
         {
-            eprintln!("  Checking non-revoked interval...");
             check_non_revoked_interval(
                 proof_verifier.get_credential_definition(&identifier.cred_def_id)?,
                 attrs_nonrevoked_interval,
@@ -163,10 +118,8 @@ pub fn verify_presentation(
                 nonrevoke_interval_override,
                 identifier.timestamp,
             )?;
-            eprintln!("  Non-revoked interval check passed");
         }
 
-        eprintln!("  Adding sub-proof to verifier...");
         proof_verifier.add_sub_proof(
             &presentation.proof.proofs[sub_proof_index],
             &identifier.schema_id,
@@ -174,23 +127,11 @@ pub fn verify_presentation(
             identifier.rev_reg_id.as_ref(),
             identifier.timestamp,
         )?;
-        eprintln!("  Sub-proof {} added successfully", sub_proof_index);
     }
 
-    eprintln!("All sub-proofs processed. Starting final verification...");
-    eprintln!("About to call proof_verifier.verify() with {} sub-proofs", presentation.proof.proofs.len());
-    eprintln!("Pres_req nonce: {:?}", pres_req.nonce);
     let valid = proof_verifier.verify(&presentation.proof)?;
-    eprintln!("Final verification result: {}", valid);
-    
-    if !valid {
-        eprintln!("VERIFICATION FAILED - Debug info:");
-        eprintln!("  Proof proofs length: {}", presentation.proof.proofs.len());
-        eprintln!("  This indicates the cryptographic proof verification failed");
-    }
 
     trace!("verify <<< valid: {:?}", valid);
-    eprintln!("=== VERIFY_PRESENTATION FUNCTION END ===");
 
     Ok(valid)
 }
