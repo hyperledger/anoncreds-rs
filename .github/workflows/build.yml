@@ -359,7 +359,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{matrix.architecture}}
-          toolchain: ${{RUST_VERSION}}
+          toolchain: ${{ env.RUST_VERSION }}
 
       - name: Build
         run: cargo build --release --target ${{matrix.architecture}} --features=vendored
