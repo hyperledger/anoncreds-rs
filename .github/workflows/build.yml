@@ -300,7 +300,7 @@ jobs:
 
       - name: Build
         run: |
-          cargo install cross --git https://github.com/cross-rs/cross.git
+          cargo install --locked --git https://github.com/cross-rs/cross --tag v${{ env.CROSS_VERSION }} cross
 
           cross build --lib --release --target ${{ matrix.target }} --features=vendored
 
