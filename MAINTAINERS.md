@@ -1,103 +1,89 @@
 # Maintainers
 
-<!-- Please keep all lists sorted alphabetically by github -->
+This file defines the Maintainers processes (adding, removing) and duties for all repositories in the Hyperledger AnonCreds Project,
+as well as the list of Maintainers for this repository. "Maintainers" are defined as any individuals with escalated GitHub privileges above
+"READ" in Hyperledger AnonCreds repositories. Maintainers **MUST** abide by the Hyperledger AnonCreds Project Charter.
 
-## Active Maintainers
+All other Hyperledger AnonCreds Project repository MAINTAINERS.md files point to this file.
 
-<!-- anoncreds-maintainers group has maintainer access to anoncreds-rs repo -->
+## Maintainers for this Repository
 
-| Name             | Github           | LFID             |
-| ---------------- | ---------------- | ---------------- |
-| Andrew Whitehead | andrewwhitehead  | cywolf           |
-| Berend Sliedrecht| berendsliedrecht | beri14           |
-| Darko Kulic      | dkulic           | dkulic           |
-| Stephen Curran   | swcurran         | swcurran         |
-| Timo Glastra     | TimoGlastra      | TimoGlastra      |
-| Wade Barnes      | WadeBarnes       | WadeBarnes       |
+Maintainers for this repository are listed in the [Access Control YAML file].
+Search in the file for this repository.
 
-## Becoming a Maintainer
+[Access Control YAML file]: https://github.com/hyperledger/governance/blob/main/access-control.yaml
 
-AnonCreds welcomes community contribution.
-Each community member may progress to become a maintainer.
+## The Duties of a Hyperledger AnonCreds Maintainers
 
-How to become a maintainer:
+Maintainers are expected to fulfill the following responsibilities for the repositories they oversee. The duties are listed in more or less priority order:
 
-- Contribute significantly to the code in this repository.
-  
-### Maintainers contribution requirement
+- Review, respond, and act on any security vulnerabilities reported against the repository.
+- Review, provide feedback on, and merge or reject GitHub Pull Requests from
+  Contributors.
+- Review, triage, comment on, and close GitHub Issues
+  submitted by Contributors.
+- When appropriate, lead/facilitate architectural discussions in the community.
+- When appropriate, lead/facilitate the creation of a product roadmap.
+- Create, clarify, and label issues to be worked on by Contributors.
+- Ensure that there is a well defined (and ideally automated) product test and
+  release pipeline, including the publication of release artifacts.
+- When appropriate, execute the product release process.
+- Maintain the repository CONTRIBUTING.md file and getting started documents to
+  give guidance and encouragement to those wanting to contribute to the product, and those wanting to become maintainers.
+- Contribute to the product via GitHub Pull Requests.
+- Monitor requests from the Hyperledger Technical Oversight Committee about the
+contents and management of Hyperledger repositories, such as branch handling,
+required files in repositories and so on.
+- Contribute to the Hyperledger Project's Quarterly Report.
 
-The requirement to be able to be proposed as a maintainer is:
+## Becoming a Hyperledger AnonCreds Maintainer
 
-- 5 significant changes on code have been authored in this repos by the proposed maintainer and accepted (merged PRs).
-  
-### Maintainers approval process
+This community welcomes contributions. Interested contributors are encouraged to
+progress to become maintainers. To become a maintainer the following steps
+occur, roughly in order.
 
-The following steps must occur for a contributor to be "upgraded" as a maintainer:
+- The proposed maintainer establishes their reputation in the community,
+  including authoring five (5) significant merged pull requests, and expresses
+  an interest in becoming a maintainer for the repository.
+- A PR is created to update the [Access Control YAML file] to add the proposed maintainer on team with appropriate privileges in the relevant repositories.
+- The PR is authored by an existing maintainer or has a comment on the PR from an existing maintainer supporting the proposal.
+- The PR is authored by the proposed maintainer or has a comment on the PR from the proposed maintainer confirming their interest in being a maintainer.
+  - The PR or comment from the proposed maintainer must include their
+    willingness to be a long-term (more than 6 month) maintainer.
+- Once the PR and necessary comments have been received, an approval time frame begins.
+- The PR **MUST** be communicated on all appropriate communication channels, including relevant community calls, chat channels and mailing lists. Comments of support from the community are welcome.
+- The PR is merged and the proposed maintainer becomes a maintainer if either:
+  - At least three (3) TSC or project Maintainers approve the PR or provide an approval comment on the PR.
+- If the PR does not get the requisite PR approvals, it may be closed.
 
-- The proposed maintainer has the sponsorship of at least one other maintainer.
-  - This sponsoring maintainer will create a proposal PR modifying the list of
-    maintainers. (see [proposal PR template](#proposal-pr-template).)
-  - The proposed maintainer accepts the nomination and expresses a willingness
-    to be a long-term (more than 6 month) committer by adding a comment in the proposal PR.
-  - The PR will be communicated in all appropriate communication channels
-    including at least [anoncreds-maintainers channel on Hyperledger Discord](https://discord.gg/hyperledger),
-    the [mailing list](https://lists.hyperledger.org/g/anoncreds)
-    and any maintainer/community call.
-- Approval by at least 3 current maintainers within two weeks of the proposal or
-  an absolute majority (half the total + 1) of current maintainers.
-  - Maintainers will vote by approving the proposal PR.
-- No veto raised by another maintainer within the voting timeframe.
-  - All vetoes must be accompanied by a public explanation as a comment in the
-    proposal PR.
-  - A veto can be retracted, in that case the voting timeframe is reset and all approvals are removed.
-  - It is bad form to veto, retract, and veto again.
-  
-The proposed maintainer becomes a maintainer either:
+## Removing Hyperledger AnonCreds Maintainers
 
-  - when two weeks have passed without veto since the third approval of the proposal PR,
-  - or an absolute majority of maintainers approved the proposal PR.
-
-In either case, no maintainer raised and stood by a veto.
-
-## Removing Maintainers
-
-Being a maintainer is not a status symbol or a title to be maintained indefinitely.
-
-It will occasionally be necessary and appropriate to move a maintainer to emeritus status.
-
-This can occur in the following situations:
+Being a maintainer is not a status symbol or a title to be carried
+indefinitely. It will occasionally be necessary and appropriate to move a
+maintainer to emeritus status. This can occur in the following situations:
 
 - Resignation of a maintainer.
 - Violation of the Code of Conduct warranting removal.
 - Inactivity.
   - A general measure of inactivity will be no commits or code review comments
-    for two reporting quarters, although this will not be strictly enforced if
+    for one reporting quarter. This will not be strictly enforced if
     the maintainer expresses a reasonable intent to continue contributing.
   - Reasonable exceptions to inactivity will be granted for known long term
     leave such as parental leave and medical leave.
-- Other unspecified circumstances.
+- Other circumstances at the discretion of the other Maintainers.
 
-As for adding a maintainer, the record and governance process for moving a
-maintainer to emeritus status is recorded using review approval in the PR making that change.
+The process to remove a maintainer from active status is comparable to the process for adding a maintainer, outlined above. In the case of voluntary
+resignation, the Pull Request can be merged following a maintainer PR approval. If the removal is for any other reason, the following steps **SHOULD** be followed:
 
-Returning to active status from emeritus status uses the same steps as adding a
-new maintainer.
+- A PR is created to update the [Access Control YAML file] to remove the maintainer from the appropriate teams.
+- The PR is authored by, or has a comment supporting the proposal from, an existing maintainer or Hyperledger GitHub organization administrator.
+- Once the PR and necessary comments have been received, the approval timeframe begins.
+- The PR **MAY** be communicated on appropriate communication channels, including relevant community calls, chat channels and mailing lists.
+- The PR is merged and the maintainer is removed if:
+  - The PR is approved by the maintainer to be removed, OR
+  - At least three (3) TSC or AnonCreds Project maintainer PR approvals or approval comments have been recorded.
+- If the PR does not get the requisite PR approvals, it may be closed.
 
-Note that the emeritus maintainer always already has the required significant contributions.
-There is no contribution prescription delay.
-
-## Proposal PR template
-
-```markdown
-I propose to add [maintainer github handle] as a AnonCreds project maintainer.
-
-[maintainer github handle] contributed with many high quality commits:
-
-- [list significant achievements]
-
-Here are [their past contributions on AnonCreds project](https://github.com/hyperledger/anoncreds-rs/commits?author=[user github handle]).
-
-Voting ends two weeks from today.
-
-For more information on this process see the Becoming a Maintainer section in the MAINTAINERS.md file.
-```
+Returning to active maintainer status after being removed uses the same steps as adding a
+new maintainer. Note that the emeritus maintainer already has the 5 required
+significant changes as there is no contribution time horizon for those.
