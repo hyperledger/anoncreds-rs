@@ -54,7 +54,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [anoncreds-windows-latest, anoncreds-ubuntu-latest]
+        os: [anoncreds-windows-latest, anoncreds-ubuntu-2404, anoncreds-ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -87,12 +87,12 @@ jobs:
       matrix:
         include:
           - architecture: linux-aarch64
-            os: anoncreds-ubuntu-latest
+            os: anoncreds-ubuntu-2404
             target: aarch64-unknown-linux-gnu
             lib: libanoncreds.so
             use_cross: true
           - architecture: linux-x86_64
-            os: anoncreds-ubuntu-latest
+            os: anoncreds-ubuntu-2404
             target: x86_64-unknown-linux-gnu
             lib: libanoncreds.so
             use_cross: true
@@ -202,10 +202,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - runner: anoncreds-ubuntu-latest
+          - runner: anoncreds-ubuntu-2404
             architecture: linux-aarch64
             plat-name: manylinux2014_aarch64
-          - runner: anoncreds-ubuntu-latest
+          - runner: anoncreds-ubuntu-2404
             architecture: linux-x86_64
             plat-name: manylinux2014_x86_64
           - runner: macos-latest
@@ -271,7 +271,7 @@ jobs:
   build-android-libraries:
     name: Build Android Libraries
 
-    runs-on: anoncreds-ubuntu-latest
+    runs-on: anoncreds-ubuntu-2404
 
     strategy:
       matrix:
@@ -312,7 +312,7 @@ jobs:
 
   create-android-library:
     name: Create android libraries
-    runs-on: anoncreds-ubuntu-latest
+    runs-on: anoncreds-ubuntu-2404
     needs: build-android-libraries
     if: |
       (github.event_name == 'release' ||
@@ -407,7 +407,7 @@ jobs:
 
   create-ios-android-release-asset:
     name: Create iOS and Android Release Assets
-    runs-on: anoncreds-ubuntu-latest
+    runs-on: anoncreds-ubuntu-2404
     needs:
       - create-ios-xcframework
       - create-android-library
