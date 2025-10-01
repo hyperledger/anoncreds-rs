@@ -20,27 +20,27 @@ Anoncreds-rs exposes three main parts: [`issuer`](./src/services/issuer.rs),
 
 ### Issuer
 
--   Create a [schema](https://hyperledger.github.io/anoncreds-spec/#schema-publisher-publish-schema-object)
--   Create a [credential definition](https://hyperledger.github.io/anoncreds-spec/#issuer-create-and-publish-credential-definition-object)
--   Create a [revocation registry definition](https://hyperledger.github.io/anoncreds-spec/#issuer-create-and-publish-revocation-registry-objects)
--   Create a [revocation status list](https://hyperledger.github.io/anoncreds-spec/#publishing-the-initial-initial-revocation-status-list-object)
--   Update a [revocation status list](https://hyperledger.github.io/anoncreds-spec/#publishing-the-initial-initial-revocation-status-list-object)
--   Update a [revocation status list](https://hyperledger.github.io/anoncreds-spec/#publishing-the-initial-initial-revocation-status-list-object)'s timestamp
--   Create a [credential offer](https://hyperledger.github.io/anoncreds-spec/#credential-offer)
--   Create a [credential](https://hyperledger.github.io/anoncreds-spec/#issue-credential)
+- Create a [schema](https://hyperledger.github.io/anoncreds-spec/#schema-publisher-publish-schema-object)
+- Create a [credential definition](https://hyperledger.github.io/anoncreds-spec/#issuer-create-and-publish-credential-definition-object)
+- Create a [revocation registry definition](https://hyperledger.github.io/anoncreds-spec/#issuer-create-and-publish-revocation-registry-objects)
+- Create a [revocation status list](https://hyperledger.github.io/anoncreds-spec/#publishing-the-initial-initial-revocation-status-list-object)
+- Update a [revocation status list](https://hyperledger.github.io/anoncreds-spec/#publishing-the-initial-initial-revocation-status-list-object)
+- Update a [revocation status list](https://hyperledger.github.io/anoncreds-spec/#publishing-the-initial-initial-revocation-status-list-object)'s timestamp
+- Create a [credential offer](https://hyperledger.github.io/anoncreds-spec/#credential-offer)
+- Create a [credential](https://hyperledger.github.io/anoncreds-spec/#issue-credential)
 
 ### Prover / Holder
 
--   Create a [credential request](https://hyperledger.github.io/anoncreds-spec/#credential-request)
--   Process an incoming [credential](https://hyperledger.github.io/anoncreds-spec/#receiving-a-credential)
--   Create a [presentation](https://hyperledger.github.io/anoncreds-spec/#generate-presentation)
--   Create, and update, a revocation state
--   Create, and update, a revocation state with a witness
+- Create a [credential request](https://hyperledger.github.io/anoncreds-spec/#credential-request)
+- Process an incoming [credential](https://hyperledger.github.io/anoncreds-spec/#receiving-a-credential)
+- Create a [presentation](https://hyperledger.github.io/anoncreds-spec/#generate-presentation)
+- Create, and update, a revocation state
+- Create, and update, a revocation state with a witness
 
 ### Verifier
 
--   [Verify a presentation](https://hyperledger.github.io/anoncreds-spec/#verify-presentation)
--   generate a nonce
+- [Verify a presentation](https://hyperledger.github.io/anoncreds-spec/#verify-presentation)
+- generate a nonce
 
 ## Wrappers
 
@@ -51,6 +51,7 @@ Anoncreds is, soon, available as a standalone library in Rust, but also via wrap
 | Node.js      | [javascript](https://github.com/hyperledger/anoncreds-wrapper-javascript/tree/main/packages/anoncreds-nodejs)       | ✅     |
 | React Native | [javascript](https://github.com/hyperledger/anoncreds-wrapper-javascript/tree/main/packages/anoncreds-react-native) | ✅     |
 | Python       | [python](https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/python)                                     | ✅     |
+| .net       | [.net](https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/dotnet)                                     | ✅     |
 
 ## Credit
 
