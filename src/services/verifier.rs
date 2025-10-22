@@ -846,7 +846,9 @@ impl<'a> CLProofVerifier<'a> {
         >,
         rev_status_lists: Option<&'a Vec<RevocationStatusList>>,
     ) -> Result<CLProofVerifier<'a>> {
-        let proof_verifier = Verifier::new_proof_verifier()?;
+        let mut proof_verifier = Verifier::new_proof_verifier()?;
+        // Require link secrets to be equal
+        proof_verifier.add_common_attribute("master_secret")?;
         let non_credential_schema = build_non_credential_schema()?;
         let revocation_map = build_revocation_registry_map(rev_status_lists)?;
         Ok(CLProofVerifier {
