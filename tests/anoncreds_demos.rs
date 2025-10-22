@@ -728,6 +728,161 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates(
 }
 
 #[rstest]
+fn anoncreds_demo_proof_does_not_verify_with_multiple_link_secrets() {
+    // Create pseudo ledger and wallets
+
+    use anoncreds::{prover, types::PresentCredentials};
+    let mut ledger = Ledger::default();
+    let mut issuer_wallet = IssuerWallet::default();
+    let mut prover_wallet_1 = ProverWallet::default();
+    let mut prover_wallet_2 = ProverWallet::default();
+    let verifier_wallet = VerifierWallet::default();
+
+    // Create schema
+    let (gvt_schema, gvt_schema_id) = issuer_wallet.create_schema(&mut ledger, GVT_CRED);
+
+    // Create credential definition
+    let (gvt_cred_def, gvt_cred_def_id) =
+        issuer_wallet.create_cred_def(&mut ledger, &gvt_schema, false);
+
+    // Issuer creates a Credential Offer
+    let cred_offer = issuer_wallet.create_credential_offer(&gvt_schema_id, &gvt_cred_def_id);
+
+    // Prover creates a Credential Request
+    let (cred_request, cred_request_metadata) =
+        prover_wallet_1.create_credential_request(&gvt_cred_def, &cred_offer);
+
+    // Issuer creates a credential
+    let cred_values = fixtures::credential_values(GVT_CRED);
+    let issue_cred = issuer_wallet.create_credential(
+        &CredentialFormat::Legacy,
+        &gvt_cred_def_id,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
+        None,
+        None,
+        None,
+        None,
+    );
+
+    // Prover receives the credential and processes it
+    let mut recv_cred = issue_cred;
+    prover_wallet_1.store_credential(
+        GVT_CRED,
+        &mut recv_cred,
+        &cred_request_metadata,
+        &gvt_cred_def,
+        None,
+    );
+
+    // Prover creates a second Credential Request
+    let (cred_request, cred_request_metadata) =
+        prover_wallet_2.create_credential_request(&gvt_cred_def, &cred_offer);
+
+    // Issuer creates a credential
+    let cred_values = fixtures::credential_values(GVT_CRED);
+    let issue_cred = issuer_wallet.create_credential(
+        &CredentialFormat::Legacy,
+        &gvt_cred_def_id,
+        &cred_offer,
+        &cred_request,
+        cred_values.into(),
+        None,
+        None,
+        None,
+        None,
+    );
+
+    // Prover receives the second credential and processes it, bound to a second link secret
+    let mut recv_cred = issue_cred;
+    prover_wallet_2.store_credential(
+        GVT_CRED,
+        &mut recv_cred,
+        &cred_request_metadata,
+        &gvt_cred_def,
+        None,
+    );
+
+    // Verifier creates a presentation request
+    let nonce = verifier_wallet.generate_nonce();
+    let pres_request = serde_json::from_value(json!({
+        "nonce": nonce,
+        "name":"pres_req_1",
+        "version":"0.1",
+        "requested_attributes":{
+            "attr1_referent":{
+                "name": "name"
+            },
+            "attr2_referent":{
+                "name": "height"
+            }
+        }
+    }))
+    .expect("Error creating proof request");
+
+    let schemas = ledger.resolve_schemas(vec![&gvt_schema_id]);
+    let cred_defs = ledger.resolve_cred_defs(vec![&gvt_cred_def_id]);
+
+    // First referent from first prover wallet
+    let present_credentials_1 = vec![CredentialToPresent {
+        id: GVT_CRED.to_string(),
+        attributes: vec![PresentAttribute {
+            referent: "attr1_referent".to_string(),
+            form: PresentAttributeForm::RevealedAttribute,
+        }],
+    }];
+    // Second referent from second prover wallet
+    let present_credentials_2 = vec![CredentialToPresent {
+        id: GVT_CRED.to_string(),
+        attributes: vec![PresentAttribute {
+            referent: "attr2_referent".to_string(),
+            form: PresentAttributeForm::RevealedAttribute,
+        }],
+    }];
+
+    // Prover creates presentation with two different link secrets
+    let mut presented = PresentCredentials::default();
+    prover_wallet_1.prepare_credentials_to_present(
+        &mut presented,
+        &prover_wallet_1.credentials,
+        &present_credentials_1,
+    );
+    prover_wallet_2.prepare_credentials_to_present(
+        &mut presented,
+        &prover_wallet_2.credentials,
+        &present_credentials_2,
+    );
+
+    // Prover creates presentation
+    let presentation = prover::create_presentation(
+        &pres_request,
+        presented,
+        None,
+        &prover_wallet_1.link_secret, // overridden in 'presented'
+        &schemas,
+        &cred_defs,
+    )
+    .expect("Error creating presentation");
+    let presentation = Presentations::Legacy(presentation);
+
+    let valid = verifier_wallet.verify_presentation(
+        &presentation,
+        &pres_request,
+        &schemas,
+        &cred_defs,
+        None,
+        None,
+        None,
+    );
+
+    let err = valid.expect_err("Proof verification should fail");
+    assert!(err.0.contains(
+        "Blinded value for common attribute 'master_secret' different across sub proofs"
+    ));
+}
+
+#[rstest]
 #[case(CredentialFormat::Legacy, PresentationFormat::Legacy)]
 #[case(CredentialFormat::W3C, PresentationFormat::W3C)]
 fn anoncreds_demo_works_for_requested_attribute_in_upper_case(

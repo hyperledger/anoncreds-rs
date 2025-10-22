@@ -432,41 +432,31 @@ pub fn create_presentation(
 
     let mut proof_builder = CLProofBuilder::new(pres_req_val, schemas, cred_defs)?;
 
-    for present in credentials.0 {
+    for present in &credentials.0 {
         if present.is_empty() {
             continue;
         }
         let credential = present.cred;
 
-        update_requested_proof(
-            &present.requested_attributes,
-            &present.requested_predicates,
-            pres_req_val,
-            credential,
-            sub_proof_index,
-            &mut requested_proof,
-        )?;
+        update_requested_proof(present, pres_req_val, sub_proof_index, &mut requested_proof)?;
 
+        let proof_link_secret = present.link_secret.unwrap_or(link_secret);
         proof_builder.add_sub_proof(
             &credential.values,
             &credential.signature,
-            link_secret,
+            proof_link_secret,
             &present,
             &credential.schema_id,
             &credential.cred_def_id,
             credential.rev_reg_id.as_ref(),
         )?;
 
-        let identifier = match pres_req {
-            PresentationRequest::PresentationRequestV2(_)
-            | PresentationRequest::PresentationRequestV1(_) => Identifier {
-                schema_id: credential.schema_id.clone(),
-                cred_def_id: credential.cred_def_id.clone(),
-                rev_reg_id: credential.rev_reg_id.clone(),
-                timestamp: present.timestamp,
-            },
+        let identifier = Identifier {
+            schema_id: credential.schema_id.clone(),
+            cred_def_id: credential.cred_def_id.clone(),
+            rev_reg_id: credential.rev_reg_id.clone(),
+            timestamp: present.timestamp,
         };
-
         identifiers.push(identifier);
 
         sub_proof_index += 1;
@@ -713,23 +703,21 @@ fn get_credential_values_for_attribute(
 }
 
 fn update_requested_proof(
-    req_attrs_for_credential: &HashSet<(String, bool)>,
-    req_predicates_for_credential: &HashSet<String>,
+    present: &PresentCredential<'_, Credential>,
     proof_req: &PresentationRequestPayload,
-    credential: &Credential,
     sub_proof_index: u32,
     requested_proof: &mut RequestedProof,
 ) -> Result<()> {
     trace!(
-        "_update_requested_proof >>> req_attrs_for_credential: {:?}, req_predicates_for_credential: {:?}, proof_req: {:?}, credential: {:?}, \
-           sub_proof_index: {:?}, requested_proof: {:?}",
-        req_attrs_for_credential,
-        req_predicates_for_credential,
-        proof_req,
-        secret!(&credential),
+        "_update_requested_proof >>> presented: {:?}, sub_proof_index: {:?}, requested_proof: {:?}",
+        secret!(&present),
         sub_proof_index,
         secret!(&requested_proof)
     );
+
+    let credential = present.cred;
+    let req_attrs_for_credential = &present.requested_attributes;
+    let req_predicates_for_credential = &present.requested_predicates;
 
     for (attr_referent, revealed) in req_attrs_for_credential {
         if *revealed {

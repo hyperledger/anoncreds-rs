@@ -98,6 +98,7 @@ impl<'p, T> PresentCredentials<'p, T> {
             rev_state,
             requested_attributes: HashSet::new(),
             requested_predicates: HashSet::new(),
+            link_secret: None,
         });
         AddCredential {
             present: &mut self.0[idx],
@@ -153,6 +154,7 @@ pub(crate) struct PresentCredential<'p, T> {
     pub rev_state: Option<&'p CredentialRevocationState>,
     pub requested_attributes: HashSet<(String, bool)>,
     pub requested_predicates: HashSet<String>,
+    pub link_secret: Option<&'p LinkSecret>,
 }
 
 impl<T> PresentCredential<'_, T> {
@@ -186,6 +188,10 @@ impl<'a, 'p, T> AddCredential<'a, 'p, T> {
 
     pub fn add_requested_predicate(&mut self, referent: impl Into<String>) {
         self.present.requested_predicates.insert(referent.into());
+    }
+
+    pub fn set_link_secret(&mut self, link_secret: &'p LinkSecret) {
+        self.present.link_secret.replace(link_secret);
     }
 }
 

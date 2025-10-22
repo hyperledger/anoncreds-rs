@@ -39,7 +39,7 @@ use anoncreds::{
 };
 
 #[derive(Debug)]
-pub struct TestError(String);
+pub struct TestError(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CredentialFormat {
@@ -879,11 +879,10 @@ impl<'a> ProverWallet<'a> {
 
     pub fn prepare_credentials_to_present<'b, T: RevocableCredential>(
         &'b self,
+        present: &mut PresentCredentials<'b, T>,
         credentials: &'b HashMap<String, T>,
-        present_credentials: &Vec<CredentialToPresent>,
-    ) -> PresentCredentials<'b, T> {
-        let mut present = PresentCredentials::default();
-
+        present_credentials: &[CredentialToPresent],
+    ) {
         for present_credential in present_credentials.iter() {
             let credential = credentials
                 .get(&present_credential.id)
@@ -896,6 +895,8 @@ impl<'a> ProverWallet<'a> {
             };
 
             let mut cred = present.add_credential(credential, *timestamp, rev_state.as_ref());
+            cred.set_link_secret(&self.link_secret);
+
             for data in present_credential.attributes.iter() {
                 match data.form {
                     PresentAttributeForm::RevealedAttribute => {
@@ -910,7 +911,6 @@ impl<'a> ProverWallet<'a> {
                 }
             }
         }
-        present
     }
 
     pub fn create_presentation(
@@ -925,8 +925,12 @@ impl<'a> ProverWallet<'a> {
     ) -> Presentations {
         match format {
             PresentationFormat::Legacy => {
-                let present =
-                    self.prepare_credentials_to_present(&self.credentials, present_credentials);
+                let mut present = PresentCredentials::default();
+                self.prepare_credentials_to_present(
+                    &mut present,
+                    &self.credentials,
+                    present_credentials,
+                );
                 let presentation = prover::create_presentation(
                     pres_request,
                     present,
@@ -939,8 +943,12 @@ impl<'a> ProverWallet<'a> {
                 Presentations::Legacy(presentation)
             }
             PresentationFormat::W3C => {
-                let present =
-                    self.prepare_credentials_to_present(&self.w3c_credentials, present_credentials);
+                let mut present = PresentCredentials::default();
+                self.prepare_credentials_to_present(
+                    &mut present,
+                    &self.w3c_credentials,
+                    present_credentials,
+                );
                 let presentation = w3c::prover::create_presentation(
                     pres_request,
                     present,
