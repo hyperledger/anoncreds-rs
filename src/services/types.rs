@@ -192,6 +192,7 @@ impl<'a, 'p, T> AddCredential<'a, 'p, T> {
 
     /// This method is intended for testing only, normally the link secret is
     /// passed directly when creating a presentation.
+    #[doc(hidden)]
     pub fn set_link_secret(&mut self, link_secret: &'p LinkSecret) {
         self.present.link_secret.replace(link_secret);
     }
