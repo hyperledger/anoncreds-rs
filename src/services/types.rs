@@ -154,7 +154,7 @@ pub(crate) struct PresentCredential<'p, T> {
     pub rev_state: Option<&'p CredentialRevocationState>,
     pub requested_attributes: HashSet<(String, bool)>,
     pub requested_predicates: HashSet<String>,
-    pub link_secret: Option<&'p LinkSecret>,
+    pub link_secret: Option<&'p LinkSecret>, // For testing only
 }
 
 impl<T> PresentCredential<'_, T> {
@@ -190,6 +190,8 @@ impl<'a, 'p, T> AddCredential<'a, 'p, T> {
         self.present.requested_predicates.insert(referent.into());
     }
 
+    /// This method is intended for testing only, normally the link secret is
+    /// passed directly when creating a presentation.
     pub fn set_link_secret(&mut self, link_secret: &'p LinkSecret) {
         self.present.link_secret.replace(link_secret);
     }

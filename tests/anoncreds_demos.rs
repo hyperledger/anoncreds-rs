@@ -859,7 +859,8 @@ fn anoncreds_demo_proof_does_not_verify_with_multiple_link_secrets() {
         &pres_request,
         presented,
         None,
-        &prover_wallet_1.link_secret, // overridden in 'presented'
+        // This link secret value is superseded by the ones assigned to each credential in 'presented'
+        &prover_wallet_1.link_secret,
         &schemas,
         &cred_defs,
     )
