@@ -40,16 +40,6 @@ class CredentialDefinition(bindings.AnoncredsObject):
         )
 
     @property
-    def id(self) -> str:
-        return str(
-            bindings._object_get_attribute(
-                self.GET_ATTR,
-                self.handle,
-                "id",
-            )
-        )
-
-    @property
     def schema_id(self) -> str:
         return str(
             bindings._object_get_attribute(
@@ -58,6 +48,37 @@ class CredentialDefinition(bindings.AnoncredsObject):
                 "schema_id",
             )
         )
+
+    @property
+    def tag(self) -> str:
+        return str(
+            bindings._object_get_attribute(
+                self.GET_ATTR,
+                self.handle,
+                "tag",
+            )
+        )
+
+    @property
+    def issuer_id(self) -> str:
+        return str(
+            bindings._object_get_attribute(
+                self.GET_ATTR,
+                self.handle,
+                "issuer_id",
+            )
+        )
+
+    @property
+    def signature_type(self) -> str:
+        return str(
+            bindings._object_get_attribute(
+                self.GET_ATTR,
+                self.handle,
+                "signature_type",
+            )
+        )
+
 
 
 class CredentialDefinitionPrivate(bindings.AnoncredsObject):
