@@ -1,6 +1,6 @@
 use ffi_support::FfiStr;
 
-use super::error::{catch_error, ErrorCode};
+use super::error::{ErrorCode, catch_error};
 use super::object::ObjectHandle;
 use crate::data_types::cred_def::CredentialDefinition;
 use crate::data_types::link_secret::LinkSecret;
@@ -9,7 +9,7 @@ use crate::services::{
     types::{CredentialRequest, CredentialRequestMetadata},
 };
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_credential_request(
     entropy: FfiStr,
     prover_did: FfiStr,

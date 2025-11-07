@@ -65,7 +65,7 @@ impl<'a> TryFrom<&'a RevocationConfig> for CredentialRevocationConfig<'a> {
 impl_anoncreds_object!(Credential, "Credential");
 impl_anoncreds_object_from_json!(Credential, anoncreds_credential_from_json);
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_credential(
     cred_def: ObjectHandle,
     cred_def_private: ObjectHandle,
@@ -102,7 +102,7 @@ pub extern "C" fn anoncreds_create_credential(
     })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_encode_credential_attributes(
     attr_raw_values: FfiStrList,
     result_p: *mut *const c_char,
@@ -125,7 +125,7 @@ pub extern "C" fn anoncreds_encode_credential_attributes(
     })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_process_credential(
     cred: ObjectHandle,
     cred_req_metadata: ObjectHandle,
@@ -161,7 +161,7 @@ pub extern "C" fn anoncreds_process_credential(
     })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_credential_get_attribute(
     handle: ObjectHandle,
     name: FfiStr,

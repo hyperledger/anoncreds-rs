@@ -1,13 +1,13 @@
 use std::os::raw::c_char;
 
-use ffi_support::{rust_string_to_c, ByteBuffer};
+use ffi_support::{ByteBuffer, rust_string_to_c};
 use zeroize::Zeroize;
 
 pub static LIB_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 ffi_support::define_string_destructor!(anoncreds_string_free);
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_buffer_free(buffer: ByteBuffer) {
     ffi_support::abort_on_panic::with_abort_on_panic(|| {
         buffer.destroy_into_vec().zeroize();
@@ -18,7 +18,7 @@ pub extern "C" fn anoncreds_buffer_free(buffer: ByteBuffer) {
 mod macros;
 
 mod error;
-use self::error::{catch_error, ErrorCode};
+use self::error::{ErrorCode, catch_error};
 
 #[macro_use]
 mod object;
@@ -38,7 +38,7 @@ mod schema;
 #[cfg(feature = "w3c")]
 mod w3c;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_set_default_logger() -> ErrorCode {
     catch_error(|| {
         env_logger::init();
@@ -47,7 +47,7 @@ pub extern "C" fn anoncreds_set_default_logger() -> ErrorCode {
     })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_version() -> *mut c_char {
     rust_string_to_c(LIB_VERSION.to_owned())
 }

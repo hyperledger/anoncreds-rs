@@ -206,12 +206,6 @@ pub(crate) struct RequestedPredicate<'a> {
     pub rev_state: Option<&'a CredentialRevocationState>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) struct ProvingCredentialKey {
-    pub cred_id: String,
-    pub timestamp: Option<u64>,
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRevocationState {
     pub witness: Witness,

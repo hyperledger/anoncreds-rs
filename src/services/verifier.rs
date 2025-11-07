@@ -52,8 +52,10 @@ pub fn verify_presentation(
         &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
 ) -> Result<bool> {
-    trace!("verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
-    presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
+    trace!(
+        "verify >>> presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
+        presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists
+    );
 
     // These values are from the prover and cannot be trusted
     let received_revealed_attrs: HashMap<String, Identifier> =
@@ -310,7 +312,10 @@ fn verify_revealed_attribute_values(
                 )
             })?;
         if attr_infos.values.len() != attr_names.len() {
-            error!("Proof Revealed Attr Group does not match Proof Request Attribute Group, proof request attrs: {:?}, referent: {:?}, attr_infos: {:?}", pres_req.requested_attributes, attr_referent, attr_infos);
+            error!(
+                "Proof Revealed Attr Group does not match Proof Request Attribute Group, proof request attrs: {:?}, referent: {:?}, attr_infos: {:?}",
+                pres_req.requested_attributes, attr_referent, attr_infos
+            );
             return Err(err_msg!(
                 "Proof Revealed Attr Group does not match Proof Request Attribute Group",
             ));
@@ -352,8 +357,13 @@ pub(crate) fn verify_revealed_attribute_value(
         })?;
 
     if reveal_attr_encoded != crypto_proof_encoded {
-        return Err(err_msg!(ProofRejected,
-                "Encoded Values for \"{}\" are different in RequestedProof \"{}\" and CryptoProof \"{}\"", attr_name, reveal_attr_encoded, crypto_proof_encoded));
+        return Err(err_msg!(
+            ProofRejected,
+            "Encoded Values for \"{}\" are different in RequestedProof \"{}\" and CryptoProof \"{}\"",
+            attr_name,
+            reveal_attr_encoded,
+            crypto_proof_encoded
+        ));
     }
 
     Ok(())
@@ -409,7 +419,9 @@ pub(crate) fn verify_requested_restrictions(
     if filter_tags.contains(&"issuer_id".to_owned())
         && filter_tags.contains(&"issuer_did".to_owned())
     {
-        return Err(err_msg!("Presentation request contains restriction for `issuer_id` (new) and `issuer_did` (legacy)"));
+        return Err(err_msg!(
+            "Presentation request contains restriction for `issuer_id` (new) and `issuer_did` (legacy)"
+        ));
     }
 
     // We check whether both the `schema_issuer_id` and `schema_issuer_did` are included. Since
@@ -418,7 +430,9 @@ pub(crate) fn verify_requested_restrictions(
     if filter_tags.contains(&"schema_issuer_id".to_owned())
         && filter_tags.contains(&"schema_issuer_did".to_owned())
     {
-        return Err(err_msg!("Presentation request contains both restrictions for `schema_issuer_id` (new) and `schema_issuer_did` (legacy)"));
+        return Err(err_msg!(
+            "Presentation request contains both restrictions for `schema_issuer_id` (new) and `schema_issuer_did` (legacy)"
+        ));
     }
 
     for (referent, info) in &requested_attrs {
@@ -573,22 +587,26 @@ pub(crate) fn process_operator(
     filter: &Filter,
 ) -> Result<()> {
     match restriction_op {
-        Query::Eq(ref tag_name, ref tag_value) => {
+        Query::Eq(tag_name, tag_value) => {
             process_filter(attr_value_map, tag_name, tag_value, filter).map_err(err_map!(
                 "$eq operator validation failed for tag: \"{}\", value: \"{}\"",
                 tag_name,
                 tag_value
             ))
         }
-        Query::Neq(ref tag_name, ref tag_value) => {
+        Query::Neq(tag_name, tag_value) => {
             if process_filter(attr_value_map, tag_name, tag_value, filter).is_err() {
                 Ok(())
             } else {
-                Err(err_msg!(ProofRejected,
-                        "$neq operator validation failed for tag: \"{}\", value: \"{}\". Condition was passed.", tag_name, tag_value))
+                Err(err_msg!(
+                    ProofRejected,
+                    "$neq operator validation failed for tag: \"{}\", value: \"{}\". Condition was passed.",
+                    tag_name,
+                    tag_value
+                ))
             }
         }
-        Query::In(ref tag_name, ref tag_values) => {
+        Query::In(tag_name, tag_values) => {
             let res = tag_values
                 .iter()
                 .any(|val| process_filter(attr_value_map, tag_name, val, filter).is_ok());
@@ -603,13 +621,13 @@ pub(crate) fn process_operator(
                 ))
             }
         }
-        Query::And(ref operators) => operators
+        Query::And(operators) => operators
             .iter()
             .map(|op| process_operator(attr_value_map, op, filter))
             .collect::<Result<Vec<()>>>()
             .map(|_| ())
             .map_err(err_map!("$and operator validation failed.")),
-        Query::Or(ref operators) => {
+        Query::Or(operators) => {
             let res = operators
                 .iter()
                 .any(|op| process_operator(attr_value_map, op, filter).is_ok());
@@ -622,7 +640,7 @@ pub(crate) fn process_operator(
                 ))
             }
         }
-        Query::Not(ref operator) => {
+        Query::Not(operator) => {
             if process_operator(attr_value_map, operator, filter).is_err() {
                 Ok(())
             } else {
@@ -644,10 +662,7 @@ fn process_filter(
 ) -> Result<()> {
     trace!(
         "_process_filter: attr_value_map: {:?}, tag: {}, tag_value: {}, filter: {:?}",
-        attr_value_map,
-        tag,
-        tag_value,
-        filter
+        attr_value_map, tag, tag_value, filter
     );
     match tag {
         tag_ @ "schema_id" => precess_filed(tag_, filter.schema_id.to_string(), tag_value),

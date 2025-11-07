@@ -48,7 +48,7 @@ impl<T> From<Result<T>> for ErrorCode {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_get_current_error(error_json_p: *mut *const c_char) -> ErrorCode {
     trace!("anoncreds_get_current_error");
 

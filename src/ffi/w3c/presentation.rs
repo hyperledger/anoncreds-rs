@@ -32,7 +32,7 @@ impl_anoncreds_object_from_json!(W3CPresentation, anoncreds_w3c_presentation_fro
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_w3c_presentation(
     pres_req: ObjectHandle,
     credentials: FfiList<FfiCredentialEntry>,
@@ -90,7 +90,7 @@ pub extern "C" fn anoncreds_create_w3c_presentation(
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_verify_w3c_presentation(
     presentation: ObjectHandle,
     pres_req: ObjectHandle,

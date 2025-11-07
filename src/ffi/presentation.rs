@@ -1,4 +1,4 @@
-use super::error::{catch_error, ErrorCode};
+use super::error::{ErrorCode, catch_error};
 use super::object::{AnoncredsObject, AnoncredsObjectList, ObjectHandle};
 use super::util::{FfiList, FfiStrList};
 use crate::data_types::cred_def::{CredentialDefinition, CredentialDefinitionId};
@@ -60,7 +60,7 @@ pub(crate) struct CredentialEntry {
     rev_state: Option<AnoncredsObject>,
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_presentation(
     pres_req: ObjectHandle,
     credentials: FfiList<FfiCredentialEntry>,
@@ -143,7 +143,7 @@ impl<'a> FfiNonrevokedIntervalOverride<'a> {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_verify_presentation(
     presentation: ObjectHandle,
     pres_req: ObjectHandle,

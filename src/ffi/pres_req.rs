@@ -11,7 +11,7 @@ impl_anoncreds_object_from_json!(
     anoncreds_presentation_request_from_json
 );
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_generate_nonce(nonce_p: *mut *const c_char) -> ErrorCode {
     catch_error(|| {
         check_useful_c_ptr!(nonce_p);

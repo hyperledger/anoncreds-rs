@@ -6,14 +6,14 @@ use std::{
     fs::create_dir,
 };
 
-use crate::utils::{fixtures, VerifierWallet};
+use crate::utils::{VerifierWallet, fixtures};
 use anoncreds::data_types::nonce::Nonce;
+use anoncreds::data_types::w3c::VerifiableCredentialSpecVersion;
 use anoncreds::data_types::w3c::credential::W3CCredential;
 use anoncreds::data_types::w3c::credential_attributes::{
     CredentialAttributeValue, CredentialSubject,
 };
 use anoncreds::data_types::w3c::presentation::W3CPresentation;
-use anoncreds::data_types::w3c::VerifiableCredentialSpecVersion;
 use anoncreds::types::{
     CredentialRequestMetadata, CredentialRevocationState, CredentialValues,
     RevocationRegistryDefinition, RevocationStatusList,
@@ -830,7 +830,7 @@ impl<'a> ProverWallet<'a> {
         rev_reg_def: Option<&RevocationRegistryDefinition>,
     ) {
         match credential {
-            Credentials::Legacy(ref mut credential) => {
+            Credentials::Legacy(credential) => {
                 prover::process_credential(
                     credential,
                     cred_request_metadata,
@@ -842,7 +842,7 @@ impl<'a> ProverWallet<'a> {
                 self.credentials
                     .insert(id.to_string(), credential.try_clone().unwrap());
             }
-            Credentials::W3C(ref mut credential) => {
+            Credentials::W3C(credential) => {
                 w3c::prover::process_credential(
                     credential,
                     cred_request_metadata,

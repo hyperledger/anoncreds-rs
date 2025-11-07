@@ -1,6 +1,5 @@
 use std::error::Error as StdError;
 use std::fmt::{self, Display, Formatter};
-use std::result::Result as StdResult;
 
 use crate::cl::{Error as CryptoError, ErrorKind as CryptoErrorKind};
 
@@ -186,52 +185,6 @@ macro_rules! err_map {
     ($($params:tt)*) => {
         |err| err_msg!($($params)*).with_cause(err)
     };
-}
-
-pub trait ResultExt<T, E> {
-    fn map_err_string(self) -> StdResult<T, String>;
-    fn map_input_err<F, M>(self, mapfn: F) -> Result<T>
-    where
-        F: FnOnce() -> M,
-        M: fmt::Display + Send + Sync + 'static;
-    fn with_err_msg<M>(self, kind: ErrorKind, msg: M) -> Result<T>
-    where
-        M: fmt::Display + Send + Sync + 'static;
-    fn with_input_err<M>(self, msg: M) -> Result<T>
-    where
-        M: fmt::Display + Send + Sync + 'static;
-}
-
-impl<T, E> ResultExt<T, E> for StdResult<T, E>
-where
-    E: std::error::Error + Send + Sync + 'static,
-{
-    fn map_err_string(self) -> StdResult<T, String> {
-        self.map_err(|err| err.to_string())
-    }
-
-    fn map_input_err<F, M>(self, mapfn: F) -> Result<T>
-    where
-        F: FnOnce() -> M,
-        M: fmt::Display + Send + Sync + 'static,
-    {
-        self.map_err(|err| Error::from_msg(ErrorKind::Input, mapfn().to_string()).with_cause(err))
-    }
-
-    fn with_err_msg<M>(self, kind: ErrorKind, msg: M) -> Result<T>
-    where
-        M: fmt::Display + Send + Sync + 'static,
-    {
-        self.map_err(|err| Error::from_msg(kind, msg.to_string()).with_cause(err))
-    }
-
-    #[inline]
-    fn with_input_err<M>(self, msg: M) -> Result<T>
-    where
-        M: fmt::Display + Send + Sync + 'static,
-    {
-        self.map_err(|err| Error::from_msg(ErrorKind::Input, msg.to_string()).with_cause(err))
-    }
 }
 
 type DynError = Box<dyn StdError + Send + Sync + 'static>;

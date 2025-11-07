@@ -14,7 +14,7 @@ use crate::services::{
 };
 use std::os::raw::c_char;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_credential_definition_get_attribute(
     handle: ObjectHandle,
     name: FfiStr,
@@ -38,7 +38,7 @@ pub extern "C" fn anoncreds_credential_definition_get_attribute(
     })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_credential_definition(
     schema_id: FfiStr,
     schema: ObjectHandle,

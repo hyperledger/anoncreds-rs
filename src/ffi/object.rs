@@ -7,11 +7,11 @@ use std::ops::{Deref, DerefMut};
 use std::os::raw::c_char;
 use std::sync::{Arc, Mutex};
 
-use ffi_support::{rust_string_to_c, ByteBuffer};
+use ffi_support::{ByteBuffer, rust_string_to_c};
 use once_cell::sync::Lazy;
 use serde::Serialize;
 
-use super::error::{catch_error, ErrorCode};
+use super::error::{ErrorCode, catch_error};
 use crate::error::Result;
 use crate::new_handle_type;
 
@@ -141,7 +141,7 @@ macro_rules! impl_anoncreds_object {
 
 macro_rules! impl_anoncreds_object_from_json {
     ($ident:path, $method:ident) => {
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub extern "C" fn $method(
             json: ffi_support::ByteBuffer,
             result_p: *mut $crate::ffi::object::ObjectHandle,
@@ -157,7 +157,7 @@ macro_rules! impl_anoncreds_object_from_json {
     };
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_object_get_json(
     handle: ObjectHandle,
     result_p: *mut ByteBuffer,
@@ -171,7 +171,7 @@ pub extern "C" fn anoncreds_object_get_json(
     })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_object_get_type_name(
     handle: ObjectHandle,
     result_p: *mut *const c_char,
@@ -185,7 +185,7 @@ pub extern "C" fn anoncreds_object_get_type_name(
     })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_object_free(handle: ObjectHandle) {
     handle.remove().ok();
 }
@@ -214,7 +214,7 @@ impl AnoncredsObjectList {
         Ok(refs)
     }
 
-    pub fn refs_map<'a, I, T>(&'a self, ids: &'a [I]) -> Result<HashMap<&I, &T>>
+    pub fn refs_map<'a, I, T>(&'a self, ids: &'a [I]) -> Result<HashMap<&'a I, &'a T>>
     where
         T: AnyAnoncredsObject + 'static,
         I: Eq + Hash,
