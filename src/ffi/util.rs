@@ -40,11 +40,7 @@ impl<'a, T> FfiList<'a, T> {
 
     #[inline]
     pub fn len(&self) -> usize {
-        if self.data.is_null() {
-            0
-        } else {
-            self.count
-        }
+        if self.data.is_null() { 0 } else { self.count }
     }
 }
 

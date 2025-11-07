@@ -46,7 +46,7 @@ impl MakeCredentialValues {
         raw: impl Into<String>,
         encoded: String,
     ) {
-        self.0 .0.insert(
+        self.0.0.insert(
             name.into(),
             AttributeValues {
                 raw: raw.into(),
@@ -63,7 +63,7 @@ impl MakeCredentialValues {
         let raw = raw.into();
         let encoded = encode_credential_attribute(&raw)?;
         self.0
-             .0
+            .0
             .insert(name.into(), AttributeValues { raw, encoded });
         Ok(())
     }

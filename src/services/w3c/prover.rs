@@ -10,11 +10,11 @@ use crate::types::{
 };
 use crate::utils::validation::Validatable;
 
+use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::data_types::w3c::credential_attributes::CredentialSubject;
 use crate::data_types::w3c::proof::{
     CredentialPresentationProofValue, DataIntegrityProof, PresentationProofValue,
 };
-use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::prover::{CLCredentialProver, CLProofBuilder};
 use std::collections::HashMap;
 
@@ -99,8 +99,14 @@ pub fn process_credential(
     cred_def: &CredentialDefinition,
     rev_reg_def: Option<&RevocationRegistryDefinition>,
 ) -> Result<()> {
-    trace!("process_w3c_credential >>> credential: {:?}, cred_request_metadata: {:?}, link_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
-            w3c_credential, cred_request_metadata, secret!(&link_secret), cred_def, rev_reg_def);
+    trace!(
+        "process_w3c_credential >>> credential: {:?}, cred_request_metadata: {:?}, link_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
+        w3c_credential,
+        cred_request_metadata,
+        secret!(&link_secret),
+        cred_def,
+        rev_reg_def
+    );
 
     let cred_values = w3c_credential.credential_subject.encode()?;
 

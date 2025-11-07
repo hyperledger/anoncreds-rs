@@ -1,12 +1,12 @@
-use crate::data_types::w3c::presentation::W3CPresentation;
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
+use crate::data_types::w3c::presentation::W3CPresentation;
 use crate::ffi::credential::_link_secret;
-use crate::ffi::error::{catch_error, ErrorCode};
+use crate::ffi::error::{ErrorCode, catch_error};
 use crate::ffi::object::ObjectHandle;
 use crate::ffi::presentation::{
-    FfiCredentialEntry, FfiCredentialProve, FfiNonrevokedIntervalOverride, _credentials,
-    _nonrevoke_interval_override, _prepare_cred_defs, _prepare_schemas, _present_credentials,
-    _rev_reg_defs, _rev_status_list,
+    _credentials, _nonrevoke_interval_override, _prepare_cred_defs, _prepare_schemas,
+    _present_credentials, _rev_reg_defs, _rev_status_list, FfiCredentialEntry, FfiCredentialProve,
+    FfiNonrevokedIntervalOverride,
 };
 use crate::ffi::util::{FfiList, FfiStrList};
 use crate::w3c::prover::create_presentation;

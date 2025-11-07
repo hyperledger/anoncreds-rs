@@ -1,5 +1,5 @@
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
-use ffi_support::{rust_string_to_c, FfiStr};
+use ffi_support::{FfiStr, rust_string_to_c};
 use std::ffi::c_char;
 use std::ptr;
 
@@ -7,8 +7,8 @@ use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::credential_attributes::CredentialSubject;
 use crate::data_types::w3c::proof::CredentialProofDetails;
 use crate::error::Result;
-use crate::ffi::credential::{FfiCredRevInfo, _link_secret, _revocation_config};
-use crate::ffi::error::{catch_error, ErrorCode};
+use crate::ffi::credential::{_link_secret, _revocation_config, FfiCredRevInfo};
+use crate::ffi::error::{ErrorCode, catch_error};
 use crate::ffi::object::{AnoncredsObject, ObjectHandle};
 use crate::ffi::util::FfiStrList;
 use crate::types::Credential;

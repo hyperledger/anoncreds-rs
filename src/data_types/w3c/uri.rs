@@ -1,4 +1,4 @@
-use serde::{de, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, de};
 use serde_json::Value;
 
 use crate::utils::validation::URI_IDENTIFIER;

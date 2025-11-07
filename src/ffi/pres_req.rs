@@ -2,7 +2,7 @@ use std::os::raw::c_char;
 
 use ffi_support::rust_string_to_c;
 
-use super::error::{catch_error, ErrorCode};
+use super::error::{ErrorCode, catch_error};
 use crate::services::{types::PresentationRequest, verifier::generate_nonce};
 
 impl_anoncreds_object!(PresentationRequest, "PresentationRequest");

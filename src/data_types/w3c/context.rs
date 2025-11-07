@@ -1,9 +1,9 @@
+use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::data_types::w3c::constants::{
     ANONCREDS_VC_1_1_CONTEXTS, ANONCREDS_VC_2_0_CONTEXTS, ISSUER_DEPENDENT_VOCABULARY,
     W3C_DATA_INTEGRITY_CONTEXT, W3C_VC_1_1_BASE_CONTEXT, W3C_VC_2_0_BASE_CONTEXT,
 };
 use crate::data_types::w3c::uri::URI;
-use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)]

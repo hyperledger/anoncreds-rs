@@ -1,5 +1,5 @@
-use anoncreds::data_types::w3c::credential_attributes::CredentialAttributeValue;
 use anoncreds::data_types::w3c::VerifiableCredentialSpecVersion;
+use anoncreds::data_types::w3c::credential_attributes::CredentialAttributeValue;
 use anoncreds::verifier;
 use rstest::rstest;
 use serde_json::json;
@@ -2996,8 +2996,8 @@ fn anoncreds_demo_works_for_issue_legacy_credential_convert_into_w3c_and_present
 }
 
 #[test]
-fn anoncreds_demo_works_for_issue_w3c_credential_convert_into_legacy_and_present_legacy_presentation(
-) {
+fn anoncreds_demo_works_for_issue_w3c_credential_convert_into_legacy_and_present_legacy_presentation()
+ {
     // Create pseudo ledger and wallets
     let mut ledger = Ledger::default();
     let mut issuer_wallet = IssuerWallet::default();
@@ -3131,8 +3131,8 @@ fn anoncreds_demo_works_for_issue_w3c_credential_convert_into_legacy_and_present
 }
 
 #[test]
-fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present_compound_w3c_presentation(
-) {
+fn anoncreds_demo_works_for_issue_two_credentials_in_different_forms_and_present_compound_w3c_presentation()
+ {
     // Create pseudo ledger and wallets
     let mut ledger = Ledger::default();
     let mut issuer_1_wallet = IssuerWallet::default();

@@ -62,18 +62,26 @@ mod test_identifiers {
         let valid_legacy_did_identifier = "DXoTtQJNtXtiwWaZAK3rB1";
 
         assert!(URI_IDENTIFIER.captures(valid_uri_identifier).is_some());
-        assert!(LEGACY_SCHEMA_IDENTIFIER
-            .captures(valid_legacy_schema_identifier)
-            .is_some());
-        assert!(LEGACY_CRED_DEF_IDENTIFIER
-            .captures(valid_legacy_cred_def_identifier)
-            .is_some());
-        assert!(LEGACY_REV_REG_DEF_IDENTIFIER
-            .captures(valid_legacy_rev_reg_def_identifier)
-            .is_some());
-        assert!(LEGACY_DID_IDENTIFIER
-            .captures(valid_legacy_did_identifier)
-            .is_some());
+        assert!(
+            LEGACY_SCHEMA_IDENTIFIER
+                .captures(valid_legacy_schema_identifier)
+                .is_some()
+        );
+        assert!(
+            LEGACY_CRED_DEF_IDENTIFIER
+                .captures(valid_legacy_cred_def_identifier)
+                .is_some()
+        );
+        assert!(
+            LEGACY_REV_REG_DEF_IDENTIFIER
+                .captures(valid_legacy_rev_reg_def_identifier)
+                .is_some()
+        );
+        assert!(
+            LEGACY_DID_IDENTIFIER
+                .captures(valid_legacy_did_identifier)
+                .is_some()
+        );
     }
 
     #[test]
@@ -85,25 +93,37 @@ mod test_identifiers {
         let invalid_legacy_did_identifier = "invalid:id";
 
         assert!(URI_IDENTIFIER.captures(invalid_uri_identifier).is_none());
-        assert!(LEGACY_DID_IDENTIFIER
-            .captures(invalid_legacy_schema_identifier)
-            .is_none());
-        assert!(LEGACY_CRED_DEF_IDENTIFIER
-            .captures(invalid_legacy_cred_def_identifier)
-            .is_none());
-        assert!(LEGACY_REV_REG_DEF_IDENTIFIER
-            .captures(invalid_legacy_rev_reg_def_identifier)
-            .is_none());
-        assert!(LEGACY_DID_IDENTIFIER
-            .captures(invalid_legacy_did_identifier)
-            .is_none());
+        assert!(
+            LEGACY_DID_IDENTIFIER
+                .captures(invalid_legacy_schema_identifier)
+                .is_none()
+        );
+        assert!(
+            LEGACY_CRED_DEF_IDENTIFIER
+                .captures(invalid_legacy_cred_def_identifier)
+                .is_none()
+        );
+        assert!(
+            LEGACY_REV_REG_DEF_IDENTIFIER
+                .captures(invalid_legacy_rev_reg_def_identifier)
+                .is_none()
+        );
+        assert!(
+            LEGACY_DID_IDENTIFIER
+                .captures(invalid_legacy_did_identifier)
+                .is_none()
+        );
 
-        assert!(LEGACY_SCHEMA_IDENTIFIER
-            .captures("DXoTtQJNtXtiwWaZAK3rB1:3:example:1.0")
-            .is_none());
-        assert!(LEGACY_CRED_DEF_IDENTIFIER
-            .captures("DXoTtQJNtXtiwWaZAK3rB1:4:CL:98153:default")
-            .is_none());
+        assert!(
+            LEGACY_SCHEMA_IDENTIFIER
+                .captures("DXoTtQJNtXtiwWaZAK3rB1:3:example:1.0")
+                .is_none()
+        );
+        assert!(
+            LEGACY_CRED_DEF_IDENTIFIER
+                .captures("DXoTtQJNtXtiwWaZAK3rB1:4:CL:98153:default")
+                .is_none()
+        );
         assert!(LEGACY_REV_REG_DEF_IDENTIFIER
             .captures("DXoTtQJNtXtiwWaZAK3rB1:5:DXoTtQJNtXtiwWaZAK3rB1:3:CL:288602:example:CL_ACCUM:default")
             .is_none());

@@ -1,11 +1,11 @@
+use crate::Error;
 use crate::data_types::issuer_id::IssuerId;
+use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::credential_attributes::CredentialSubject;
 use crate::data_types::w3c::proof::{CredentialSignatureProofValue, DataIntegrityProof};
-use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::types::Credential;
 use crate::utils::validation::Validatable;
-use crate::Error;
 
 /// Convert credential in legacy form into W3C AnonCreds credential form
 ///
@@ -92,8 +92,7 @@ pub fn credential_to_w3c(
 ) -> Result<W3CCredential, Error> {
     trace!(
         "credential_to_w3c >>> credential: {:?}, issuer_id: {:?}",
-        credential,
-        issuer_id
+        credential, issuer_id
     );
 
     credential.validate()?;
@@ -243,7 +242,7 @@ pub(crate) mod tests {
         AttributeNames, CredentialDefinitionConfig, CredentialValues, MakeCredentialValues,
         SignatureType,
     };
-    use crate::{issuer, ErrorKind};
+    use crate::{ErrorKind, issuer};
     use rstest::*;
 
     pub(crate) const ISSUER_ID: &str = "mock:uri";

@@ -1,4 +1,4 @@
-use super::error::{catch_error, ErrorCode};
+use super::error::{ErrorCode, catch_error};
 use crate::services::prover::create_link_secret;
 use ffi_support::rust_string_to_c;
 use std::os::raw::c_char;

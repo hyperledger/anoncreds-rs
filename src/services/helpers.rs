@@ -1,6 +1,6 @@
 use crate::cl::{
-    bn::BigNumber, CredentialSchema, CredentialValues as CLCredentialValues, Issuer,
-    NonCredentialSchema, SubProofRequest, Verifier,
+    CredentialSchema, CredentialValues as CLCredentialValues, Issuer, NonCredentialSchema,
+    SubProofRequest, Verifier, bn::BigNumber,
 };
 use crate::data_types::presentation::RequestedProof;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
@@ -93,8 +93,7 @@ pub fn build_sub_proof_request(
 ) -> Result<SubProofRequest> {
     trace!(
         "build_sub_proof_request >>> attrs_for_credential: {:?}, predicates_for_credential: {:?}",
-        attrs_for_credential,
-        predicates_for_credential
+        attrs_for_credential, predicates_for_credential
     );
 
     let mut sub_proof_request_builder = Verifier::new_sub_proof_request_builder()?;

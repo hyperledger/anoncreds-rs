@@ -4,11 +4,11 @@ use std::collections::HashMap;
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
+use crate::Error;
 use crate::cl::{CredentialSignature, RevocationRegistry, SignatureCorrectnessProof, Witness};
 use crate::error::{ConversionError, ValidationError};
 use crate::types::MakeCredentialValues;
 use crate::utils::validation::Validatable;
-use crate::Error;
 
 use super::rev_reg_def::RevocationRegistryDefinitionId;
 use super::{cred_def::CredentialDefinitionId, schema::SchemaId};

@@ -1,8 +1,8 @@
 use crate::data_types::cred_def::CredentialDefinition;
+use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::credential_attributes::CredentialSubject;
 use crate::data_types::w3c::proof::{CredentialSignatureProofValue, DataIntegrityProof};
-use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::error::Result;
 use crate::issuer::CLCredentialIssuer;
 
@@ -90,10 +90,16 @@ pub fn create_credential(
     revocation_config: Option<CredentialRevocationConfig>,
     version: Option<VerifiableCredentialSpecVersion>,
 ) -> Result<W3CCredential> {
-    trace!("create_w3c_credential >>> cred_def: {:?}, cred_def_private: {:?}, cred_offer.nonce: {:?}, cred_request: {:?},\
+    trace!(
+        "create_w3c_credential >>> cred_def: {:?}, cred_def_private: {:?}, cred_offer.nonce: {:?}, cred_request: {:?},\
             cred_values: {:?}, revocation_config: {:?}, version: {:?}",
-            cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&raw_credential_values),
-            revocation_config, version,
+        cred_def,
+        secret!(&cred_def_private),
+        &cred_offer.nonce,
+        &cred_request,
+        secret!(&raw_credential_values),
+        revocation_config,
+        version,
     );
 
     let credential_values = raw_credential_values.encode()?;

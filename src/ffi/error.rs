@@ -1,7 +1,7 @@
 use crate::error::{Error, ErrorKind, Result};
 
 use std::os::raw::c_char;
-use std::panic::{catch_unwind, UnwindSafe};
+use std::panic::{UnwindSafe, catch_unwind};
 use std::sync::RwLock;
 
 use ffi_support::rust_string_to_c;

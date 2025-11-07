@@ -4,7 +4,7 @@ use crate::cl::{
 };
 use crate::error::{Result, ValidationError};
 use crate::invalid;
-use crate::utils::validation::{is_uri_identifier, Validatable, LEGACY_DID_IDENTIFIER};
+use crate::utils::validation::{LEGACY_DID_IDENTIFIER, Validatable, is_uri_identifier};
 
 use super::{cred_def::CredentialDefinitionId, nonce::Nonce};
 

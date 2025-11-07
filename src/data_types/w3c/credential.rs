@@ -3,18 +3,18 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::string::ToString;
 
+use crate::Result;
+use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::data_types::w3c::constants::ANONCREDS_CREDENTIAL_TYPES;
 use crate::data_types::w3c::context::Contexts;
 use crate::data_types::w3c::credential_attributes::CredentialSubject;
 use crate::data_types::w3c::proof::{
     CredentialPresentationProofValue, CredentialSignatureProofValue, DataIntegrityProof,
 };
-use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::data_types::{
     issuer_id::IssuerId,
     w3c::{constants::W3C_CREDENTIAL_TYPE, one_or_many::OneOrMany, uri::URI},
 };
-use crate::Result;
 
 /// AnonCreds W3C Credential definition
 /// Note, that this definition is tied to AnonCreds W3C form
