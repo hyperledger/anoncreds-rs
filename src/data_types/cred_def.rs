@@ -18,6 +18,14 @@ pub enum SignatureType {
     CL,
 }
 
+impl SignatureType {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::CL => CL_SIGNATURE_TYPE,
+        }
+    }
+}
+
 impl FromStr for SignatureType {
     type Err = ConversionError;
 
@@ -26,6 +34,12 @@ impl FromStr for SignatureType {
             CL_SIGNATURE_TYPE => Ok(Self::CL),
             _ => Err(ConversionError::from_msg("Invalid signature type")),
         }
+    }
+}
+
+impl std::fmt::Display for SignatureType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 

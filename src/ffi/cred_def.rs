@@ -1,8 +1,9 @@
+use std::os::raw::c_char;
 use std::str::FromStr;
 
-use ffi_support::{rust_string_to_c, FfiStr};
+use ffi_support::{FfiStr, rust_string_to_c};
 
-use super::error::{catch_error, ErrorCode};
+use super::error::{ErrorCode, catch_error};
 use super::object::ObjectHandle;
 use crate::data_types::cred_def::CredentialDefinition;
 use crate::services::{
@@ -12,7 +13,6 @@ use crate::services::{
         CredentialKeyCorrectnessProof as KeyCorrectnessProof, SignatureType,
     },
 };
-use std::os::raw::c_char;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_credential_definition_get_attribute(
@@ -25,12 +25,10 @@ pub extern "C" fn anoncreds_credential_definition_get_attribute(
         let cred_def = handle.load()?;
         let cred_def = cred_def.cast_ref::<CredentialDefinition>()?;
         let val = match name.as_opt_str().unwrap_or_default() {
-            "schema_id" => cred_def.schema_id.to_string().to_owned(),
-            "tag" => cred_def.tag.to_string().to_owned(),
-            "issuer_id" => cred_def.issuer_id.to_string().to_owned(),
-            "signature_type" => match cred_def.signature_type {
-                SignatureType::CL => "CL".to_string(),
-            },
+            "schema_id" => cred_def.schema_id.to_string(),
+            "tag" => cred_def.tag.to_string(),
+            "issuer_id" => cred_def.issuer_id.to_string(),
+            "signature_type" => cred_def.signature_type.to_string(),
             s => return Err(err_msg!("Unsupported attribute: {}", s)),
         };
         unsafe { *result_p = rust_string_to_c(val) };
