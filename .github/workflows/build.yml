@@ -350,6 +350,9 @@ jobs:
       matrix:
         architecture:
           [aarch64-apple-ios, aarch64-apple-ios-sim, x86_64-apple-ios]
+    env:
+      IPHONEOS_DEPLOYMENT_TARGET: 10.0
+      IPHONESIMULATOR_DEPLOYMENT_TARGET: 10.0
 
     steps:
       - name: Checkout
