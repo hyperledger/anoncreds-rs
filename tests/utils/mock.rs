@@ -65,6 +65,18 @@ pub enum Presentations {
     W3C(W3CPresentation),
 }
 
+impl From<Presentation> for Presentations {
+    fn from(value: Presentation) -> Self {
+        Presentations::Legacy(value)
+    }
+}
+
+impl From<W3CPresentation> for Presentations {
+    fn from(value: W3CPresentation) -> Self {
+        Presentations::W3C(value)
+    }
+}
+
 impl Credentials {
     pub fn legacy(&self) -> &Credential {
         match self {
@@ -940,7 +952,7 @@ impl<'a> ProverWallet<'a> {
                     cred_defs,
                 )
                 .expect("Error creating presentation");
-                Presentations::Legacy(presentation)
+                presentation.into()
             }
             PresentationFormat::W3C => {
                 let mut present = PresentCredentials::default();
@@ -958,7 +970,7 @@ impl<'a> ProverWallet<'a> {
                     version,
                 )
                 .expect("Error creating presentation");
-                Presentations::W3C(presentation)
+                presentation.into()
             }
         }
     }

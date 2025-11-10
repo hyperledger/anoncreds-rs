@@ -1,6 +1,6 @@
 use anoncreds::data_types::w3c::VerifiableCredentialSpecVersion;
 use anoncreds::data_types::w3c::credential_attributes::CredentialAttributeValue;
-use anoncreds::verifier;
+use anoncreds::{verifier, w3c};
 use rstest::rstest;
 use serde_json::json;
 use std::collections::{BTreeSet, HashMap};
@@ -728,7 +728,12 @@ fn anoncreds_demo_proof_does_not_verify_with_wrong_attr_and_predicates(
 }
 
 #[rstest]
-fn anoncreds_demo_proof_does_not_verify_with_multiple_link_secrets() {
+#[case(CredentialFormat::Legacy, PresentationFormat::Legacy)]
+#[case(CredentialFormat::W3C, PresentationFormat::W3C)]
+fn anoncreds_demo_proof_does_not_verify_with_multiple_link_secrets(
+    #[case] credential_format: CredentialFormat,
+    #[case] presentation_format: PresentationFormat,
+) {
     // Create pseudo ledger and wallets
 
     use anoncreds::{prover, types::PresentCredentials};
@@ -755,7 +760,7 @@ fn anoncreds_demo_proof_does_not_verify_with_multiple_link_secrets() {
     // Issuer creates a credential
     let cred_values = fixtures::credential_values(GVT_CRED);
     let issue_cred = issuer_wallet.create_credential(
-        &CredentialFormat::Legacy,
+        &credential_format,
         &gvt_cred_def_id,
         &cred_offer,
         &cred_request,
@@ -783,7 +788,7 @@ fn anoncreds_demo_proof_does_not_verify_with_multiple_link_secrets() {
     // Issuer creates a credential
     let cred_values = fixtures::credential_values(GVT_CRED);
     let issue_cred = issuer_wallet.create_credential(
-        &CredentialFormat::Legacy,
+        &credential_format,
         &gvt_cred_def_id,
         &cred_offer,
         &cred_request,
@@ -841,31 +846,60 @@ fn anoncreds_demo_proof_does_not_verify_with_multiple_link_secrets() {
         }],
     }];
 
-    // Prover creates presentation with two different link secrets
-    let mut presented = PresentCredentials::default();
-    prover_wallet_1.prepare_credentials_to_present(
-        &mut presented,
-        &prover_wallet_1.credentials,
-        &present_credentials_1,
-    );
-    prover_wallet_2.prepare_credentials_to_present(
-        &mut presented,
-        &prover_wallet_2.credentials,
-        &present_credentials_2,
-    );
-
     // Prover creates presentation
-    let presentation = prover::create_presentation(
-        &pres_request,
-        presented,
-        None,
-        // This link secret value is superseded by the ones assigned to each credential in 'presented'
-        &prover_wallet_1.link_secret,
-        &schemas,
-        &cred_defs,
-    )
-    .expect("Error creating presentation");
-    let presentation = Presentations::Legacy(presentation);
+    let presentation = match presentation_format {
+        PresentationFormat::Legacy => {
+            // Prover creates presentation with two different link secrets
+            let mut presented = PresentCredentials::default();
+            prover_wallet_1.prepare_credentials_to_present(
+                &mut presented,
+                &prover_wallet_1.credentials,
+                &present_credentials_1,
+            );
+            prover_wallet_2.prepare_credentials_to_present(
+                &mut presented,
+                &prover_wallet_2.credentials,
+                &present_credentials_2,
+            );
+            prover::create_presentation(
+                &pres_request,
+                presented,
+                None,
+                // This link secret value is superseded by the ones assigned to each credential in 'presented'
+                &prover_wallet_1.link_secret,
+                &schemas,
+                &cred_defs,
+            )
+            .expect("Error creating presentation")
+            .into()
+        }
+        PresentationFormat::W3C => {
+            // Prover creates presentation with two different link secrets
+            let mut presented = PresentCredentials::default();
+            prover_wallet_1.prepare_credentials_to_present(
+                &mut presented,
+                &prover_wallet_1.w3c_credentials,
+                &present_credentials_1,
+            );
+            prover_wallet_2.prepare_credentials_to_present(
+                &mut presented,
+                &prover_wallet_2.w3c_credentials,
+                &present_credentials_2,
+            );
+
+            w3c::prover::create_presentation(
+                &pres_request,
+                presented,
+                // This link secret value is superseded by the ones assigned to each credential in 'presented'
+                &prover_wallet_1.link_secret,
+                &schemas,
+                &cred_defs,
+                None,
+            )
+            .expect("Error creating presentation")
+            .into()
+        }
+    };
 
     let valid = verifier_wallet.verify_presentation(
         &presentation,

@@ -170,10 +170,11 @@ pub fn create_presentation(
         let credential_values: CredentialValues = credential.credential_subject.encode()?;
         let proof = credential.get_credential_signature_proof()?;
 
+        let proof_link_secret = present.link_secret.unwrap_or(link_secret);
         proof_builder.add_sub_proof(
             &credential_values,
             &proof.signature,
-            link_secret,
+            proof_link_secret,
             present,
             &proof.schema_id,
             &proof.cred_def_id,
