@@ -2,10 +2,10 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-use crate::cl::{new_nonce, Nonce as CryptoNonce};
+use crate::cl::{Nonce as CryptoNonce, new_nonce};
 use crate::error::ConversionError;
 use serde::de::{Error, SeqAccess};
-use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Visitor};
 use serde_json::Value;
 
 pub struct Nonce {

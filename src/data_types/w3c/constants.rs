@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashSet;
 
 use crate::data_types::w3c::context::{Context, Contexts};

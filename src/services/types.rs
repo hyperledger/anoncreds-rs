@@ -46,7 +46,7 @@ impl MakeCredentialValues {
         raw: impl Into<String>,
         encoded: String,
     ) {
-        self.0 .0.insert(
+        self.0.0.insert(
             name.into(),
             AttributeValues {
                 raw: raw.into(),
@@ -63,7 +63,7 @@ impl MakeCredentialValues {
         let raw = raw.into();
         let encoded = encode_credential_attribute(&raw)?;
         self.0
-             .0
+            .0
             .insert(name.into(), AttributeValues { raw, encoded });
         Ok(())
     }
@@ -98,6 +98,7 @@ impl<'p, T> PresentCredentials<'p, T> {
             rev_state,
             requested_attributes: HashSet::new(),
             requested_predicates: HashSet::new(),
+            link_secret: None,
         });
         AddCredential {
             present: &mut self.0[idx],
@@ -153,6 +154,7 @@ pub(crate) struct PresentCredential<'p, T> {
     pub rev_state: Option<&'p CredentialRevocationState>,
     pub requested_attributes: HashSet<(String, bool)>,
     pub requested_predicates: HashSet<String>,
+    pub link_secret: Option<&'p LinkSecret>, // For testing only
 }
 
 impl<T> PresentCredential<'_, T> {
@@ -187,6 +189,13 @@ impl<'a, 'p, T> AddCredential<'a, 'p, T> {
     pub fn add_requested_predicate(&mut self, referent: impl Into<String>) {
         self.present.requested_predicates.insert(referent.into());
     }
+
+    /// This method is intended for testing only, normally the link secret is
+    /// passed directly when creating a presentation.
+    #[doc(hidden)]
+    pub fn set_link_secret(&mut self, link_secret: &'p LinkSecret) {
+        self.present.link_secret.replace(link_secret);
+    }
 }
 
 #[allow(dead_code)]
@@ -204,12 +213,6 @@ pub(crate) struct RequestedPredicate<'a> {
     pub cred_id: String,
     pub timestamp: Option<u64>,
     pub rev_state: Option<&'a CredentialRevocationState>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) struct ProvingCredentialKey {
-    pub cred_id: String,
-    pub timestamp: Option<u64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

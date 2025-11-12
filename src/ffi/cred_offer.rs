@@ -1,10 +1,10 @@
 use ffi_support::FfiStr;
 
-use super::error::{catch_error, ErrorCode};
+use super::error::{ErrorCode, catch_error};
 use super::object::ObjectHandle;
 use crate::services::{issuer::create_credential_offer, types::CredentialOffer};
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_credential_offer(
     schema_id: FfiStr,
     cred_def_id: FfiStr,

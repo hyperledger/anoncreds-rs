@@ -1,4 +1,4 @@
-use super::error::{catch_error, ErrorCode};
+use super::error::{ErrorCode, catch_error};
 use super::object::{AnoncredsObject, ObjectHandle};
 use super::util::FfiList;
 use crate::data_types::rev_status_list::RevocationStatusList;
@@ -13,12 +13,12 @@ use crate::services::issuer::create_revocation_registry_def;
 use crate::services::prover::create_or_update_revocation_state;
 use crate::services::tails::TailsFileWriter;
 use crate::services::types::CredentialRevocationState;
-use ffi_support::{rust_string_to_c, FfiStr};
+use ffi_support::{FfiStr, rust_string_to_c};
 use std::collections::BTreeSet;
 use std::os::raw::c_char;
 use std::str::FromStr;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_revocation_status_list(
     cred_def: ObjectHandle,
     rev_reg_def_id: FfiStr,
@@ -59,7 +59,7 @@ pub extern "C" fn anoncreds_create_revocation_status_list(
     })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_update_revocation_status_list(
     cred_def: ObjectHandle,
     rev_reg_def: ObjectHandle,
@@ -105,7 +105,7 @@ pub extern "C" fn anoncreds_update_revocation_status_list(
     })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_update_revocation_status_list_timestamp_only(
     timestamp: i64,
     rev_current_list: ObjectHandle,
@@ -128,7 +128,7 @@ pub extern "C" fn anoncreds_update_revocation_status_list_timestamp_only(
     })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_revocation_registry_def(
     cred_def: ObjectHandle,
     cred_def_id: FfiStr,
@@ -181,7 +181,7 @@ impl_anoncreds_object_from_json!(
     anoncreds_revocation_registry_definition_from_json
 );
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_revocation_registry_definition_get_attribute(
     handle: ObjectHandle,
     name: FfiStr,
@@ -220,7 +220,7 @@ impl_anoncreds_object_from_json!(
     anoncreds_revocation_status_list_from_json
 );
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_or_update_revocation_state(
     rev_reg_def: ObjectHandle,
     rev_status_list: ObjectHandle,

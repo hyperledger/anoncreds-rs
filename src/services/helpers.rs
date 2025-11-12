@@ -1,6 +1,6 @@
 use crate::cl::{
-    bn::BigNumber, CredentialSchema, CredentialValues as CLCredentialValues, Issuer,
-    NonCredentialSchema, SubProofRequest, Verifier,
+    CredentialSchema, CredentialValues as CLCredentialValues, Issuer, NonCredentialSchema,
+    SubProofRequest, Verifier, bn::BigNumber,
 };
 use crate::data_types::presentation::RequestedProof;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
@@ -12,8 +12,8 @@ use crate::data_types::{
     pres_request::{NonRevokedInterval, PresentationRequestPayload},
 };
 use crate::error::Result;
-use crate::utils::hash::SHA256;
 use anoncreds_clsignatures::Predicate;
+use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 
 pub fn attr_common_view(attr: &str) -> String {
@@ -76,7 +76,7 @@ pub fn encode_credential_attribute(raw_value: &str) -> Result<String> {
     if let Ok(val) = raw_value.parse::<i32>() {
         Ok(val.to_string())
     } else {
-        let digest = SHA256::digest(raw_value.as_bytes());
+        let digest = Sha256::digest(raw_value.as_bytes());
         #[cfg(target_endian = "big")]
         let digest = {
             let mut d = digest;
@@ -93,8 +93,7 @@ pub fn build_sub_proof_request(
 ) -> Result<SubProofRequest> {
     trace!(
         "build_sub_proof_request >>> attrs_for_credential: {:?}, predicates_for_credential: {:?}",
-        attrs_for_credential,
-        predicates_for_credential
+        attrs_for_credential, predicates_for_credential
     );
 
     let mut sub_proof_request_builder = Verifier::new_sub_proof_request_builder()?;

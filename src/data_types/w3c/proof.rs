@@ -3,16 +3,16 @@ use anoncreds_clsignatures::{
     Witness,
 };
 use serde::{
+    Deserialize, Serialize,
     de::{Error, Visitor},
     ser::SerializeSeq,
-    Deserialize, Serialize,
 };
 use std::fmt::Debug;
 
+use crate::Result;
 use crate::data_types::cred_def::CredentialDefinitionId;
 use crate::data_types::rev_reg_def::RevocationRegistryDefinitionId;
 use crate::data_types::schema::SchemaId;
-use crate::Result;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DataIntegrityProofType {

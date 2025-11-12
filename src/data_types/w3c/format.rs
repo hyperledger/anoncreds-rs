@@ -1,5 +1,5 @@
 pub mod base64_msgpack {
-    use serde::{de::Visitor, ser::Error, Deserialize, Serialize};
+    use serde::{Deserialize, Serialize, de::Visitor, ser::Error};
     use std::marker::PhantomData;
 
     use crate::utils::{base64, msg_pack};

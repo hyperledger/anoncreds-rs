@@ -13,7 +13,7 @@ impl MakeCredentialAttributes {
             CredentialAttributeValue::String(string_value)
         };
 
-        self.0 .0.insert(name.into(), value);
+        self.0.0.insert(name.into(), value);
     }
 }
 

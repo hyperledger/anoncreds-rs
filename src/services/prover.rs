@@ -162,8 +162,7 @@ pub fn create_credential_request(
 
     trace!(
         "create_credential_request <<< credential_request: {:?}, credential_request_metadata: {:?}",
-        credential_request,
-        credential_request_metadata
+        credential_request, credential_request_metadata
     );
 
     Ok((credential_request, credential_request_metadata))
@@ -249,8 +248,14 @@ pub fn process_credential(
     cred_def: &CredentialDefinition,
     rev_reg_def: Option<&RevocationRegistryDefinition>,
 ) -> Result<()> {
-    trace!("process_credential >>> credential: {:?}, cred_request_metadata: {:?}, link_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
-            credential, cred_request_metadata, secret!(&link_secret), cred_def, rev_reg_def);
+    trace!(
+        "process_credential >>> credential: {:?}, cred_request_metadata: {:?}, link_secret: {:?}, cred_def: {:?}, rev_reg_def: {:?}",
+        credential,
+        cred_request_metadata,
+        secret!(&link_secret),
+        cred_def,
+        rev_reg_def
+    );
 
     CLCredentialProver::new(link_secret).process_credential(
         &mut credential.signature,
@@ -397,8 +402,16 @@ pub fn create_presentation(
     schemas: &HashMap<SchemaId, Schema>,
     cred_defs: &HashMap<CredentialDefinitionId, CredentialDefinition>,
 ) -> Result<Presentation> {
-    trace!("create_presentation >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, link_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
-            credentials, pres_req, credentials, &self_attested, secret!(&link_secret), schemas, cred_defs);
+    trace!(
+        "create_presentation >>> credentials: {:?}, pres_req: {:?}, credentials: {:?}, self_attested: {:?}, link_secret: {:?}, schemas: {:?}, cred_defs: {:?}",
+        credentials,
+        pres_req,
+        credentials,
+        &self_attested,
+        secret!(&link_secret),
+        schemas,
+        cred_defs
+    );
 
     if credentials.is_empty() && self_attested.as_ref().map_or(true, HashMap::is_empty) {
         return Err(err_msg!(
@@ -419,41 +432,31 @@ pub fn create_presentation(
 
     let mut proof_builder = CLProofBuilder::new(pres_req_val, schemas, cred_defs)?;
 
-    for present in credentials.0 {
+    for present in &credentials.0 {
         if present.is_empty() {
             continue;
         }
         let credential = present.cred;
 
-        update_requested_proof(
-            &present.requested_attributes,
-            &present.requested_predicates,
-            pres_req_val,
-            credential,
-            sub_proof_index,
-            &mut requested_proof,
-        )?;
+        update_requested_proof(present, pres_req_val, sub_proof_index, &mut requested_proof)?;
 
+        let proof_link_secret = present.link_secret.unwrap_or(link_secret);
         proof_builder.add_sub_proof(
             &credential.values,
             &credential.signature,
-            link_secret,
+            proof_link_secret,
             &present,
             &credential.schema_id,
             &credential.cred_def_id,
             credential.rev_reg_id.as_ref(),
         )?;
 
-        let identifier = match pres_req {
-            PresentationRequest::PresentationRequestV2(_)
-            | PresentationRequest::PresentationRequestV1(_) => Identifier {
-                schema_id: credential.schema_id.clone(),
-                cred_def_id: credential.cred_def_id.clone(),
-                rev_reg_id: credential.rev_reg_id.clone(),
-                timestamp: present.timestamp,
-            },
+        let identifier = Identifier {
+            schema_id: credential.schema_id.clone(),
+            cred_def_id: credential.cred_def_id.clone(),
+            rev_reg_id: credential.rev_reg_id.clone(),
+            timestamp: present.timestamp,
         };
-
         identifiers.push(identifier);
 
         sub_proof_index += 1;
@@ -585,11 +588,7 @@ pub fn create_or_update_revocation_state(
     trace!(
         "create_or_update_revocation_state >>> revoc_reg_def: {:?}, \
     rev_status_list: {:?}, rev_reg_idx: {},  rev_state: {:?}, old_rev_status_list {:?}",
-        rev_reg_def,
-        rev_status_list,
-        rev_reg_idx,
-        rev_state,
-        old_rev_status_list,
+        rev_reg_def, rev_status_list, rev_reg_idx, rev_state, old_rev_status_list,
     );
 
     let rev_reg: Option<RevocationRegistry> = rev_status_list.into();
@@ -704,16 +703,21 @@ fn get_credential_values_for_attribute(
 }
 
 fn update_requested_proof(
-    req_attrs_for_credential: &HashSet<(String, bool)>,
-    req_predicates_for_credential: &HashSet<String>,
+    present: &PresentCredential<'_, Credential>,
     proof_req: &PresentationRequestPayload,
-    credential: &Credential,
     sub_proof_index: u32,
     requested_proof: &mut RequestedProof,
 ) -> Result<()> {
-    trace!("_update_requested_proof >>> req_attrs_for_credential: {:?}, req_predicates_for_credential: {:?}, proof_req: {:?}, credential: {:?}, \
-           sub_proof_index: {:?}, requested_proof: {:?}",
-           req_attrs_for_credential, req_predicates_for_credential, proof_req, secret!(&credential), sub_proof_index, secret!(&requested_proof));
+    trace!(
+        "_update_requested_proof >>> presented: {:?}, sub_proof_index: {:?}, requested_proof: {:?}",
+        secret!(&present),
+        sub_proof_index,
+        secret!(&requested_proof)
+    );
+
+    let credential = present.cred;
+    let req_attrs_for_credential = &present.requested_attributes;
+    let req_predicates_for_credential = &present.requested_predicates;
 
     for (attr_referent, revealed) in req_attrs_for_credential {
         if *revealed {
@@ -1011,8 +1015,8 @@ mod tests {
         }
 
         #[test]
-        fn get_credential_values_for_attribute_works_for_cred_values_and_requested_attr_contains_spaces(
-        ) {
+        fn get_credential_values_for_attribute_works_for_cred_values_and_requested_attr_contains_spaces()
+         {
             let cred_values = hashmap!("    name    ".to_string() => _attr_values());
 
             let res =
@@ -1053,8 +1057,8 @@ mod tests {
             .unwrap()
         }
 
-        fn _cred_def_and_key_correctness_proof(
-        ) -> (CredentialDefinition, CredentialKeyCorrectnessProof) {
+        fn _cred_def_and_key_correctness_proof()
+        -> (CredentialDefinition, CredentialKeyCorrectnessProof) {
             let (cred_def, _, key_correctness_proof) = create_credential_definition(
                 SCHEMA_ID.try_into().unwrap(),
                 &_schema(),
@@ -1088,8 +1092,8 @@ mod tests {
             .unwrap()
         }
 
-        fn _legacy_cred_def_and_key_correctness_proof(
-        ) -> (CredentialDefinition, CredentialKeyCorrectnessProof) {
+        fn _legacy_cred_def_and_key_correctness_proof()
+        -> (CredentialDefinition, CredentialKeyCorrectnessProof) {
             let (cred_def, _, key_correctness_proof) = create_credential_definition(
                 LEGACY_SCHEMA_IDENTIFIER.try_into().unwrap(),
                 &_legacy_schema(),

@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
+use crate::Result;
+use crate::data_types::w3c::VerifiableCredentialSpecVersion;
 use crate::data_types::w3c::constants::{ANONCREDS_PRESENTATION_TYPES, W3C_PRESENTATION_TYPE};
 use crate::data_types::w3c::context::Contexts;
 use crate::data_types::w3c::credential::{Types, W3CCredential};
 use crate::data_types::w3c::proof::{DataIntegrityProof, PresentationProofValue};
-use crate::data_types::w3c::VerifiableCredentialSpecVersion;
-use crate::Result;
 
 /// AnonCreds W3C Presentation definition
 /// Note, that this definition is tied to AnonCreds W3C form

@@ -1,6 +1,6 @@
 use serde::ser::{Serialize, Serializer};
-use serde::{de, Deserialize, Deserializer};
-use serde_json::{self, json, Value as JsonValue};
+use serde::{Deserialize, Deserializer, de};
+use serde_json::{self, Value as JsonValue, json};
 use std::string;
 
 /// An abstract query representation over a key and value type
@@ -246,18 +246,18 @@ where
 {
     fn to_value(&self) -> JsonValue {
         match self {
-            Self::Eq(ref tag_name, ref tag_value) => json!({ tag_name: tag_value }),
-            Self::Neq(ref tag_name, ref tag_value) => json!({tag_name: {"$neq": tag_value}}),
-            Self::Gt(ref tag_name, ref tag_value) => json!({tag_name: {"$gt": tag_value}}),
-            Self::Gte(ref tag_name, ref tag_value) => json!({tag_name: {"$gte": tag_value}}),
-            Self::Lt(ref tag_name, ref tag_value) => json!({tag_name: {"$lt": tag_value}}),
-            Self::Lte(ref tag_name, ref tag_value) => json!({tag_name: {"$lte": tag_value}}),
-            Self::Like(ref tag_name, ref tag_value) => json!({tag_name: {"$like": tag_value}}),
-            Self::In(ref tag_name, ref tag_values) => json!({tag_name: {"$in":tag_values}}),
-            Self::Exist(ref tag_names) => {
+            Self::Eq(tag_name, tag_value) => json!({ tag_name: tag_value }),
+            Self::Neq(tag_name, tag_value) => json!({tag_name: {"$neq": tag_value}}),
+            Self::Gt(tag_name, tag_value) => json!({tag_name: {"$gt": tag_value}}),
+            Self::Gte(tag_name, tag_value) => json!({tag_name: {"$gte": tag_value}}),
+            Self::Lt(tag_name, tag_value) => json!({tag_name: {"$lt": tag_value}}),
+            Self::Lte(tag_name, tag_value) => json!({tag_name: {"$lte": tag_value}}),
+            Self::Like(tag_name, tag_value) => json!({tag_name: {"$like": tag_value}}),
+            Self::In(tag_name, tag_values) => json!({tag_name: {"$in":tag_values}}),
+            Self::Exist(tag_names) => {
                 json!({ "$exist": tag_names.iter().map(Into::into).collect::<Vec<String>>() })
             }
-            Self::And(ref queries) => {
+            Self::And(queries) => {
                 if queries.is_empty() {
                     json!({})
                 } else {
@@ -266,7 +266,7 @@ where
                     })
                 }
             }
-            Self::Or(ref queries) => {
+            Self::Or(queries) => {
                 if queries.is_empty() {
                     json!({})
                 } else {
@@ -275,7 +275,7 @@ where
                     })
                 }
             }
-            Self::Not(ref query) => json!({"$not": query.to_value()}),
+            Self::Not(query) => json!({"$not": query.to_value()}),
         }
     }
 }
@@ -413,12 +413,12 @@ fn parse_single_operator(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::distributions::Alphanumeric;
-    use rand::{thread_rng, Rng};
+    use rand::distr::Alphanumeric;
+    use rand::{Rng, rng};
     use serde_json::json;
 
     fn _random_string(len: usize) -> String {
-        String::from_utf8(thread_rng().sample_iter(&Alphanumeric).take(len).collect()).unwrap()
+        String::from_utf8(rng().sample_iter(&Alphanumeric).take(len).collect()).unwrap()
     }
 
     /// parse

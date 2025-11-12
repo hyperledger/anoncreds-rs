@@ -3,8 +3,8 @@ macro_rules! impl_anoncreds_object_identifier {
     ($i:ident) => {
         use $crate::error::ValidationError;
         use $crate::utils::validation::{
-            Validatable, LEGACY_CRED_DEF_IDENTIFIER, LEGACY_DID_IDENTIFIER,
-            LEGACY_REV_REG_DEF_IDENTIFIER, LEGACY_SCHEMA_IDENTIFIER, URI_IDENTIFIER,
+            LEGACY_CRED_DEF_IDENTIFIER, LEGACY_DID_IDENTIFIER, LEGACY_REV_REG_DEF_IDENTIFIER,
+            LEGACY_SCHEMA_IDENTIFIER, URI_IDENTIFIER, Validatable,
         };
 
         #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Default)]
@@ -53,7 +53,7 @@ macro_rules! impl_anoncreds_object_identifier {
                         return Err($crate::invalid!(
                             "type: {} does not have a validation regex",
                             invalid_name,
-                        ))
+                        ));
                     }
                 };
 

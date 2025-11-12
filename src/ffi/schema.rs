@@ -1,12 +1,12 @@
 use ffi_support::FfiStr;
 
-use super::error::{catch_error, ErrorCode};
+use super::error::{ErrorCode, catch_error};
 use super::object::ObjectHandle;
 use super::util::FfiStrList;
 use crate::data_types::schema::Schema;
 use crate::services::issuer::create_schema;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_schema(
     schema_name: FfiStr,
     schema_version: FfiStr,

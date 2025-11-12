@@ -14,8 +14,8 @@ use crate::error::Result;
 use crate::services::helpers::{encode_credential_attribute, get_requested_non_revoked_interval};
 use crate::types::{PresentationRequest, RevocationRegistryDefinition, RevocationStatusList};
 use crate::utils::query::Query;
+use crate::verifier::{CLProofVerifier, verify_revealed_attribute_value};
 use crate::verifier::{gather_filter_info, process_operator};
-use crate::verifier::{verify_revealed_attribute_value, CLProofVerifier};
 use anoncreds_clsignatures::{Proof, SubProof};
 use std::collections::HashMap;
 
@@ -31,8 +31,10 @@ pub fn verify_presentation(
         &HashMap<RevocationRegistryDefinitionId, HashMap<u64, u64>>,
     >,
 ) -> Result<bool> {
-    trace!("verify >>> verify_w3c_presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
-    presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists);
+    trace!(
+        "verify >>> verify_w3c_presentation: {:?}, pres_req: {:?}, schemas: {:?}, cred_defs: {:?}, rev_reg_defs: {:?} rev_status_lists: {:?}",
+        presentation, pres_req, schemas, cred_defs, rev_reg_defs, rev_status_lists
+    );
 
     presentation.validate()?;
 
@@ -395,17 +397,17 @@ fn check_request_data(
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    use crate::ErrorKind;
     use crate::data_types::nonce::Nonce;
     use crate::data_types::pres_request::{AttributeInfo, PredicateTypes};
     use crate::data_types::w3c::credential_attributes::CredentialSubject;
+    use crate::data_types::w3c::proof::DataIntegrityProof;
     use crate::data_types::w3c::proof::tests::{
         credential_pres_proof_value, presentation_proof_value,
     };
-    use crate::data_types::w3c::proof::DataIntegrityProof;
     use crate::w3c::credential_conversion::tests::{
         cred_def_id, credential_definition, issuer_id, schema, schema_id,
     };
-    use crate::ErrorKind;
     use rstest::*;
 
     const PROOF_TIMESTAMP_FROM: u64 = 40;
@@ -572,8 +574,8 @@ pub(crate) mod tests {
     }
 
     #[fixture]
-    fn _presentation_request_with_case_insensitive_attribute_and_predicate(
-    ) -> PresentationRequestPayload {
+    fn _presentation_request_with_case_insensitive_attribute_and_predicate()
+    -> PresentationRequestPayload {
         PresentationRequestPayload {
             requested_attributes: HashMap::from([
                 (

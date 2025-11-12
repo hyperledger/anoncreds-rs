@@ -7,13 +7,13 @@ use std::path::{Path, PathBuf};
 use rand::random;
 use sha2::{Digest, Sha256};
 
+use crate::ErrorKind;
 use crate::cl::{
     Error as ClError, ErrorKind as ClErrorKind, RevocationTailsAccessor, RevocationTailsGenerator,
     Tail,
 };
 use crate::error::Error;
 use crate::utils::base58;
-use crate::ErrorKind;
 
 const TAILS_BLOB_TAG_SZ: u8 = 2;
 const TAIL_SIZE: usize = Tail::BYTES_REPR_SIZE;

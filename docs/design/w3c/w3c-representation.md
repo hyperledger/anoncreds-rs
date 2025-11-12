@@ -55,7 +55,7 @@ Methods purpose - have to forms of credentials (probably even duplicate in walle
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_credential_to_w3c(
     cred: ObjectHandle,
     issuer_id: FfiStr,
@@ -71,7 +71,7 @@ pub extern "C" fn anoncreds_credential_to_w3c(
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_credential_from_w3c(
     cred: ObjectHandle,
     cred_p: *mut ObjectHandle,
@@ -120,7 +120,7 @@ The reasons for adding duplication methods:
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_w3c_credential(
     cred_def: ObjectHandle,
     cred_def_private: ObjectHandle,
@@ -145,7 +145,7 @@ pub extern "C" fn anoncreds_create_w3c_credential(
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_process_w3c_credential(
     cred: ObjectHandle,
     cred_req_metadata: ObjectHandle,
@@ -166,7 +166,7 @@ pub extern "C" fn anoncreds_process_w3c_credential(
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_w3c_credential_get_integrity_proof_details(
     handle: ObjectHandle,
     cred_proof_info_p: *mut ObjectHandle,
@@ -188,7 +188,7 @@ pub extern "C" fn anoncreds_w3c_credential_get_integrity_proof_details(
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_w3c_presentation(
     pres_req: ObjectHandle,
     credentials: FfiList<FfiCredentialEntry>,
@@ -219,7 +219,7 @@ pub extern "C" fn anoncreds_create_w3c_presentation(
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_verify_w3c_presentation(
     presentation: ObjectHandle,
     pres_req: ObjectHandle,

@@ -6,8 +6,6 @@ pub mod base58;
 #[cfg(feature = "w3c")]
 pub mod base64;
 
-pub mod hash;
-
 pub mod query;
 
 pub mod msg_pack;

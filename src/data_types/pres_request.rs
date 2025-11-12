@@ -2,7 +2,7 @@ use anoncreds_clsignatures::PredicateType;
 use std::collections::HashMap;
 use std::fmt;
 
-use serde::{de, ser, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de, ser};
 use serde_json::Value;
 
 use super::credential::Credential;
@@ -250,7 +250,9 @@ impl Validatable for PresentationRequest {
         let version = self.version();
 
         if value.requested_attributes.is_empty() && value.requested_predicates.is_empty() {
-            return Err(invalid!("Presentation request validation failed: both `requested_attributes` and `requested_predicates` are empty"));
+            return Err(invalid!(
+                "Presentation request validation failed: both `requested_attributes` and `requested_predicates` are empty"
+            ));
         }
 
         for requested_attribute in value.requested_attributes.values() {
@@ -270,10 +272,13 @@ impl Validatable for PresentationRequest {
             }
 
             if has_name && has_names {
-                return Err(invalid!("Presentation request validation failed: there is a requested attribute with both name and names: {:?}", requested_attribute));
+                return Err(invalid!(
+                    "Presentation request validation failed: there is a requested attribute with both name and names: {:?}",
+                    requested_attribute
+                ));
             }
 
-            if let Some(ref restrictions) = requested_attribute.restrictions {
+            if let Some(restrictions) = &requested_attribute.restrictions {
                 _process_operator(restrictions, &version)?;
             }
         }
@@ -285,7 +290,7 @@ impl Validatable for PresentationRequest {
                     requested_predicate
                 ));
             }
-            if let Some(ref restrictions) = requested_predicate.restrictions {
+            if let Some(restrictions) = &requested_predicate.restrictions {
                 _process_operator(restrictions, &version)?;
             }
         }
@@ -299,37 +304,35 @@ fn _process_operator(
     version: &PresentationRequestVersion,
 ) -> Result<(), ValidationError> {
     match restriction_op {
-        Query::Eq(ref tag_name, ref tag_value)
-        | Query::Neq(ref tag_name, ref tag_value)
-        | Query::Gt(ref tag_name, ref tag_value)
-        | Query::Gte(ref tag_name, ref tag_value)
-        | Query::Lt(ref tag_name, ref tag_value)
-        | Query::Lte(ref tag_name, ref tag_value)
-        | Query::Like(ref tag_name, ref tag_value) => {
-            _check_restriction(tag_name, tag_value, version)
-        }
-        Query::In(ref tag_name, ref tag_values) => {
+        Query::Eq(tag_name, tag_value)
+        | Query::Neq(tag_name, tag_value)
+        | Query::Gt(tag_name, tag_value)
+        | Query::Gte(tag_name, tag_value)
+        | Query::Lt(tag_name, tag_value)
+        | Query::Lte(tag_name, tag_value)
+        | Query::Like(tag_name, tag_value) => _check_restriction(tag_name, tag_value, version),
+        Query::In(tag_name, tag_values) => {
             tag_values
                 .iter()
                 .map(|tag_value| _check_restriction(tag_name, tag_value, version))
                 .collect::<Result<Vec<()>, ValidationError>>()?;
             Ok(())
         }
-        Query::Exist(ref tag_names) => {
+        Query::Exist(tag_names) => {
             tag_names
                 .iter()
                 .map(|tag_name| _check_restriction(tag_name, "", version))
                 .collect::<Result<Vec<()>, ValidationError>>()?;
             Ok(())
         }
-        Query::And(ref operators) | Query::Or(ref operators) => {
+        Query::And(operators) | Query::Or(operators) => {
             operators
                 .iter()
                 .map(|operator| _process_operator(operator, version))
                 .collect::<Result<Vec<()>, ValidationError>>()?;
             Ok(())
         }
-        Query::Not(ref operator) => _process_operator(operator, version),
+        Query::Not(operator) => _process_operator(operator, version),
     }
 }
 
@@ -342,8 +345,10 @@ fn _check_restriction(
         && Credential::QUALIFIABLE_TAGS.contains(&tag_name)
         && validation::is_uri_identifier(tag_value)
     {
-        return Err(invalid!("Presentation request validation failed: fully qualified identifiers can not be used for presentation request of the first version. \
-                    Please, set \"ver\":\"2.0\" to use fully qualified identifiers."));
+        return Err(invalid!(
+            "Presentation request validation failed: fully qualified identifiers can not be used for presentation request of the first version. \
+                    Please, set \"ver\":\"2.0\" to use fully qualified identifiers."
+        ));
     }
     Ok(())
 }

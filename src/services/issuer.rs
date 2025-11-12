@@ -56,9 +56,7 @@ pub fn create_schema(
 ) -> Result<Schema> {
     trace!(
         "create_schema >>> schema_name: {}, schema_version: {}, attr_names: {:?}",
-        schema_name,
-        schema_version,
-        attr_names,
+        schema_name, schema_version, attr_names,
     );
 
     let schema = Schema {
@@ -128,8 +126,7 @@ pub fn create_credential_definition(
 )> {
     trace!(
         "create_credential_definition >>> schema: {:?}, config: {:?}",
-        schema,
-        config
+        schema, config
     );
 
     let credential_schema = build_credential_schema(schema)?;
@@ -237,8 +234,10 @@ pub fn create_revocation_registry_def<TW>(
 where
     TW: TailsWriter,
 {
-    trace!("create_revocation_registry >>> cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}",
-             cred_def, tag, max_cred_num, rev_reg_type);
+    trace!(
+        "create_revocation_registry >>> cred_def: {:?}, tag: {:?}, max_cred_num: {:?}, rev_reg_type: {:?}",
+        cred_def, tag, max_cred_num, rev_reg_type
+    );
 
     let credential_pub_key = cred_def.get_public_key().map_err(err_map!(
         Unexpected,
@@ -708,10 +707,16 @@ pub fn create_credential(
     cred_values: CredentialValues,
     revocation_config: Option<CredentialRevocationConfig>,
 ) -> Result<Credential> {
-    trace!("create_credential >>> cred_def: {:?}, cred_def_private: {:?}, cred_offer.nonce: {:?}, cred_request: {:?},\
+    trace!(
+        "create_credential >>> cred_def: {:?}, cred_def_private: {:?}, cred_offer.nonce: {:?}, cred_request: {:?},\
             cred_values: {:?}, revocation_config: {:?}",
-            cred_def, secret!(&cred_def_private), &cred_offer.nonce, &cred_request, secret!(&cred_values), revocation_config,
-            );
+        cred_def,
+        secret!(&cred_def_private),
+        &cred_offer.nonce,
+        &cred_request,
+        secret!(&cred_values),
+        revocation_config,
+    );
 
     let (credential_signature, signature_correctness_proof, rev_reg_id, rev_reg, witness) =
         CLCredentialIssuer::new(cred_def, cred_def_private).create_credential(
@@ -857,8 +862,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_issuer_id_equal_in_revocation_registry_definiton_and_credential_definition(
-    ) -> Result<()> {
+    fn test_issuer_id_equal_in_revocation_registry_definiton_and_credential_definition()
+    -> Result<()> {
         let issuer_id = "sample:uri".try_into()?;
         let schema_id = "schema:id".try_into()?;
         let cred_def_id = "sample:uri".try_into()?;

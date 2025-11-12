@@ -1,5 +1,5 @@
 use crate::data_types::w3c::VerifiableCredentialSpecVersion;
-use ffi_support::{rust_string_to_c, FfiStr};
+use ffi_support::{FfiStr, rust_string_to_c};
 use std::ffi::c_char;
 use std::ptr;
 
@@ -7,8 +7,8 @@ use crate::data_types::w3c::credential::W3CCredential;
 use crate::data_types::w3c::credential_attributes::CredentialSubject;
 use crate::data_types::w3c::proof::CredentialProofDetails;
 use crate::error::Result;
-use crate::ffi::credential::{FfiCredRevInfo, _link_secret, _revocation_config};
-use crate::ffi::error::{catch_error, ErrorCode};
+use crate::ffi::credential::{_link_secret, _revocation_config, FfiCredRevInfo};
+use crate::ffi::error::{ErrorCode, catch_error};
 use crate::ffi::object::{AnoncredsObject, ObjectHandle};
 use crate::ffi::util::FfiStrList;
 use crate::types::Credential;
@@ -35,7 +35,7 @@ impl_anoncreds_object_from_json!(W3CCredential, anoncreds_w3c_credential_from_js
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_create_w3c_credential(
     cred_def: ObjectHandle,
     cred_def_private: ObjectHandle,
@@ -89,7 +89,7 @@ pub extern "C" fn anoncreds_create_w3c_credential(
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_process_w3c_credential(
     cred: ObjectHandle,
     cred_req_metadata: ObjectHandle,
@@ -131,7 +131,7 @@ pub extern "C" fn anoncreds_process_w3c_credential(
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_credential_to_w3c(
     cred: ObjectHandle,
     issuer_id: FfiStr,
@@ -168,7 +168,7 @@ pub extern "C" fn anoncreds_credential_to_w3c(
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_credential_from_w3c(
     cred: ObjectHandle,
     cred_p: *mut ObjectHandle,
@@ -198,7 +198,7 @@ pub extern "C" fn anoncreds_credential_from_w3c(
 ///
 /// # Returns
 /// Error code
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_w3c_credential_get_integrity_proof_details(
     handle: ObjectHandle,
     cred_proof_info_p: *mut ObjectHandle,
@@ -215,7 +215,7 @@ pub extern "C" fn anoncreds_w3c_credential_get_integrity_proof_details(
     })
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn anoncreds_w3c_credential_proof_get_attribute(
     handle: ObjectHandle,
     name: FfiStr,
