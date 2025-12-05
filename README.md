@@ -1,9 +1,9 @@
 # anoncreds-rs
 
-Rust library and reference implementation of the [Anoncreds V1.0
-specification](https://hyperledger.github.io/anoncreds-spec/).
+Rust library and reference implementation of the [AnonCreds V1.0
+specification](https://anoncreds.github.io/anoncreds-spec/).
 
-<p float="left"> <a href="https://scorecard.dev/viewer/?uri=github.com/hyperledger/anoncreds-rs"><img src="https://api.scorecard.dev/projects/github.com/hyperledger/anoncreds-rs/badge" /> </p>
+<p float="left"> <a href="https://scorecard.dev/viewer/?uri=github.com/anoncreds/anoncreds-rs"><img src="https://api.scorecard.dev/projects/github.com/anoncreds/anoncreds-rs/badge" /> </p>
 
 The AnonCreds (Anonymous Credentials) specification is based on the open source
 verifiable credential implementation of AnonCreds that has been in use since
@@ -20,26 +20,26 @@ Anoncreds-rs exposes three main parts: [`issuer`](./src/services/issuer.rs),
 
 ### Issuer
 
--   Create a [schema](https://hyperledger.github.io/anoncreds-spec/#schema-publisher-publish-schema-object)
--   Create a [credential definition](https://hyperledger.github.io/anoncreds-spec/#issuer-create-and-publish-credential-definition-object)
--   Create a [revocation registry definition](https://hyperledger.github.io/anoncreds-spec/#issuer-create-and-publish-revocation-registry-objects)
--   Create a [revocation status list](https://hyperledger.github.io/anoncreds-spec/#publishing-the-initial-initial-revocation-status-list-object)
--   Update a [revocation status list](https://hyperledger.github.io/anoncreds-spec/#publishing-the-initial-initial-revocation-status-list-object)
--   Update a [revocation status list](https://hyperledger.github.io/anoncreds-spec/#publishing-the-initial-initial-revocation-status-list-object)'s timestamp
--   Create a [credential offer](https://hyperledger.github.io/anoncreds-spec/#credential-offer)
--   Create a [credential](https://hyperledger.github.io/anoncreds-spec/#issue-credential)
+-   Create a [schema](https://anoncreds.github.io/anoncreds-spec/#schema-publisher-publish-schema-object)
+-   Create a [credential definition](https://anoncreds.github.io/anoncreds-spec/#issuer-create-and-publish-credential-definition-object)
+-   Create a [revocation registry definition](https://anoncreds.github.io/anoncreds-spec/#issuer-create-and-publish-revocation-registry-objects)
+-   Create a [revocation status list](https://anoncreds.github.io/anoncreds-spec/#publishing-the-initial-initial-revocation-status-list-object)
+-   Update a [revocation status list](https://anoncreds.github.io/anoncreds-spec/#publishing-the-initial-initial-revocation-status-list-object)
+-   Update a [revocation status list](https://anoncreds.github.io/anoncreds-spec/#publishing-the-initial-initial-revocation-status-list-object)'s timestamp
+-   Create a [credential offer](https://anoncreds.github.io/anoncreds-spec/#credential-offer)
+-   Create a [credential](https://anoncreds.github.io/anoncreds-spec/#issue-credential)
 
 ### Prover / Holder
 
--   Create a [credential request](https://hyperledger.github.io/anoncreds-spec/#credential-request)
--   Process an incoming [credential](https://hyperledger.github.io/anoncreds-spec/#receiving-a-credential)
--   Create a [presentation](https://hyperledger.github.io/anoncreds-spec/#generate-presentation)
+-   Create a [credential request](https://anoncreds.github.io/anoncreds-spec/#credential-request)
+-   Process an incoming [credential](https://anoncreds.github.io/anoncreds-spec/#receiving-a-credential)
+-   Create a [presentation](https://anoncreds.github.io/anoncreds-spec/#generate-presentation)
 -   Create, and update, a revocation state
 -   Create, and update, a revocation state with a witness
 
 ### Verifier
 
--   [Verify a presentation](https://hyperledger.github.io/anoncreds-spec/#verify-presentation)
+-   [Verify a presentation](https://anoncreds.github.io/anoncreds-spec/#verify-presentation)
 -   generate a nonce
 
 ## Wrappers
@@ -48,9 +48,9 @@ Anoncreds is, soon, available as a standalone library in Rust, but also via wrap
 
 | Language     | Location                                                                                                            | Status |
 | ------------ | ------------------------------------------------------------------------------------------------------------------- | ------ |
-| Node.js      | [javascript](https://github.com/hyperledger/anoncreds-wrapper-javascript/tree/main/packages/anoncreds-nodejs)       | ✅     |
-| React Native | [javascript](https://github.com/hyperledger/anoncreds-wrapper-javascript/tree/main/packages/anoncreds-react-native) | ✅     |
-| Python       | [python](https://github.com/hyperledger/anoncreds-rs/tree/main/wrappers/python)                                     | ✅     |
+| Node.js      | [javascript](https://github.com/anoncreds/anoncreds-wrapper-javascript/tree/main/packages/anoncreds-nodejs)       | ✅     |
+| React Native | [javascript](https://github.com/anoncreds/anoncreds-wrapper-javascript/tree/main/packages/anoncreds-react-native) | ✅     |
+| Python       | [python](https://github.com/anoncreds/anoncreds-rs/tree/main/wrappers/python)                                     | ✅     |
 
 ## Credit
 
@@ -64,7 +64,7 @@ British Columbia, please go to [https://vonx.io](https://vonx.io).
 ## Contributing
 
 Pull requests are welcome! Please read our [contributions
-guide](https://github.com/hyperledger/anoncreds-rs/blob/main/CONTRIBUTING.md)
+guide](https://github.com/anoncreds/anoncreds-rs/blob/main/CONTRIBUTING.md)
 and submit your PRs. We enforce [developer certificate of
 origin](https://developercertificate.org/) (DCO) commit signing. See guidance
 [here](https://github.com/apps/dco).
@@ -75,4 +75,4 @@ We also welcome issues submitted about problems you encounter in using
 ## License
 
 [Apache License Version
-2.0](https://github.com/hyperledger/anoncreds-rs/blob/main/LICENSE)
+2.0](https://github.com/anoncreds/anoncreds-rs/blob/main/LICENSE)
