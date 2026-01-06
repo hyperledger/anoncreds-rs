@@ -19,7 +19,7 @@ if __name__ == "__main__":
         author_email="anoncreds@lists.hyperledger.org",
         long_description=long_description,
         long_description_content_type="text/markdown",
-        url="https://github.com/hyperledger/anoncreds-rs",
+        url="https://github.com/anoncreds/anoncreds-rs",
         packages=find_packages(),
         include_package_data=True,
         package_data={
