@@ -1,19 +1,19 @@
 # Maintainers
 
-This file defines the Maintainers processes (adding, removing) and duties for all repositories in the Hyperledger AnonCreds Project,
+This file defines the Maintainers processes (adding, removing) and duties for all repositories in the LF Decentralized Trust AnonCreds Project,
 as well as the list of Maintainers for this repository. "Maintainers" are defined as any individuals with escalated GitHub privileges above
-"READ" in Hyperledger AnonCreds repositories. Maintainers **MUST** abide by the Hyperledger AnonCreds Project Charter.
+"READ" in AnonCreds repositories. Maintainers **MUST** abide by the AnonCreds Project Charter.
 
-All other Hyperledger AnonCreds Project repository MAINTAINERS.md files point to this file.
+All other AnonCreds Project repository MAINTAINERS.md files point to this file.
 
 ## Maintainers for this Repository
 
 Maintainers for this repository are listed in the [Access Control YAML file].
 Search in the file for this repository.
 
-[Access Control YAML file]: https://github.com/hyperledger/governance/blob/main/access-control.yaml
+[Access Control YAML file]: https://github.com/anoncreds/governance/blob/main/config.yaml
 
-## The Duties of a Hyperledger AnonCreds Maintainers
+## The Duties of an AnonCreds Maintainers
 
 Maintainers are expected to fulfill the following responsibilities for the repositories they oversee. The duties are listed in more or less priority order:
 
@@ -31,12 +31,12 @@ Maintainers are expected to fulfill the following responsibilities for the repos
 - Maintain the repository CONTRIBUTING.md file and getting started documents to
   give guidance and encouragement to those wanting to contribute to the product, and those wanting to become maintainers.
 - Contribute to the product via GitHub Pull Requests.
-- Monitor requests from the Hyperledger Technical Oversight Committee about the
-contents and management of Hyperledger repositories, such as branch handling,
+- Monitor requests from the LF Decentralized Trust TAC about the
+contents and management of LF Decentralized Trust repositories, such as branch handling,
 required files in repositories and so on.
-- Contribute to the Hyperledger Project's Quarterly Report.
+- Contribute to the AnonCreds Project's Quarterly Report.
 
-## Becoming a Hyperledger AnonCreds Maintainer
+## Becoming an AnonCreds Maintainer
 
 This community welcomes contributions. Interested contributors are encouraged to
 progress to become maintainers. To become a maintainer the following steps
@@ -56,7 +56,7 @@ occur, roughly in order.
   - At least three (3) TSC or project Maintainers approve the PR or provide an approval comment on the PR.
 - If the PR does not get the requisite PR approvals, it may be closed.
 
-## Removing Hyperledger AnonCreds Maintainers
+## Removing AnonCreds Maintainers
 
 Being a maintainer is not a status symbol or a title to be carried
 indefinitely. It will occasionally be necessary and appropriate to move a
@@ -76,7 +76,7 @@ The process to remove a maintainer from active status is comparable to the proce
 resignation, the Pull Request can be merged following a maintainer PR approval. If the removal is for any other reason, the following steps **SHOULD** be followed:
 
 - A PR is created to update the [Access Control YAML file] to remove the maintainer from the appropriate teams.
-- The PR is authored by, or has a comment supporting the proposal from, an existing maintainer or Hyperledger GitHub organization administrator.
+- The PR is authored by, or has a comment supporting the proposal from, an existing maintainer or AnonCreds GitHub organization administrator.
 - Once the PR and necessary comments have been received, the approval timeframe begins.
 - The PR **MAY** be communicated on appropriate communication channels, including relevant community calls, chat channels and mailing lists.
 - The PR is merged and the maintainer is removed if:
